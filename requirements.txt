@@ -1,0 +1,28 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+websockets
+
+# MQTT (Async)
+aiomqtt
+
+# Database
+sqlalchemy
+psycopg2-binary
+
+# Data Processing
+numpy
+pandas
+scipy
+
+# ML & Signal Processing
+scikit-learn
+joblib
+tensorflow
+neurokit2
+PyWavelets
+
+# Optional: If you need additional features
+python-multipart
+jinja2
+python-dotenv
