@@ -35,7 +35,7 @@ import tensorflow as tf
 
 from database import SessionLocal, init_db
 from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 
 # ==================================================================
 # Configuration
@@ -80,6 +80,7 @@ class DeviceState:
 device_states: Dict[str, DeviceState] = {}
 websocket_connections: Dict[str, Set[WebSocket]] = defaultdict(set)
 broadcast_connections: Set[WebSocket] = set()
+ws_device_map: Dict[WebSocket, str] = {}
 
 # Batch buffers
 raw_data_batch = []
@@ -113,9 +114,6 @@ except Exception as e:
 # ==================================================================
 VREF, GAIN, RESOLUTION = 2.42, 200, 24
 LSB_SIZE = VREF / (2**RESOLUTION - 1)
-
-def convert_to_millivolts(adc_value):
-    return adc_value * LSB_SIZE * 1000.0 / GAIN
 
 def apply_dsp_filters(ecgmv, Fs):
     detr_ecg = scipy.signal.detrend(ecgmv, axis=-1, type='linear', bp=0, overwrite_data=False)
@@ -177,7 +175,6 @@ async def process_mqtt_message(message):
     try:
         # Ignore retained messages
         if hasattr(message, 'retain') and message.retain:
-            print(f"[MQTT] Ignoring retained message from topic: {message.topic}")
             return
         
         topic_parts = message.topic.value.split('/')
@@ -270,6 +267,9 @@ async def process_mqtt_message(message):
         if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
             state.lost_packets += packet_counter - (state.last_packet_num + 1)
         state.last_packet_num = packet_counter
+
+        has_viewers = len(websocket_connections[device_id]) > 0
+        should_store = state.is_recording or has_viewers
         
         if state.total_packets % 10 == 0:
             total_received = state.total_packets - state.lost_packets
@@ -290,42 +290,51 @@ async def process_mqtt_message(message):
             await broadcast_to_device(device_id, "performance_update", perf_data)
             
             # Batch for database
-            async with batch_lock:
-                perf_data_batch.append({
-                    "timestamp": datetime.now(timezone.utc),
-                    "device_id": device_id,
-                    "recording_id": state.recording_id,
-                    "packet_counter": int(packet_counter),
-                    "latency_ms": float(latency_ms),
-                    "jitter_ms": jitter,
-                    "lost_packets_cumulative": int(state.lost_packets),
-                    "packet_loss_pct_cumulative": float(packet_loss_pct),
-                })
+            if should_store:
+                async with batch_lock:
+                    perf_data_batch.append({
+                        "timestamp": datetime.now(timezone.utc),
+                        "device_id": device_id,
+                        # Use None if just viewing (Temporary), UUID if recording (Permanent)
+                        "recording_id": state.recording_id if state.is_recording else None,
+                        "packet_counter": int(packet_counter),
+                        "latency_ms": float(latency_ms),
+                        "jitter_ms": jitter,
+                        "lost_packets_cumulative": int(state.lost_packets),
+                        "packet_loss_pct_cumulative": float(packet_loss_pct),
+                    })
         
         # Recording - store RAW ADC values in database
-        if state.is_recording:
-            state.samples_collected += 1
+        if should_store:
+            # If recording, count samples for the progress bar
+            if state.is_recording:
+                state.samples_collected += 1
             
             async with batch_lock:
                 raw_data_batch.append({
                     "timestamp": datetime.now(timezone.utc),
                     "device_id": device_id,
-                    "recording_id": state.recording_id,
-                    "subject_id": state.subject_id,
+                    # Use None if just viewing (Temporary)
+                    "recording_id": state.recording_id if state.is_recording else None,
+                    "subject_id": state.subject_id if state.is_recording else None,
                     "lead_I": raw_adc_values['lead_I'],
                     "lead_II": raw_adc_values['lead_II'],
-                    "v1": raw_adc_values['v1']
+                    "v1": raw_adc_values['v1'],
+                    "cal_mv_lead_I": cal_mv_values['lead_I'],
+                    "cal_mv_lead_II": cal_mv_values['lead_II'],
+                    "cal_mv_v1": cal_mv_values['v1']
                 })
             
-            if state.samples_collected % 25 == 0:
-                await broadcast_to_device(device_id, "progress_update", {
-                    "device_id": device_id,
-                    "current": state.samples_collected,
-                    "total": BUFFER_SIZE
-                })
-            
-            if state.samples_collected >= BUFFER_SIZE:
-                await stop_recording(device_id)
+            if state.is_recording:
+                if state.samples_collected % 25 == 0:
+                    await broadcast_to_device(device_id, "progress_update", {
+                        "device_id": device_id,
+                        "current": state.samples_collected,
+                        "total": BUFFER_SIZE
+                    })
+                
+                if state.samples_collected >= BUFFER_SIZE:
+                    await stop_recording(device_id)
                 
     except Exception as e:
         print(f"[MQTT] Error processing message: {e}")
@@ -336,35 +345,36 @@ async def process_mqtt_message(message):
 # Database Tasks (Batched)
 # ==================================================================
 async def db_batch_inserter():
-    """Batch insert to database every second"""
+    """Batch insert to database with improved session handling"""
     while True:
         await asyncio.sleep(1)
         
+        # --- 1. Process Raw Data ---
         async with batch_lock:
-            if raw_data_batch:
-                items = raw_data_batch.copy()
-                raw_data_batch.clear()
-            else:
-                items = []
+            items = raw_data_batch.copy()
+            raw_data_batch.clear()
         
         if items:
+            # Create a NEW session for this batch only
             db = SessionLocal()
             try:
-                records = [ECGRaw3Lead(**item) for item in items]
-                db.bulk_save_objects(records)
-                db.commit()
+                # Insert in chunks of 1000 to prevent packet size errors
+                chunk_size = 1000
+                for i in range(0, len(items), chunk_size):
+                    chunk = items[i:i + chunk_size]
+                    records = [ECGRaw3Lead(**item) for item in chunk]
+                    db.bulk_save_objects(records)
+                    db.commit() # Commit small chunks
             except Exception as e:
                 db.rollback()
                 print(f"[DB] Error inserting raw data: {e}")
             finally:
-                db.close()
+                db.close() # Close immediately
         
+        # --- 2. Process Performance Data ---
         async with batch_lock:
-            if perf_data_batch:
-                perf_items = perf_data_batch.copy()
-                perf_data_batch.clear()
-            else:
-                perf_items = []
+            perf_items = perf_data_batch.copy()
+            perf_data_batch.clear()
         
         if perf_items:
             db = SessionLocal()
@@ -378,22 +388,80 @@ async def db_batch_inserter():
             finally:
                 db.close()
 
+def _execute_db_purge(device_id: str):
+    """Blocking DB operation to be run in a separate thread"""
+    db = SessionLocal()
+    try:
+        # Delete Raw Data where recording_id is NULL
+        db.query(ECGRaw3Lead).filter(
+            ECGRaw3Lead.device_id == device_id,
+            ECGRaw3Lead.recording_id.is_(None)
+        ).delete(synchronize_session=False)
+
+        # Delete Performance Metrics where recording_id is NULL
+        db.query(ECGPerformanceMetrics3Lead).filter(
+            ECGPerformanceMetrics3Lead.device_id == device_id
+        ).delete(synchronize_session=False)
+
+        db.commit()
+        print(f"[PURGE] DB data cleared for {device_id}")
+    except Exception as e:
+        db.rollback()
+        print(f"[PURGE] Error clearing DB for {device_id}: {e}")
+    finally:
+        db.close()
+
+async def purge_temporary_data(device_id: str):
+    """
+    1. Clears IN-MEMORY buffers (fixes the 1s ghost data).
+    2. Clears DATABASE tables.
+    """
+    print(f"[PURGE] Starting cleanup for {device_id}...")
+
+    # --- STEP 1: Wipe the RAM Buffer (The Fix) ---
+    # We remove any data for this device that doesn't have a recording ID
+    async with batch_lock:
+        global raw_data_batch, perf_data_batch
+        
+        # Filter raw_data_batch: Keep item ONLY if it's (Other Device) OR (Has Recording ID)
+        original_count = len(raw_data_batch)
+        raw_data_batch[:] = [
+            item for item in raw_data_batch 
+            if item['device_id'] != device_id or item['recording_id'] is not None
+        ]
+        removed_count = original_count - len(raw_data_batch)
+
+        # Filter perf_data_batch
+        perf_data_batch[:] = [
+            item for item in perf_data_batch 
+            if item['device_id'] != device_id
+        ]
+        
+    if removed_count > 0:
+        print(f"[PURGE] Wiped {removed_count} buffered items from RAM to prevent leak.")
+
+    # --- STEP 2: Wipe the Database ---
+    await asyncio.to_thread(_execute_db_purge, device_id)
+
 # ==================================================================
 # Device Monitoring
 # ==================================================================
 async def device_monitor():
-    """Monitor device connections"""
+    """Monitor device connections and purge data if device dies"""
     while True:
         await asyncio.sleep(2)
         
         now = time.time()
         timed_out = []
         
+        # Check every active device
         for device_id, state in list(device_states.items()):
             time_since_seen = now - state.last_seen
+            
+            # Allow longer timeout if currently recording
             timeout = DEVICE_TIMEOUT_S * 5 if state.is_recording else DEVICE_TIMEOUT_S
             
-            # Update connection status
+            # 1. Update Connection Status (Visual only)
             if time_since_seen > 5.0:
                 if state.is_connected:
                     state.is_connected = False
@@ -403,23 +471,44 @@ async def device_monitor():
                         "time_since_last_seen": time_since_seen
                     })
             
-            # Remove timed out devices
+            # 2. Handle Actual Timeout (Device Disconnected)
             if time_since_seen > timeout:
                 if state.total_packets > 5 or state.is_recording:
-                    print(f"[TIMEOUT] Device {device_id} timed out after {time_since_seen:.1f}s (packets: {state.total_packets})")
+                    print(f"[TIMEOUT] Device {device_id} timed out after {time_since_seen:.1f}s")
                 
+                # Handle active recordings gracefully
                 if state.is_recording:
-                    print(f"[CRITICAL] Device {device_id} lost during recording")
+                    print(f"[CRITICAL] Device {device_id} lost during recording. Saving what we have...")
                     if state.samples_collected > 100:
                         asyncio.create_task(run_analysis_pipeline(
                             state.recording_id, state.subject_id, device_id
                         ))
                 
+                # [NEW] PURGE Logic for Device Timeout
+                # If the device dies, we wipe any temporary (non-recorded) data immediately.
+                print(f"[AUTO] Purging temporary data for disconnected device: {device_id}")
+                await purge_temporary_data(device_id)
+                
                 timed_out.append(device_id)
         
+        # 3. Cleanup Internal Lists
         if timed_out:
             for device_id in timed_out:
-                del device_states[device_id]
+                # Remove from state tracker
+                if device_id in device_states:
+                    del device_states[device_id]
+                
+                # Remove from websocket listeners (disconnect viewers)
+                if device_id in websocket_connections:
+                    # Notify viewers that device is gone
+                    await broadcast_to_device(device_id, "device_status_update", {
+                        "device_id": device_id, 
+                        "is_connected": False,
+                        "status": "Offline" 
+                    })
+                    del websocket_connections[device_id]
+
+            # Update the dropdown list for all users
             await broadcast_device_list()
 
         await broadcast_global_performance()
@@ -474,31 +563,73 @@ async def websocket_endpoint(websocket: WebSocket):
             await handle_websocket_message(websocket, data)
             
     except WebSocketDisconnect:
+        # Handle Disconnect with Purge Logic
         broadcast_connections.discard(websocket)
-        for connections in websocket_connections.values():
-            connections.discard(websocket)
+        
+        # Check which device they were watching
+        if websocket in ws_device_map:
+            old_device = ws_device_map[websocket]
+            
+            # Remove from device listeners
+            if websocket in websocket_connections[old_device]:
+                websocket_connections[old_device].remove(websocket)
+            
+            # If no one is left watching that device, PURGE temporary data
+            if not websocket_connections[old_device]:
+                # Run purge in a separate thread to avoid blocking the async loop
+                await purge_temporary_data(old_device)
+            
+            # Cleanup map
+            del ws_device_map[websocket]
+            
+    except Exception as e:
+        print(f"[WS] Error: {e}")
+        broadcast_connections.discard(websocket)
 
 async def handle_websocket_message(websocket: WebSocket, data: dict):
     """Handle incoming WebSocket messages"""
     msg_type = data.get("type")
     
     if msg_type == "subscribe_to_device":
-        device_id = data.get("device_id")
-        if device_id:
-            websocket_connections[device_id].add(websocket)
-            if device_id in device_states:
-                state = device_states[device_id]
+        new_device_id = data.get("device_id")
+        
+        # 1. ALWAYS Unsubscribe from the old device first
+        if websocket in ws_device_map:
+            old_device = ws_device_map[websocket]
+            
+            # Remove from the listener list
+            if websocket in websocket_connections[old_device]:
+                websocket_connections[old_device].remove(websocket)
+            
+            # CHECK: If no one is listening anymore, PURGE the temporary data
+            if not websocket_connections[old_device]:
+                print(f"[AUTO] No viewers left for {old_device}. Purging temporary data.")
+                await purge_temporary_data(old_device)
+            
+            # Clear the map entry
+            del ws_device_map[websocket]
+        
+        # 2. Subscribe to New Device (only if not empty)
+        if new_device_id:
+            # Update global map
+            ws_device_map[websocket] = new_device_id
+            websocket_connections[new_device_id].add(websocket)
+            
+            if new_device_id in device_states:
+                state = device_states[new_device_id]
+                # Send current state
                 await websocket.send_json({
                     "type": "state_update",
-                    "device_id": device_id,
+                    "device_id": new_device_id,
                     "is_recording": state.is_recording,
                     "status_message": state.status_message,
                     "recording_id": state.recording_id,
                     "subject_id": state.subject_id
                 })
+                # Send connection status
                 await websocket.send_json({
                     "type": "device_status_update",
-                    "device_id": device_id,
+                    "device_id": new_device_id,
                     "is_connected": state.is_connected,
                     "time_since_last_seen": time.time() - state.last_seen if not state.is_connected else 0
                 })
@@ -838,9 +969,9 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
             'device_id': row.device_id,
             'recording_id': row.recording_id,
             'subject_id': row.subject_id,
-            'lead_I': row.lead_I,
-            'lead_II': row.lead_II,
-            'v1': row.v1
+            'lead_I': row.cal_mv_lead_I,
+            'lead_II': row.cal_mv_lead_II,
+            'v1': row.cal_mv_v1
         } for row in rows])
 
         if len(df) < 500:
@@ -863,9 +994,8 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
         # 2. Proses Channel II (Lead II) untuk RR, PR, QS, QT, BPM
         try:
             print(f"[{device_id}] Memproses Lead II...")
-            ecg_adc_ii = df['lead_II'].fillna(0).values.astype(float)
-            ecgmv_ii = convert_to_millivolts(ecg_adc_ii)
-            y_filt_ii = apply_dsp_filters(ecgmv_ii, Fs)
+            ecg_mv_ii = df['lead_II'].fillna(0).values
+            y_filt_ii = apply_dsp_filters(ecg_mv_ii, Fs)
             
             _, rpeaks_ii_raw = nk.ecg_peaks(y_filt_ii, sampling_rate=Fs)
             _, waves_dwt_ii_raw = nk.ecg_delineate(y_filt_ii, rpeaks_ii_raw, sampling_rate=Fs, method="dwt")
@@ -974,9 +1104,8 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
         # 3. Proses Channel I (Lead I) untuk ST Interval
         try:
             print(f"[{device_id}] Memproses Lead I...")
-            ecg_adc_i = df['lead_I'].fillna(0).values.astype(float)
-            ecgmv_i = convert_to_millivolts(ecg_adc_i)
-            y_filt_i = apply_dsp_filters(ecgmv_i, Fs)
+            ecg_mv_i = df['lead_I'].fillna(0).values
+            y_filt_i = apply_dsp_filters(ecg_mv_i, Fs)
             
             _, rpeaks_i_raw = nk.ecg_peaks(y_filt_i, sampling_rate=Fs)
             _, waves_dwt_i_raw = nk.ecg_delineate(y_filt_i, rpeaks_i_raw, sampling_rate=Fs, method="dwt")
@@ -1014,9 +1143,8 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
         # 4. Proses Channel V1 (Lead V1) untuk R/S Ratio
         try:
             print(f"[{device_id}] Memproses Lead V1...")
-            ecg_adc_v1 = df['v1'].fillna(0).values.astype(float)
-            ecgmv_v1 = convert_to_millivolts(ecg_adc_v1)
-            y_filt_v1 = apply_dsp_filters(ecgmv_v1, Fs)
+            ecg_mv_v1 = df['v1'].fillna(0).values
+            y_filt_v1 = apply_dsp_filters(ecg_mv_v1, Fs)
             
             _, rpeaks_v1_raw = nk.ecg_peaks(y_filt_v1, sampling_rate=Fs)
             _, waves_dwt_v1_raw = nk.ecg_delineate(y_filt_v1, rpeaks_v1_raw, sampling_rate=Fs, method="dwt")
@@ -1072,7 +1200,14 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
             device_id=device_id,
             recording_id=recording_id,
             subject_id=subject_id,
-            classification=classification
+            classification=classification,
+            RR_avg=float(RR_avg),
+            PR_avg=float(PR_avg),
+            QS_avg=float(QS_avg),
+            QTc_avg=float(QTc_avg),
+            ST_avg=float(ST_avg),
+            RS_ratio_V1=float(RS_ratio_V1),
+            bpm=float(bpm)
         )
         db.add(classification_record)
         db.commit()
@@ -1091,7 +1226,14 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
                 device_id=device_id,
                 recording_id=recording_id,
                 subject_id=subject_id,
-                classification="Error Analisis Sistem"
+                classification="Error Analisis Sistem",
+                RR_avg=float(RR_avg),
+                PR_avg=float(PR_avg),
+                QS_avg=float(QS_avg),
+                QTc_avg=float(QTc_avg),
+                ST_avg=float(ST_avg),
+                RS_ratio_V1=float(RS_ratio_V1),
+                bpm=float(bpm)
             )
             db.add(error_record)
             db.commit()
@@ -1102,7 +1244,6 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
             
     finally:
         db.close()
-
 
 # ==================================================================
 # Helper for Broadcasting to All Clients
@@ -1181,7 +1322,10 @@ async def download_raw_data(recording_id: str):
             'subject_id': row.subject_id,
             'lead_I': row.lead_I,
             'lead_II': row.lead_II,
-            'v1': row.v1
+            'v1': row.v1,
+            'cal_mv_lead_I': row.cal_mv_lead_I,
+            'cal_mv_lead_II': row.cal_mv_lead_II,
+            'cal_mv_v1': row.cal_mv_v1
         } for row in rows])
 
         csv_data = df.to_csv(index=False)
@@ -1198,48 +1342,48 @@ async def download_raw_data(recording_id: str):
     finally:
         db.close()
 
-# @app.get("/api/download/features/{recording_id}", response_class=StreamingResponse)
-# async def download_feature_data(recording_id: str):
-#     """Re-run analysis pipeline to generate and download feature data as CSV."""
-#     db = SessionLocal()
-#     try:
-#         classification_record = db.query(ECGClassification3Lead).filter(
-#             ECGClassification3Lead.recording_id == recording_id
-#         ).first()
+@app.get("/api/download/feature/{recording_id}", response_class=StreamingResponse)
+async def download_feature_data(recording_id: str):
+    """Re-run analysis pipeline to generate and download feature data as CSV."""
+    db = SessionLocal()
+    try:
+        classification_record = db.query(ECGClassification3Lead).filter(
+            ECGClassification3Lead.recording_id == recording_id
+        ).first()
 
-#         if not classification_record:
-#             return JSONResponse(content={"message": "Feature data not available. Run analysis first."}, status_code=404)
+        if not classification_record:
+            return JSONResponse(content={"message": "Feature data not available. Run analysis first."}, status_code=404)
 
-#         # Ganti dengan kolom fitur yang sebenarnya jika Anda menyimpannya ke DB!
-#         feature_data = {
-#             'recording_id': recording_id,
-#             'subject_id': classification_record.subject_id,
-#             'classification_result': classification_record.classification,
-#             # Contoh kolom fitur yang harusnya diisi
-#             'RR_avg_ms': 'Data Not Stored',
-#             'PR_avg_ms': 'Data Not Stored',
-#             'QS_avg_ms': 'Data Not Stored',
-#             'QTc_avg_ms': 'Data Not Stored',
-#             'ST_avg_ms': 'Data Not Stored',
-#             'RS_ratio_V1': 'Data Not Stored',
-#             'BPM': 'Data Not Stored',
-#         }
+        # Ganti dengan kolom fitur yang sebenarnya jika Anda menyimpannya ke DB!
+        feature_data = {
+            'recording_id': recording_id,
+            'subject_id': classification_record.subject_id,
+            'classification_result': classification_record.classification,
+            # Contoh kolom fitur yang harusnya diisi
+            'RR_avg': classification_record.RR_avg,
+            'PR_avg': classification_record.PR_avg,
+            'QS_avg': classification_record.QS_avg,
+            'QTc_avg': classification_record.QTc_avg,
+            'ST_avg': classification_record.ST_avg,
+            'RS_ratio_V1': classification_record.RS_ratio_V1,
+            'BPM': classification_record.bpm,
+        }
         
-#         df = pd.DataFrame([feature_data])
+        df = pd.DataFrame([feature_data])
 
-#         csv_data = df.to_csv(index=False)
-#         filename = f"ecg_features_data_{recording_id}.csv"
+        csv_data = df.to_csv(index=False)
+        filename = f"ecg_features_data_{recording_id}.csv"
         
-#         return StreamingResponse(
-#             iter([csv_data]),
-#             media_type="text/csv",
-#             headers={"Content-Disposition": f"attachment; filename={filename}"}
-#         )
-#     except Exception as e:
-#         print(f"[API] Error feature data download: {e}")
-#         return JSONResponse(content={"message": f"Server error: {e}"}, status_code=500)
-#     finally:
-#         db.close()
+        return StreamingResponse(
+            iter([csv_data]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        print(f"[API] Error feature data download: {e}")
+        return JSONResponse(content={"message": f"Server error: {e}"}, status_code=500)
+    finally:
+        db.close()
 
 # ==================================================================
 # Startup

@@ -110,7 +110,7 @@
 <body>
 <div class="container">
     <header>
-        <h1>ECG Live Platform (FastAPI + WebSocket)</h1>
+        <h1>ECG Live Platform</h1>
     </header>
     
     <div class="row">
@@ -224,7 +224,8 @@
                 
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
                     <button id="download-raw" disabled style="background-color: #238636; color: white;">Download Raw Data (CSV)</button>
-                    <button id="download-chart" disabled>Download Live Chart (PNG)*</button>
+                    <button id="download-feature" disabled style="background-color: #238636; color: white;">Download Feature Data (CSV)</button>
+                    <!-- <button id="download-chart" disabled>Download Live Chart (PNG)*</button> -->
                 </div>
             </div>
             
@@ -286,7 +287,8 @@
     const downloadSidEl = document.getElementById('download-sid');
     const downloadClassEl = document.getElementById('download-class');
     const downloadRawBtn = document.getElementById('download-raw');
-    const downloadChartBtn = document.getElementById('download-chart');
+    const downloadFeatureBtn = document.getElementById('download-feature');
+    // const downloadChartBtn = document.getElementById('download-chart');
 
     let selectedDownloadRecord = null;
 
@@ -567,7 +569,7 @@
     function updateProgress(data) {
         const percent = (data.current / data.total) * 100;
         progressBar.style.width = percent + '%';
-        progressLabel.textContent = `${data.current} / ${data.total} samples (10 seconds)`;
+        progressLabel.textContent = `${data.current} / ${data.total} samples`;
     }
 
     function updateConnectionStatus(data) {
@@ -626,13 +628,14 @@
         
         resetDeviceView();
         
+        sendWebSocketMessage({
+            type: 'subscribe_to_device',
+            device_id: selectedDevId 
+        });
+        
         if (selectedDevId) {
             currentDevice = selectedDevId;
             selectedDeviceEl.textContent = currentDevice;
-            sendWebSocketMessage({
-                type: 'subscribe_to_device',
-                device_id: currentDevice
-            });
             console.log(`Subscribed to ${currentDevice}`);
         }
     };
@@ -684,7 +687,8 @@
         downloadClassEl.textContent = classification;
         
         downloadRawBtn.disabled = false;
-        downloadChartBtn.disabled = false;
+        downloadFeatureBtn.disabled = false;
+        // downloadChartBtn.disabled = false;
     }
 
     function fetchHistory() {
@@ -730,11 +734,18 @@
         }
     };
 
-    downloadChartBtn.onclick = () => {
-        if (!selectedDownloadRecord) return;
-        
-        alert('Fitur ini akan segera tersedia. Saat ini, grafik yang ditampilkan di "3-Lead View" adalah data live. Silakan download Raw Data CSV untuk data rekaman yang lengkap.');
+    downloadFeatureBtn.onclick = () => {
+        if (selectedDownloadRecord) {
+            const recId = selectedDownloadRecord.recording_id;
+            window.open(`/api/download/feature/${recId}`, '_blank');
+        }
     };
+
+    // downloadChartBtn.onclick = () => {
+    //     if (!selectedDownloadRecord) return;
+        
+    //     alert('Fitur ini akan segera tersedia. Saat ini, grafik yang ditampilkan di "3-Lead View" adalah data live. Silakan download Raw Data CSV untuk data rekaman yang lengkap.');
+    // };
 
     document.addEventListener('DOMContentLoaded', () => {
         connectWebSocket();
