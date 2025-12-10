@@ -436,7 +436,11 @@ async def purge_temporary_data(device_id: str):
             item for item in perf_data_batch 
             if item['device_id'] != device_id
         ]
-        
+
+        global ui_data_buffer
+        if device_id in ui_data_buffer:
+            del ui_data_buffer[device_id]
+    
     if removed_count > 0:
         print(f"[PURGE] Wiped {removed_count} buffered items from RAM to prevent leak.")
 
@@ -507,6 +511,9 @@ async def device_monitor():
                         "status": "Offline" 
                     })
                     del websocket_connections[device_id]
+                
+                if device_id in ui_data_buffer:
+                    del ui_data_buffer[device_id]
 
             # Update the dropdown list for all users
             await broadcast_device_list()
@@ -1398,7 +1405,7 @@ async def lifespan(app_instance: FastAPI):
     db_task = asyncio.create_task(db_batch_inserter())
     monitor_task = asyncio.create_task(device_monitor())
     
-    print(f"[SERVER] URL: http://127.0.0.1:{FLASK_PORT}")
+    print(f"[SERVER] URL: http://localhost:{FLASK_PORT}")
     print(f"[MQTT] Broker: {MQTT_BROKER}:{MQTT_PORT}")
     
     yield
