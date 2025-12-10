@@ -1,7 +1,9 @@
+version: '3.8'
 services:
   postgres:
     image: postgres:15-alpine
     container_name: ecg_postgres
+    restart: always 
     environment:
       POSTGRES_USER: ${DATABASE_USER:-ecg_user}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
@@ -16,5 +18,23 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+
+    build: .
+    container_name: ecg_backend
+    restart: always
+    ports:
+    - "5000:5000"
+    environment:
+      DATABAASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${DATABASE_USER:-ecg_user} 
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
+      DATABASE_NAME: ${DATABASE_NAME:-ecg_db}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+    driver: local

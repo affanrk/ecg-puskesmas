@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 # Database configuration
 DATABASE_USER = os.getenv("DATABASE_USER", "ecg_user")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD", "ecg_pass")
-DATABASE_HOST = os.getenv("DATABASE_HOST", "localhost")
+DATABASE_HOST = os.getenv("DATABASE_HOST", "postgres")
 DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "ecg_db")
 
