@@ -49,7 +49,8 @@ MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "False").lower() == "true"
 
 MODEL_PATH = os.getenv("MODEL_PATH")
-FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
+# FLASK_PORT = int(os.getenv("FLASK_PORT", "5000")) -> for production
+FLASK_PORT = int(os.getenv("FLASK_PORT"))
 
 SPS = 100
 BUFFER_SIZE = 1000
