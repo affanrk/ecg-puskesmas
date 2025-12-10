@@ -24,8 +24,8 @@ services:
     ports:
     - "5000:5000"
     environment:
-      # DATABASE_HOST: postgres -> for production enable this
-      DATABASE_HOST: localhost
+      DATABASE_HOST: postgres
+      # DATABASE_HOST: localhost
       DATABASE_PORT: 5432
       DATABASE_USER: ${DATABASE_USER:-ecg_user} 
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
