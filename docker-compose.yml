@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: ecg_postgres
+    restart: always 
     environment:
       POSTGRES_USER: ${DATABASE_USER:-ecg_user}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
@@ -28,9 +29,8 @@ services:
       - mosquitto_log:/mosquitto/log
 
   backend:
-
     build: .
-    container_name: ekg_backend
+    container_name: ecg_backend
     restart: always
     ports:
     - "5000:5000"
