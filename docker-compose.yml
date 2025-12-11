@@ -15,6 +15,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: ecg_mqtt_broker
+    restart: always
+    ports:
+      - "1883:1883" 
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
   backend:
 
     build: .
@@ -23,15 +35,30 @@ services:
     ports:
     - "5000:5000"
     environment:
-      DATABAASE_HOST: postgres
+      DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: ${DATABASE_USER:-ecg_user} 
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
       DATABASE_NAME: ${DATABASE_NAME:-ecg_db}
+  
+      MQTT_BROKER: mosquitto 
+      MQTT_PORT: 1883
+      MQTT_USERNAME: ""    
+      MQTT_PASSWORD: ""
+
+      MODEL_PATH: ${MODEL_PATH}
+      FLASK_PORT: 5000
+    
     depends_on:
       postgres:
         condition: service_healthy
+      mosquitto:
+        condition: service_started
 
 volumes:
   postgres_data:
+    driver: local
+  mosquitto_data:
+    driver: local
+  mosquitto_log:
     driver: local
