@@ -14,31 +14,33 @@
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         header { padding-bottom: 10px; border-bottom: 1px solid #30363d; margin-bottom: 20px; }
-        h1, h2, h3 { color: #58a6ff; font-weight: 400; }
+        h1{ color: #103A69; font-weight: 700; }
+        h2, h3 { color: #ffff; font-weight: 400; }
         .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
         .pill { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
+            background-color: #3E6EA6; 
+            border: 1px solid #0000; 
             border-radius: 999px; 
             padding: 6px 12px; 
             font-size: 12px; 
-            color: #8b949e; 
+            color: #ffff ; 
         }
         .pill .value { color: #c9d1d9; font-weight: 500; }
         .ok { color: #3fb950; }
         .bad { color: #f85149; }
         .warning { color: #d29922; }
         .panel { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
+            background-color: #3E6EA6; 
+            border: 1px solid #ffff; 
             border-radius: 8px; 
             padding: 20px; 
-            margin-bottom: 20px; 
+            margin-bottom: 20px;
+            color: #ffff; 
         }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
         .card { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
+            background-color: #103A69; 
+            border: 1px solid #ffff; 
             border-radius: 6px; 
             padding: 12px;
         }
@@ -46,9 +48,9 @@
         .card .value { font-size: 20px; font-weight: 600; color: #c9d1d9; }
         canvas { background-color: #0d1117; border: 1px solid #30363d; border-radius: 6px; }
         input[type="text"], select { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
-            color: #c9d1d9; 
+            background-color: #103A69; 
+            border: 1px solid #ffff; 
+            color: #ffff; 
             padding: 8px 12px; 
             border-radius: 6px; 
             font-size: 14px; 
@@ -187,6 +189,10 @@
                 opacity: 0.5;
             }
         }
+        @keyframes popUp {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
 
         /* New Styles for Checkboxes */
         .checkbox-group {
@@ -206,14 +212,101 @@
         .checkbox-label input {
             cursor: pointer;
         }
-    </style>
+        .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 20px;
+    width: 350px;
+    border-radius: 10px;
+}
+
+.modal-buttons {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.cancel {
+    background: #ccc;
+}
+/* Container row */
+#patient-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    padding: 15px 0;
+}
+
+/* Setiap pill data */
+#patient-row .pill {
+    background: #103A69;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* Teks value */
+#patient-row .pill span {
+    font-weight: 600;
+    color: #FFD369;   /* gold highlight */
+}
+
+/* Tombol start & stop */
+#patient-row button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+/* Start Recording */
+#patient-row #start {
+    background: #2ecc71;
+    color: white;
+}
+#patient-row #start:hover {
+    background: #27ae60;
+}
+
+#patient-row #stop {
+    background: #e74c3c;
+    color: white;
+}
+#patient-row #stop:hover {
+    background: #c0392b;
+}
+
+</style>
 </head>
+
+<!-- MODAL INPUT DATA PASIEN -->
+
 
 <body>
 <div class="container">
-    <header>
-        <h1>ECG Live Platform</h1>
-    </header>
+    <header style="display: flex; align-items: center; gap: 10px;">
+    <img src="assets/logo.png" alt="Logo" style="height: 100px;">
+    <h1>ECG Live Platform</h1>
+</header>
     
     <div class="row">
         <div class="pill">Server: <span class="value" id="server-url">Connecting...</span></div>
@@ -243,9 +336,11 @@
         <div class="panel">
             <h3>Recording Control</h3>
             <div class="row">
-                <input id="subject" type="text" placeholder="Subject ID (required)" size="30"/>
-                <button id="start">Start Recording</button>
-                <button id="stop">Stop Manually</button>
+            <div id="patient-row">
+            
+                    <button id="start">Start Recording</button>
+                    <button id="stop">Stop Manually</button>
+                </div>
             </div>
             <div class="row">
                 <div class="pill">Status: <span id="status" class="value">Idle</span></div>
@@ -257,7 +352,80 @@
             </div>
             <div id="progress-label" class="progress-label"></div>
         </div>
-        
+<!-- Modal Overlay -->
+<div id="patientModal" style="
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    z-index: 9999;
+">
+
+    <!-- Modal Box -->
+    <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        background: #103A69;
+        padding: 25px 30px;
+        border-radius: 14px;
+        width: 380px;
+        border: 1px solid rgba(255,255,255,0.4);
+        color: white;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+    ">
+        <h3 style="
+            margin-top:0;
+            margin-bottom:15px;
+            text-align:center;
+            font-size:20px;
+            font-weight:600;
+        ">Patient Information</h3>
+
+        <label>NIK</label>
+        <input id="subject" type="text" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+
+        <label>Name</label>
+        <input id="p-name" type="text" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+
+        <label>Age</label>
+        <input id="p-age" type="number" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+
+        <label>Gender</label>
+        <select id="p-gender" style="
+            width:100%; margin-bottom:20px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+            <option value="">-- Select Gender --</option>
+            <option>Male</option>
+            <option>Female</option>
+        </select>
+
+        <div style="display:flex; justify-content: flex-end; gap:10px;">
+            <button id="modal-cancel" style="
+                background:#da3633; color:white; padding:8px 14px;
+                border-radius:6px; border:none; cursor:pointer;
+            ">Cancel</button>
+
+            <button id="modal-submit" style="
+                background:#238636; color:white; padding:8px 14px;
+                border-radius:6px; border:none; cursor:pointer;
+            ">Submit</button>
+        </div>
+    </div>
+</div>
+
         <div class="panel">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h3 style="margin: 0;">Live Waveform</h3>
@@ -295,7 +463,7 @@
                         <tr>
                             <th>Timestamp (UTC)</th>
                             <th>Device ID</th>
-                            <th>Subject ID</th>
+                            <th>NIK</th>
                             <th>Recording ID</th>
                             <th>Classification Result</th>
                         </tr>
@@ -384,6 +552,7 @@
             document.getElementById(tabName).style.display = 'block';
             evt.currentTarget.classList.add('active');
         }
+let patientFilled = false;
 
         let ws = null;
         let reconnectInterval = null;
@@ -399,6 +568,13 @@
         const connectionStatusEl = document.querySelector('#connection-status .value');
 
         const startBtn = document.getElementById('start');
+        // Set initial label
+        startBtn.textContent = patientFilled ? "Start Recording" : "Isi Daftar Diri";
+
+        const modal = document.getElementById('patientModal');
+        const submitBtn = document.getElementById("modal-submit");
+        const saveBtn = document.getElementById('savePatientBtn');
+        const closeBtn = document.getElementById('closeModalBtn');
         const stopBtn = document.getElementById('stop');
         const subjectInput = document.getElementById('subject');
         const statusEl = document.getElementById('status');
@@ -531,6 +707,58 @@
                 }
             }
         });
+function closePatientModal() {
+    const modal = document.getElementById("patientModal");
+    modal.style.display = "none";
+}
+const cancelBtn = document.getElementById("modal-cancel");
+
+cancelBtn.addEventListener("click", () => {
+    closePatientModal();
+});
+submitBtn.addEventListener("click", () => {
+    // ambil data dari modal
+       const subject = document.getElementById("subject").value.trim();
+    const name = document.getElementById("p-name").value.trim();
+    const age = document.getElementById("p-age").value.trim();
+    const gender = document.getElementById("p-gender").value.trim();
+
+    if (subject === "" || name === "" || age === "" || gender === "") {
+        alert("Harap isi semua data pasien.");
+        return;
+    }
+
+
+    // tutup modal
+    closePatientModal();
+
+    // tampilkan data di row
+    const row = document.getElementById("patient-row");
+    row.innerHTML = `
+        <div class="pill">NIK: <span>${subject}</span></div>
+        <div class="pill">Name: <span>${name}</span></div>
+        <div class="pill">Age: <span>${age}</span></div>
+        <div class="pill">Gender: <span>${gender}</span></div>
+        <button id="start">Start Recording</button>
+        <button id="stop">Stop Manually</button>
+    `;
+
+    // setelah innerHTML diubah, ambil ulang tombol karena DOM berubah
+    const newStart = document.getElementById("start");
+    const newStop = document.getElementById("stop");
+
+    // restore event listener start (sesuai kode kamu sebelumnya)
+    newStart.onclick = () => {
+        const subjectId = subjectInput.value.trim();
+        if (!currentDevice) return alert('Please select a device first.');
+        if (!subjectId) return alert('Please enter Subject ID.');
+        sendWebSocketMessage({ type: 'start_recording', device_id: currentDevice, subject_id: subjectId });
+    };
+    newStop.addEventListener("click", () => {
+        // fungsi stop kamu di sini
+        console.log("Stop pressed");
+    });
+});
 
         // --- WEBSOCKET LOGIC ---
         function connectWebSocket() {
@@ -729,12 +957,52 @@
             }
         };
 
-        startBtn.onclick = () => {
-            const subjectId = subjectInput.value.trim();
-            if (!currentDevice) return alert('Please select a device first.');
-            if (!subjectId) return alert('Please enter Subject ID.');
-            sendWebSocketMessage({ type: 'start_recording', device_id: currentDevice, subject_id: subjectId });
-        };
+    startBtn.onclick = () => {
+    if (!patientFilled) {
+    
+        modal.style.display = 'block';
+        return;
+    }
+
+    // Sudah isi pasien → jalankan fungsi START RECORDING seperti biasanya
+    const subjectId = subjectInput.value.trim();
+    if (!currentDevice) return alert('Please select a device first.');
+    if (!subjectId) return alert('Please enter Subject ID.');
+
+    sendWebSocketMessage({ 
+        type: 'start_recording', 
+        device_id: currentDevice, 
+        subject_id: subjectId 
+    });
+};
+
+// Close modal button
+closeBtn.onclick = () => {
+    modal.style.display = 'none';
+};
+
+// Save patient button
+saveBtn.onclick = () => {
+    const subjectId = subjectInput.value.trim();
+
+    if (!subjectId) {
+        alert('Mohon isi Subject ID terlebih dahulu.');
+        return;
+    }
+
+    // Tandai sudah isi
+    patientFilled = true;
+
+    // Tutup modal
+    modal.style.display = 'none';
+
+    // Ubah tombol jadi start recording
+    startBtn.textContent = "Start Recording";
+
+    // Update tampilan subject di status panel
+    sidEl.textContent = subjectId;
+};
+
 
         stopBtn.onclick = () => {
             if (currentDevice) sendWebSocketMessage({ type: 'stop_recording', device_id: currentDevice });
