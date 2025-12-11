@@ -16,9 +16,6 @@ from collections import deque, defaultdict
 from typing import Dict, Set
 from dotenv import load_dotenv
 
-# ==================================================================
-# Windows Asyncio Fix - MUST BE AT THE TOP
-# ==================================================================
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -49,12 +46,12 @@ MQTT_PASSWORD = os.getenv("MQTT_PASSWORD", "")
 MQTT_USE_TLS = os.getenv("MQTT_USE_TLS", "False").lower() == "true"
 
 MODEL_PATH = os.getenv("MODEL_PATH")
-FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
-# FLASK_PORT = int(os.getenv("FLASK_PORT"))
+# FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
+FLASK_PORT = int(os.getenv("FLASK_PORT"))
 
 SPS = 100
 BUFFER_SIZE = 1000
-DEVICE_TIMEOUT_S = 15
+DEVICE_TIMEOUT_S = 6.0
 
 LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 
@@ -448,6 +445,63 @@ async def purge_temporary_data(device_id: str):
     # --- STEP 2: Wipe the Database ---
     await asyncio.to_thread(_execute_db_purge, device_id)
 
+def _execute_delete_recording(recording_id: str):
+    """Blocking DB: Deletes ALL data for a specific recording ID."""
+    if not recording_id: return
+    db = SessionLocal()
+    try:
+        db.query(ECGRaw3Lead).filter(ECGRaw3Lead.recording_id == recording_id).delete(synchronize_session=False)
+        db.query(ECGPerformanceMetrics3Lead).filter(ECGPerformanceMetrics3Lead.recording_id == recording_id).delete(synchronize_session=False)
+        db.query(ECGClassification3Lead).filter(ECGClassification3Lead.recording_id == recording_id).delete(synchronize_session=False)
+        
+        db.commit()
+        print(f"[PURGE] Cancelled recording data deleted for ID: {recording_id}")
+    except Exception as e:
+        db.rollback()
+        print(f"[PURGE] Error deleting recording {recording_id}: {e}")
+    finally:
+        db.close()
+
+async def cancel_recording_internal(device_id: str, reason: str):
+    """Stops recording, wipes DB data, and notifies UI."""
+    if device_id not in device_states: return
+    state = device_states[device_id]
+    if not state.is_recording: return
+
+    rec_id = state.recording_id
+    
+    # 1. Reset State
+    state.is_recording = False
+    state.status_message = "Idle"
+    state.recording_id = None
+    state.subject_id = None
+    state.samples_collected = 0
+    print(f"[{device_id}] Recording CANCELLED. Reason: {reason}")
+
+    # 2. Clear In-Memory Batches for this device
+    async with batch_lock:
+        global raw_data_batch, perf_data_batch
+        raw_data_batch[:] = [item for item in raw_data_batch if item['device_id'] != device_id]
+        perf_data_batch[:] = [item for item in perf_data_batch if item['device_id'] != device_id]
+
+    # 3. Delete any data already flushed to DB
+    await asyncio.to_thread(_execute_delete_recording, rec_id)
+
+    # 4. Notify Frontend
+    await broadcast_to_device(device_id, "recording_cancelled", {
+        "device_id": device_id,
+        "reason": reason
+    })
+    
+    # 5. Update State UI
+    await broadcast_to_device(device_id, "state_update", {
+        "device_id": device_id,
+        "is_recording": False,
+        "status_message": "Idle",
+        "recording_id": None,
+        "subject_id": None
+    })
+
 # ==================================================================
 # Device Monitoring
 # ==================================================================
@@ -464,7 +518,7 @@ async def device_monitor():
             time_since_seen = now - state.last_seen
             
             # Allow longer timeout if currently recording
-            timeout = DEVICE_TIMEOUT_S * 5 if state.is_recording else DEVICE_TIMEOUT_S
+            timeout = DEVICE_TIMEOUT_S
             
             # 1. Update Connection Status (Visual only)
             if time_since_seen > 5.0:
@@ -483,15 +537,10 @@ async def device_monitor():
                 
                 # Handle active recordings gracefully
                 if state.is_recording:
-                    print(f"[CRITICAL] Device {device_id} lost during recording. Saving what we have...")
-                    if state.samples_collected > 100:
-                        asyncio.create_task(run_analysis_pipeline(
-                            state.recording_id, state.subject_id, device_id
-                        ))
+                    print(f"[AUTO] Cancelling recording for {device_id} due to timeout/disconnection.")
+                    await cancel_recording_internal(device_id, reason="Device Disconnected")
                 
-                # [NEW] PURGE Logic for Device Timeout
-                # If the device dies, we wipe any temporary (non-recorded) data immediately.
-                print(f"[AUTO] Purging temporary data for disconnected device: {device_id}")
+                # [EXISTING] Purge temporary data
                 await purge_temporary_data(device_id)
                 
                 timed_out.append(device_id)
@@ -499,13 +548,11 @@ async def device_monitor():
         # 3. Cleanup Internal Lists
         if timed_out:
             for device_id in timed_out:
-                # Remove from state tracker
                 if device_id in device_states:
                     del device_states[device_id]
                 
-                # Remove from websocket listeners (disconnect viewers)
                 if device_id in websocket_connections:
-                    # Notify viewers that device is gone
+                   # Final notification that device is gone
                     await broadcast_to_device(device_id, "device_status_update", {
                         "device_id": device_id, 
                         "is_connected": False,
@@ -651,7 +698,13 @@ async def handle_websocket_message(websocket: WebSocket, data: dict):
     elif msg_type == "stop_recording":
         device_id = data.get("device_id")
         if device_id and device_id in device_states:
-            await stop_recording(device_id)
+            await cancel_recording_internal(device_id, reason="Manual Stop (Data Discarded)")
+    
+    # [NEW] Handle Cancellation (triggered by UI deselect)
+    elif msg_type == "cancel_recording":
+        device_id = data.get("device_id")
+        if device_id and device_id in device_states:
+            await cancel_recording_internal(device_id, reason="User Deselected Device")
 
 async def broadcast_to_device(device_id: str, event_type: str, data: dict):
     """Broadcast message to all clients subscribed to a device"""

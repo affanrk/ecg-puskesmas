@@ -12,46 +12,107 @@
             color: #c9d1d9;
             font-size: 14px;
         }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-        header { padding-bottom: 10px; border-bottom: 1px solid #30363d; margin-bottom: 20px; }
-        h1, h2, h3 { color: #58a6ff; font-weight: 400; }
-        .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-        .pill { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
-            border-radius: 999px; 
-            padding: 6px 12px; 
-            font-size: 12px; 
-            color: #8b949e; 
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        .pill .value { color: #c9d1d9; font-weight: 500; }
-        .ok { color: #3fb950; }
-        .bad { color: #f85149; }
-        .warning { color: #d29922; }
-        .panel { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin-bottom: 20px; 
+
+        header {
+            padding-bottom: 10px;
+            border-bottom: 1px solid #30363d;
+            margin-bottom: 20px;
         }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
-        .card { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
-            border-radius: 6px; 
+
+        h1,
+        h2,
+        h3 {
+            color: #58a6ff;
+            font-weight: 400;
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .pill {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .pill .value {
+            color: #c9d1d9;
+            font-weight: 500;
+        }
+
+        .ok {
+            color: #3fb950;
+        }
+
+        .bad {
+            color: #f85149;
+        }
+
+        .warning {
+            color: #d29922;
+        }
+
+        .panel {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .card {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
             padding: 12px;
         }
-        .card .label { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
-        .card .value { font-size: 20px; font-weight: 600; color: #c9d1d9; }
-        canvas { background-color: #0d1117; border: 1px solid #30363d; border-radius: 6px; }
-        input[type="text"], select { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
-            color: #c9d1d9; 
-            padding: 8px 12px; 
-            border-radius: 6px; 
-            font-size: 14px; 
+
+        .card .label {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 4px;
+        }
+
+        .card .value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c9d1d9;
+        }
+
+        canvas {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+        }
+
+        input[type="text"],
+        select {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
         }
 
         input[type="text"]:focus,
@@ -210,78 +271,78 @@
 </head>
 
 <body>
-<div class="container">
-    <header>
-        <h1>ECG Live Platform</h1>
-    </header>
-    
-    <div class="row">
-        <div class="pill">Server: <span class="value" id="server-url">Connecting...</span></div>
-        <div id="ws-status" class="pill">WebSocket: <span class="value">Connecting...</span></div>
-        <div class="pill">Devices: <span class="value" id="device-count">0</span></div>
-    </div>
-    
-    <div class="panel">
-        <h3>Select Device</h3>
+    <div class="container">
+        <header>
+            <h1>ECG Live Platform</h1>
+        </header>
+
         <div class="row">
-            <select id="device-selector" style="min-width: 250px;">
-                <option value="">-- Select Device --</option>
-            </select>
-            <div id="selected-device" class="pill">Selected Device: <span class="value">-</span></div>
-            <div id="connection-status" class="pill">Connection: <span class="value">-</span></div>
+            <div class="pill">Server: <span class="value" id="server-url">Connecting...</span></div>
+            <div id="ws-status" class="pill">WebSocket: <span class="value">Connecting...</span></div>
+            <div class="pill">Devices: <span class="value" id="device-count">0</span></div>
         </div>
-    </div>
-    
-    <div class="tabs">
-        <button class="tab-button active" onclick="openTab(event, 'ecg-view')">3-Lead View</button>
-        <button class="tab-button" onclick="openTab(event, 'perf-view')">Performance Metrics</button>
-        <button class="tab-button" onclick="openTab(event, 'overview-view')">Multi-Device Overview</button>
-        <button class="tab-button" onclick="openTab(event, 'download-view')">Data Export</button>
-    </div>
-    
-    <div id="ecg-view" class="tab-content" style="display: block;">
+
         <div class="panel">
-            <h3>Recording Control</h3>
+            <h3>Select Device</h3>
             <div class="row">
-                <input id="subject" type="text" placeholder="Subject ID (required)" size="30"/>
-                <button id="start">Start Recording</button>
-                <button id="stop">Stop Manually</button>
+                <select id="device-selector" style="min-width: 250px;">
+                    <option value="">-- Select Device --</option>
+                </select>
+                <div id="selected-device" class="pill">Selected Device: <span class="value">-</span></div>
+                <div id="connection-status" class="pill">Connection: <span class="value">-</span></div>
             </div>
-            <div class="row">
-                <div class="pill">Status: <span id="status" class="value">Idle</span></div>
-                <div class="pill">Recording ID: <span id="rid" class="value">-</span></div>
-                <div class="pill">Subject: <span id="sid" class="value">-</span></div>
-            </div>
-            <div id="progress-container" class="progress-container">
-                <div id="progress-bar" class="progress-bar"></div>
-            </div>
-            <div id="progress-label" class="progress-label"></div>
         </div>
-        
-        <div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">Live Waveform</h3>
-                
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(0, this)"> 
-                        <span style="color: #58a6ff; font-weight: 600;">Lead I</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(1, this)"> 
-                        <span style="color: #3fb950; font-weight: 600;">Lead II</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(2, this)"> 
-                        <span style="color: #d29922; font-weight: 600;">V1</span>
-                    </label>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab(event, 'ecg-view')">3-Lead View</button>
+            <button class="tab-button" onclick="openTab(event, 'perf-view')">Performance Metrics</button>
+            <button class="tab-button" onclick="openTab(event, 'overview-view')">Multi-Device Overview</button>
+            <button class="tab-button" onclick="openTab(event, 'download-view')">Data Export</button>
+        </div>
+
+        <div id="ecg-view" class="tab-content" style="display: block;">
+            <div class="panel">
+                <h3>Recording Control</h3>
+                <div class="row">
+                    <input id="subject" type="text" placeholder="Subject ID (required)" size="30" />
+                    <button id="start">Start Recording</button>
+                    <button id="stop">Stop Manually</button>
+                </div>
+                <div class="row">
+                    <div class="pill">Status: <span id="status" class="value">Idle</span></div>
+                    <div class="pill">Recording ID: <span id="rid" class="value">-</span></div>
+                    <div class="pill">Subject: <span id="sid" class="value">-</span></div>
+                </div>
+                <div id="progress-container" class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="progress-label" class="progress-label"></div>
+            </div>
+
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Live Waveform</h3>
+
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" checked onchange="toggleLead(0, this)">
+                            <span style="color: #58a6ff; font-weight: 600;">Lead I</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" checked onchange="toggleLead(1, this)">
+                            <span style="color: #3fb950; font-weight: 600;">Lead II</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" checked onchange="toggleLead(2, this)">
+                            <span style="color: #d29922; font-weight: 600;">V1</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="chart"></canvas>
                 </div>
             </div>
-            
-            <div style="position: relative; height: 300px; width: 100%;">
-                <canvas id="chart"></canvas>
-            </div>
-        </div>
 
             <div class="panel">
                 <h3>Live Values (Raw ADC)</h3>
@@ -389,6 +450,7 @@
         let reconnectInterval = null;
         let currentDevice = null;
         let isReconnecting = false;
+        let isRecording = false;
 
         // Element References
         const wsStatusEl = document.getElementById('ws-status');
@@ -454,13 +516,13 @@
 
         // --- CHART CONFIGURATION (FIXED FOR SCROLLING) ---
         const chartCtx = document.getElementById('chart').getContext('2d');
-        const MAX_CHART_POINTS = 500;
+        const MAX_CHART_POINTS = 300;
 
-        // 1. Initialize EMPTY arrays (Logic: Start from zero)
-        const chartLabels = [];
-        const chartDataLeadI = [];
-        const chartDataLeadII = [];
-        const chartDataV1 = [];
+        // 1. Pre-fill arrays with NULLs
+        const chartLabels = new Array(MAX_CHART_POINTS).fill('');
+        const chartDataLeadI = new Array(MAX_CHART_POINTS).fill(null);
+        const chartDataLeadII = new Array(MAX_CHART_POINTS).fill(null);
+        const chartDataV1 = new Array(MAX_CHART_POINTS).fill(null);
 
         const ecgChart = new Chart(chartCtx, {
             type: 'line',
@@ -587,6 +649,22 @@
                 case 'progress_update': if (message.device_id === currentDevice) updateProgress(message); break;
                 case 'device_status_update': if (message.device_id === currentDevice) updateConnectionStatus(message); break;
                 case 'history_updated': fetchHistory(); break;
+                case 'recording_cancelled':
+                // [MODIFIED] Handled specifically for clean UI reset
+                case 'recording_cancelled':
+                    if (message.device_id === currentDevice) {
+                        alert(`Recording Cancelled: ${message.reason}`);
+                        isRecording = false;
+                        statusEl.textContent = "Idle";
+                        ridEl.textContent = "-";
+                        sidEl.textContent = "-"; // Reset Subject ID display
+                        startBtn.style.display = 'inline-block';
+                        stopBtn.style.display = 'none';
+                        subjectInput.disabled = false;
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }
+                    break;
             }
         }
 
@@ -597,7 +675,12 @@
 
             if (Number.isFinite(val1)) {
 
-                // 2. LOGIC: Fill, then Scroll
+                // 2. LOGIC: Scroll Right to left
+
+                chartLabels.shift();
+                chartDataLeadI.shift();
+                chartDataLeadII.shift();
+                chartDataV1.shift();
 
                 // Push new data first
                 chartLabels.push('');
@@ -656,7 +739,18 @@
         }
 
         function updateDeviceState(data) {
-            const isRecording = data.is_recording;
+            if (isRecording && !data.is_recording) {
+                 isRecording = false;
+            }
+            
+            // [NEW] Logic: If the server says we are Idle, we enforce a Clean UI.
+            if (data.status_message === "Idle") {
+                isRecording = false;
+                clearRecordingUI();
+                return;
+            }
+
+            isRecording = data.is_recording;
             startBtn.style.display = isRecording ? 'none' : 'inline-block';
             stopBtn.style.display = isRecording ? 'inline-block' : 'none';
             subjectInput.disabled = isRecording;
@@ -695,37 +789,81 @@
             });
         }
 
+        function clearRecordingUI() {
+            // Clears only the recording-specific UI elements
+            statusEl.textContent = "Idle";
+            ridEl.textContent = "-";
+            sidEl.textContent = "-";
+            subjectInput.value = ""; // Clear the input box
+            subjectInput.disabled = false;
+            
+            // Reset Buttons
+            startBtn.style.display = 'inline-block';
+            stopBtn.style.display = 'none';
+            
+            // Hide Progress
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressLabel.textContent = '';
+        }
+
         function resetDeviceView() {
+            // Keep track of old device ID before nulling it, if needed, but here we just reset UI
             currentDevice = null;
             selectedDeviceEl.textContent = '-';
+            isRecording = false;
 
-            // Reset to EMPTY arrays when changing devices
-            chartLabels.length = 0;
-            chartDataLeadI.length = 0;
-            chartDataLeadII.length = 0;
-            chartDataV1.length = 0;
+            // Reset Charts to flat lines
+            chartDataLeadI.fill(null);
+            chartDataLeadII.fill(null);
+            chartDataV1.fill(null);
+            ecgChart.update('none');
 
-            ecgChart.update();
-
+            // Reset Cards
             Object.values(valueElements).forEach(el => el.textContent = '-');
             Object.values(perfValueElements).forEach(el => el.textContent = '-');
+            
+            // Reset Status / Recording Info
             packetFormatEl.textContent = 'Unknown';
             statusEl.textContent = "Idle";
             ridEl.textContent = "-";
             sidEl.textContent = "-";
+
+            // Reset Connection Status
             connectionStatusEl.textContent = "-";
             const statusSpan = connectionStatusEl.parentElement;
             statusSpan.classList.remove('ok', 'bad', null);
+
+            // [NEW] Call the UI clearer for the recording fields
+            clearRecordingUI();
         }
 
         // --- EVENT LISTENERS ---
         deviceSelector.onchange = () => {
-            const selectedDevId = deviceSelector.value;
+            const newDeviceId = deviceSelector.value;
+            
+            // [NEW] If we were previously viewing a device and it was recording, 
+            if (currentDevice && isRecording) {
+                console.log("Switching device while recording: Sending Cancel request");
+                sendWebSocketMessage({ 
+                    type: 'cancel_recording', 
+                    device_id: currentDevice 
+                });
+                // We manually reset the flag here immediately
+                isRecording = false; 
+            }
+
             resetDeviceView();
-            sendWebSocketMessage({ type: 'subscribe_to_device', device_id: selectedDevId });
-            if (selectedDevId) {
-                currentDevice = selectedDevId;
+            
+            // Subscribe to the new device (or just leave empty if "Select Device" chosen)
+            if (newDeviceId) {
+                sendWebSocketMessage({ type: 'subscribe_to_device', device_id: newDeviceId });
+                currentDevice = newDeviceId;
                 selectedDeviceEl.textContent = currentDevice;
+            } else {
+                // If they selected "--- Select Device ---", we ensure backend knows we unsubscribed
+                // (The subscribe_to_device logic in Python handles unsubscription of previous)
+                 sendWebSocketMessage({ type: 'subscribe_to_device', device_id: "" });
             }
         };
 
