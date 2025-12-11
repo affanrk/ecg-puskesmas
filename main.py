@@ -29,6 +29,7 @@ import scipy.signal
 import joblib
 import neurokit2 as nk
 import tensorflow as tf
+import heapq
 
 from database import SessionLocal, init_db
 from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead
@@ -51,7 +52,7 @@ FLASK_PORT = int(os.getenv("FLASK_PORT"))
 
 SPS = 100
 BUFFER_SIZE = 1000
-DEVICE_TIMEOUT_S = 6.0
+DEVICE_TIMEOUT_S = 10.0
 
 LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 
@@ -66,8 +67,13 @@ class DeviceState:
         self.subject_id = None
         self.recording_id = None
         self.samples_collected = 0
+        self.segment_count = 0
+        self.last_raw_values = {}
+        self.last_cal_values = {}
         self.status_message = "Idle"
         self.last_packet_num = 0
+        # [NEW] Jitter Buffer untuk menampung paket acak
+        self.packet_buffer = []
         self.lost_packets = 0
         self.total_packets = 0
         self.latencies = deque(maxlen=100)
@@ -169,175 +175,485 @@ async def mqtt_listener():
             await asyncio.sleep(5)
 
 async def process_mqtt_message(message):
-    """Process incoming MQTT message - MODIFIED FOR JSON FORMAT"""
+    """Process incoming MQTT message - WITH JITTER BUFFER REORDERING"""
     try:
-        # Ignore retained messages
-        if hasattr(message, 'retain') and message.retain:
-            return
-        
+        # 1. Parsing & Validasi Dasar (Sama seperti sebelumnya)
+        if hasattr(message, 'retain') and message.retain: return
         topic_parts = message.topic.value.split('/')
-        if len(topic_parts) != 3 or topic_parts[0] != 'raw' or topic_parts[1] != 'ecg':
-            return
+        if len(topic_parts) != 3 or topic_parts[0] != 'raw' or topic_parts[1] != 'ecg': return
         
-        # Parse JSON payload
         try:
             import json
-            payload_str = message.payload.decode('utf-8')
-            payload_json = json.loads(payload_str)
-        except (json.JSONDecodeError, UnicodeDecodeError) as e:
-            print(f"[MQTT] Failed to parse JSON payload: {e}")
-            return
-        
-        # Validate required fields
-        required_fields = ['id', 'ts_us', 'counter', 'raw_c1', 'raw_c2', 'raw_c3', 
-                          'cal_mv_c1', 'cal_mv_c2', 'cal_mv_c3']
-        if not all(field in payload_json for field in required_fields):
-            print(f"[MQTT] Missing required fields in JSON payload")
-            return
+            payload_json = json.loads(message.payload.decode('utf-8'))
+        except: return
+
+        required_fields = ['id', 'ts_us', 'counter', 'raw_c1', 'raw_c2', 'raw_c3', 'cal_mv_c1', 'cal_mv_c2', 'cal_mv_c3']
+        if not all(field in payload_json for field in required_fields): return
         
         device_id = payload_json['id']
-        timestamp_us = payload_json['ts_us']
         packet_counter = payload_json['counter']
-        
-        # Raw ADC values (for display and database)
-        raw_adc_values = {
-            'lead_I': payload_json['raw_c1'],
-            'lead_II': payload_json['raw_c2'],
-            'v1': payload_json['raw_c3']
-        }
-        
-        # Calibrated millivolt values (for live waveform display)
-        cal_mv_values = {
-            'lead_I': payload_json['cal_mv_c1'],
-            'lead_II': payload_json['cal_mv_c2'],
-            'v1': payload_json['cal_mv_c3']
-        }
         
         # Initialize device if new
         if device_id not in device_states:
             device_states[device_id] = DeviceState()
-            print(f"[MQTT] New device: {device_id}")
+            print(f"[CONNECTION] NEW DEVICE DETECTED: {device_id}")
             await broadcast_device_list()
         
         state = device_states[device_id]
         state.last_seen = time.time()
         state.is_connected = True
         state.packet_format = 'JSON (calibrated)'
+
+        # ==================================================================
+        # LOGIKA BARU: JITTER BUFFER (REORDERING)
+        # ==================================================================
         
-        # Prepare packet for UI with both raw and calibrated values
-        normalized_pkt = {
-            'device_id': device_id,
-            # Raw ADC for display in "Live Values (ADC)" section
-            'raw_lead_I': raw_adc_values['lead_I'],
-            'raw_lead_II': raw_adc_values['lead_II'],
-            'raw_v1': raw_adc_values['v1'],
-            # Calibrated mV for live waveform
-            'cal_lead_I': cal_mv_values['lead_I'],
-            'cal_lead_II': cal_mv_values['lead_II'],
-            'cal_v1': cal_mv_values['v1']
+        # 1. Masukkan paket data ke dalam Buffer (Heap/Priority Queue)
+        # Heap akan otomatis mengurutkan berdasarkan packet_counter (item pertama tuple)
+        packet_data = {
+            'timestamp_us': payload_json['ts_us'],
+            'raw': {'lead_I': payload_json['raw_c1'], 'lead_II': payload_json['raw_c2'], 'v1': payload_json['raw_c3']},
+            'cal': {'lead_I': payload_json['cal_mv_c1'], 'lead_II': payload_json['cal_mv_c2'], 'v1': payload_json['cal_mv_c3']}
         }
         
-        # Batched UI updates (every 5 packets or 50ms)
-        ui_buffer = ui_data_buffer[device_id]
-        ui_buffer["count"] += 1
-        ui_buffer["last_packet"] = normalized_pkt
-        current_time = time.time()
-        
-        if ui_buffer["count"] >= 5 or (current_time - ui_buffer["last_emit"]) >= 0.05:
-            await broadcast_to_device(device_id, "live_data", normalized_pkt)
-            ui_buffer["count"] = 0
-            ui_buffer["last_emit"] = current_time
-        
-        # Performance metrics (every 10 packets)
-        # Get current time in microseconds
-        server_time_us = int(time.time() * 1_000_000)
-        
-        # Calculate latency
-        latency_ms = (server_time_us - timestamp_us) / 1000.0
-        
-        # Handle clock skew - if device clock is ahead of server
-        if latency_ms < 0:
-            latency_ms = abs(latency_ms)
-        
-        state.latencies.append(latency_ms)
-        
-        state.total_packets += 1
-        if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
-            state.lost_packets += packet_counter - (state.last_packet_num + 1)
-        state.last_packet_num = packet_counter
+        # Push ke heap: (Nomor Urut, Data)
+        heapq.heappush(state.packet_buffer, (packet_counter, packet_data))
 
-        has_viewers = len(websocket_connections[device_id]) > 0
-        should_store = state.is_recording or has_viewers
-        
-        if state.total_packets % 10 == 0:
-            total_received = state.total_packets - state.lost_packets
-            packet_loss_pct = (state.lost_packets / state.total_packets * 100) if state.total_packets > 0 else 0
-            avg_latency = float(np.mean(state.latencies)) if state.latencies else 0
-            jitter = float(np.std(state.latencies)) if len(state.latencies) > 1 else 0
+        # 2. Tentukan Batas Buffer
+        # Kita tunggu sampai buffer punya minimal 50 paket (0.5 detik) ATAU paket loncat terlalu jauh
+        # Semakin besar angkanya, semakin kuat menahan data acak, tapi delay live makin besar.
+        BUFFER_LIMIT = 50 
+
+        # 3. Proses Loop: Ambil paket dari buffer HANYA jika sudah urut atau buffer penuh
+        while state.packet_buffer:
+            # Intip paket dengan nomor terkecil di buffer
+            smallest_counter, pkt = state.packet_buffer[0]
             
-            perf_data = {
-                'device_id': device_id,
-                'packet_format': state.packet_format,
-                'latency_ms': round(float(latency_ms), 2),
-                'avg_latency_ms': round(avg_latency, 2),
-                'jitter_ms': round(jitter, 2),
-                'lost_packets': int(state.lost_packets),
-                'total_received': int(total_received),
-                'packet_loss_pct': round(float(packet_loss_pct), 2),
-            }
-            await broadcast_to_device(device_id, "performance_update", perf_data)
+            # KONDISI A: Inisialisasi awal (belum pernah terima paket)
+            if state.last_packet_num == 0:
+                heapq.heappop(state.packet_buffer) # Ambil
+                await process_single_packet(device_id, state, smallest_counter, pkt)
+                continue
+
+            # KONDISI B: Paket Sempurna (Urutan Next = Last + 1)
+            # Contoh: Last 100, Buffer Paling Kecil 101. Proses!
+            if smallest_counter == state.last_packet_num + 1:
+                heapq.heappop(state.packet_buffer) # Ambil
+                await process_single_packet(device_id, state, smallest_counter, pkt)
+                continue
             
-            # Batch for database
-            if should_store:
-                async with batch_lock:
-                    perf_data_batch.append({
-                        "timestamp": datetime.now(timezone.utc),
-                        "device_id": device_id,
-                        # Use None if just viewing (Temporary), UUID if recording (Permanent)
-                        "recording_id": state.recording_id if state.is_recording else None,
-                        "packet_counter": int(packet_counter),
-                        "latency_ms": float(latency_ms),
-                        "jitter_ms": jitter,
-                        "lost_packets_cumulative": int(state.lost_packets),
-                        "packet_loss_pct_cumulative": float(packet_loss_pct),
-                    })
+            # KONDISI C: Paket Duplikat / Kadaluarsa (Counter <= Last)
+            # Contoh: Last 100, Buffer Paling Kecil 98. Buang 98!
+            if smallest_counter <= state.last_packet_num:
+                heapq.heappop(state.packet_buffer) # Buang dari buffer
+                # Jangan di process, loop lagi untuk cek paket berikutnya
+                continue
+
+            # KONDISI D: Buffer Penuh (Time to Give Up)
+            # Jika buffer sudah > 50 item, tapi paket 'next' belum datang juga,
+            # terpaksa kita proses paket terkecil yang ada (dan terima gap-nya).
+            if len(state.packet_buffer) > BUFFER_LIMIT:
+                heapq.heappop(state.packet_buffer) # Ambil paksa
+                await process_single_packet(device_id, state, smallest_counter, pkt)
+                continue
+            
+            # KONDISI E: Belum urut & Buffer belum penuh
+            # Contoh: Last 100, Buffer Paling Kecil 105.
+            # Tunggu dulu, siapa tahu 101-104 datang sebentar lagi.
+            break 
+
+    except Exception as e:
+        print(f"[MQTT] Error: {e}")
+        traceback.print_exc()
+
+# ==================================================================
+# FUNGSI PEMBANTU BARU (Memindahkan logika lama ke sini)
+# ==================================================================
+async def process_single_packet(device_id, state, packet_counter, pkt):
+    """Fungsi ini dipanggil HANYA ketika paket sudah dipastikan urut (atau terpaksa)"""
+    
+    raw_adc_values = pkt['raw']
+    cal_mv_values = pkt['cal']
+    timestamp_us = pkt['timestamp_us']
+
+    # --- 1. UI UPDATE (Live Chart) ---
+    normalized_pkt = {
+        'device_id': device_id,
+        'raw_lead_I': raw_adc_values['lead_I'], 'raw_lead_II': raw_adc_values['lead_II'], 'raw_v1': raw_adc_values['v1'],
+        'cal_lead_I': cal_mv_values['lead_I'], 'cal_lead_II': cal_mv_values['lead_II'], 'cal_v1': cal_mv_values['v1']
+    }
+    
+    ui_buffer = ui_data_buffer[device_id]
+    ui_buffer["count"] += 1
+    # Kirim ke UI setiap 5 paket (0.05 detik) agar tidak terlalu berat
+    if ui_buffer["count"] >= 5: 
+        await broadcast_to_device(device_id, "live_data", normalized_pkt)
+        ui_buffer["count"] = 0
+
+    # --- 2. PERFORMANCE METRICS CALCULATION ---
+    # Hitung latency realtime
+    server_time_us = int(time.time() * 1_000_000)
+    latency_ms = (server_time_us - timestamp_us) / 1000.0
+    if latency_ms < 0: latency_ms = abs(latency_ms) # Fix clock skew
+    
+    state.latencies.append(latency_ms)
+
+    # --- 3. GAP DETECTION & FILLING ---
+    gap = 0
+    if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
+        gap = packet_counter - (state.last_packet_num + 1)
+        state.lost_packets += gap
         
-        # Recording - store RAW ADC values in database
-        if should_store:
-            # If recording, count samples for the progress bar
-            if state.is_recording:
-                state.samples_collected += 1
+        # Logika Gap Filling (Hanya jika Recording)
+        if state.is_recording and gap > 0:
+            fill_amount = min(gap, 50)
+            fill_raw = getattr(state, 'last_raw_values', {'lead_I':0, 'lead_II':0, 'v1':0})
+            fill_cal = getattr(state, 'last_cal_values', {'lead_I':0, 'lead_II':0, 'v1':0})
             
             async with batch_lock:
-                raw_data_batch.append({
+                for _ in range(fill_amount):
+                    state.samples_collected += 1
+                    raw_data_batch.append({
+                        "timestamp": datetime.now(timezone.utc),
+                        "device_id": device_id,
+                        "recording_id": state.recording_id,
+                        "subject_id": state.subject_id,
+                        "lead_I": fill_raw['lead_I'], "lead_II": fill_raw['lead_II'], "v1": fill_raw['v1'],
+                        "cal_mv_lead_I": fill_cal['lead_I'], "cal_mv_lead_II": fill_cal['lead_II'], "cal_mv_v1": fill_cal['v1']
+                    })
+
+    # Update Tracking State
+    state.last_packet_num = packet_counter
+    state.total_packets += 1
+    state.last_raw_values = raw_adc_values
+    state.last_cal_values = cal_mv_values
+
+    # --- 4. BROADCAST PERFORMANCE METRICS (PERBAIKAN DI SINI) ---
+    has_viewers = len(websocket_connections[device_id]) > 0
+    should_store = state.is_recording or has_viewers
+
+    # Update setiap 10 paket (0.1 detik)
+    if state.total_packets % 10 == 0:
+        total_received = state.total_packets - state.lost_packets
+        packet_loss_pct = (state.lost_packets / state.total_packets * 100) if state.total_packets > 0 else 0
+        avg_latency = float(np.mean(state.latencies)) if state.latencies else 0
+        jitter = float(np.std(state.latencies)) if len(state.latencies) > 1 else 0
+        
+        perf_data = {
+            'device_id': device_id,
+            'packet_format': state.packet_format,
+            'latency_ms': round(float(latency_ms), 2),
+            'avg_latency_ms': round(avg_latency, 2),
+            'jitter_ms': round(jitter, 2),
+            'lost_packets': int(state.lost_packets),
+            'total_received': int(total_received),
+            'packet_loss_pct': round(float(packet_loss_pct), 2),
+        }
+        
+        # Kirim ke Frontend
+        await broadcast_to_device(device_id, "performance_update", perf_data)
+        
+        # Simpan Metrics ke DB (Batching)
+        if should_store:
+            async with batch_lock:
+                perf_data_batch.append({
                     "timestamp": datetime.now(timezone.utc),
                     "device_id": device_id,
-                    # Use None if just viewing (Temporary)
                     "recording_id": state.recording_id if state.is_recording else None,
-                    "subject_id": state.subject_id if state.is_recording else None,
-                    "lead_I": raw_adc_values['lead_I'],
-                    "lead_II": raw_adc_values['lead_II'],
-                    "v1": raw_adc_values['v1'],
-                    "cal_mv_lead_I": cal_mv_values['lead_I'],
-                    "cal_mv_lead_II": cal_mv_values['lead_II'],
-                    "cal_mv_v1": cal_mv_values['v1']
+                    "packet_counter": int(packet_counter),
+                    "latency_ms": float(latency_ms),
+                    "jitter_ms": jitter,
+                    "lost_packets_cumulative": int(state.lost_packets),
+                    "packet_loss_pct_cumulative": float(packet_loss_pct),
+                })
+
+    # --- 5. STORE RAW DATA TO DB (RECORDING) ---
+    if should_store:
+        if state.is_recording:
+            state.samples_collected += 1
+        
+        async with batch_lock:
+            raw_data_batch.append({
+                "timestamp": datetime.now(timezone.utc),
+                "device_id": device_id,
+                "recording_id": state.recording_id if state.is_recording else None,
+                "subject_id": state.subject_id if state.is_recording else None,
+                "lead_I": raw_adc_values['lead_I'],
+                "lead_II": raw_adc_values['lead_II'],
+                "v1": raw_adc_values['v1'],
+                "cal_mv_lead_I": cal_mv_values['lead_I'],
+                "cal_mv_lead_II": cal_mv_values['lead_II'],
+                "cal_mv_v1": cal_mv_values['v1']
+            })
+        
+        if state.is_recording:
+            # Progress Update
+            if state.samples_collected % 25 == 0:
+                await broadcast_to_device(device_id, "progress_update", {
+                    "device_id": device_id, "current": state.samples_collected, "total": BUFFER_SIZE
                 })
             
-            if state.is_recording:
-                if state.samples_collected % 25 == 0:
-                    await broadcast_to_device(device_id, "progress_update", {
-                        "device_id": device_id,
-                        "current": state.samples_collected,
-                        "total": BUFFER_SIZE
-                    })
+            # Continuous Loop Logic
+            if state.samples_collected >= BUFFER_SIZE:
+                completed_id = state.recording_id
+                subj_id = state.subject_id
+                print(f"[{device_id}] Segment {state.segment_count} complete. Analyzing...")
                 
-                if state.samples_collected >= BUFFER_SIZE:
-                    await stop_recording(device_id)
+                asyncio.create_task(run_analysis_pipeline(completed_id, subj_id, device_id))
                 
-    except Exception as e:
-        print(f"[MQTT] Error processing message: {e}")
-        import traceback
-        traceback.print_exc()
+                state.recording_id = str(uuid.uuid4())
+                state.samples_collected = 0
+                state.segment_count += 1
+                state.status_message = f"Recording (Segment {state.segment_count})..."
+                
+                await broadcast_to_device(device_id, "state_update", {
+                    "device_id": device_id, "is_recording": True, 
+                    "status_message": state.status_message, "recording_id": state.recording_id, "subject_id": state.subject_id
+                })
+
+# async def process_mqtt_message(message):
+#     """Process incoming MQTT message - MODIFIED FOR JSON FORMAT"""
+#     try:
+#         # Ignore retained messages
+#         if hasattr(message, 'retain') and message.retain:
+#             return
+        
+#         topic_parts = message.topic.value.split('/')
+#         if len(topic_parts) != 3 or topic_parts[0] != 'raw' or topic_parts[1] != 'ecg':
+#             return
+        
+#         # Parse JSON payload
+#         try:
+#             import json
+#             payload_str = message.payload.decode('utf-8')
+#             payload_json = json.loads(payload_str)
+#         except (json.JSONDecodeError, UnicodeDecodeError) as e:
+#             print(f"[MQTT] Failed to parse JSON payload: {e}")
+#             return
+        
+#         # Validate required fields
+#         required_fields = ['id', 'ts_us', 'counter', 'raw_c1', 'raw_c2', 'raw_c3', 
+#                           'cal_mv_c1', 'cal_mv_c2', 'cal_mv_c3']
+#         if not all(field in payload_json for field in required_fields):
+#             print(f"[MQTT] Missing required fields in JSON payload")
+#             return
+        
+#         device_id = payload_json['id']
+#         timestamp_us = payload_json['ts_us']
+#         packet_counter = payload_json['counter']
+        
+#         # Raw ADC values (for display and database)
+#         raw_adc_values = {
+#             'lead_I': payload_json['raw_c1'],
+#             'lead_II': payload_json['raw_c2'],
+#             'v1': payload_json['raw_c3']
+#         }
+        
+#         # Calibrated millivolt values (for live waveform display)
+#         cal_mv_values = {
+#             'lead_I': payload_json['cal_mv_c1'],
+#             'lead_II': payload_json['cal_mv_c2'],
+#             'v1': payload_json['cal_mv_c3']
+#         }
+        
+#         # Initialize device if new
+#         if device_id not in device_states:
+#             device_states[device_id] = DeviceState()
+#             print(f"[MQTT] New device: {device_id}")
+#             await broadcast_device_list()
+        
+#         state = device_states[device_id]
+#         state.last_seen = time.time()
+#         state.is_connected = True
+#         state.packet_format = 'JSON (calibrated)'
+        
+#         # Prepare packet for UI with both raw and calibrated values
+#         normalized_pkt = {
+#             'device_id': device_id,
+#             # Raw ADC for display in "Live Values (ADC)" section
+#             'raw_lead_I': raw_adc_values['lead_I'],
+#             'raw_lead_II': raw_adc_values['lead_II'],
+#             'raw_v1': raw_adc_values['v1'],
+#             # Calibrated mV for live waveform
+#             'cal_lead_I': cal_mv_values['lead_I'],
+#             'cal_lead_II': cal_mv_values['lead_II'],
+#             'cal_v1': cal_mv_values['v1']
+#         }
+        
+#         # Batched UI updates (every 5 packets or 50ms)
+#         ui_buffer = ui_data_buffer[device_id]
+#         ui_buffer["count"] += 1
+#         ui_buffer["last_packet"] = normalized_pkt
+#         current_time = time.time()
+        
+#         if ui_buffer["count"] >= 5 or (current_time - ui_buffer["last_emit"]) >= 0.05:
+#             await broadcast_to_device(device_id, "live_data", normalized_pkt)
+#             ui_buffer["count"] = 0
+#             ui_buffer["last_emit"] = current_time
+        
+#         # Performance metrics (every 10 packets)
+#         # Get current time in microseconds
+#         server_time_us = int(time.time() * 1_000_000)
+        
+#         # Calculate latency
+#         latency_ms = (server_time_us - timestamp_us) / 1000.0
+        
+#         # Handle clock skew - if device clock is ahead of server
+#         if latency_ms < 0:
+#             latency_ms = abs(latency_ms)
+        
+#         state.latencies.append(latency_ms)
+
+#         # [PERBAIKAN KRITIS] Cek apakah paket ini "kadaluarsa" / terlambat datang
+#         # Jika counter sekarang LEBIH KECIL dari counter terakhir, berarti ini paket nyasar.
+#         # Kita harus membuangnya agar tidak merusak logika Gap Filling.
+#         if state.last_packet_num > 0 and packet_counter <= state.last_packet_num:
+#             print(f"[{device_id}] Mengabaikan paket terlambat/duplikat: {packet_counter} (Last: {state.last_packet_num})")
+#             return  # STOP, jangan diproses, jangan disimpan
+
+#         # --- 1. GAP DETECTION & FILLING (Logic for missing packets) ---
+#         gap = 0
+#         if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
+#             gap = packet_counter - (state.last_packet_num + 1)
+#             state.lost_packets += gap
+        
+#         # If we found a gap and we are recording, fill it with previous values
+#         # This prevents analysis time distortion
+#         if gap > 0 and state.is_recording:
+#              # Limit gap filling (e.g. max 100 samples) to prevent massive memory spikes
+#              fill_amount = min(gap, 100)
+             
+#              async with batch_lock:
+#                  # Ensure we have last values to copy, otherwise use 0
+#                  fill_raw = getattr(state, 'last_raw_values', {'lead_I': 0, 'lead_II': 0, 'v1': 0})
+#                  fill_cal = getattr(state, 'last_cal_values', {'lead_I': 0, 'lead_II': 0, 'v1': 0})
+                 
+#                  for _ in range(fill_amount):
+#                      state.samples_collected += 1
+#                      raw_data_batch.append({
+#                          "timestamp": datetime.now(timezone.utc),
+#                          "device_id": device_id,
+#                          "recording_id": state.recording_id,
+#                          "subject_id": state.subject_id,
+#                          "lead_I": fill_raw['lead_I'],
+#                          "lead_II": fill_raw['lead_II'],
+#                          "v1": fill_raw['v1'],
+#                          "cal_mv_lead_I": fill_cal['lead_I'],
+#                          "cal_mv_lead_II": fill_cal['lead_II'],
+#                          "cal_mv_v1": fill_cal['v1']
+#                      })
+
+#         state.last_packet_num = packet_counter
+#         state.total_packets += 1
+
+#         # Save current values for future gap filling (needed for the next iteration)
+#         state.last_raw_values = raw_adc_values
+#         state.last_cal_values = cal_mv_values
+
+#         # state.total_packets += 1
+#         # if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
+#         #     state.lost_packets += packet_counter - (state.last_packet_num + 1)
+#         # state.last_packet_num = packet_counter
+
+#         has_viewers = len(websocket_connections[device_id]) > 0
+#         should_store = state.is_recording or has_viewers
+        
+#         if state.total_packets % 10 == 0:
+#             total_received = state.total_packets - state.lost_packets
+#             packet_loss_pct = (state.lost_packets / state.total_packets * 100) if state.total_packets > 0 else 0
+#             avg_latency = float(np.mean(state.latencies)) if state.latencies else 0
+#             jitter = float(np.std(state.latencies)) if len(state.latencies) > 1 else 0
+            
+#             perf_data = {
+#                 'device_id': device_id,
+#                 'packet_format': state.packet_format,
+#                 'latency_ms': round(float(latency_ms), 2),
+#                 'avg_latency_ms': round(avg_latency, 2),
+#                 'jitter_ms': round(jitter, 2),
+#                 'lost_packets': int(state.lost_packets),
+#                 'total_received': int(total_received),
+#                 'packet_loss_pct': round(float(packet_loss_pct), 2),
+#             }
+#             await broadcast_to_device(device_id, "performance_update", perf_data)
+            
+#             # Batch for database
+#             if should_store:
+#                 async with batch_lock:
+#                     perf_data_batch.append({
+#                         "timestamp": datetime.now(timezone.utc),
+#                         "device_id": device_id,
+#                         # Use None if just viewing (Temporary), UUID if recording (Permanent)
+#                         "recording_id": state.recording_id if state.is_recording else None,
+#                         "packet_counter": int(packet_counter),
+#                         "latency_ms": float(latency_ms),
+#                         "jitter_ms": jitter,
+#                         "lost_packets_cumulative": int(state.lost_packets),
+#                         "packet_loss_pct_cumulative": float(packet_loss_pct),
+#                     })
+        
+#         # Recording - store RAW values in database
+#         if should_store:
+#             # If recording, count samples for the progress bar
+#             if state.is_recording:
+#                 state.samples_collected += 1
+            
+#             async with batch_lock:
+#                 raw_data_batch.append({
+#                     "timestamp": datetime.now(timezone.utc),
+#                     "device_id": device_id,
+#                     "recording_id": state.recording_id if state.is_recording else None,
+#                     "subject_id": state.subject_id if state.is_recording else None,
+#                     "lead_I": raw_adc_values['lead_I'],
+#                     "lead_II": raw_adc_values['lead_II'],
+#                     "v1": raw_adc_values['v1'],
+#                     "cal_mv_lead_I": cal_mv_values['lead_I'],
+#                     "cal_mv_lead_II": cal_mv_values['lead_II'],
+#                     "cal_mv_v1": cal_mv_values['v1']
+#                 })
+            
+#             if state.is_recording:
+#                 if state.samples_collected % 25 == 0:
+#                     await broadcast_to_device(device_id, "progress_update", {
+#                         "device_id": device_id,
+#                         "current": state.samples_collected,
+#                         "total": BUFFER_SIZE
+#                     })
+                
+#                 # if state.samples_collected >= BUFFER_SIZE:
+#                 #     await stop_recording(device_id)
+
+#                 # 2. Check for Chunk Completion (The Loop Logic)
+#                 if state.samples_collected >= BUFFER_SIZE:
+#                     # A. Snapshot the completed ID and Subject
+#                     completed_recording_id = state.recording_id
+#                     current_subject_id = state.subject_id
+                    
+#                     print(f"[{device_id}] Segment {state.segment_count} complete. Analyzing {completed_recording_id}...")
+                    
+#                     # B. Trigger Analysis for the COMPLETED chunk
+#                     asyncio.create_task(run_analysis_pipeline(
+#                         completed_recording_id, current_subject_id, device_id
+#                     ))
+                    
+#                     # C. Prepare for NEXT chunk immediately (Continuous)
+#                     state.recording_id = str(uuid.uuid4()) # Generate NEW ID
+#                     state.samples_collected = 0            # Reset Counter
+#                     state.segment_count += 1               # Increment Segment
+#                     state.status_message = f"Recording (Segment {state.segment_count})..."
+
+#                     # D. Update UI with new info
+#                     await broadcast_to_device(device_id, "state_update", {
+#                         "device_id": device_id,
+#                         "is_recording": True,
+#                         "status_message": state.status_message,
+#                         "recording_id": state.recording_id,
+#                         "subject_id": state.subject_id
+#                     })
+
+#     except Exception as e:
+#         print(f"[MQTT] Error processing message: {e}")
+#         import traceback
+#         traceback.print_exc()
 
 # ==================================================================
 # Database Tasks (Batched)
@@ -698,7 +1014,7 @@ async def handle_websocket_message(websocket: WebSocket, data: dict):
     elif msg_type == "stop_recording":
         device_id = data.get("device_id")
         if device_id and device_id in device_states:
-            await cancel_recording_internal(device_id, reason="Manual Stop (Data Discarded)")
+            await cancel_recording_internal(device_id, reason="Manual Stop")
     
     # [NEW] Handle Cancellation (triggered by UI deselect)
     elif msg_type == "cancel_recording":
@@ -748,6 +1064,7 @@ async def start_recording(device_id: str, subject_id: str):
     state.subject_id = subject_id
     state.recording_id = str(uuid.uuid4())
     state.samples_collected = 0
+    state.segment_count = 1
     state.status_message = "Recording..."
     
     print(f"[{device_id}] Started recording: {state.recording_id}")
@@ -989,19 +1306,19 @@ async def run_analysis_pipeline(recording_id: str, subject_id: str, device_id: s
             analyze_recording_complete, recording_id, subject_id, device_id
         )
         
-        if device_id in device_states:
-            device_states[device_id].status_message = "Idle"
-            device_states[device_id].samples_collected = 0
-            device_states[device_id].recording_id = None
-            device_states[device_id].subject_id = None
+        # if device_id in device_states:
+        #     device_states[device_id].status_message = "Idle"
+        #     device_states[device_id].samples_collected = 0
+        #     device_states[device_id].recording_id = None
+        #     device_states[device_id].subject_id = None
             
-            await broadcast_to_device(device_id, "state_update", {
-                "device_id": device_id,
-                "status_message": "Idle",
-                "recording_id": None,
-                "subject_id": None,
-                "samples_collected": 0
-            })
+        #     await broadcast_to_device(device_id, "state_update", {
+        #         "device_id": device_id,
+        #         "status_message": "Idle",
+        #         "recording_id": None,
+        #         "subject_id": None,
+        #         "samples_collected": 0
+        #     })
         
         # Notify clients about history update
         await broadcast_to_all({"type": "history_updated"})

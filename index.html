@@ -739,27 +739,51 @@
         }
 
         function updateDeviceState(data) {
-            if (isRecording && !data.is_recording) {
-                 isRecording = false;
-            }
-            
-            // [NEW] Logic: If the server says we are Idle, we enforce a Clean UI.
-            if (data.status_message === "Idle") {
+            // Logic for CLEAN RESET on Idle/Stop
+            if (data.status_message === "Idle" || (!data.is_recording && isRecording)) {
                 isRecording = false;
                 clearRecordingUI();
                 return;
             }
 
+            // Standard Update
             isRecording = data.is_recording;
             startBtn.style.display = isRecording ? 'none' : 'inline-block';
             stopBtn.style.display = isRecording ? 'inline-block' : 'none';
             subjectInput.disabled = isRecording;
+            
+            // This will now display "Recording (Segment X)..."
             statusEl.textContent = data.status_message || 'Idle';
+            
+            // This will update to the NEW recording ID every 1000 samples
             ridEl.textContent = data.recording_id || '-';
             sidEl.textContent = data.subject_id || '-';
+            
             progressContainer.style.display = isRecording ? 'block' : 'none';
-            if (!isRecording) progressLabel.textContent = '';
         }
+
+        // function updateDeviceState(data) {
+        //     if (isRecording && !data.is_recording) {
+        //         isRecording = false;
+        //     }
+            
+        //     // [NEW] Logic: If the server says we are Idle, we enforce a Clean UI.
+        //     if (data.status_message === "Idle") {
+        //         isRecording = false;
+        //         clearRecordingUI();
+        //         return;
+        //     }
+
+        //     isRecording = data.is_recording;
+        //     startBtn.style.display = isRecording ? 'none' : 'inline-block';
+        //     stopBtn.style.display = isRecording ? 'inline-block' : 'none';
+        //     subjectInput.disabled = isRecording;
+        //     statusEl.textContent = data.status_message || 'Idle';
+        //     ridEl.textContent = data.recording_id || '-';
+        //     sidEl.textContent = data.subject_id || '-';
+        //     progressContainer.style.display = isRecording ? 'block' : 'none';
+        //     if (!isRecording) progressLabel.textContent = '';
+        // }
 
         function updateProgress(data) {
             const percent = (data.current / data.total) * 100;
