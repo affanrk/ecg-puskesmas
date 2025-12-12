@@ -1,579 +1,635 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="antialiased">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECG Live Platform</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+                        success: { 50: '#f0fdf4', 500: '#22c55e', 600: '#16a34a' },
+                        danger: { 50: '#fef2f2', 500: '#ef4444', 600: '#dc2626' },
+                        slate: { 850: '#1e293b' }
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(14, 165, 233, 0.3)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --secondary: #64748b;
-            --bg-body: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-            --success: #10b981;
-            --danger: #ef4444;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            font-size: 14px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        /* HEADER */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            background: var(--bg-card);
-            padding: 16px 24px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .brand img {
-            height: 48px;
-            object-fit: contain;
-        }
-
-        .brand h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin: 0;
-        }
-
-        .system-status {
-            display: flex;
-            gap: 10px;
-        }
-
-        /* BADGES / PILLS */
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 99px;
-            font-size: 12px;
-            font-weight: 500;
-            background: #f1f5f9;
-            color: var(--text-muted);
-            border: 1px solid var(--border);
-        }
-
-        .status-badge.ok { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
-        .status-badge.bad { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
-        
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%; background: currentColor;
-        }
-
-        /* CARDS & PANELS */
-        .panel {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            margin-bottom: 24px;
-        }
-
-        h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-main);
-            margin: 0 0 16px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* CONTROLS ROW */
-        .control-row {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        /* FORM ELEMENTS */
-        select, input[type="text"], input[type="number"] {
-            background: #fff;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-
-        select:focus, input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        button {
-            cursor: pointer;
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        /* TABS */
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 24px;
-            background: #e2e8f0;
-            padding: 4px;
-            border-radius: 10px;
-            width: fit-content;
-        }
-
-        .tab-button {
+        ::-webkit-scrollbar-track {
             background: transparent;
-            color: var(--text-muted);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-weight: 500;
         }
 
-        .tab-button:hover { color: var(--text-main); }
-
-        .tab-button.active {
-            background: white;
-            color: var(--primary);
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
         }
 
-        /* PATIENT SECTION STYLES */
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border: 2px dashed var(--border);
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
 
-        .empty-icon {
-            font-size: 40px;
-            margin-bottom: 12px;
-            color: var(--text-muted);
+        .fade-enter {
+            animation: fadeIn 0.3s ease-out forwards;
         }
 
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
 
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-danger:hover { background: #dc2626; }
-
-        /* ACTIVE PATIENT CARD */
-        .patient-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 24px;
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        .patient-details {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            flex: 1;
+        .glass-blur {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
-        .info-block {
-            display: flex;
-            flex-direction: column;
-            background: #f1f5f9;
-            padding: 10px 16px;
-            border-radius: 8px;
-            min-width: 100px;
-        }
-
-        .info-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .info-value { font-size: 16px; font-weight: 600; color: var(--text-main); }
-
-        .action-area { display: flex; gap: 10px; }
-
-        /* PROGRESS BAR */
-        .progress-container {
-            width: 100%;
-            background: #e2e8f0;
-            border-radius: 99px;
-            height: 8px;
-            margin-top: 20px;
-            overflow: hidden;
+        .dropdown-content {
             display: none;
-        }
-        .progress-bar {
-            height: 100%;
-            background: var(--success);
-            width: 0%;
-            transition: width 0.2s linear;
-        }
-        .progress-label {
-            text-align: right; font-size: 12px; color: var(--text-muted); margin-top: 6px;
-        }
-
-        /* CHART AREA */
-        .chart-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;
-        }
-        .chart-container {
-            position: relative; height: 320px; width: 100%;
-            background: white; border-radius: 8px;
+            position: absolute;
+            z-index: 50;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 0.5rem;
+            transform-origin: top;
+            animation: scaleIn 0.15s ease-out forwards;
         }
 
-        /* TOGGLES */
-        .checkbox-group { display: flex; gap: 12px; }
-        .toggle-chip {
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
-            background: #f1f5f9; color: var(--text-muted); border: 1px solid transparent;
-            transition: all 0.2s;
+        .dropdown-open .dropdown-content {
+            display: block;
         }
-        .toggle-chip:hover { background: #e2e8f0; }
-        .toggle-chip input { display: none; }
-        .toggle-chip:has(input:checked) { background: #eff6ff; color: var(--primary); border-color: #bfdbfe; }
-        
-        /* DATA CARDS GRID */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 16px;
-        }
-        .metric-card {
-            background: #fff; border: 1px solid var(--border);
-            padding: 16px; border-radius: 10px; text-align: center;
-        }
-        .metric-label { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
-        .metric-value { font-size: 24px; font-weight: 700; color: var(--primary); }
 
-        /* TABLES */
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 12px 16px; background: #f8fafc; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border); }
-        td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-main); }
-        tr:hover td { background: #f8fafc; }
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
 
-        /* MODAL */
-        .modal {
-            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px); display: none; z-index: 9999;
-            align-items: center; justify-content: center;
-        }
-        .modal-content {
-            background: white; width: 400px; padding: 32px;
-            border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
-            animation: popUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        @keyframes popUp { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-main); }
-        
-        /* UTILS */
-        .hidden { display: none !important; }
-        
-        @media (max-width: 768px) {
-            header { flex-direction: column; align-items: flex-start; gap: 16px; }
-            .system-status { width: 100%; flex-wrap: wrap; }
-            .patient-card { flex-direction: column; align-items: stretch; }
-            .action-area button { flex: 1; }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
     </style>
 </head>
 
-<body>
-    <div class="container">
-        <header>
-            <div class="brand">
-                <img src="assets/logo.png" alt="ECG" onerror="this.style.display='none'">
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-10">
+
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+
+        <header
+            class="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 bg-white p-4 rounded-2xl shadow-soft border border-slate-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-brand-500"></div>
+
+            <div class="flex items-center gap-4 w-full md:w-auto z-10">
+                <div
+                    class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-200 shrink-0 overflow-hidden p-1">
+                    <img src="assets/logo.png" alt="Logo" class="h-full w-full object-contain"
+                        onerror="this.style.display='none'; document.getElementById('backup-logo').classList.remove('hidden');">
+                    <svg id="backup-logo" class="w-8 h-8 hidden text-brand-600" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z">
+                        </path>
+                    </svg>
+                </div>
                 <div>
-                    <h1>ECG Live Platform</h1>
-                    <div style="font-size: 12px; color: var(--text-muted);">Real-time Monitoring System</div>
+                    <h1 class="text-xl font-bold text-slate-900 leading-tight tracking-tight">ECG Live Platform</h1>
+                    <div class="flex items-center gap-2 text-xs text-slate-500 mt-0.5 font-medium">
+                        <span
+                            class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-sm shadow-emerald-500/50"></span>
+                        Real-time Monitoring System
+                    </div>
                 </div>
             </div>
-            <div class="system-status">
-                <div class="status-badge" id="ws-badge">
-                    <div class="status-dot"></div>
-                    WS: <span id="ws-text">Connecting...</span>
+
+            <div class="flex items-center gap-3 w-full md:w-auto overflow-x-auto">
+                <div id="ws-badge"
+                    class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold flex items-center gap-2 whitespace-nowrap transition-all duration-300">
+                    <span class="w-2 h-2 rounded-full bg-slate-300 transition-colors duration-300"></span>
+                    <span id="ws-text">Connecting...</span>
                 </div>
-                <div class="status-badge">
-                    Server: <span id="server-url">...</span>
+                <div
+                    class="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-xs font-medium flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                        </path>
+                    </svg>
+                    <span id="server-url" class="font-mono">...</span>
                 </div>
-                <div class="status-badge">
-                    Devices: <span id="device-count">0</span>
+                <div
+                    class="px-3 py-1.5 rounded-lg bg-brand-50 border border-brand-100 text-brand-700 text-xs font-bold flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="device-count">0</span> Active
                 </div>
             </div>
         </header>
 
-        <div class="panel">
-            <h3>
-                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>
-                Device Selection
-            </h3>
-            <div class="control-row">
-                <select id="device-selector" style="min-width: 250px;">
-                    <option value="">-- Select Device --</option>
-                </select>
-                <div class="status-badge" id="device-status-badge">
-                    <div class="status-dot"></div>
-                    <span id="selected-device">-</span>
-                </div>
-                <div style="font-size: 13px; color: var(--text-muted); margin-left: auto;">
-                    Status: <span id="connection-status-text">-</span>
-                </div>
-            </div>
-        </div>
+        <div
+            class="bg-white rounded-2xl shadow-soft border border-slate-100 p-2 mb-8 flex flex-col md:flex-row items-center gap-4 relative z-40">
 
-        <div class="tabs">
-            <button class="tab-button active" onclick="openTab(event, 'ecg-view')">Live Monitor</button>
-            <button class="tab-button" onclick="openTab(event, 'perf-view')">Performance</button>
-            <button class="tab-button" onclick="openTab(event, 'overview-view')">Overview</button>
-            <button class="tab-button" onclick="openTab(event, 'download-view')">Export Data</button>
-        </div>
-
-        <div id="ecg-view" class="tab-content" style="display: block;">
-            
-            <div class="panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        Patient & Recording
-                    </h3>
-                    <div class="status-badge">
-                        Status: <span id="status" style="font-weight: 600; margin-left: 4px;">Idle</span>
-                    </div>
-                </div>
-
-                <div id="section-initial" class="empty-state">
-                    <div class="empty-icon">📋</div>
-                    <h4 style="margin: 0 0 8px 0; color: var(--text-main);">No Patient Selected</h4>
-                    <p style="margin: 0 0 20px 0; color: var(--text-muted); font-size: 13px;">Please input patient data to start recording session.</p>
-                    <button id="btn-input-data" class="btn-primary">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Input Patient Data
-                    </button>
-                </div>
-
-                <div id="section-patient" style="display: none;">
-                    <div class="patient-card">
-                        <div class="patient-details">
-                            <input type="hidden" id="hidden-subject-id">
-                            <div class="info-block">
-                                <span class="info-label">NIK / ID</span>
-                                <span class="info-value" id="disp-subject">-</span>
-                            </div>
-                            <div class="info-block">
-                                <span class="info-label">Name</span>
-                                <span class="info-value" id="disp-name">-</span>
-                            </div>
-                            <div class="info-block">
-                                <span class="info-label">Age</span>
-                                <span class="info-value"><span id="disp-age">-</span> yo</span>
-                            </div>
-                            <div class="info-block">
-                                <span class="info-label">Gender</span>
-                                <span class="info-value" id="disp-gender">-</span>
-                            </div>
-                            <div class="info-block" style="flex: 2;">
-                                <span class="info-label">Current Recording ID</span>
-                                <span class="info-value" id="rid" style="font-family: monospace; font-size: 13px;">-</span>
-                            </div>
-                        </div>
-
-                        <div class="action-area">
-                            <button id="start" class="btn-primary" style="background: var(--success);">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Start Record
-                            </button>
-                            <button id="stop" class="btn-danger" style="display: none;">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
-                                Stop
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="progress-container" class="progress-container">
-                    <div id="progress-bar" class="progress-bar"></div>
-                </div>
-                <div id="progress-label" class="progress-label"></div>
-            </div>
-
-            <div class="panel">
-                <div class="chart-header">
-                    <h3>
-                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                        Live Waveform
-                    </h3>
-                    <div class="checkbox-group">
-                        <label class="toggle-chip">
-                            <input type="checkbox" checked onchange="toggleLead(0, this)">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #58a6ff;"></span> Lead I
-                        </label>
-                        <label class="toggle-chip">
-                            <input type="checkbox" checked onchange="toggleLead(1, this)">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #3fb950;"></span> Lead II
-                        </label>
-                        <label class="toggle-chip">
-                            <input type="checkbox" checked onchange="toggleLead(2, this)">
-                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #d29922;"></span> V1
-                        </label>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="chart"></canvas>
-                </div>
-            </div>
-
-            <div class="grid" style="grid-template-columns: 1fr 2fr; align-items: start; margin-bottom: 24px;">
-                <div class="panel" style="margin: 0; height: 100%;">
-                    <h3>Real-time Values (ADC)</h3>
-                    <div class="grid" id="cards" style="grid-template-columns: 1fr; gap: 12px;"></div>
-                </div>
-                
-                <div class="panel" style="margin: 0; height: 100%;">
-                    <h3>Recent Classification Results</h3>
-                    <div class="history-panel" style="max-height: 250px;">
-                        <table id="history-table-full">
-                            <thead>
-                                <tr><th>Time</th><th>Device</th><th>NIK</th><th>ID</th><th>Result</th></tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="perf-view" class="tab-content">
-            <div class="panel">
-                <h3>System Performance</h3>
-                <div class="status-badge" style="display: inline-flex; margin-bottom: 20px;">
-                    Format: <span id="packet-format" style="margin-left: 5px; font-weight: 600;">Unknown</span>
-                </div>
-                <div class="grid" id="perf-cards-container"></div>
-            </div>
-        </div>
-
-        <div id="overview-view" class="tab-content">
-            <div class="panel">
-                <h3>Multi-Device Overview</h3>
-                <table id="overview-table">
-                    <thead>
-                        <tr><th>Device ID</th><th>Status</th><th>Format</th><th>Latency</th><th>Jitter</th><th>Loss %</th></tr>
-                    </thead>
-                    <tbody id="overview-table-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="download-view" class="tab-content">
-            <div class="panel">
-                <h3>Export Data</h3>
-                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
-                    <div style="display: flex; gap: 20px;">
-                        <div>
-                            <div style="font-size: 12px; color: var(--text-muted);">Selected ID</div>
-                            <div id="download-rid" style="font-weight: 600; font-family: monospace;">-</div>
+            <div class="w-full md:w-1/3 relative" id="device-dropdown-container">
+                <button onclick="toggleDeviceDropdown()"
+                    class="w-full text-left bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between transition-all group focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div
+                            class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm group-hover:text-brand-500 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z">
+                                </path>
+                            </svg>
                         </div>
                         <div>
-                            <div style="font-size: 12px; color: var(--text-muted);">NIK / Subject</div>
-                            <div id="download-sid" style="font-weight: 600;">-</div>
+                            <div class="text-[10px] uppercase font-bold text-slate-400 leading-none mb-1">Active Source
+                            </div>
+                            <div id="selected-device-label" class="text-sm font-semibold text-slate-700 truncate">Select
+                                Device</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="download-raw" class="btn-primary" disabled>Download Raw (CSV)</button>
-                        <button id="download-feature" class="btn-primary" disabled>Download Features (CSV)</button>
+                    <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-transform" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+
+                <div
+                    class="dropdown-content bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
+                    <div id="device-list-container" class="divide-y divide-slate-50">
                     </div>
                 </div>
-                
-                <h3>Select Recording</h3>
-                <div class="history-panel">
-                    <table id="history-table-download">
-                        <thead><tr><th>Timestamp</th><th>Device</th><th>NIK</th><th>ID</th><th>Result</th></tr></thead>
-                        <tbody id="history-table-body-download"></tbody>
+            </div>
+
+            <div class="hidden md:block w-px h-10 bg-slate-100"></div>
+
+            <div class="flex-1 flex gap-6 px-2 w-full justify-between md:justify-start">
+                <div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Device ID</div>
+                    <div id="selected-device"
+                        class="font-mono text-sm font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 inline-block">
+                        -</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Connection</div>
+                    <div id="connection-status-text" class="text-sm font-medium text-slate-400">-</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex space-x-1 bg-slate-100 p-1 rounded-xl mb-6 w-full md:w-auto inline-flex overflow-x-auto">
+            <button
+                class="tab-button active flex-1 md:flex-none px-6 py-2 text-sm font-semibold rounded-lg transition-all"
+                onclick="openTab(event, 'ecg-view')">
+                Live Monitor
+            </button>
+            <button
+                class="tab-button flex-1 md:flex-none px-6 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-all"
+                onclick="openTab(event, 'perf-view')">
+                Performance
+            </button>
+            <button
+                class="tab-button flex-1 md:flex-none px-6 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-all"
+                onclick="openTab(event, 'overview-view')">
+                Multi-Device
+            </button>
+            <button
+                class="tab-button flex-1 md:flex-none px-6 py-2 text-sm font-semibold rounded-lg text-slate-500 hover:text-slate-700 hover:bg-white/50 transition-all"
+                onclick="openTab(event, 'download-view')">
+                Data Export
+            </button>
+        </div>
+
+        <div id="ecg-view" class="tab-content fade-enter">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden group">
+                        <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <h3
+                                class="font-semibold text-slate-700 flex items-center gap-2 text-sm uppercase tracking-wide">
+                                <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                Patient Session
+                            </h3>
+                            <span
+                                class="text-[10px] uppercase font-bold px-2 py-1 bg-slate-200 text-slate-500 rounded border border-slate-300 tracking-wider"
+                                id="status">IDLE</span>
+                        </div>
+                        <div class="p-6">
+                            <div id="section-initial" class="text-center py-6">
+                                <div
+                                    class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-100 text-2xl shadow-sm rotate-3 hover:rotate-6 transition-transform">
+                                    📇</div>
+                                <h4 class="text-slate-900 font-bold mb-2">No Active Session</h4>
+                                <p class="text-slate-500 text-xs mb-6 px-4 leading-relaxed">Input patient details to
+                                    initialize the recording stream and analysis.</p>
+                                <button id="btn-input-data"
+                                    class="w-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg> Create New Session
+                                </button>
+                            </div>
+                            <div id="section-patient" style="display: none;" class="space-y-5">
+                                <input type="hidden" id="hidden-subject-id">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">NIK / ID</div>
+                                        <div id="disp-subject"
+                                            class="font-mono text-sm font-bold text-slate-700 truncate">-</div>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">Name</div>
+                                        <div id="disp-name" class="text-sm font-bold text-slate-700 truncate">-</div>
+                                    </div>
+                                </div>
+                                <div class="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                    <div class="flex-1 flex flex-col items-center border-r border-slate-200">
+                                        <span class="text-[10px] uppercase text-slate-400 font-bold">Age</span>
+                                        <span class="text-sm font-semibold text-slate-800"><span
+                                                id="disp-age">-</span></span>
+                                    </div>
+                                    <div class="flex-1 flex flex-col items-center">
+                                        <span class="text-[10px] uppercase text-slate-400 font-bold">Gender</span>
+                                        <span id="disp-gender" class="text-sm font-semibold text-slate-800">-</span>
+                                    </div>
+                                </div>
+                                <div class="border-t border-slate-100 pt-4">
+                                    <div
+                                        class="text-[10px] text-slate-400 font-bold uppercase mb-2 flex justify-between">
+                                        <span>Current Session ID</span>
+                                        <span class="text-brand-500 cursor-pointer hover:underline"
+                                            onclick="copyToClipboard(document.getElementById('rid').innerText)">Copy</span>
+                                    </div>
+                                    <div id="rid"
+                                        class="font-mono text-xs text-slate-600 bg-white p-2.5 rounded border border-slate-200 truncate select-all shadow-sm">
+                                        -</div>
+                                </div>
+                                <div class="pt-2 flex gap-3">
+                                    <button id="start"
+                                        class="flex-1 bg-gradient-to-r from-success-600 to-emerald-500 hover:from-success-500 hover:to-emerald-400 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-success-500/20 hover:shadow-success-500/30 flex items-center justify-center gap-2 group hover:-translate-y-0.5">Start
+                                        Recording</button>
+                                    <button id="stop"
+                                        class="flex-1 bg-gradient-to-r from-danger-600 to-rose-500 hover:from-danger-500 hover:to-rose-400 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-danger-500/20 hover:shadow-danger-500/30 items-center justify-center gap-2 group hover:-translate-y-0.5"
+                                        style="display: none;">Stop Rec</button>
+                                </div>
+                            </div>
+                            <div id="progress-container"
+                                class="mt-6 hidden transition-all duration-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <div class="flex justify-between text-xs font-semibold text-slate-500 mb-2">
+                                    <span class="flex items-center gap-1"><span
+                                            class="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse"></span>
+                                        Buffering...</span>
+                                    <span id="progress-label" class="font-mono text-slate-700">0/1000</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                    <div id="progress-bar"
+                                        class="bg-gradient-to-r from-brand-500 to-cyan-400 h-2 rounded-full transition-all duration-300 relative"
+                                        style="width: 0%">
+                                        <div class="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-5">
+                        <h3
+                            class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            Raw ADC Values</h3>
+                        <div id="cards" class="grid grid-cols-3 gap-3"></div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-1">
+                        <div class="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                                <div class="p-1.5 bg-rose-50 text-rose-500 rounded-lg"><svg class="w-4 h-4" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                                        </path>
+                                    </svg></div>
+                                Live Waveform (mV)
+                            </h3>
+                            <div class="flex bg-slate-50 p-1 rounded-lg border border-slate-100 shadow-sm">
+                                <label
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
+                                        type="checkbox" checked onchange="toggleLead(0, this)"
+                                        class="accent-brand-500 w-3.5 h-3.5"><span
+                                        class="w-2 h-2 rounded-full bg-brand-500"></span> Lead I</label>
+                                <label
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
+                                        type="checkbox" checked onchange="toggleLead(1, this)"
+                                        class="accent-success-500 w-3.5 h-3.5"><span
+                                        class="w-2 h-2 rounded-full bg-success-500"></span> Lead II</label>
+                                <label
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
+                                        type="checkbox" checked onchange="toggleLead(2, this)"
+                                        class="accent-amber-500 w-3.5 h-3.5"><span
+                                        class="w-2 h-2 rounded-full bg-amber-500"></span> V1</label>
+                            </div>
+                        </div>
+                        <div
+                            class="relative h-[380px] w-full bg-white rounded-xl border border-slate-50 mx-auto overflow-hidden">
+                            <canvas id="chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
+                        <div
+                            class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-semibold text-slate-700 text-sm">Real-time Classification Log</h3>
+                            <button onclick="fetchHistory()"
+                                class="text-xs text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1">Refresh</button>
+                        </div>
+                        <div class="overflow-x-auto max-h-[300px]">
+                            <table id="history-table-full" class="w-full text-sm text-left">
+                                <thead class="text-xs text-slate-400 uppercase bg-slate-50 sticky top-0 z-10">
+                                    <tr>
+                                        <th class="px-6 py-3 font-bold tracking-wider">Time</th>
+                                        <th class="px-6 py-3 font-bold tracking-wider">Device</th>
+                                        <th class="px-6 py-3 font-bold tracking-wider">NIK</th>
+                                        <th class="px-6 py-3 font-bold tracking-wider">ID</th>
+                                        <th class="px-6 py-3 font-bold tracking-wider">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-600"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="perf-view" class="tab-content hidden fade-enter">
+            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-8">
+                <div class="flex justify-between items-center mb-8 border-b border-slate-100 pb-4">
+                    <div>
+                        <h3 class="font-bold text-xl text-slate-800">Connection Health</h3>
+                        <p class="text-slate-500 text-sm">Real-time metrics for the active device stream.</p>
+                    </div>
+                    <div
+                        class="bg-brand-50 text-brand-700 px-4 py-2 rounded-lg text-sm font-medium border border-brand-100 flex items-center gap-2">
+                        <span class="w-2 h-2 bg-brand-500 rounded-full"></span> Format: <span id="packet-format"
+                            class="font-mono font-bold">Unknown</span>
+                    </div>
+                </div>
+                <div id="perf-cards-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6"></div>
+            </div>
+        </div>
+
+        <div id="overview-view" class="tab-content hidden fade-enter">
+            <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                    <h3 class="font-bold text-lg text-slate-800">Connected Devices Overview</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="overview-table" class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-4 font-bold">Device ID</th>
+                                <th class="px-6 py-4 font-bold">Status</th>
+                                <th class="px-6 py-4 font-bold">Format</th>
+                                <th class="px-6 py-4 font-bold">Latency</th>
+                                <th class="px-6 py-4 font-bold">Jitter</th>
+                                <th class="px-6 py-4 font-bold">Loss %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overview-table-body" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="patientModal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 24px; justify-content: center;">Patient Information</h3>
-            
-            <div class="form-group">
-                <label>NIK / ID Number</label>
-                <input id="modal-subject" type="text" placeholder="Enter NIK" style="width: 100%; box-sizing: border-box;">
-            </div>
-            
-            <div class="form-group">
-                <label>Full Name</label>
-                <input id="modal-name" type="text" placeholder="Patient Name" style="width: 100%; box-sizing: border-box;">
-            </div>
-            
-            <div class="grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 24px;">
-                <div class="form-group">
-                    <label>Age</label>
-                    <input id="modal-age" type="number" placeholder="0" style="width: 100%; box-sizing: border-box;">
+        <div id="download-view" class="tab-content hidden fade-enter">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-8">
+                    <div
+                        class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden flex flex-col h-full">
+                        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800">1. Select Recording</h3>
+                                <p class="text-sm text-slate-500">Choose a completed session from the archive below.</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto flex-1 max-h-[600px]">
+                            <table id="history-table-download" class="w-full text-sm text-left">
+                                <thead class="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th class="px-6 py-4">Time</th>
+                                        <th class="px-6 py-4">Device</th>
+                                        <th class="px-6 py-4">NIK</th>
+                                        <th class="px-6 py-4">ID</th>
+                                        <th class="px-6 py-4">Result</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body-download"
+                                    class="divide-y divide-slate-100 text-slate-600"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Gender</label>
-                    <select id="modal-gender" style="width: 100%; box-sizing: border-box;">
-                        <option value="">-- Select --</option>
-                        <option>Male</option>
-                        <option>Female</option>
-                    </select>
-                </div>
-            </div>
 
-            <div style="display: flex; gap: 12px;">
-                <button id="modal-cancel" style="flex: 1; background: #e2e8f0; color: var(--text-main);">Cancel</button>
-                <button id="modal-submit" class="btn-primary" style="flex: 1;">Submit & Ready</button>
+                <div class="lg:col-span-4">
+                    <div
+                        class="bg-slate-850 text-white rounded-2xl p-6 shadow-2xl sticky top-6 border border-slate-700">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-bold text-xl flex items-center gap-2"><svg class="w-5 h-5 text-brand-400"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg> 2. Export Data</h3>
+                            <button onclick="clearExportSelection()"
+                                class="text-xs text-slate-400 hover:text-white uppercase font-bold tracking-wider hover:underline py-1">Clear
+                                Selection</button>
+                        </div>
+                        <p class="text-slate-400 text-sm mb-6">Selected recording details:</p>
+                        <div class="space-y-4 mb-8 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                                    Recording ID</div>
+                                <div id="download-rid" class="font-mono text-sm font-medium text-white truncate">-</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Subject
+                                    NIK</div>
+                                <div id="download-sid" class="font-mono text-sm font-medium text-white">-</div>
+                            </div>
+                        </div>
+                        <div class="grid gap-4">
+                            <button id="download-raw" disabled
+                                class="group relative w-full p-4 bg-white text-slate-900 rounded-xl hover:bg-brand-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-left border border-transparent hover:border-brand-300">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-slate-100 rounded-lg group-hover:bg-brand-100 transition-colors">
+                                        <svg class="w-6 h-6 text-slate-600 group-hover:text-brand-600" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm">Download Raw Signals</div>
+                                        <div class="text-xs text-slate-500 mt-0.5">Full 3-Lead ECG data (.csv)</div>
+                                    </div>
+                                </div>
+                            </button>
+                            <button id="download-feature" disabled
+                                class="group relative w-full p-4 bg-slate-700 text-white rounded-xl hover:bg-slate-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-left border border-slate-600 hover:border-slate-500">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-slate-800 rounded-lg group-hover:bg-slate-500 transition-colors">
+                                        <svg class="w-6 h-6 text-slate-300 group-hover:text-white" fill="none"
+                                            stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm">Download Features</div>
+                                        <div class="text-xs text-slate-400 mt-0.5">Processed metrics & class (.csv)
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <div id="patientModal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <div class="fixed inset-0 bg-slate-900/60 glass-blur transition-opacity"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                <div
+                    class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-100">
+                    <div class="h-1.5 bg-gradient-to-r from-brand-500 to-brand-600"></div>
+                    <div class="px-8 py-8">
+                        <div class="text-center mb-8">
+                            <div
+                                class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 border border-brand-100 mb-4 shadow-sm">
+                                <svg class="h-7 w-7 text-brand-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 tracking-tight">New Patient Session</h3>
+                            <p class="text-sm text-slate-500 mt-1">Enter patient details to initialize recording.</p>
+                        </div>
+                        <div class="space-y-5">
+                            <div><label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">NIK
+                                    / Patient ID</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2">
+                                            </path>
+                                        </svg>
+                                    </div><input id="modal-subject" type="text"
+                                        class="block w-full pl-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
+                                        placeholder="e.g. 3201234567890001">
+                                </div>
+                            </div>
+                            <div><label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Full
+                                    Name</label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                            </path>
+                                        </svg>
+                                    </div><input id="modal-name" type="text"
+                                        class="block w-full pl-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
+                                        placeholder="Enter full name">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label
+                                        class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Age</label>
+                                    <div class="relative"><input id="modal-age" type="number"
+                                            class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
+                                            placeholder="0">
+                                        <div
+                                            class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
+                                            yo</div>
+                                    </div>
+                                </div>
+                                <div><label
+                                        class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Gender</label><select
+                                        id="modal-gender"
+                                        class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all cursor-pointer font-medium">
+                                        <option value="">Select...</option>
+                                        <option>Male</option>
+                                        <option>Female</option>
+                                    </select></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-slate-50 px-8 py-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-slate-100">
+                        <button id="modal-cancel" type="button"
+                            class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all">Cancel</button>
+                        <button id="modal-submit" type="button"
+                            class="w-full sm:w-auto inline-flex justify-center rounded-xl bg-brand-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-500/20 hover:bg-brand-500 transition-all hover:-translate-y-0.5">Submit
+                            & Ready</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- GLOBAL STATE ---
         let ws = null;
@@ -581,16 +637,19 @@
         let currentDevice = null;
         let isReconnecting = false;
         let isRecording = false;
+        let cachedDeviceList = []; // [FIX] Simpan list device untuk re-render lokal
 
         // --- DOM ELEMENTS ---
-        const wsStatusEl = document.getElementById('ws-text'); // Changed ID ref
-        const wsBadge = document.getElementById('ws-badge'); // New Badge ref
+        const wsStatusEl = document.getElementById('ws-text');
+        const wsBadge = document.getElementById('ws-badge');
         const serverUrlEl = document.getElementById('server-url');
         const deviceCountEl = document.getElementById('device-count');
-        const deviceSelector = document.getElementById('device-selector');
         const selectedDeviceEl = document.getElementById('selected-device');
         const connectionStatusText = document.getElementById('connection-status-text');
-        const deviceStatusBadge = document.getElementById('device-status-badge');
+
+        const deviceDropdownContainer = document.getElementById('device-dropdown-container');
+        const deviceListContainer = document.getElementById('device-list-container');
+        const selectedDeviceLabel = document.getElementById('selected-device-label');
 
         const sectionInitial = document.getElementById('section-initial');
         const sectionPatient = document.getElementById('section-patient');
@@ -614,7 +673,7 @@
         const stopBtn = document.getElementById('stop');
         const statusEl = document.getElementById('status');
         const ridEl = document.getElementById('rid');
-        
+
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressLabel = document.getElementById('progress-label');
@@ -625,29 +684,115 @@
         const downloadFeatureBtn = document.getElementById('download-feature');
         let selectedDownloadRecord = null;
 
+        // --- HELPER FUNCTIONS ---
+        window.copyToClipboard = function (text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Session ID copied to clipboard!');
+            });
+        }
+
+        // --- TAB SWITCHING ---
+        window.openTab = function (evt, name) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(b => {
+                b.classList.remove('active', 'bg-white', 'text-brand-600', 'shadow-sm');
+                b.classList.add('text-slate-500');
+            });
+
+            document.getElementById(name).classList.remove('hidden');
+            evt.currentTarget.classList.remove('text-slate-500');
+            evt.currentTarget.classList.add('active', 'bg-white', 'text-brand-600', 'shadow-sm');
+        };
+
+        const activeTab = document.querySelector('.tab-button.active');
+        if (activeTab) {
+            activeTab.classList.add('bg-white', 'text-brand-600', 'shadow-sm');
+            activeTab.classList.remove('text-slate-500');
+        }
+
+        // --- DROPDOWN LOGIC ---
+        window.toggleDeviceDropdown = function () {
+            deviceDropdownContainer.classList.toggle('dropdown-open');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!deviceDropdownContainer.contains(e.target)) {
+                deviceDropdownContainer.classList.remove('dropdown-open');
+            }
+        });
+
+        // [FIXED] Updated selectDevice logic to refresh UI immediately
+        window.selectDevice = function (deviceId) {
+            if (currentDevice && isRecording && deviceId !== currentDevice) {
+                if (!confirm("Recording in progress. Switching devices will cancel the current recording. Continue?")) return;
+                sendWebSocketMessage({ type: 'cancel_recording', device_id: currentDevice });
+                isRecording = false;
+            }
+
+            // 1. Reset View first
+            resetDeviceView();
+            deviceDropdownContainer.classList.remove('dropdown-open');
+
+            // 2. Set New Device State
+            if (deviceId) {
+                sendWebSocketMessage({ type: 'subscribe_to_device', device_id: deviceId });
+                currentDevice = deviceId;
+                // Update UI Labels
+                selectedDeviceEl.textContent = currentDevice;
+                selectedDeviceLabel.textContent = currentDevice;
+            } else {
+                sendWebSocketMessage({ type: 'subscribe_to_device', device_id: "" });
+                selectedDeviceLabel.textContent = "Select Device";
+            }
+
+            // 3. [IMPORTANT] Re-render list to update blue dots/highlights immediately
+            updateDeviceList(cachedDeviceList);
+        }
+
+        // --- EXPORT LOGIC ---
+        window.clearExportSelection = function () {
+            selectedDownloadRecord = null;
+            downloadRidEl.textContent = '-';
+            downloadSidEl.textContent = '-';
+            downloadRawBtn.disabled = true;
+            downloadFeatureBtn.disabled = true;
+
+            document.querySelectorAll('#history-table-body-download tr').forEach(r => {
+                r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200');
+            });
+        }
+
+        function selectRecordingForDownload(rid, sid, cls) {
+            downloadRidEl.textContent = rid; downloadSidEl.textContent = sid;
+            downloadRawBtn.disabled = false; downloadFeatureBtn.disabled = false;
+            selectedDownloadRecord = { recording_id: rid };
+        }
+        downloadRawBtn.onclick = () => window.open(`/api/download/raw/${selectedDownloadRecord.recording_id}`, '_blank');
+        downloadFeatureBtn.onclick = () => window.open(`/api/download/feature/${selectedDownloadRecord.recording_id}`, '_blank');
+
         // --- UI STATE MANAGEMENT ---
         function showInitialState() {
             sectionInitial.style.display = 'block';
             sectionPatient.style.display = 'none';
             inpSubject.value = ""; inpName.value = ""; inpAge.value = ""; inpGender.value = "";
             dispSubject.textContent = "-"; dispName.textContent = "-"; hiddenSubjectId.value = "";
-            startBtn.style.display = 'inline-flex'; stopBtn.style.display = 'none';
+            startBtn.style.display = 'flex'; stopBtn.style.display = 'none';
         }
 
         function showPatientReadyState() {
             sectionInitial.style.display = 'none';
             sectionPatient.style.display = 'block';
-            startBtn.style.display = 'inline-flex'; stopBtn.style.display = 'none';
+            startBtn.style.display = 'flex'; stopBtn.style.display = 'none';
         }
 
         function showRecordingState() {
-            startBtn.style.display = 'none'; stopBtn.style.display = 'inline-flex';
+            startBtn.style.display = 'none'; stopBtn.style.display = 'flex';
         }
 
         // --- EVENT LISTENERS ---
-        btnInputData.onclick = () => { modal.style.display = 'flex'; }; // Flex for centering
-        modalCancel.onclick = () => { modal.style.display = 'none'; };
-        
+        btnInputData.onclick = () => { modal.classList.remove('hidden'); };
+        modalCancel.onclick = () => { modal.classList.add('hidden'); };
+
         modalSubmit.onclick = () => {
             const s = inpSubject.value.trim();
             const n = inpName.value.trim();
@@ -656,17 +801,17 @@
 
             if (!s || !n || !a || !g) { alert("Please fill all patient fields."); return; }
 
-            dispSubject.textContent = s; dispName.textContent = n; 
+            dispSubject.textContent = s; dispName.textContent = n;
             dispAge.textContent = a; dispGender.textContent = g;
             hiddenSubjectId.value = s;
 
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
             showPatientReadyState();
         };
 
         startBtn.onclick = () => {
             const subjectId = hiddenSubjectId.value;
-            if (!currentDevice) return alert('Please select a device first.');
+            if (!currentDevice) return alert('Please select a device first from the top menu.');
             if (!subjectId) return alert('Patient data missing.');
 
             sendWebSocketMessage({ type: 'start_recording', device_id: currentDevice, subject_id: subjectId });
@@ -677,36 +822,17 @@
             if (currentDevice) sendWebSocketMessage({ type: 'stop_recording', device_id: currentDevice });
         };
 
-        deviceSelector.onchange = () => {
-            const newDeviceId = deviceSelector.value;
-            if (currentDevice && isRecording) {
-                sendWebSocketMessage({ type: 'cancel_recording', device_id: currentDevice });
-                isRecording = false;
-            }
-            resetDeviceView();
-            if (newDeviceId) {
-                sendWebSocketMessage({ type: 'subscribe_to_device', device_id: newDeviceId });
-                currentDevice = newDeviceId;
-                selectedDeviceEl.textContent = currentDevice;
-                deviceStatusBadge.classList.add('ok');
-            } else {
-                sendWebSocketMessage({ type: 'subscribe_to_device', device_id: "" });
-            }
-        };
-
         function resetDeviceView() {
-            currentDevice = null; selectedDeviceEl.textContent = '-'; isRecording = false;
-            deviceStatusBadge.classList.remove('ok', 'bad');
-            
+            currentDevice = null; selectedDeviceEl.textContent = '-'; selectedDeviceLabel.textContent = "Select Device"; isRecording = false;
+            connectionStatusText.textContent = '-'; connectionStatusText.className = 'text-sm font-medium text-slate-400';
+
             chartDataLeadI.fill(null); chartDataLeadII.fill(null); chartDataV1.fill(null);
             ecgChart.update('none');
 
-            Object.values(valueElements).forEach(el => el.textContent = '-');
-            Object.values(perfValueElements).forEach(el => el.textContent = '-');
+            document.querySelectorAll('.metric-value').forEach(el => el.textContent = '-');
 
             statusEl.textContent = "Idle"; ridEl.textContent = "-";
-            connectionStatusText.textContent = "-";
-            
+
             progressContainer.style.display = 'none'; progressBar.style.width = '0%'; progressLabel.textContent = '';
             showInitialState();
         }
@@ -725,10 +851,10 @@
                 case 'recording_cancelled':
                     if (message.device_id === currentDevice) {
                         alert(`Recording Stopped: ${message.reason}`);
-                        resetDeviceView();
-                        currentDevice = message.device_id;
-                        selectedDeviceEl.textContent = currentDevice;
-                        deviceStatusBadge.classList.add('ok');
+                        isRecording = false;
+                        showPatientReadyState();
+                        statusEl.textContent = "Idle";
+                        progressContainer.style.display = 'none';
                     }
                     break;
             }
@@ -736,10 +862,13 @@
 
         function updateDeviceState(data) {
             if (data.status_message === "Idle" || (!data.is_recording && isRecording)) {
-                isRecording = false; return;
+                isRecording = false;
+                if (hiddenSubjectId.value) showPatientReadyState(); else showInitialState();
+                statusEl.textContent = "Idle";
+                return;
             }
             isRecording = data.is_recording;
-            if(isRecording) showRecordingState(); else showPatientReadyState();
+            if (isRecording) showRecordingState();
             statusEl.textContent = data.status_message || 'Idle';
             ridEl.textContent = data.recording_id || '-';
             progressContainer.style.display = isRecording ? 'block' : 'none';
@@ -749,19 +878,21 @@
         const cardsContainer = document.getElementById('cards');
         const LEAD_KEYS = ["raw_lead_I", "raw_lead_II", "raw_v1"];
         const valueElements = {};
+
         LEAD_KEYS.forEach(k => {
-            const card = document.createElement('div'); card.className = 'metric-card';
-            card.innerHTML = `<div class='metric-label'>${k.replace('raw_', '').toUpperCase()}</div><div class='metric-value' id='v-${k}'>-</div>`;
+            const card = document.createElement('div');
+            card.className = 'bg-slate-50 border border-slate-100 rounded-xl p-3 text-center transition-all hover:bg-slate-100 hover:shadow-sm';
+            card.innerHTML = `<div class='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>${k.replace('raw_', '').toUpperCase()}</div><div class='text-xl font-bold text-slate-800 tabular-nums metric-value font-mono' id='v-${k}'>-</div>`;
             cardsContainer.appendChild(card);
             valueElements[k] = card.querySelector('.metric-value');
         });
 
         const perfCardsContainer = document.getElementById('perf-cards-container');
-        const PERF_METRICS = { latency_ms: {label:'Latency', unit:'ms'}, jitter_ms: {label:'Jitter', unit:'ms'}, packet_loss_pct: {label:'Loss', unit:'%'} };
+        const PERF_METRICS = { latency_ms: { label: 'Latency', unit: 'ms' }, jitter_ms: { label: 'Jitter', unit: 'ms' }, packet_loss_pct: { label: 'Loss', unit: '%' } };
         const perfValueElements = {};
-        Object.entries(PERF_METRICS).forEach(([k,v]) => {
-            const card = document.createElement('div'); card.className = 'metric-card';
-            card.innerHTML = `<div class='metric-label'>${v.label}</div><div class='metric-value' id='perf-${k}'>-</div>`;
+        Object.entries(PERF_METRICS).forEach(([k, v]) => {
+            const card = document.createElement('div'); card.className = 'bg-slate-50 border border-slate-100 rounded-xl p-4 text-center';
+            card.innerHTML = `<div class='text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1'>${v.label}</div><div class='text-xl font-bold text-slate-800 tabular-nums metric-value font-mono' id='perf-${k}'>-</div>`;
             perfCardsContainer.appendChild(card);
             perfValueElements[k] = card.querySelector('.metric-value');
         });
@@ -778,99 +909,147 @@
             data: {
                 labels: chartLabels,
                 datasets: [
-                    { label: 'Lead I', data: chartDataLeadI, borderColor: '#58a6ff', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+                    { label: 'Lead I', data: chartDataLeadI, borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, tension: 0.1 },
                     { label: 'Lead II', data: chartDataLeadII, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, tension: 0.1 },
                     { label: 'V1', data: chartDataV1, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, tension: 0.1 }
                 ]
             },
             options: {
                 animation: false, responsive: true, maintainAspectRatio: false,
-                scales: { 
-                    x: { display: false }, 
-                    y: { 
-                        ticks: { color: '#64748b', font: {size: 10} }, 
+                scales: {
+                    x: { display: false },
+                    y: {
+                        ticks: { color: '#94a3b8', font: { size: 10 } },
                         grid: { color: '#f1f5f9' },
                         border: { display: false }
-                    } 
+                    }
                 },
-                plugins: { legend: { labels: { usePointStyle: true, color: '#475569' } } }
+                plugins: { legend: { display: false } }
             }
         });
 
-        // --- DATA HANDLERS ---
         function updateLiveData(data) {
             chartLabels.shift(); chartDataLeadI.shift(); chartDataLeadII.shift(); chartDataV1.shift();
             chartLabels.push('');
             chartDataLeadI.push(data.cal_lead_I); chartDataLeadII.push(data.cal_lead_II); chartDataV1.push(data.cal_v1);
             ecgChart.update('none');
-            
+
             LEAD_KEYS.forEach(k => {
                 const v = data[k];
                 valueElements[k].textContent = (v !== null && Number.isFinite(v)) ? Number(v).toFixed(0) : '-';
             });
         }
 
-        function toggleLead(idx, cb) { ecgChart.setDatasetVisibility(idx, cb.checked); ecgChart.update('none'); }
+        window.toggleLead = function (idx, cb) { ecgChart.setDatasetVisibility(idx, cb.checked); ecgChart.update('none'); }
+
         function updatePerformanceMetrics(data) {
             document.getElementById('packet-format').textContent = data.packet_format || 'Unknown';
-            Object.entries(data).forEach(([k, v]) => { if(perfValueElements[k]) perfValueElements[k].textContent = `${v} ${PERF_METRICS[k]?.unit||''}`; });
+            Object.entries(data).forEach(([k, v]) => { if (perfValueElements[k]) perfValueElements[k].textContent = `${v} ${PERF_METRICS[k]?.unit || ''}`; });
         }
         function updateProgress(data) {
             const pct = (data.current / data.total) * 100;
             progressBar.style.width = pct + '%';
-            progressLabel.textContent = `Recording... ${data.current} / ${data.total} samples`;
+            progressLabel.textContent = `${data.current} / ${data.total} samples`;
         }
         function updateConnectionStatus(data) {
-            if(data.is_connected) { 
-                connectionStatusText.textContent = 'Online'; connectionStatusText.style.color = 'var(--success)';
-            } else { 
-                connectionStatusText.textContent = `Offline (${(data.time_since_last_seen || 0).toFixed(1)}s)`; connectionStatusText.style.color = 'var(--danger)';
+            if (data.is_connected) {
+                connectionStatusText.textContent = 'Online';
+                connectionStatusText.className = 'text-sm font-bold text-emerald-600';
+            } else {
+                connectionStatusText.textContent = `Offline (${(data.time_since_last_seen || 0).toFixed(1)}s)`;
+                connectionStatusText.className = 'text-sm font-bold text-rose-600';
+                document.querySelectorAll('.metric-value').forEach(el => el.textContent = '-');
             }
         }
+
+        // [FIXED] Updated to cache list and support synchronous refresh
         function updateDeviceList(devs) {
+            cachedDeviceList = devs; // Store in global cache
             deviceCountEl.textContent = devs.length;
-            const prev = deviceSelector.value;
-            deviceSelector.innerHTML = '<option value="">-- Select Device --</option>';
-            devs.forEach(d => {
-                const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
-                deviceSelector.appendChild(opt);
-            });
-            if(devs.includes(prev)) deviceSelector.value = prev;
-            else if(prev === currentDevice) resetDeviceView();
+            deviceListContainer.innerHTML = '';
+
+            // Add Disconnect Option
+            const disconnectItem = document.createElement('div');
+            disconnectItem.className = "px-4 py-2 hover:bg-rose-50 cursor-pointer flex items-center gap-3 border-b border-slate-100 transition-colors text-rose-600 font-medium text-xs uppercase tracking-wide";
+            disconnectItem.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Disconnect / No Device`;
+            disconnectItem.onclick = () => selectDevice("");
+            deviceListContainer.appendChild(disconnectItem);
+
+            if (currentDevice && !devs.includes(currentDevice)) {
+                console.log(`Device ${currentDevice} removed by server. Resetting view.`);
+                resetDeviceView();
+                alert(`Device has lost connection.`);
+            }
+
+            if (devs.length === 0) {
+                const emptyItem = document.createElement('div');
+                emptyItem.className = "px-4 py-3 text-sm text-slate-400 italic text-center";
+                emptyItem.textContent = "No active devices found";
+                deviceListContainer.appendChild(emptyItem);
+                if (currentDevice) resetDeviceView();
+            } else {
+                devs.forEach(d => {
+                    const item = document.createElement('div');
+                    item.className = "px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors group";
+                    const isSelected = d === currentDevice;
+                    // Highlight logic is now dependent on currentDevice state
+                    item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                         <div class="w-2 h-2 rounded-full ${isSelected ? 'bg-brand-500 ring-2 ring-brand-200' : 'bg-slate-300'} transition-all"></div>
+                         <span class="text-sm font-medium ${isSelected ? 'text-brand-700 font-bold' : 'text-slate-700'}">${d}</span>
+                    </div>
+                    ${isSelected ? '<svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                `;
+                    item.onclick = () => selectDevice(d);
+                    deviceListContainer.appendChild(item);
+                });
+            }
         }
+
         function updateGlobalPerformance(data) {
             const tbody = document.getElementById('overview-table-body'); tbody.innerHTML = '';
             data.forEach(d => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${d.device_id}</td><td>${d.status_message}</td><td>${d.packet_format}</td><td>${d.avg_latency_ms.toFixed(2)}</td><td>${d.jitter_ms.toFixed(2)}</td><td>${d.packet_loss_pct.toFixed(2)}</td>`;
+                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-900">${d.device_id}</td>
+                            <td class="px-6 py-4">${d.status_message}</td>
+                            <td class="px-6 py-4 text-slate-500">${d.packet_format}</td>
+                            <td class="px-6 py-4 font-mono">${d.avg_latency_ms.toFixed(2)}</td>
+                            <td class="px-6 py-4 font-mono">${d.jitter_ms.toFixed(2)}</td>
+                            <td class="px-6 py-4 font-mono ${d.packet_loss_pct > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600'}">${d.packet_loss_pct.toFixed(2)}</td>`;
                 tbody.appendChild(tr);
             });
         }
-        
-        function openTab(evt, name) {
-            document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
-            document.querySelectorAll('.tab-button').forEach(b=>b.classList.remove('active'));
-            document.getElementById(name).style.display='block';
-            evt.currentTarget.classList.add('active');
-        }
-        function selectRecordingForDownload(rid, sid, cls) {
-            downloadRidEl.textContent = rid; downloadSidEl.textContent = sid;
-            downloadRawBtn.disabled = false; downloadFeatureBtn.disabled = false;
-            selectedDownloadRecord = { recording_id: rid };
-        }
-        downloadRawBtn.onclick = () => window.open(`/api/download/raw/${selectedDownloadRecord.recording_id}`, '_blank');
-        downloadFeatureBtn.onclick = () => window.open(`/api/download/feature/${selectedDownloadRecord.recording_id}`, '_blank');
-        
+
         function fetchHistory() {
-            fetch('/api/history').then(r=>r.json()).then(data => {
+            fetch('/api/history').then(r => r.json()).then(data => {
                 const t1 = document.querySelector("#history-table-full tbody");
                 const t2 = document.querySelector("#history-table-body-download");
                 t1.innerHTML = ''; t2.innerHTML = '';
                 data.forEach(rec => {
-                    const h = `<td>${new Date(rec.timestamp).toLocaleString()}</td><td>${rec.device_id}</td><td>${rec.subject_id}</td><td style="font-family:monospace">${rec.recording_id.substring(0,8)}...</td><td>${rec.classification}</td>`;
-                    const tr1 = document.createElement('tr'); tr1.innerHTML = h; t1.appendChild(tr1);
-                    const tr2 = document.createElement('tr'); tr2.innerHTML = h; 
-                    tr2.style.cursor='pointer'; tr2.onclick = () => selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
+                    const shortId = rec.recording_id.substring(0, 8) + '...';
+                    const date = new Date(rec.timestamp).toLocaleString();
+                    const tr1 = document.createElement('tr');
+                    tr1.className = "hover:bg-slate-50 transition-colors";
+                    tr1.innerHTML = `<td class="px-6 py-3 text-slate-500">${date}</td>
+                                 <td class="px-6 py-3 font-medium text-slate-900">${rec.device_id}</td>
+                                 <td class="px-6 py-3 text-slate-600">${rec.subject_id}</td>
+                                 <td class="px-6 py-3 font-mono text-xs text-slate-500" title="${rec.recording_id}">${shortId}</td>
+                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">${rec.classification}</span></td>`;
+                    t1.appendChild(tr1);
+
+                    const tr2 = document.createElement('tr');
+                    tr2.className = "hover:bg-brand-50 cursor-pointer transition-colors group border-b border-slate-50 last:border-0";
+                    tr2.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
+                                 <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${rec.device_id}</td>
+                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${rec.subject_id}</td>
+                                 <td class="px-6 py-4 font-mono text-xs" title="${rec.recording_id}">${shortId}</td>
+                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100">${rec.classification}</span></td>`;
+                    tr2.onclick = () => {
+                        Array.from(t2.children).forEach(r => r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200'));
+                        tr2.classList.add('bg-brand-100', 'ring-1', 'ring-brand-200');
+                        selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
+                    };
                     t2.appendChild(tr2);
                 });
             });
@@ -879,24 +1058,29 @@
         // --- WEBSOCKET CONNECT ---
         function connectWebSocket() {
             if (isReconnecting) return;
-            const url = (window.location.protocol==='https:'?'wss:':'ws:') + '//' + window.location.host + '/ws';
+            const url = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws';
             serverUrlEl.textContent = window.location.host;
             try {
                 ws = new WebSocket(url);
-                ws.onopen = () => { 
-                    wsStatusEl.textContent='Connected'; wsBadge.classList.add('ok'); wsBadge.classList.remove('bad');
-                    isReconnecting=false; if(reconnectInterval) clearInterval(reconnectInterval); 
+                ws.onopen = () => {
+                    wsStatusEl.textContent = 'Connected';
+                    const dot = wsBadge.querySelector('span:first-child');
+                    dot.classList.remove('bg-slate-300', 'bg-rose-500'); dot.classList.add('bg-emerald-500', 'animate-pulse');
+                    isReconnecting = false; if (reconnectInterval) clearInterval(reconnectInterval);
                 };
                 ws.onmessage = (e) => handleWebSocketMessage(JSON.parse(e.data));
-                ws.onclose = () => { 
-                    wsStatusEl.textContent='Disconnected'; wsBadge.classList.add('bad'); wsBadge.classList.remove('ok');
-                    if(!reconnectInterval) reconnectInterval = setInterval(() => { if(ws.readyState===3) { isReconnecting=true; connectWebSocket(); } }, 3000); 
+                ws.onclose = () => {
+                    wsStatusEl.textContent = 'Disconnected';
+                    const dot = wsBadge.querySelector('span:first-child');
+                    dot.classList.remove('bg-emerald-500', 'animate-pulse'); dot.classList.add('bg-rose-500');
+                    if (!reconnectInterval) reconnectInterval = setInterval(() => { if (ws.readyState === 3) { isReconnecting = true; connectWebSocket(); } }, 3000);
                 };
-            } catch(e) { console.error(e); }
+            } catch (e) { console.error(e); }
         }
-        function sendWebSocketMessage(msg) { if(ws && ws.readyState===1) ws.send(JSON.stringify(msg)); }
+        function sendWebSocketMessage(msg) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); }
 
         document.addEventListener('DOMContentLoaded', () => { connectWebSocket(); fetchHistory(); setInterval(fetchHistory, 30000); showInitialState(); });
     </script>
 </body>
+
 </html>
