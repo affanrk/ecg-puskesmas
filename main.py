@@ -61,6 +61,15 @@ LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 # ==================================================================
 app = FastAPI(title="ECG Live Platform")
 
+script_dir = os.path.dirname(__file__)
+assets_path = os.path.join(script_dir, "assets")
+
+# Pastikan folder assets ada sebelum di-mount untuk menghindari error
+if os.path.exists(assets_path):
+    app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
+else:
+    print("[WARNING] Folder 'assets' tidak ditemukan. Logo mungkin tidak muncul.")
+
 class DeviceState:
     def __init__(self):
         self.is_recording = False
