@@ -116,9 +116,6 @@ except Exception as e:
 # ==================================================================
 # DSP Functions (same as before)
 # ==================================================================
-VREF, GAIN, RESOLUTION = 2.42, 200, 24
-LSB_SIZE = VREF / (2**RESOLUTION - 1)
-
 def apply_dsp_filters(ecgmv, Fs):
     detr_ecg = scipy.signal.detrend(ecgmv, axis=-1, type='linear', bp=0, overwrite_data=False)
     y = [e for e in detr_ecg]
