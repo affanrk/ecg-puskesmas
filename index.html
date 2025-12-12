@@ -14,41 +14,48 @@
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
         header { padding-bottom: 10px; border-bottom: 1px solid #30363d; margin-bottom: 20px; }
-        h1, h2, h3 { color: #58a6ff; font-weight: 400; }
+        h1 { color: #103A69; font-weight: 400; }
+        h2 { color: #103A69; font-weight: 500; font-size: 20px;  }
+         h4 { color: #1a406c; font-weight: 500; font-size: 20px;  }
         .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
         .pill { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
+            background-color: #1f4e79; 
+            border: 1px solid #0000; 
             border-radius: 999px; 
             padding: 6px 12px; 
             font-size: 12px; 
-            color: #8b949e; 
+            color: #ffff; 
         }
         .pill .value { color: #c9d1d9; font-weight: 500; }
         .ok { color: #3fb950; }
         .bad { color: #f85149; }
         .warning { color: #d29922; }
         .panel { 
-            background-color: #161b22; 
-            border: 1px solid #30363d; 
+            background-color: #c8e1f5; 
+            border: 1px solid #2468b5; 
             border-radius: 8px; 
             padding: 20px; 
             margin-bottom: 20px; 
+            color: #103A69; 
         }
+        #chart {
+    background-color: #ffffff !important;
+}
+
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
         .card { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
+            background-color: #3a526d; 
+            border: 1px solid #ffff; 
             border-radius: 6px; 
             padding: 12px;
         }
-        .card .label { font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+        .card .label { font-size: 12px; color: #ffffff; margin-bottom: 4px; }
         .card .value { font-size: 20px; font-weight: 600; color: #c9d1d9; }
         canvas { background-color: #0d1117; border: 1px solid #30363d; border-radius: 6px; }
         input[type="text"], select { 
-            background-color: #0d1117; 
-            border: 1px solid #30363d; 
-            color: #c9d1d9; 
+            background-color: #ffff; 
+            border: 1px solid #103a69; 
+            color: #103A69; 
             padding: 8px 12px; 
             border-radius: 6px; 
             font-size: 14px; 
@@ -155,7 +162,7 @@
         .tab-button {
             background-color: transparent;
             border: none;
-            color: #8b949e;
+            color: #103A69;
             padding: 10px 15px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
@@ -163,8 +170,8 @@
         }
 
         .tab-button.active {
-            color: #58a6ff;
-            border-bottom-color: #58a6ff;
+            color: #0D2E54;
+            border-bottom-color: #0D2E54;
             font-weight: 600;
         }
 
@@ -236,36 +243,67 @@
 .cancel {
     background: #ccc;
 }
-/* Container row */
+
 #patient-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    padding: 15px 0;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0;
 }
 
-/* Setiap pill data */
-#patient-row .pill {
-    background: #103A69;
-    color: white;
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+/* Judul */
+#patient-row .title {
+    font-size: 16px;
+    color: rgb(47, 65, 112);
+    margin: 0 0 6px 0;
+    font-weight: 600;
+    padding-bottom: 0px;
+   
+}
+
+
+/* Flex antara info dan tombol */
+.patient-flex {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    justify-content: space-between;
+    align-items: center;   /* tombol di tengah secara vertikal */
+    gap: 80px;
 }
 
-/* Teks value */
+/* Bagian kiri: info pasien */
+.patient-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+/* Card data pasien */
+#patient-row .pill {
+    background-color: #ffff; 
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+   color:#103A69;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
 #patient-row .pill span {
     font-weight: 600;
-    color: #FFD369;   /* gold highlight */
+    color: #103A69;
 }
 
-/* Tombol start & stop */
+/* Tombol kanan */
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Style tombol */
 #patient-row button {
     padding: 10px 16px;
     border-radius: 8px;
@@ -276,15 +314,16 @@
     transition: 0.2s ease;
 }
 
-/* Start Recording */
+/* Start */
 #patient-row #start {
-    background: #2ecc71;
+    background: #10861b;
     color: white;
 }
 #patient-row #start:hover {
     background: #27ae60;
 }
 
+/* Stop */
 #patient-row #stop {
     background: #e74c3c;
     color: white;
@@ -292,6 +331,87 @@
 #patient-row #stop:hover {
     background: #c0392b;
 }
+
+/* Responsive agar tombol turun ke bawah di layar kecil */
+@media (max-width: 600px) {
+    .patient-flex {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .button-group {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+.waveform-layout {
+    display: flex;
+    gap: 20px;       /* jarak antar panel */
+    align-items: flex-start;
+}
+/* WRAPPER UTAMA — Chart & Cards */
+.chart-and-cards {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+     flex-wrap: nowrap; 
+}
+
+/* Panel Chart */
+.chart-panel {
+    flex: 2;
+}
+
+/* Panel Cards */
+.cards-panel {
+    flex: 1;
+    max-width: 260px;
+}
+#history-table th {
+    background-color: #3a526d;   /* biru gelap elegan */
+    color: white;                /* teks putih */
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #173f70;
+}
+
+
+/* --- RESPONSIVE MODE (≤ 900px) --- */
+@media (max-width: 900px) {
+
+    /* Stack chart dan ADC */
+    .chart-and-cards {
+        flex-direction: column;
+    }
+
+    /* Panel cards full width */
+    .cards-panel {
+        max-width: 100%;
+        width: 100%;
+    }
+
+   
+    #cards {
+        display: flex !important;
+        flex-direction: row;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        white-space: nowrap;
+        scrollbar-width: thin;
+    }
+
+    #cards .card {
+        min-width: 130px;
+        flex-shrink: 0;
+    }
+
+   
+}
+
+
 
 </style>
 </head>
@@ -301,8 +421,9 @@
 
 <body>
 <div class="container">
-    <header>
-        <h1>ECG Live Platform</h1>
+     <header style="display: flex; align-items: center; gap: 10px;">
+    <img src="assets/logo.png" alt="Logo" style="height: 100px;">
+    <h1>ECG Live Platform</h1>
     </header>
     
     <div class="row">
@@ -333,9 +454,12 @@
         <div class="panel">
             <h3>Recording Control</h3>
             <div class="row">
-                <input id="subject" type="text" placeholder="Subject ID (required)" size="30"/>
+                <div id="patient-row">
+               
                 <button id="start">Start Recording</button>
                 <button id="stop">Stop Manually</button>
+            </div>
+            
             </div>
             <div class="row">
                 <div class="pill">Status: <span id="status" class="value">Idle</span></div>
@@ -347,38 +471,114 @@
             </div>
             <div id="progress-label" class="progress-label"></div>
         </div>
-        
-        <div class="panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin: 0;">Live Waveform</h3>
-                
-                <div class="checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(0, this)"> 
-                        <span style="color: #58a6ff; font-weight: 600;">Lead I</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(1, this)"> 
-                        <span style="color: #3fb950; font-weight: 600;">Lead II</span>
-                    </label>
-                    <label class="checkbox-label">
-                        <input type="checkbox" checked onchange="toggleLead(2, this)"> 
-                        <span style="color: #d29922; font-weight: 600;">V1</span>
-                    </label>
-                </div>
-            </div>
+        <div id="patientModal" style="
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    z-index: 9999;
+">
+
+    <!-- Modal Box -->
+    <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        background: #326aaa;
+        padding: 25px 30px;
+        border-radius: 14px;
+        width: 380px;
+        border: 1px solid rgba(255,255,255,0.4);
+        color: white;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+    ">
+        <h3 style="
+            margin-top:0;
+            margin-bottom:15px;
+            text-align:center;
+            font-size:20px;
+            font-weight:600;
+            color: #ffff;
+        ">Patient Information</h3>
+
+        <label>NIK</label>
+        <input id="subject" type="text" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+
+        <label>Name</label>
+        <input id="p-name" type="text" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+
+        <label>Age</label>
+        <input id="p-age" type="number" style="
+            width:100%; margin-bottom:12px; padding:8px;
+            border-radius:6px; border:1px solid #ccc; background-color:#ffffff; color:#103A69;
+        ">
+
+        <label>Gender</label>
+        <select id="p-gender" style="
+            width:100%; margin-bottom:20px; padding:8px;
+            border-radius:6px; border:1px solid #ccc;
+        ">
+            <option value="">-- Select Gender --</option>
+            <option>Male</option>
+            <option>Female</option>
+        </select>
+
+        <div style="display:flex; justify-content: flex-end; gap:10px;">
+            <button id="modal-cancel" style="
+                background:#da3633; color:white; padding:8px 14px;
+                border-radius:6px; border:none; cursor:pointer;
+            ">Cancel</button>
+
+            <button id="modal-submit" style="
+                background:#238636; color:white; padding:8px 14px;
+                border-radius:6px; border:none; cursor:pointer;
+            ">Submit</button>
+        </div>
+    </div>
+</div>
+
+    <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Live Waveform</h3>
             
-            <div style="position: relative; height: 300px; width: 100%;">
-                <canvas id="chart"></canvas>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="toggleLead(0, this)"> 
+                    <span style="color: #58a6ff; font-weight: 600;">Lead I</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="toggleLead(1, this)"> 
+                    <span style="color: #3fb950; font-weight: 600;">Lead II</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" checked onchange="toggleLead(2, this)"> 
+                    <span style="color: #d29922; font-weight: 600;">V1</span>
+                </label>
             </div>
         </div>
+        
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="chart"></canvas>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h3>Live Values (Raw ADC)</h3>
+        <div class="grid" id="cards"></div>
+         <h3 style="margin-top:20px;">Classification Result</h3>
+    <div id="history-table" class="grid"></div>
+    </div>
+
 
             <div class="panel">
-                <h3>Live Values (Raw ADC)</h3>
-                <div class="grid" id="cards"></div>
-            </div>
-
-            <div class="panel history-panel">
                 <h3>Classification History</h3>
                 <table id="history-table">
                     <thead>
@@ -399,7 +599,7 @@
             <div class="panel">
                 <h3>Live Performance Metrics</h3>
                 <div class="pill" style="margin-bottom: 16px;">Packet Format: <span id="packet-format"
-                        class="value">Unknown</span></div>
+                class="value">Unknown</span></div>
                 <div class="grid" id="perf-cards-container"></div>
             </div>
         </div>
@@ -492,7 +692,7 @@ let patientFilled = false;
 
         const startBtn = document.getElementById('start');
         // Set initial label
-        startBtn.textContent = patientFilled ? "Start Recording" : "Isi Daftar Diri";
+        startBtn.textContent = patientFilled ? "Start Recording" : "Isi Data Terlebih Dahulu";
 
         const modal = document.getElementById('patientModal');
         const submitBtn = document.getElementById("modal-submit");
@@ -610,7 +810,7 @@ let patientFilled = false;
                     y: {
                         beginAtZero: false,
                         ticks: {
-                            color: '#8b949e',
+                            color: '#00000',
                             font: { size: 10 },
                             callback: function (value) { return value.toFixed(1) + ' mV'; }
                         },
@@ -618,7 +818,7 @@ let patientFilled = false;
                             color: '#30363d',
                             lineWidth: 1
                         },
-                        title: { display: true, text: 'Voltage (mV)', color: '#8b949e' }
+                        title: { display: true, text: 'Voltage (mV)', color: '#3a526d' }
                     }
                 },
                 plugins: {
@@ -658,13 +858,22 @@ submitBtn.addEventListener("click", () => {
     // tampilkan data di row
     const row = document.getElementById("patient-row");
     row.innerHTML = `
-        <div class="pill">NIK: <span>${subject}</span></div>
-        <div class="pill">Name: <span>${name}</span></div>
-        <div class="pill">Age: <span>${age}</span></div>
-        <div class="pill">Gender: <span>${gender}</span></div>
-        <button id="start">Start Recording</button>
-        <button id="stop">Stop Manually</button>
-    `;
+    <h3 class="title">Data Pasien</h3>
+
+    <div class="patient-flex">
+        <div class="patient-info">
+            <div class="pill">NIK: <span>${subject}</span></div>
+            <div class="pill">Name: <span>${name}</span></div>
+            <div class="pill">Age: <span>${age}</span></div>
+            <div class="pill">Gender: <span>${gender}</span></div>
+        </div>
+
+        <div class="button-group">
+            <button id="start">Start Recording</button>
+            <button id="stop">Stop Manually</button>
+        </div>
+    </div>
+`;
 
     // setelah innerHTML diubah, ambil ulang tombol karena DOM berubah
     const newStart = document.getElementById("start");
