@@ -33,7 +33,8 @@ import heapq
 
 from database import SessionLocal, init_db
 from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead
-from sqlalchemy import desc, text
+from sqlalchemy import desc, text, insert
+from concurrent.futures import ProcessPoolExecutor
 
 # ==================================================================
 # Configuration
@@ -55,6 +56,13 @@ BUFFER_SIZE = 1000
 DEVICE_TIMEOUT_S = 10.0
 
 LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
+
+# ==================================================================
+# Global Executor
+# ==================================================================
+# Buat ProcessPoolExecutor global. Max workers diset 2 agar tidak memakan semua CPU core
+# Executor ini akan menangani beban berat analisis sinyal & AI
+process_executor = ProcessPoolExecutor(max_workers=2)
 
 # ==================================================================
 # Application State
@@ -228,7 +236,7 @@ async def process_mqtt_message(message):
         # 2. Tentukan Batas Buffer
         # Kita tunggu sampai buffer punya minimal 50 paket (0.5 detik) ATAU paket loncat terlalu jauh
         # Semakin besar angkanya, semakin kuat menahan data acak, tapi delay live makin besar.
-        BUFFER_LIMIT = 50 
+        BUFFER_LIMIT = 100
 
         # 3. Proses Loop: Ambil paket dari buffer HANYA jika sudah urut atau buffer penuh
         while state.packet_buffer:
@@ -678,16 +686,26 @@ async def db_batch_inserter():
             # Create a NEW session for this batch only
             db = SessionLocal()
             try:
-                # Insert in chunks of 1000 to prevent packet size errors
-                chunk_size = 1000
+                # # Menggunakan Core Insert (lebih cepat drpd ORM)
+                # stmt = text("""
+                #     INSERT INTO ecg_raw_3lead_per_sample 
+                #     (timestamp, device_id, recording_id, subject_id, lead_I, lead_II, v1, cal_mv_lead_I, cal_mv_lead_II, cal_mv_v1)
+                #     VALUES (:timestamp, :device_id, :recording_id, :subject_id, :lead_I, :lead_II, :v1, :cal_mv_lead_I, :cal_mv_lead_II, :cal_mv_v1)
+                # """)
+                stmt = insert(ECGRaw3Lead)
+                # Insert in chunks of 2000 to prevent packet size errors
+                chunk_size = 2000
+                # chunk_size = 1000
                 for i in range(0, len(items), chunk_size):
                     chunk = items[i:i + chunk_size]
-                    records = [ECGRaw3Lead(**item) for item in chunk]
-                    db.bulk_save_objects(records)
-                    db.commit() # Commit small chunks
+                    # records = [ECGRaw3Lead(**item) for item in chunk]
+                    # db.bulk_save_objects(records)
+                    db.execute(stmt, items) # 'items' adalah list of dicts
+                    db.commit()
             except Exception as e:
                 db.rollback()
                 print(f"[DB] Error inserting raw data: {e}")
+                if items: print(f"Sample data causing error: {items[0]}")
             finally:
                 db.close() # Close immediately
         
@@ -699,8 +717,16 @@ async def db_batch_inserter():
         if perf_items:
             db = SessionLocal()
             try:
-                records = [ECGPerformanceMetrics3Lead(**item) for item in perf_items]
-                db.bulk_save_objects(records)
+                # # [OPTIMASI] Core SQL untuk performance metrics juga
+                # stmt_perf = text("""
+                #     INSERT INTO ecg_performance_metrics_3lead
+                #     (timestamp, device_id, recording_id, packet_counter, latency_ms, jitter_ms, lost_packets_cumulative, packet_loss_pct_cumulative)
+                #     VALUES (:timestamp, :device_id, :recording_id, :packet_counter, :latency_ms, :jitter_ms, :lost_packets_cumulative, :packet_loss_pct_cumulative)
+                # """)
+                stmt_perf = insert(ECGPerformanceMetrics3Lead)
+                # records = [ECGPerformanceMetrics3Lead(**item) for item in perf_items]
+                # db.bulk_save_objects(records)
+                db.execute(stmt_perf, perf_items)
                 db.commit()
             except Exception as e:
                 db.rollback()
@@ -1029,19 +1055,47 @@ async def handle_websocket_message(websocket: WebSocket, data: dict):
             await cancel_recording_internal(device_id, reason="User Deselected Device")
 
 async def broadcast_to_device(device_id: str, event_type: str, data: dict):
-    """Broadcast message to all clients subscribed to a device"""
-    global websocket_connections
-    
+    """Broadcast message to all clients subscribed to a device (Parallel Version)"""
+    if device_id not in websocket_connections or not websocket_connections[device_id]:
+        return
+
     message = {"type": event_type, **data}
-    disconnected = set()
+    active_websockets = websocket_connections[device_id].copy() # Copy set agar aman saat iterasi
     
-    for ws in websocket_connections[device_id]:
-        try:
-            await ws.send_json(message)
-        except:
-            disconnected.add(ws)
+    if not active_websockets:
+        return
+
+    # Buat list tasks pengiriman
+    tasks = [ws.send_json(message) for ws in active_websockets]
     
-    websocket_connections[device_id] -= disconnected
+    # [OPTIMASI] Jalankan pengiriman secara paralel
+    # return_exceptions=True memastikan jika satu gagal, yang lain tetap terkirim
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Cleanup koneksi mati
+    to_remove = set()
+    for ws, result in zip(active_websockets, results):
+        if isinstance(result, Exception):
+            # Jika terjadi error (misal disconnect), tandai untuk dihapus
+            to_remove.add(ws)
+    
+    if to_remove:
+        websocket_connections[device_id] -= to_remove
+
+# async def broadcast_to_device(device_id: str, event_type: str, data: dict):
+#     """Broadcast message to all clients subscribed to a device"""
+#     global websocket_connections
+    
+#     message = {"type": event_type, **data}
+#     disconnected = set()
+    
+#     for ws in websocket_connections[device_id]:
+#         try:
+#             await ws.send_json(message)
+#         except:
+#             disconnected.add(ws)
+    
+#     websocket_connections[device_id] -= disconnected
 
 async def broadcast_device_list():
     """Broadcast updated device list to all clients"""
@@ -1300,38 +1354,43 @@ def correct_peaks(rpeaks, waves_dwt, y_filt):
 # ==================================================================
 # Analysis Pipeline (Async with Complete Logic)
 # ==================================================================
-
 async def run_analysis_pipeline(recording_id: str, subject_id: str, device_id: str):
     """
     Run analysis in background - complete pipeline with identical logic
     """
     print(f"[{device_id}] Starting analysis for {recording_id}")
     
+    loop = asyncio.get_running_loop()
     try:
-        result = await asyncio.to_thread(
-            analyze_recording_complete, recording_id, subject_id, device_id
+        # [OPTIMASI] Gunakan run_in_executor dengan process_executor
+        # Ini akan melempar tugas ke CPU core lain
+        classification = await loop.run_in_executor(
+            process_executor,
+            analyze_recording_complete,
+            recording_id, 
+            subject_id, 
+            device_id
         )
-        
-        # if device_id in device_states:
-        #     device_states[device_id].status_message = "Idle"
-        #     device_states[device_id].samples_collected = 0
-        #     device_states[device_id].recording_id = None
-        #     device_states[device_id].subject_id = None
-            
-        #     await broadcast_to_device(device_id, "state_update", {
-        #         "device_id": device_id,
-        #         "status_message": "Idle",
-        #         "recording_id": None,
-        #         "subject_id": None,
-        #         "samples_collected": 0
-        #     })
-        
+        # Setelah selesai, update state (jika perlu) dan notify frontend
+        print(f"[{device_id}] Analysis finished. Result: {classification}")
+
         # Notify clients about history update
         await broadcast_to_all({"type": "history_updated"})
         
     except Exception as e:
-        print(f"[{device_id}] Analysis failed: {e}")
-        traceback.print_exc()
+        print(f"Analysis failed: {e}")
+
+    # try:
+    #     result = await asyncio.to_thread(
+    #         analyze_recording_complete, recording_id, subject_id, device_id
+    #     )
+
+    #     # Notify clients about history update
+    #     await broadcast_to_all({"type": "history_updated"})
+        
+    # except Exception as e:
+    #     print(f"[{device_id}] Analysis failed: {e}")
+    #     traceback.print_exc()
 
 
 def analyze_recording_complete(recording_id, subject_id, device_id):
@@ -1634,18 +1693,38 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
 # ==================================================================
 
 async def broadcast_to_all(message: dict):
-    """Broadcast message to all connected clients"""
+    """Broadcast message to ALL connected clients (Parallel Version)"""
     global broadcast_connections
     
-    disconnected = set()
+    if not broadcast_connections:
+        return
+
+    active_websockets = broadcast_connections.copy()
+    tasks = [ws.send_json(message) for ws in active_websockets]
     
-    for ws in broadcast_connections:
-        try:
-            await ws.send_json(message)
-        except:
-            disconnected.add(ws)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     
-    broadcast_connections -= disconnected
+    to_remove = set()
+    for ws, result in zip(active_websockets, results):
+        if isinstance(result, Exception):
+            to_remove.add(ws)
+            
+    if to_remove:
+        broadcast_connections -= to_remove
+
+# async def broadcast_to_all(message: dict):
+#     """Broadcast message to all connected clients"""
+#     global broadcast_connections
+    
+#     disconnected = set()
+    
+#     for ws in broadcast_connections:
+#         try:
+#             await ws.send_json(message)
+#         except:
+#             disconnected.add(ws)
+    
+#     broadcast_connections -= disconnected
     
 # ==================================================================
 # HTTP Endpoints
@@ -1787,9 +1866,15 @@ async def lifespan(app_instance: FastAPI):
     
     yield
     
+    # Shutdown logic
+    print("[SERVER] Shutting down...")
     mqtt_task.cancel()
     db_task.cancel()
     monitor_task.cancel()
+
+    # Matikan Process Pool
+    print("[SERVER] Shutting down analysis workers...")
+    process_executor.shutdown(wait=True)
 
 app.router.lifespan_context = lifespan
 
