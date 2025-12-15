@@ -1,6 +1,22 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, BigInteger
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, BigInteger, Date
+from sqlalchemy.sql import func
 from database import Base
 
+# [BARU] Tabel Khusus Data Pasien Master
+class Patient(Base):
+    __tablename__ = "patients"
+
+    # NIK sebagai Primary Key pengganti ID auto-increment
+    nik = Column(String(50), primary_key=True, index=True) 
+    name = Column(String(100))
+    tempat_lahir = Column(String(100))
+    tanggal_lahir = Column(Date) # Menggunakan tipe Date agar bisa difilter tanggal
+    umur = Column(String(10))    # Varchar sesuai request
+    jenis_kelamin = Column(String(10)) # 'L' atau 'P'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_visit = Column(DateTime(timezone=True), onupdate=func.now())
+
+# Tabel Raw Data (subject_id sekarang akan diisi NIK)
 class ECGRaw3Lead(Base):
     __tablename__ = "ecg_raw_3lead_per_sample"
 
@@ -8,7 +24,10 @@ class ECGRaw3Lead(Base):
     timestamp = Column(DateTime(timezone=True), index=True)
     device_id = Column(String(50), index=True)
     recording_id = Column(String(50), nullable=True, index=True)
-    subject_id = Column(String(50), nullable=True)
+    
+    # [NOTE] Kolom ini sekarang akan menyimpan NIK
+    subject_id = Column(String(50), nullable=True, index=True) 
+    
     lead_I = Column(Integer)
     lead_II = Column(Integer)
     v1 = Column(Integer)
@@ -35,7 +54,10 @@ class ECGClassification3Lead(Base):
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime(timezone=True), index=True)
     device_id = Column(String(50), index=True)
-    subject_id = Column(String(50), index=True)
+    
+    # [NOTE] Kolom ini sekarang akan menyimpan NIK
+    subject_id = Column(String(50), index=True) 
+    
     recording_id = Column(String(50), index=True)
     classification = Column(String(50))
     RR_avg = Column(Float)
