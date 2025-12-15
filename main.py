@@ -1200,6 +1200,7 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
     """
     Complete analysis function with IDENTICAL logic from LiveANN3Channel_V3.py
     """
+    print("pantek")
     db = SessionLocal()
     try:
         print(f"[{recording_id}][{device_id}] Memulai pipeline analisis 3-Lead (IDENTICAL)...")
