@@ -31,8 +31,13 @@ import neurokit2 as nk
 import tensorflow as tf
 import heapq
 
+import io
+import matplotlib
+matplotlib.use('Agg') # Penting! Agar tidak perlu GUI (display) server
+import matplotlib.pyplot as plt
+
 from database import SessionLocal, init_db
-from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead
+from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead, Patient
 from sqlalchemy import desc, text, insert
 from concurrent.futures import ProcessPoolExecutor
 
@@ -234,7 +239,7 @@ async def process_mqtt_message(message):
         heapq.heappush(state.packet_buffer, (packet_counter, packet_data))
 
         # 2. Tentukan Batas Buffer
-        # Kita tunggu sampai buffer punya minimal 50 paket (0.5 detik) ATAU paket loncat terlalu jauh
+        # Kita tunggu sampai buffer punya minimal 100 paket (1 detik) ATAU paket loncat terlalu jauh
         # Semakin besar angkanya, semakin kuat menahan data acak, tapi delay live makin besar.
         BUFFER_LIMIT = 100
 
@@ -264,7 +269,7 @@ async def process_mqtt_message(message):
                 continue
 
             # KONDISI D: Buffer Penuh (Time to Give Up)
-            # Jika buffer sudah > 50 item, tapi paket 'next' belum datang juga,
+            # Jika buffer sudah > 100 item, tapi paket 'next' belum datang juga,
             # terpaksa kita proses paket terkecil yang ada (dan terima gap-nya).
             if len(state.packet_buffer) > BUFFER_LIMIT:
                 heapq.heappop(state.packet_buffer) # Ambil paksa
@@ -425,250 +430,6 @@ async def process_single_packet(device_id, state, packet_counter, pkt):
                     "status_message": state.status_message, "recording_id": state.recording_id, "subject_id": state.subject_id
                 })
 
-# async def process_mqtt_message(message):
-#     """Process incoming MQTT message - MODIFIED FOR JSON FORMAT"""
-#     try:
-#         # Ignore retained messages
-#         if hasattr(message, 'retain') and message.retain:
-#             return
-        
-#         topic_parts = message.topic.value.split('/')
-#         if len(topic_parts) != 3 or topic_parts[0] != 'raw' or topic_parts[1] != 'ecg':
-#             return
-        
-#         # Parse JSON payload
-#         try:
-#             import json
-#             payload_str = message.payload.decode('utf-8')
-#             payload_json = json.loads(payload_str)
-#         except (json.JSONDecodeError, UnicodeDecodeError) as e:
-#             print(f"[MQTT] Failed to parse JSON payload: {e}")
-#             return
-        
-#         # Validate required fields
-#         required_fields = ['id', 'ts_us', 'counter', 'raw_c1', 'raw_c2', 'raw_c3', 
-#                           'cal_mv_c1', 'cal_mv_c2', 'cal_mv_c3']
-#         if not all(field in payload_json for field in required_fields):
-#             print(f"[MQTT] Missing required fields in JSON payload")
-#             return
-        
-#         device_id = payload_json['id']
-#         timestamp_us = payload_json['ts_us']
-#         packet_counter = payload_json['counter']
-        
-#         # Raw ADC values (for display and database)
-#         raw_adc_values = {
-#             'lead_I': payload_json['raw_c1'],
-#             'lead_II': payload_json['raw_c2'],
-#             'v1': payload_json['raw_c3']
-#         }
-        
-#         # Calibrated millivolt values (for live waveform display)
-#         cal_mv_values = {
-#             'lead_I': payload_json['cal_mv_c1'],
-#             'lead_II': payload_json['cal_mv_c2'],
-#             'v1': payload_json['cal_mv_c3']
-#         }
-        
-#         # Initialize device if new
-#         if device_id not in device_states:
-#             device_states[device_id] = DeviceState()
-#             print(f"[MQTT] New device: {device_id}")
-#             await broadcast_device_list()
-        
-#         state = device_states[device_id]
-#         state.last_seen = time.time()
-#         state.is_connected = True
-#         state.packet_format = 'JSON (calibrated)'
-        
-#         # Prepare packet for UI with both raw and calibrated values
-#         normalized_pkt = {
-#             'device_id': device_id,
-#             # Raw ADC for display in "Live Values (ADC)" section
-#             'raw_lead_I': raw_adc_values['lead_I'],
-#             'raw_lead_II': raw_adc_values['lead_II'],
-#             'raw_v1': raw_adc_values['v1'],
-#             # Calibrated mV for live waveform
-#             'cal_lead_I': cal_mv_values['lead_I'],
-#             'cal_lead_II': cal_mv_values['lead_II'],
-#             'cal_v1': cal_mv_values['v1']
-#         }
-        
-#         # Batched UI updates (every 5 packets or 50ms)
-#         ui_buffer = ui_data_buffer[device_id]
-#         ui_buffer["count"] += 1
-#         ui_buffer["last_packet"] = normalized_pkt
-#         current_time = time.time()
-        
-#         if ui_buffer["count"] >= 5 or (current_time - ui_buffer["last_emit"]) >= 0.05:
-#             await broadcast_to_device(device_id, "live_data", normalized_pkt)
-#             ui_buffer["count"] = 0
-#             ui_buffer["last_emit"] = current_time
-        
-#         # Performance metrics (every 10 packets)
-#         # Get current time in microseconds
-#         server_time_us = int(time.time() * 1_000_000)
-        
-#         # Calculate latency
-#         latency_ms = (server_time_us - timestamp_us) / 1000.0
-        
-#         # Handle clock skew - if device clock is ahead of server
-#         if latency_ms < 0:
-#             latency_ms = abs(latency_ms)
-        
-#         state.latencies.append(latency_ms)
-
-#         # [PERBAIKAN KRITIS] Cek apakah paket ini "kadaluarsa" / terlambat datang
-#         # Jika counter sekarang LEBIH KECIL dari counter terakhir, berarti ini paket nyasar.
-#         # Kita harus membuangnya agar tidak merusak logika Gap Filling.
-#         if state.last_packet_num > 0 and packet_counter <= state.last_packet_num:
-#             print(f"[{device_id}] Mengabaikan paket terlambat/duplikat: {packet_counter} (Last: {state.last_packet_num})")
-#             return  # STOP, jangan diproses, jangan disimpan
-
-#         # --- 1. GAP DETECTION & FILLING (Logic for missing packets) ---
-#         gap = 0
-#         if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
-#             gap = packet_counter - (state.last_packet_num + 1)
-#             state.lost_packets += gap
-        
-#         # If we found a gap and we are recording, fill it with previous values
-#         # This prevents analysis time distortion
-#         if gap > 0 and state.is_recording:
-#              # Limit gap filling (e.g. max 100 samples) to prevent massive memory spikes
-#              fill_amount = min(gap, 100)
-             
-#              async with batch_lock:
-#                  # Ensure we have last values to copy, otherwise use 0
-#                  fill_raw = getattr(state, 'last_raw_values', {'lead_I': 0, 'lead_II': 0, 'v1': 0})
-#                  fill_cal = getattr(state, 'last_cal_values', {'lead_I': 0, 'lead_II': 0, 'v1': 0})
-                 
-#                  for _ in range(fill_amount):
-#                      state.samples_collected += 1
-#                      raw_data_batch.append({
-#                          "timestamp": datetime.now(timezone.utc),
-#                          "device_id": device_id,
-#                          "recording_id": state.recording_id,
-#                          "subject_id": state.subject_id,
-#                          "lead_I": fill_raw['lead_I'],
-#                          "lead_II": fill_raw['lead_II'],
-#                          "v1": fill_raw['v1'],
-#                          "cal_mv_lead_I": fill_cal['lead_I'],
-#                          "cal_mv_lead_II": fill_cal['lead_II'],
-#                          "cal_mv_v1": fill_cal['v1']
-#                      })
-
-#         state.last_packet_num = packet_counter
-#         state.total_packets += 1
-
-#         # Save current values for future gap filling (needed for the next iteration)
-#         state.last_raw_values = raw_adc_values
-#         state.last_cal_values = cal_mv_values
-
-#         # state.total_packets += 1
-#         # if state.last_packet_num > 0 and packet_counter > state.last_packet_num + 1:
-#         #     state.lost_packets += packet_counter - (state.last_packet_num + 1)
-#         # state.last_packet_num = packet_counter
-
-#         has_viewers = len(websocket_connections[device_id]) > 0
-#         should_store = state.is_recording or has_viewers
-        
-#         if state.total_packets % 10 == 0:
-#             total_received = state.total_packets - state.lost_packets
-#             packet_loss_pct = (state.lost_packets / state.total_packets * 100) if state.total_packets > 0 else 0
-#             avg_latency = float(np.mean(state.latencies)) if state.latencies else 0
-#             jitter = float(np.std(state.latencies)) if len(state.latencies) > 1 else 0
-            
-#             perf_data = {
-#                 'device_id': device_id,
-#                 'packet_format': state.packet_format,
-#                 'latency_ms': round(float(latency_ms), 2),
-#                 'avg_latency_ms': round(avg_latency, 2),
-#                 'jitter_ms': round(jitter, 2),
-#                 'lost_packets': int(state.lost_packets),
-#                 'total_received': int(total_received),
-#                 'packet_loss_pct': round(float(packet_loss_pct), 2),
-#             }
-#             await broadcast_to_device(device_id, "performance_update", perf_data)
-            
-#             # Batch for database
-#             if should_store:
-#                 async with batch_lock:
-#                     perf_data_batch.append({
-#                         "timestamp": datetime.now(timezone.utc),
-#                         "device_id": device_id,
-#                         # Use None if just viewing (Temporary), UUID if recording (Permanent)
-#                         "recording_id": state.recording_id if state.is_recording else None,
-#                         "packet_counter": int(packet_counter),
-#                         "latency_ms": float(latency_ms),
-#                         "jitter_ms": jitter,
-#                         "lost_packets_cumulative": int(state.lost_packets),
-#                         "packet_loss_pct_cumulative": float(packet_loss_pct),
-#                     })
-        
-#         # Recording - store RAW values in database
-#         if should_store:
-#             # If recording, count samples for the progress bar
-#             if state.is_recording:
-#                 state.samples_collected += 1
-            
-#             async with batch_lock:
-#                 raw_data_batch.append({
-#                     "timestamp": datetime.now(timezone.utc),
-#                     "device_id": device_id,
-#                     "recording_id": state.recording_id if state.is_recording else None,
-#                     "subject_id": state.subject_id if state.is_recording else None,
-#                     "lead_I": raw_adc_values['lead_I'],
-#                     "lead_II": raw_adc_values['lead_II'],
-#                     "v1": raw_adc_values['v1'],
-#                     "cal_mv_lead_I": cal_mv_values['lead_I'],
-#                     "cal_mv_lead_II": cal_mv_values['lead_II'],
-#                     "cal_mv_v1": cal_mv_values['v1']
-#                 })
-            
-#             if state.is_recording:
-#                 if state.samples_collected % 25 == 0:
-#                     await broadcast_to_device(device_id, "progress_update", {
-#                         "device_id": device_id,
-#                         "current": state.samples_collected,
-#                         "total": BUFFER_SIZE
-#                     })
-                
-#                 # if state.samples_collected >= BUFFER_SIZE:
-#                 #     await stop_recording(device_id)
-
-#                 # 2. Check for Chunk Completion (The Loop Logic)
-#                 if state.samples_collected >= BUFFER_SIZE:
-#                     # A. Snapshot the completed ID and Subject
-#                     completed_recording_id = state.recording_id
-#                     current_subject_id = state.subject_id
-                    
-#                     print(f"[{device_id}] Segment {state.segment_count} complete. Analyzing {completed_recording_id}...")
-                    
-#                     # B. Trigger Analysis for the COMPLETED chunk
-#                     asyncio.create_task(run_analysis_pipeline(
-#                         completed_recording_id, current_subject_id, device_id
-#                     ))
-                    
-#                     # C. Prepare for NEXT chunk immediately (Continuous)
-#                     state.recording_id = str(uuid.uuid4()) # Generate NEW ID
-#                     state.samples_collected = 0            # Reset Counter
-#                     state.segment_count += 1               # Increment Segment
-#                     state.status_message = f"Recording (Segment {state.segment_count})..."
-
-#                     # D. Update UI with new info
-#                     await broadcast_to_device(device_id, "state_update", {
-#                         "device_id": device_id,
-#                         "is_recording": True,
-#                         "status_message": state.status_message,
-#                         "recording_id": state.recording_id,
-#                         "subject_id": state.subject_id
-#                     })
-
-#     except Exception as e:
-#         print(f"[MQTT] Error processing message: {e}")
-#         import traceback
-#         traceback.print_exc()
-
 # ==================================================================
 # Database Tasks (Batched)
 # ==================================================================
@@ -687,11 +448,6 @@ async def db_batch_inserter():
             db = SessionLocal()
             try:
                 # # Menggunakan Core Insert (lebih cepat drpd ORM)
-                # stmt = text("""
-                #     INSERT INTO ecg_raw_3lead_per_sample 
-                #     (timestamp, device_id, recording_id, subject_id, lead_I, lead_II, v1, cal_mv_lead_I, cal_mv_lead_II, cal_mv_v1)
-                #     VALUES (:timestamp, :device_id, :recording_id, :subject_id, :lead_I, :lead_II, :v1, :cal_mv_lead_I, :cal_mv_lead_II, :cal_mv_v1)
-                # """)
                 stmt = insert(ECGRaw3Lead)
                 # Insert in chunks of 2000 to prevent packet size errors
                 chunk_size = 2000
@@ -718,11 +474,6 @@ async def db_batch_inserter():
             db = SessionLocal()
             try:
                 # # [OPTIMASI] Core SQL untuk performance metrics juga
-                # stmt_perf = text("""
-                #     INSERT INTO ecg_performance_metrics_3lead
-                #     (timestamp, device_id, recording_id, packet_counter, latency_ms, jitter_ms, lost_packets_cumulative, packet_loss_pct_cumulative)
-                #     VALUES (:timestamp, :device_id, :recording_id, :packet_counter, :latency_ms, :jitter_ms, :lost_packets_cumulative, :packet_loss_pct_cumulative)
-                # """)
                 stmt_perf = insert(ECGPerformanceMetrics3Lead)
                 # records = [ECGPerformanceMetrics3Lead(**item) for item in perf_items]
                 # db.bulk_save_objects(records)
@@ -989,6 +740,37 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"[WS] Error: {e}")
         broadcast_connections.discard(websocket)
 
+async def save_patient_data(data: dict):
+    """Menyimpan atau mengupdate data pasien berdasarkan NIK"""
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, _execute_save_patient, data)
+
+def _execute_save_patient(data: dict):
+    db = SessionLocal()
+    try:
+        # Konversi string tanggal ke object date python jika perlu, 
+        # atau biarkan string jika formatnya 'YYYY-MM-DD' yang kompatibel SQL
+        
+        patient = Patient(
+            nik=data.get('nik'),
+            name=data.get('name'),
+            tempat_lahir=data.get('tempat_lahir'),
+            tanggal_lahir=datetime.strptime(data.get('tanggal_lahir'), '%Y-%m-%d').date() if data.get('tanggal_lahir') else None,
+            umur=str(data.get('umur')), # Paksa string
+            jenis_kelamin=data.get('jenis_kelamin'),
+            last_visit=datetime.now(timezone.utc)
+        )
+        
+        # Merge: Insert jika baru, Update jika NIK sudah ada
+        db.merge(patient)
+        db.commit()
+        print(f"[PATIENT] Data saved for NIK: {data.get('nik')}")
+    except Exception as e:
+        db.rollback()
+        print(f"[PATIENT] Error saving patient: {e}")
+    finally:
+        db.close()
+
 async def handle_websocket_message(websocket: WebSocket, data: dict):
     """Handle incoming WebSocket messages"""
     msg_type = data.get("type")
@@ -1039,9 +821,30 @@ async def handle_websocket_message(websocket: WebSocket, data: dict):
     
     elif msg_type == "start_recording":
         device_id = data.get("device_id")
-        subject_id = data.get("subject_id")
-        if device_id and subject_id and device_id in device_states:
-            await start_recording(device_id, subject_id)
+        
+        # [MODIFIKASI] Ambil data lengkap
+        patient_data = {
+            "nik": data.get("subject_id"), # Di frontend kita kirim NIK sebagai subject_id
+            "name": data.get("name"),
+            "tempat_lahir": data.get("tempat_lahir"),
+            "tanggal_lahir": data.get("tanggal_lahir"),
+            "umur": data.get("umur"),
+            "jenis_kelamin": data.get("jenis_kelamin")
+        }
+        
+        # Simpan data pasien ke DB Master
+        if patient_data["nik"]:
+            await save_patient_data(patient_data)
+
+        # Logic recording tetap sama, menggunakan NIK sebagai subject_id
+        if device_id and patient_data["nik"] and device_id in device_states:
+            await start_recording(device_id, patient_data["nik"])
+
+    # elif msg_type == "start_recording":
+    #     device_id = data.get("device_id")
+    #     subject_id = data.get("subject_id")
+    #     if device_id and subject_id and device_id in device_states:
+    #         await start_recording(device_id, subject_id)
     
     elif msg_type == "stop_recording":
         device_id = data.get("device_id")
@@ -1691,7 +1494,6 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
 # ==================================================================
 # Helper for Broadcasting to All Clients
 # ==================================================================
-
 async def broadcast_to_all(message: dict):
     """Broadcast message to ALL connected clients (Parallel Version)"""
     global broadcast_connections
@@ -1711,24 +1513,93 @@ async def broadcast_to_all(message: dict):
             
     if to_remove:
         broadcast_connections -= to_remove
-
-# async def broadcast_to_all(message: dict):
-#     """Broadcast message to all connected clients"""
-#     global broadcast_connections
-    
-#     disconnected = set()
-    
-#     for ws in broadcast_connections:
-#         try:
-#             await ws.send_json(message)
-#         except:
-#             disconnected.add(ws)
-    
-#     broadcast_connections -= disconnected
     
 # ==================================================================
 # HTTP Endpoints
 # ==================================================================
+def generate_ecg_plot_image(recording_id: str):
+    db = SessionLocal()
+    try:
+        # 1. FIXED: Sort berdasarkan ID (urutan masuk DB), bukan timestamp
+        # Ini mencegah garis "mundur" atau zigzag
+        rows = db.query(ECGRaw3Lead).filter(
+            ECGRaw3Lead.recording_id == recording_id
+        ).order_by(ECGRaw3Lead.id).all()
+        
+        if not rows:
+            return None
+
+        # 2. FIXED: Gunakan Synthetic Time Axis
+        # Alih-alih pakai timestamp asli yg mungkin jitter, kita buat sumbu waktu yang sempurna.
+        # Asumsi SPS (Samples Per Second) = 100 (sesuaikan dengan config SPS Anda di atas)
+        SPS = 100 
+        # Buat array waktu: [0.00, 0.01, 0.02, 0.03, ...]
+        time_axis = [i / SPS for i in range(len(rows))]
+        
+        # Ambil data voltage (mV)
+        lead_i = [row.cal_mv_lead_I for row in rows]
+        lead_ii = [row.cal_mv_lead_II for row in rows]
+        v1 = [row.cal_mv_v1 for row in rows]
+        
+        # 3. Setup Plotting (Lebar tetap 24 agar tidak mepet)
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(24, 12), sharex=True)
+        
+        # Kurangi jarak vertikal sedikit agar lebih compact tapi tetap rapi
+        plt.subplots_adjust(hspace=0.2)
+        
+        # --- Style Configuration ---
+        # Menggunakan linewidth lebih tipis sedikit (1.2) agar detail gelombang kecil terlihat tajam
+        line_width = 1.2
+        
+        # --- Plot Lead I ---
+        ax1.plot(time_axis, lead_i, color='#3b82f6', linewidth=line_width, antialiased=True)
+        ax1.set_title('Lead I (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
+        ax1.set_ylabel('mV', fontsize=9)
+        ax1.grid(True, which='major', linestyle='-', linewidth=0.5, color='#e2e8f0') # Grid solid tipis
+        ax1.set_facecolor('#ffffff') # Background putih bersih seperti kertas ECG
+        # Hilangkan border atas/kanan agar lebih bersih (style medis)
+        ax1.spines['top'].set_visible(False)
+        ax1.spines['right'].set_visible(False)
+
+        # --- Plot Lead II ---
+        ax2.plot(time_axis, lead_ii, color='#10b981', linewidth=line_width, antialiased=True)
+        ax2.set_title('Lead II (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
+        ax2.set_ylabel('mV', fontsize=9)
+        ax2.grid(True, which='major', linestyle='-', linewidth=0.5, color='#e2e8f0')
+        ax2.set_facecolor('#ffffff')
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+
+        # --- Plot Lead V1 ---
+        ax3.plot(time_axis, v1, color='#f59e0b', linewidth=line_width, antialiased=True)
+        ax3.set_title('Lead V1 (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
+        ax3.set_ylabel('mV', fontsize=9)
+        ax3.set_xlabel('Time (seconds)', fontsize=10, fontweight='bold')
+        ax3.grid(True, which='major', linestyle='-', linewidth=0.5, color='#e2e8f0')
+        ax3.set_facecolor('#ffffff')
+        ax3.spines['top'].set_visible(False)
+        ax3.spines['right'].set_visible(False)
+
+        # Pastikan tidak ada margin berlebih
+        plt.margins(x=0.01) 
+        plt.tight_layout()
+
+        # 4. Save Image
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
+        buf.seek(0)
+        
+        plt.close(fig) 
+        return buf
+        
+    except Exception as e:
+        print(f"Error generating plot: {e}")
+        try: plt.close('all') 
+        except: pass
+        return None
+    finally:
+        db.close()
+        
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     html_file = os.path.join(os.path.dirname(__file__), "index.html")
@@ -1847,6 +1718,24 @@ async def download_feature_data(recording_id: str):
         return JSONResponse(content={"message": f"Server error: {e}"}, status_code=500)
     finally:
         db.close()
+
+@app.get("/api/download/plot/{recording_id}")
+async def download_plot_data(recording_id: str):
+    """Generate and download ECG chart image (PNG)."""
+    loop = asyncio.get_running_loop()
+    
+    # Jalankan plotting di process executor agar server tidak lag
+    buf = await loop.run_in_executor(process_executor, generate_ecg_plot_image, recording_id)
+    
+    if not buf:
+        return JSONResponse(content={"message": "Data not found or error generating plot."}, status_code=404)
+
+    filename = f"ecg_chart_{recording_id}.png"
+    return StreamingResponse(
+        buf,
+        media_type="image/png",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 # ==================================================================
 # Startup

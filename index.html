@@ -8,6 +8,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <link rel="shortcut icon" href="/assets/favicon.ico" />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
@@ -276,7 +277,7 @@
                                 <input type="hidden" id="hidden-subject-id">
                                 <div class="grid grid-cols-2 gap-3">
                                     <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">NIK / ID</div>
+                                        <div class="text-[10px] text-slate-400 font-bold uppercase mb-1">NIK</div>
                                         <div id="disp-subject"
                                             class="font-mono text-sm font-bold text-slate-700 truncate">-</div>
                                     </div>
@@ -315,6 +316,10 @@
                                         class="flex-1 bg-gradient-to-r from-danger-600 to-rose-500 hover:from-danger-500 hover:to-rose-400 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-danger-500/20 hover:shadow-danger-500/30 items-center justify-center gap-2 group hover:-translate-y-0.5"
                                         style="display: none;">Stop Rec</button>
                                 </div>
+                                <button id="btn-reset-data"
+                                    class="w-full mt-3 py-2 text-xs font-bold text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg uppercase tracking-wider transition-all border border-transparent hover:border-rose-100">
+                                    Reset / Ganti Pasien
+                                </button>
                             </div>
                             <div id="progress-container"
                                 class="mt-6 hidden transition-all duration-500 bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -534,6 +539,25 @@
                                     </div>
                                 </div>
                             </button>
+                            <button id="download-plot" disabled
+                                class="group relative w-full p-4 bg-white text-slate-900 rounded-xl hover:bg-violet-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-left border border-transparent hover:border-violet-300 shadow-sm ring-1 ring-slate-200">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
+                                        <svg class="w-6 h-6 text-violet-600" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-sm text-slate-700 group-hover:text-violet-700">
+                                            Download Chart Image</div>
+                                        <div class="text-xs text-slate-500 mt-0.5">Visual waveform snapshot (.png)</div>
+                                    </div>
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -560,22 +584,15 @@
                                 </svg>
                             </div>
                             <h3 class="text-xl font-bold text-slate-900 tracking-tight">New Patient Session</h3>
-                            <p class="text-sm text-slate-500 mt-1">Enter patient details to initialize recording.</p>
+                            <p class="text-sm text-slate-500 mt-1">Enter complete patient details.</p>
                         </div>
-                        <div class="space-y-5">
+                        <div class="space-y-4">
                             <div><label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">NIK
-                                    / Patient ID</label>
+                                    / ID</label>
                                 <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2">
-                                            </path>
-                                        </svg>
-                                    </div><input id="modal-subject" type="text"
-                                        class="block w-full pl-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
+                                    <input id="modal-subject" type="text"
+                                        class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
                                         placeholder="e.g. 3201234567890001">
                                 </div>
                             </div>
@@ -583,27 +600,36 @@
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Full
                                     Name</label>
                                 <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
-                                            </path>
-                                        </svg>
-                                    </div><input id="modal-name" type="text"
-                                        class="block w-full pl-11 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
+                                    <input id="modal-name" type="text"
+                                        class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
                                         placeholder="Enter full name">
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
-                                <div><label
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Place
+                                        of Birth</label>
+                                    <input id="modal-pob" type="text"
+                                        class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 text-sm py-3 font-medium"
+                                        placeholder="City">
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Date
+                                        of Birth</label>
+                                    <input id="modal-dob" type="date"
+                                        class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 text-sm py-3 font-medium">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label
                                         class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Age</label>
-                                    <div class="relative"><input id="modal-age" type="number"
+                                    <div class="relative">
+                                        <input id="modal-age" type="number" min="0" max="150"
                                             class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all placeholder:text-slate-400 font-medium"
-                                            placeholder="0">
-                                        <div
-                                            class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold">
-                                            yo</div>
+                                            placeholder="e.g. 25">
                                     </div>
                                 </div>
                                 <div><label
@@ -611,8 +637,8 @@
                                         id="modal-gender"
                                         class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all cursor-pointer font-medium">
                                         <option value="">Select...</option>
-                                        <option>Male</option>
-                                        <option>Female</option>
+                                        <option value="L">Laki-laki (L)</option>
+                                        <option value="P">Perempuan (P)</option>
                                     </select></div>
                             </div>
                         </div>
@@ -637,24 +663,25 @@
         let currentDevice = null;
         let isReconnecting = false;
         let isRecording = false;
-        let cachedDeviceList = []; // [FIX] Simpan list device untuk re-render lokal
+        let cachedDeviceList = [];
+        window.currentPatientData = {};
 
-        // --- DOM ELEMENTS ---
+        // Flag agar grafik update mengikuti refresh rate monitor (lebih smooth & hemat CPU)
+        let needsChartUpdate = false;
+
+        // --- DOM ELEMENTS (Tetap sama) ---
         const wsStatusEl = document.getElementById('ws-text');
         const wsBadge = document.getElementById('ws-badge');
         const serverUrlEl = document.getElementById('server-url');
         const deviceCountEl = document.getElementById('device-count');
         const selectedDeviceEl = document.getElementById('selected-device');
         const connectionStatusText = document.getElementById('connection-status-text');
-
         const deviceDropdownContainer = document.getElementById('device-dropdown-container');
         const deviceListContainer = document.getElementById('device-list-container');
         const selectedDeviceLabel = document.getElementById('selected-device-label');
-
         const sectionInitial = document.getElementById('section-initial');
         const sectionPatient = document.getElementById('section-patient');
         const btnInputData = document.getElementById('btn-input-data');
-
         const modal = document.getElementById('patientModal');
         const modalSubmit = document.getElementById('modal-submit');
         const modalCancel = document.getElementById('modal-cancel');
@@ -662,33 +689,42 @@
         const inpName = document.getElementById('modal-name');
         const inpAge = document.getElementById('modal-age');
         const inpGender = document.getElementById('modal-gender');
-
+        const inpPOB = document.getElementById('modal-pob');
+        const inpDOB = document.getElementById('modal-dob');
         const dispSubject = document.getElementById('disp-subject');
         const dispName = document.getElementById('disp-name');
         const dispAge = document.getElementById('disp-age');
         const dispGender = document.getElementById('disp-gender');
         const hiddenSubjectId = document.getElementById('hidden-subject-id');
-
         const startBtn = document.getElementById('start');
         const stopBtn = document.getElementById('stop');
+        const btnResetData = document.getElementById('btn-reset-data');
         const statusEl = document.getElementById('status');
         const ridEl = document.getElementById('rid');
-
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressLabel = document.getElementById('progress-label');
-
         const downloadRidEl = document.getElementById('download-rid');
         const downloadSidEl = document.getElementById('download-sid');
         const downloadRawBtn = document.getElementById('download-raw');
         const downloadFeatureBtn = document.getElementById('download-feature');
+        const downloadPlotBtn = document.getElementById('download-plot');
         let selectedDownloadRecord = null;
+
+        // --- SECURITY HELPER (Anti-XSS) ---
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '-';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
         // --- HELPER FUNCTIONS ---
         window.copyToClipboard = function (text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Session ID copied to clipboard!');
-            });
+            navigator.clipboard.writeText(text).then(() => alert('Session ID copied!'));
         }
 
         // --- TAB SWITCHING ---
@@ -698,17 +734,10 @@
                 b.classList.remove('active', 'bg-white', 'text-brand-600', 'shadow-sm');
                 b.classList.add('text-slate-500');
             });
-
             document.getElementById(name).classList.remove('hidden');
             evt.currentTarget.classList.remove('text-slate-500');
             evt.currentTarget.classList.add('active', 'bg-white', 'text-brand-600', 'shadow-sm');
         };
-
-        const activeTab = document.querySelector('.tab-button.active');
-        if (activeTab) {
-            activeTab.classList.add('bg-white', 'text-brand-600', 'shadow-sm');
-            activeTab.classList.remove('text-slate-500');
-        }
 
         // --- DROPDOWN LOGIC ---
         window.toggleDeviceDropdown = function () {
@@ -716,36 +745,33 @@
         }
 
         document.addEventListener('click', (e) => {
-            if (!deviceDropdownContainer.contains(e.target)) {
+            // Fix: Pastikan toggle button itu sendiri tidak memicu close event saat diklik
+            const toggleBtn = deviceDropdownContainer.querySelector('button');
+            if (!deviceDropdownContainer.contains(e.target) && e.target !== toggleBtn) {
                 deviceDropdownContainer.classList.remove('dropdown-open');
             }
         });
 
-        // [FIXED] Updated selectDevice logic to refresh UI immediately
         window.selectDevice = function (deviceId) {
             if (currentDevice && isRecording && deviceId !== currentDevice) {
-                if (!confirm("Recording in progress. Switching devices will cancel the current recording. Continue?")) return;
+                if (!confirm("Recording in progress. Switching will cancel it. Continue?")) return;
                 sendWebSocketMessage({ type: 'cancel_recording', device_id: currentDevice });
                 isRecording = false;
             }
 
-            // 1. Reset View first
             resetDeviceView();
             deviceDropdownContainer.classList.remove('dropdown-open');
 
-            // 2. Set New Device State
             if (deviceId) {
                 sendWebSocketMessage({ type: 'subscribe_to_device', device_id: deviceId });
                 currentDevice = deviceId;
-                // Update UI Labels
-                selectedDeviceEl.textContent = currentDevice;
-                selectedDeviceLabel.textContent = currentDevice;
+                // Gunakan textContent untuk keamanan
+                selectedDeviceEl.textContent = deviceId;
+                selectedDeviceLabel.textContent = deviceId;
             } else {
                 sendWebSocketMessage({ type: 'subscribe_to_device', device_id: "" });
                 selectedDeviceLabel.textContent = "Select Device";
             }
-
-            // 3. [IMPORTANT] Re-render list to update blue dots/highlights immediately
             updateDeviceList(cachedDeviceList);
         }
 
@@ -756,27 +782,37 @@
             downloadSidEl.textContent = '-';
             downloadRawBtn.disabled = true;
             downloadFeatureBtn.disabled = true;
-
+            downloadPlotBtn.disabled = true;
             document.querySelectorAll('#history-table-body-download tr').forEach(r => {
                 r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200');
             });
         }
 
         function selectRecordingForDownload(rid, sid, cls) {
-            downloadRidEl.textContent = rid; downloadSidEl.textContent = sid;
-            downloadRawBtn.disabled = false; downloadFeatureBtn.disabled = false;
+            downloadRidEl.textContent = rid;
+            downloadSidEl.textContent = sid;
+            downloadRawBtn.disabled = false;
+            downloadFeatureBtn.disabled = false;
+            downloadPlotBtn.disabled = false;
             selectedDownloadRecord = { recording_id: rid };
         }
-        downloadRawBtn.onclick = () => window.open(`/api/download/raw/${selectedDownloadRecord.recording_id}`, '_blank');
-        downloadFeatureBtn.onclick = () => window.open(`/api/download/feature/${selectedDownloadRecord.recording_id}`, '_blank');
+
+        // Fix: Tambahkan validasi sebelum membuka window
+        downloadRawBtn.onclick = () => selectedDownloadRecord && window.open(`/api/download/raw/${selectedDownloadRecord.recording_id}`, '_blank');
+        downloadFeatureBtn.onclick = () => selectedDownloadRecord && window.open(`/api/download/feature/${selectedDownloadRecord.recording_id}`, '_blank');
+        downloadPlotBtn.onclick = () => selectedDownloadRecord && window.open(`/api/download/plot/${selectedDownloadRecord.recording_id}`, '_blank');
 
         // --- UI STATE MANAGEMENT ---
         function showInitialState() {
             sectionInitial.style.display = 'block';
             sectionPatient.style.display = 'none';
-            inpSubject.value = ""; inpName.value = ""; inpAge.value = ""; inpGender.value = "";
+            // Hanya reset input visual form, jangan reset variabel data jika tidak perlu
+            inpSubject.value = ""; inpName.value = ""; inpAge.value = ""; inpGender.value = ""; inpPOB.value = ""; inpDOB.value = "";
+
             dispSubject.textContent = "-"; dispName.textContent = "-"; hiddenSubjectId.value = "";
             startBtn.style.display = 'flex'; stopBtn.style.display = 'none';
+            // Reset Tailwind classes for buttons
+            startBtn.classList.remove('hidden'); stopBtn.classList.add('hidden');
         }
 
         function showPatientReadyState() {
@@ -798,23 +834,37 @@
             const n = inpName.value.trim();
             const a = inpAge.value.trim();
             const g = inpGender.value.trim();
+            const p = inpPOB.value.trim();
+            const d = inpDOB.value;
 
-            if (!s || !n || !a || !g) { alert("Please fill all patient fields."); return; }
+            if (!s || !n || !a || !g || !p || !d) {
+                alert("Please fill all patient fields completely.");
+                return;
+            }
 
-            dispSubject.textContent = s; dispName.textContent = n;
-            dispAge.textContent = a; dispGender.textContent = g;
+            dispSubject.textContent = s;
+            dispName.textContent = n;
+            dispAge.textContent = a + " Th"; // Formatting
+            dispGender.textContent = g === 'L' ? 'Laki-laki' : 'Perempuan';
             hiddenSubjectId.value = s;
 
+            window.currentPatientData = { name: n, tempat_lahir: p, tanggal_lahir: d, umur: a, jenis_kelamin: g };
             modal.classList.add('hidden');
             showPatientReadyState();
         };
 
         startBtn.onclick = () => {
             const subjectId = hiddenSubjectId.value;
-            if (!currentDevice) return alert('Please select a device first from the top menu.');
+            if (!currentDevice) return alert('Please select a device first.');
             if (!subjectId) return alert('Patient data missing.');
 
-            sendWebSocketMessage({ type: 'start_recording', device_id: currentDevice, subject_id: subjectId });
+            const payload = {
+                type: 'start_recording',
+                device_id: currentDevice,
+                subject_id: subjectId,
+                ...window.currentPatientData
+            };
+            sendWebSocketMessage(payload);
             showRecordingState();
         };
 
@@ -822,23 +872,76 @@
             if (currentDevice) sendWebSocketMessage({ type: 'stop_recording', device_id: currentDevice });
         };
 
-        function resetDeviceView() {
-            currentDevice = null; selectedDeviceEl.textContent = '-'; selectedDeviceLabel.textContent = "Select Device"; isRecording = false;
-            connectionStatusText.textContent = '-'; connectionStatusText.className = 'text-sm font-medium text-slate-400';
+        btnResetData.onclick = function () {
+            // 1. Cek keamanan: Jangan reset jika sedang merekam!
+            if (isRecording) {
+                alert("Harap hentikan (Stop) recording terlebih dahulu sebelum mengganti pasien.");
+                return;
+            }
 
+            // 2. Konfirmasi user (opsional, untuk mencegah klik tidak sengaja)
+            if (!confirm("Apakah Anda yakin ingin mereset data pasien ini?")) {
+                return;
+            }
+
+            // 3. Bersihkan Data Global
+            window.currentPatientData = {}; // Kosongkan objek data pasien
+            hiddenSubjectId.value = "";     // Kosongkan ID tersembunyi
+
+            // 4. Bersihkan Tampilan Input Modal (agar saat buka modal lagi, formnya bersih)
+            inpSubject.value = "";
+            inpName.value = "";
+            inpAge.value = "";
+            inpGender.value = "";
+            inpPOB.value = "";
+            inpDOB.value = "";
+
+            // 5. Kembali ke Tampilan Awal
+            showInitialState();
+
+            // (Opsional) Reset grafik jika ingin benar-benar bersih
+            // chartDataLeadI.fill(null); chartDataLeadII.fill(null); chartDataV1.fill(null);
+            // ecgChart.update('none');
+        };
+
+        function resetDeviceView() {
+            // 1. Reset Variabel Device & Koneksi
+            currentDevice = null;
+            selectedDeviceEl.textContent = '-';
+            selectedDeviceLabel.textContent = "Select Device";
+            isRecording = false;
+            connectionStatusText.textContent = '-';
+            connectionStatusText.className = 'text-sm font-medium text-slate-400';
+
+            // 2. Reset Grafik & Data Visual
             chartDataLeadI.fill(null); chartDataLeadII.fill(null); chartDataV1.fill(null);
             ecgChart.update('none');
-
             document.querySelectorAll('.metric-value').forEach(el => el.textContent = '-');
 
-            statusEl.textContent = "Idle"; ridEl.textContent = "-";
+            // 3. Reset Status Recording
+            statusEl.textContent = "Idle";
+            ridEl.textContent = "-";
+            progressContainer.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressLabel.textContent = '';
 
-            progressContainer.style.display = 'none'; progressBar.style.width = '0%'; progressLabel.textContent = '';
-            showInitialState();
+            // --- BAGIAN PERBAIKAN (LOGIKA DATA PASIEN) ---
+            // Cek apakah sudah ada data pasien yang tersimpan (dari hidden input atau global var)
+            if (hiddenSubjectId.value && window.currentPatientData && window.currentPatientData.name) {
+                // Jika data pasien ADA:
+                // Jangan reset form! Cukup pastikan tampilan kembali ke mode "Siap Rekam"
+                showPatientReadyState();
+            } else {
+                // Jika data pasien TIDAK ADA:
+                // Baru reset total ke tampilan awal (Create New Session)
+                showInitialState();
+            }
         }
 
         // --- WEBSOCKET HANDLERS ---
         function handleWebSocketMessage(message) {
+            if (!message) return; // Guard clause
+
             switch (message.type) {
                 case 'device_list_update': updateDeviceList(message.devices); break;
                 case 'global_performance_update': updateGlobalPerformance(message.data); break;
@@ -852,7 +955,7 @@
                     if (message.device_id === currentDevice) {
                         alert(`Recording Stopped: ${message.reason}`);
                         isRecording = false;
-                        showPatientReadyState();
+                        showPatientReadyState(); // Balik ke ready state, jangan initial state agar data pasien tidak hilang
                         statusEl.textContent = "Idle";
                         progressContainer.style.display = 'none';
                     }
@@ -863,6 +966,7 @@
         function updateDeviceState(data) {
             if (data.status_message === "Idle" || (!data.is_recording && isRecording)) {
                 isRecording = false;
+                // Cek apakah subject ID masih ada untuk menentukan tampilan
                 if (hiddenSubjectId.value) showPatientReadyState(); else showInitialState();
                 statusEl.textContent = "Idle";
                 return;
@@ -879,6 +983,7 @@
         const LEAD_KEYS = ["raw_lead_I", "raw_lead_II", "raw_v1"];
         const valueElements = {};
 
+        // Generate Card Elements
         LEAD_KEYS.forEach(k => {
             const card = document.createElement('div');
             card.className = 'bg-slate-50 border border-slate-100 rounded-xl p-3 text-center transition-all hover:bg-slate-100 hover:shadow-sm';
@@ -900,6 +1005,7 @@
         const chartCtx = document.getElementById('chart').getContext('2d');
         const MAX_CHART_POINTS = 300;
         const chartLabels = new Array(MAX_CHART_POINTS).fill('');
+        // Gunakan TypedArray atau array biasa (array biasa lebih mudah kompatibel dengan ChartJS standard)
         const chartDataLeadI = new Array(MAX_CHART_POINTS).fill(null);
         const chartDataLeadII = new Array(MAX_CHART_POINTS).fill(null);
         const chartDataV1 = new Array(MAX_CHART_POINTS).fill(null);
@@ -915,7 +1021,13 @@
                 ]
             },
             options: {
-                animation: false, responsive: true, maintainAspectRatio: false,
+                animation: false,
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'nearest',
+                    intersect: false
+                },
                 scales: {
                     x: { display: false },
                     y: {
@@ -924,33 +1036,58 @@
                         border: { display: false }
                     }
                 },
-                plugins: { legend: { display: false } }
+                plugins: { legend: { display: false }, tooltip: { enabled: false } } // Disable tooltip for performance
             }
         });
 
+        // --- OPTIMIZED CHART LOOP ---
+        // Update grafik hanya saat browser siap menggambar (60fps), bukan setiap kali data masuk
+        function renderLoop() {
+            if (needsChartUpdate) {
+                ecgChart.update('none');
+                needsChartUpdate = false;
+            }
+            requestAnimationFrame(renderLoop);
+        }
+        requestAnimationFrame(renderLoop);
+
         function updateLiveData(data) {
+            // Manipulasi array data
             chartLabels.shift(); chartDataLeadI.shift(); chartDataLeadII.shift(); chartDataV1.shift();
             chartLabels.push('');
-            chartDataLeadI.push(data.cal_lead_I); chartDataLeadII.push(data.cal_lead_II); chartDataV1.push(data.cal_v1);
-            ecgChart.update('none');
+            chartDataLeadI.push(data.cal_lead_I);
+            chartDataLeadII.push(data.cal_lead_II);
+            chartDataV1.push(data.cal_v1);
+
+            // Tandai bahwa data berubah, biarkan renderLoop yang menggambar
+            needsChartUpdate = true;
 
             LEAD_KEYS.forEach(k => {
                 const v = data[k];
-                valueElements[k].textContent = (v !== null && Number.isFinite(v)) ? Number(v).toFixed(0) : '-';
+                if (valueElements[k]) {
+                    valueElements[k].textContent = (v !== null && Number.isFinite(v)) ? Number(v).toFixed(0) : '-';
+                }
             });
         }
 
-        window.toggleLead = function (idx, cb) { ecgChart.setDatasetVisibility(idx, cb.checked); ecgChart.update('none'); }
+        window.toggleLead = function (idx, cb) {
+            ecgChart.setDatasetVisibility(idx, cb.checked);
+            ecgChart.update('none');
+        }
 
         function updatePerformanceMetrics(data) {
-            document.getElementById('packet-format').textContent = data.packet_format || 'Unknown';
-            Object.entries(data).forEach(([k, v]) => { if (perfValueElements[k]) perfValueElements[k].textContent = `${v} ${PERF_METRICS[k]?.unit || ''}`; });
+            document.getElementById('packet-format').textContent = escapeHtml(data.packet_format || 'Unknown');
+            Object.entries(data).forEach(([k, v]) => {
+                if (perfValueElements[k]) perfValueElements[k].textContent = `${v} ${PERF_METRICS[k]?.unit || ''}`;
+            });
         }
+
         function updateProgress(data) {
             const pct = (data.current / data.total) * 100;
             progressBar.style.width = pct + '%';
             progressLabel.textContent = `${data.current} / ${data.total} samples`;
         }
+
         function updateConnectionStatus(data) {
             if (data.is_connected) {
                 connectionStatusText.textContent = 'Online';
@@ -962,13 +1099,12 @@
             }
         }
 
-        // [FIXED] Updated to cache list and support synchronous refresh
         function updateDeviceList(devs) {
-            cachedDeviceList = devs; // Store in global cache
+            cachedDeviceList = devs;
             deviceCountEl.textContent = devs.length;
-            deviceListContainer.innerHTML = '';
+            deviceListContainer.innerHTML = ''; // Reset
 
-            // Add Disconnect Option
+            // Disconnect Item
             const disconnectItem = document.createElement('div');
             disconnectItem.className = "px-4 py-2 hover:bg-rose-50 cursor-pointer flex items-center gap-3 border-b border-slate-100 transition-colors text-rose-600 font-medium text-xs uppercase tracking-wide";
             disconnectItem.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Disconnect / No Device`;
@@ -976,7 +1112,6 @@
             deviceListContainer.appendChild(disconnectItem);
 
             if (currentDevice && !devs.includes(currentDevice)) {
-                console.log(`Device ${currentDevice} removed by server. Resetting view.`);
                 resetDeviceView();
                 alert(`Device has lost connection.`);
             }
@@ -992,13 +1127,22 @@
                     const item = document.createElement('div');
                     item.className = "px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors group";
                     const isSelected = d === currentDevice;
-                    // Highlight logic is now dependent on currentDevice state
+
+                    // Gunakan Template Literal aman
+                    const dotClass = isSelected ? 'bg-brand-500 ring-2 ring-brand-200' : 'bg-slate-300';
+                    const textClass = isSelected ? 'text-brand-700 font-bold' : 'text-slate-700';
+                    const iconCheck = isSelected ? '<svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '';
+
+                    // Hati-hati: device ID (d) dimasukkan sebagai textContent jika memungkinkan, 
+                    // tapi karena struktur HTML kompleks, kita pastikan d di-escape dulu jika mau pakai innerHTML
+                    const safeD = escapeHtml(d);
+
                     item.innerHTML = `
                     <div class="flex items-center gap-3">
-                         <div class="w-2 h-2 rounded-full ${isSelected ? 'bg-brand-500 ring-2 ring-brand-200' : 'bg-slate-300'} transition-all"></div>
-                         <span class="text-sm font-medium ${isSelected ? 'text-brand-700 font-bold' : 'text-slate-700'}">${d}</span>
+                         <div class="w-2 h-2 rounded-full ${dotClass} transition-all"></div>
+                         <span class="text-sm font-medium ${textClass}">${safeD}</span>
                     </div>
-                    ${isSelected ? '<svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                    ${iconCheck}
                 `;
                     item.onclick = () => selectDevice(d);
                     deviceListContainer.appendChild(item);
@@ -1007,52 +1151,67 @@
         }
 
         function updateGlobalPerformance(data) {
-            const tbody = document.getElementById('overview-table-body'); tbody.innerHTML = '';
+            const tbody = document.getElementById('overview-table-body');
+            tbody.innerHTML = ''; // Reset
+
             data.forEach(d => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
-                tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-900">${d.device_id}</td>
-                            <td class="px-6 py-4">${d.status_message}</td>
-                            <td class="px-6 py-4 text-slate-500">${d.packet_format}</td>
-                            <td class="px-6 py-4 font-mono">${d.avg_latency_ms.toFixed(2)}</td>
-                            <td class="px-6 py-4 font-mono">${d.jitter_ms.toFixed(2)}</td>
-                            <td class="px-6 py-4 font-mono ${d.packet_loss_pct > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600'}">${d.packet_loss_pct.toFixed(2)}</td>`;
+
+                // SECURITY: Gunakan escapeHtml untuk string dari server
+                tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-900">${escapeHtml(d.device_id)}</td>
+                        <td class="px-6 py-4">${escapeHtml(d.status_message)}</td>
+                        <td class="px-6 py-4 text-slate-500">${escapeHtml(d.packet_format)}</td>
+                        <td class="px-6 py-4 font-mono">${d.avg_latency_ms.toFixed(2)}</td>
+                        <td class="px-6 py-4 font-mono">${d.jitter_ms.toFixed(2)}</td>
+                        <td class="px-6 py-4 font-mono ${d.packet_loss_pct > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600'}">${d.packet_loss_pct.toFixed(2)}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
         function fetchHistory() {
-            fetch('/api/history').then(r => r.json()).then(data => {
-                const t1 = document.querySelector("#history-table-full tbody");
-                const t2 = document.querySelector("#history-table-body-download");
-                t1.innerHTML = ''; t2.innerHTML = '';
-                data.forEach(rec => {
-                    const shortId = rec.recording_id.substring(0, 8) + '...';
-                    const date = new Date(rec.timestamp).toLocaleString();
-                    const tr1 = document.createElement('tr');
-                    tr1.className = "hover:bg-slate-50 transition-colors";
-                    tr1.innerHTML = `<td class="px-6 py-3 text-slate-500">${date}</td>
-                                 <td class="px-6 py-3 font-medium text-slate-900">${rec.device_id}</td>
-                                 <td class="px-6 py-3 text-slate-600">${rec.subject_id}</td>
-                                 <td class="px-6 py-3 font-mono text-xs text-slate-500" title="${rec.recording_id}">${shortId}</td>
-                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">${rec.classification}</span></td>`;
-                    t1.appendChild(tr1);
+            fetch('/api/history')
+                .then(r => r.json())
+                .then(data => {
+                    const t1 = document.querySelector("#history-table-full tbody");
+                    const t2 = document.querySelector("#history-table-body-download");
+                    t1.innerHTML = ''; t2.innerHTML = '';
 
-                    const tr2 = document.createElement('tr');
-                    tr2.className = "hover:bg-brand-50 cursor-pointer transition-colors group border-b border-slate-50 last:border-0";
-                    tr2.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
-                                 <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${rec.device_id}</td>
-                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${rec.subject_id}</td>
-                                 <td class="px-6 py-4 font-mono text-xs" title="${rec.recording_id}">${shortId}</td>
-                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100">${rec.classification}</span></td>`;
-                    tr2.onclick = () => {
-                        Array.from(t2.children).forEach(r => r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200'));
-                        tr2.classList.add('bg-brand-100', 'ring-1', 'ring-brand-200');
-                        selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
-                    };
-                    t2.appendChild(tr2);
-                });
-            });
+                    data.forEach(rec => {
+                        const shortId = rec.recording_id.substring(0, 8) + '...';
+                        const date = new Date(rec.timestamp).toLocaleString();
+                        const safeDevId = escapeHtml(rec.device_id);
+                        const safeSubjId = escapeHtml(rec.subject_id);
+                        const safeClass = escapeHtml(rec.classification);
+
+                        // Table 1 (Live Log)
+                        const tr1 = document.createElement('tr');
+                        tr1.className = "hover:bg-slate-50 transition-colors";
+                        tr1.innerHTML = `<td class="px-6 py-3 text-slate-500">${date}</td>
+                                 <td class="px-6 py-3 font-medium text-slate-900">${safeDevId}</td>
+                                 <td class="px-6 py-3 text-slate-600">${safeSubjId}</td>
+                                 <td class="px-6 py-3 font-mono text-xs text-slate-500" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
+                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">${safeClass}</span></td>`;
+                        t1.appendChild(tr1);
+
+                        // Table 2 (Download)
+                        const tr2 = document.createElement('tr');
+                        tr2.className = "hover:bg-brand-50 cursor-pointer transition-colors group border-b border-slate-50 last:border-0";
+                        tr2.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
+                                 <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${safeDevId}</td>
+                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${safeSubjId}</td>
+                                 <td class="px-6 py-4 font-mono text-xs" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
+                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100">${safeClass}</span></td>`;
+
+                        tr2.onclick = () => {
+                            Array.from(t2.children).forEach(r => r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200'));
+                            tr2.classList.add('bg-brand-100', 'ring-1', 'ring-brand-200');
+                            selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
+                        };
+                        t2.appendChild(tr2);
+                    });
+                })
+                .catch(err => console.error("History fetch error:", err));
         }
 
         // --- WEBSOCKET CONNECT ---
@@ -1066,20 +1225,42 @@
                     wsStatusEl.textContent = 'Connected';
                     const dot = wsBadge.querySelector('span:first-child');
                     dot.classList.remove('bg-slate-300', 'bg-rose-500'); dot.classList.add('bg-emerald-500', 'animate-pulse');
-                    isReconnecting = false; if (reconnectInterval) clearInterval(reconnectInterval);
+                    isReconnecting = false;
+                    if (reconnectInterval) { clearInterval(reconnectInterval); reconnectInterval = null; }
                 };
-                ws.onmessage = (e) => handleWebSocketMessage(JSON.parse(e.data));
+
+                // SECURITY & STABILITY FIX: Wrap JSON parse in try-catch
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        handleWebSocketMessage(msg);
+                    } catch (err) {
+                        console.error("Malform WS msg:", err, e.data);
+                    }
+                };
+
                 ws.onclose = () => {
                     wsStatusEl.textContent = 'Disconnected';
                     const dot = wsBadge.querySelector('span:first-child');
                     dot.classList.remove('bg-emerald-500', 'animate-pulse'); dot.classList.add('bg-rose-500');
-                    if (!reconnectInterval) reconnectInterval = setInterval(() => { if (ws.readyState === 3) { isReconnecting = true; connectWebSocket(); } }, 3000);
+                    if (!reconnectInterval) reconnectInterval = setInterval(() => { if (!ws || ws.readyState === 3) { isReconnecting = true; connectWebSocket(); } }, 3000);
                 };
+
+                ws.onerror = (err) => {
+                    console.error("WS Error:", err);
+                    ws.close();
+                }
+
             } catch (e) { console.error(e); }
         }
         function sendWebSocketMessage(msg) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); }
 
-        document.addEventListener('DOMContentLoaded', () => { connectWebSocket(); fetchHistory(); setInterval(fetchHistory, 30000); showInitialState(); });
+        document.addEventListener('DOMContentLoaded', () => {
+            connectWebSocket();
+            fetchHistory();
+            setInterval(fetchHistory, 30000);
+            showInitialState();
+        });
     </script>
 </body>
 

@@ -26,3 +26,5 @@ PyWavelets
 python-multipart
 jinja2
 python-dotenv
+
+matplotlib
