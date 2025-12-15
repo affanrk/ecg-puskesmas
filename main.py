@@ -67,7 +67,7 @@ LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 # ==================================================================
 # Buat ProcessPoolExecutor global. Max workers diset 2 agar tidak memakan semua CPU core
 # Executor ini akan menangani beban berat analisis sinyal & AI
-process_executor = ProcessPoolExecutor(max_workers=2)
+process_executor = ProcessPoolExecutor(max_workers=1)
 
 # ==================================================================
 # Application State
