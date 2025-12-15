@@ -67,12 +67,8 @@ LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 # ==================================================================
 # Buat ProcessPoolExecutor global. Max workers diset 2 agar tidak memakan semua CPU core
 # Executor ini akan menangani beban berat analisis sinyal & AI
-<<<<<<< HEAD
 # process_executor = ProcessPoolExecutor(max_workers=2)
 process_executor = ThreadPoolExecutor(max_workers=1)
-=======
-process_executor = ProcessPoolExecutor(max_workers=1)
->>>>>>> 8d2d75c12fc62ddc94a0beb2843b35ad68bda1e7
 
 # ==================================================================
 # Application State
@@ -1205,11 +1201,7 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
     """
     Complete analysis function with IDENTICAL logic from LiveANN3Channel_V3.py
     """
-<<<<<<< HEAD
     print(f"[{device_id}] >>> WORKER STARTED analysis for {recording_id}", flush=True)
-=======
-    print("pantek")
->>>>>>> 8d2d75c12fc62ddc94a0beb2843b35ad68bda1e7
     db = SessionLocal()
     try:
         print(f"[{recording_id}][{device_id}] Memulai pipeline analisis 3-Lead (IDENTICAL)...")
