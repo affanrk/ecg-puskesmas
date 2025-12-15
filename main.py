@@ -39,7 +39,7 @@ import matplotlib.pyplot as plt
 from database import SessionLocal, init_db
 from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead, Patient
 from sqlalchemy import desc, text, insert
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 # ==================================================================
 # Configuration
@@ -67,7 +67,8 @@ LEAD_KEYS_COLUMN = ["lead_I", "lead_II", "v1"]
 # ==================================================================
 # Buat ProcessPoolExecutor global. Max workers diset 2 agar tidak memakan semua CPU core
 # Executor ini akan menangani beban berat analisis sinyal & AI
-process_executor = ProcessPoolExecutor(max_workers=2)
+# process_executor = ProcessPoolExecutor(max_workers=2)
+process_executor = ThreadPoolExecutor(max_workers=1)
 
 # ==================================================================
 # Application State
@@ -1200,6 +1201,7 @@ def analyze_recording_complete(recording_id, subject_id, device_id):
     """
     Complete analysis function with IDENTICAL logic from LiveANN3Channel_V3.py
     """
+    print(f"[{device_id}] >>> WORKER STARTED analysis for {recording_id}", flush=True)
     db = SessionLocal()
     try:
         print(f"[{recording_id}][{device_id}] Memulai pipeline analisis 3-Lead (IDENTICAL)...")
@@ -1599,7 +1601,7 @@ def generate_ecg_plot_image(recording_id: str):
         return None
     finally:
         db.close()
-        
+
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     html_file = os.path.join(os.path.dirname(__file__), "index.html")
