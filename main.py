@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 
 from database import SessionLocal, init_db
 from models import ECGRaw3Lead, ECGClassification3Lead, ECGPerformanceMetrics3Lead, Patient
-from sqlalchemy import desc, text, insert
+from sqlalchemy import desc, text, insert, or_
 from concurrent.futures import ThreadPoolExecutor
 
 # ==================================================================
@@ -1610,35 +1610,97 @@ async def get_index():
             return HTMLResponse(content=f.read())
     else:
         return HTMLResponse(content="<h1>Error: index.html not found</h1>", status_code=404)
-    
+
 @app.get("/api/history")
-async def get_history(device_id: str = None, subject_id: str = None):
+async def get_history(
+    device_id: str = None, 
+    subject_id: str = None, 
+    search: str = None,
+    start_date: str = None, # Format: YYYY-MM-DD
+    end_date: str = None    # Format: YYYY-MM-DD
+):
     """
-    Mengambil riwayat klasifikasi, difilter berdasarkan device_id dan/atau subject_id.
+    History dengan Search + Date Range Filter
     """
     db = SessionLocal()
     try:
-        query = db.query(ECGClassification3Lead)
+        query = db.query(ECGClassification3Lead, Patient.name).outerjoin(
+            Patient, ECGClassification3Lead.subject_id == Patient.nik
+        )
         
+        # --- 1. Filter Device/Subject (Existing) ---
         if device_id:
             query = query.filter(ECGClassification3Lead.device_id == device_id)
-            
         if subject_id:
             query = query.filter(ECGClassification3Lead.subject_id.ilike(f"%{subject_id}%"))
         
-        records = query.order_by(
+        # --- 2. Filter Search Text (Existing) ---
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(or_(
+                Patient.name.ilike(search_term),
+                ECGClassification3Lead.subject_id.ilike(search_term),
+                ECGClassification3Lead.device_id.ilike(search_term)
+            ))
+
+        # --- 3. FILTER TANGGAL (BARU) ---
+        if start_date:
+            # Tambahkan jam 00:00:00
+            query = query.filter(ECGClassification3Lead.timestamp >= f"{start_date} 00:00:00")
+        
+        if end_date:
+            # Tambahkan jam 23:59:59 agar mencakup sampai akhir hari tersebut
+            query = query.filter(ECGClassification3Lead.timestamp <= f"{end_date} 23:59:59")
+        # --------------------------------
+
+        # Limit dinamis: Jika ada filter (Search/Date), naikkan limit agar user bisa melihat lebih banyak hasil
+        # Jika tidak ada filter sama sekali, batasi 50 agar ringan.
+        is_filtering = search or start_date or end_date
+        limit_val = 200 if is_filtering else 50
+        
+        results = query.order_by(
             desc(ECGClassification3Lead.timestamp)
-        ).limit(50).all()
+        ).limit(limit_val).all()
         
         return [{
             'timestamp': rec.timestamp.isoformat(),
             'device_id': rec.device_id,
             'subject_id': rec.subject_id,
             'recording_id': rec.recording_id,
-            'classification': rec.classification
-        } for rec in records]
+            'classification': rec.classification,
+            'patient_name': name if name else "Unknown"
+        } for rec, name in results]
     finally:
         db.close()
+
+# @app.get("/api/history")
+# async def get_history(device_id: str = None, subject_id: str = None):
+#     """
+#     Mengambil riwayat klasifikasi, difilter berdasarkan device_id dan/atau subject_id.
+#     """
+#     db = SessionLocal()
+#     try:
+#         query = db.query(ECGClassification3Lead)
+        
+#         if device_id:
+#             query = query.filter(ECGClassification3Lead.device_id == device_id)
+            
+#         if subject_id:
+#             query = query.filter(ECGClassification3Lead.subject_id.ilike(f"%{subject_id}%"))
+        
+#         records = query.order_by(
+#             desc(ECGClassification3Lead.timestamp)
+#         ).limit(50).all()
+        
+#         return [{
+#             'timestamp': rec.timestamp.isoformat(),
+#             'device_id': rec.device_id,
+#             'subject_id': rec.subject_id,
+#             'recording_id': rec.recording_id,
+#             'classification': rec.classification
+#         } for rec in records]
+#     finally:
+#         db.close()
 
 @app.get("/api/download/raw/{recording_id}", response_class=StreamingResponse)
 async def download_raw_data(recording_id: str):

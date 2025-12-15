@@ -384,10 +384,24 @@
                     </div>
                     <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
                         <div
-                            class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
                             <h3 class="font-semibold text-slate-700 text-sm">Real-time Classification Log</h3>
-                            <button onclick="fetchHistory()"
-                                class="text-xs text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1">Refresh</button>
+
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <div class="relative w-full sm:w-64">
+                                    <input type="text" id="search-live" oninput="renderLiveTable()"
+                                        class="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder:text-slate-400"
+                                        placeholder="Search Name, NIK, or Device...">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1.5" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
+
+                                <button onclick="fetchHistory()"
+                                    class="text-xs text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1">Refresh</button>
+                            </div>
                         </div>
                         <div class="overflow-x-auto max-h-[300px]">
                             <table id="history-table-full" class="w-full text-sm text-left">
@@ -396,7 +410,7 @@
                                         <th class="px-6 py-3 font-bold tracking-wider">Time</th>
                                         <th class="px-6 py-3 font-bold tracking-wider">Device</th>
                                         <th class="px-6 py-3 font-bold tracking-wider">NIK</th>
-                                        <th class="px-6 py-3 font-bold tracking-wider">ID</th>
+                                        <th class="px-6 py-3 font-bold tracking-wider">Nama</th>
                                         <th class="px-6 py-3 font-bold tracking-wider">Result</th>
                                     </tr>
                                 </thead>
@@ -453,10 +467,35 @@
                 <div class="lg:col-span-8">
                     <div
                         class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden flex flex-col h-full">
-                        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <div
+                            class="p-6 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                             <div>
                                 <h3 class="font-bold text-lg text-slate-800">1. Select Recording</h3>
-                                <p class="text-sm text-slate-500">Choose a completed session from the archive below.</p>
+                                <p class="text-sm text-slate-500">Search and select session from archive.</p>
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+
+                                <div class="flex gap-2">
+                                    <input type="date" id="filter-start-date" onchange="performArchiveSearch()"
+                                        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-600 shadow-sm"
+                                        title="Start Date">
+                                    <span class="text-slate-300 self-center">-</span>
+                                    <input type="date" id="filter-end-date" onchange="performArchiveSearch()"
+                                        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-600 shadow-sm"
+                                        title="End Date">
+                                </div>
+
+                                <div class="relative w-full sm:w-64">
+                                    <input type="text" id="search-download" oninput="performArchiveSearch()"
+                                        class="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder:text-slate-400 shadow-sm"
+                                        placeholder="Name / NIK...">
+                                    <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                         <div class="overflow-x-auto flex-1 max-h-[600px]">
@@ -466,7 +505,7 @@
                                         <th class="px-6 py-4">Time</th>
                                         <th class="px-6 py-4">Device</th>
                                         <th class="px-6 py-4">NIK</th>
-                                        <th class="px-6 py-4">ID</th>
+                                        <th class="px-6 py-4">Nama</th>
                                         <th class="px-6 py-4">Result</th>
                                     </tr>
                                 </thead>
@@ -663,8 +702,12 @@
         let currentDevice = null;
         let isReconnecting = false;
         let isRecording = false;
+        let currentRecordingId = null;
         let cachedDeviceList = [];
         window.currentPatientData = {};
+        window.allHistoryData = [];
+        window.liveDataCache = [];    // Data murni terbaru (50 items) untuk Table Atas
+        window.archiveDataCache = [];
 
         // Flag agar grafik update mengikuti refresh rate monitor (lebih smooth & hemat CPU)
         let needsChartUpdate = false;
@@ -710,6 +753,26 @@
         const downloadFeatureBtn = document.getElementById('download-feature');
         const downloadPlotBtn = document.getElementById('download-plot');
         let selectedDownloadRecord = null;
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+        // Update fungsi debounce wrapper
+        const performServerSearch = debounce(() => {
+            // Ambil nilai dari element Download Search (Prioritas)
+            // Atau bisa juga ambil dari Live Search jika user mengetik di sana
+            // Agar konsisten, kita prioritaskan text search yang sedang aktif
+            const query = document.getElementById('search-download').value.trim() ||
+                document.getElementById('search-live').value.trim();
+
+            fetchHistory(query);
+        }, 500);
 
         // --- SECURITY HELPER (Anti-XSS) ---
         function escapeHtml(text) {
@@ -819,10 +882,13 @@
             sectionInitial.style.display = 'none';
             sectionPatient.style.display = 'block';
             startBtn.style.display = 'flex'; stopBtn.style.display = 'none';
+            if (btnResetData) btnResetData.style.display = 'block';
         }
 
         function showRecordingState() {
-            startBtn.style.display = 'none'; stopBtn.style.display = 'flex';
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'flex';
+            if (btnResetData) btnResetData.style.display = 'none';
         }
 
         // --- EVENT LISTENERS ---
@@ -857,6 +923,26 @@
             const subjectId = hiddenSubjectId.value;
             if (!currentDevice) return alert('Please select a device first.');
             if (!subjectId) return alert('Patient data missing.');
+
+            // --- FIX 1: BERSIHKAN TABLE & SET UI SEGERA ---
+            // Kosongkan tabel history
+            const t1 = document.querySelector("#history-table-full tbody");
+            t1.innerHTML = '';
+
+            // Tampilkan status "Waiting" segera agar user tahu sistem merespons
+            const trWait = document.createElement('tr');
+            trWait.innerHTML = `
+            <td colspan="5" class="px-6 py-8 text-center">
+                <div class="flex flex-col items-center justify-center text-slate-400 gap-2">
+                    <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-xs font-medium animate-pulse">Initializing recording...</span>
+                </div>
+            </td>`;
+            t1.appendChild(trWait);
+            // ----------------------------------------------
 
             const payload = {
                 type: 'start_recording',
@@ -950,7 +1036,7 @@
                 case 'state_update': if (message.device_id === currentDevice) updateDeviceState(message); break;
                 case 'progress_update': if (message.device_id === currentDevice) updateProgress(message); break;
                 case 'device_status_update': if (message.device_id === currentDevice) updateConnectionStatus(message); break;
-                case 'history_updated': fetchHistory(); break;
+                case 'history_updated': fetchLiveData(); break;
                 case 'recording_cancelled':
                     if (message.device_id === currentDevice) {
                         alert(`Recording Stopped: ${message.reason}`);
@@ -966,12 +1052,20 @@
         function updateDeviceState(data) {
             if (data.status_message === "Idle" || (!data.is_recording && isRecording)) {
                 isRecording = false;
-                // Cek apakah subject ID masih ada untuk menentukan tampilan
+                currentRecordingId = null;
+
                 if (hiddenSubjectId.value) showPatientReadyState(); else showInitialState();
                 statusEl.textContent = "Idle";
+
+                // PERBAIKAN 2: Panggil fetchHistory() saat STOP agar tabel kembali menampilkan semua history
+                fetchHistory();
+
                 return;
             }
+
             isRecording = data.is_recording;
+            currentRecordingId = data.recording_id;
+
             if (isRecording) showRecordingState();
             statusEl.textContent = data.status_message || 'Idle';
             ridEl.textContent = data.recording_id || '-';
@@ -1169,50 +1263,209 @@
             });
         }
 
-        function fetchHistory() {
-            fetch('/api/history')
+        // ============================================================
+        // 1. DATA STREAM A: LIVE DATA (Auto Refresh)
+        // ============================================================
+        function fetchLiveData() {
+            // Selalu ambil data terbaru tanpa filter search/tanggal
+            fetch('/api/history?t=' + Date.now())
                 .then(r => r.json())
                 .then(data => {
-                    const t1 = document.querySelector("#history-table-full tbody");
-                    const t2 = document.querySelector("#history-table-body-download");
-                    t1.innerHTML = ''; t2.innerHTML = '';
+                    window.liveDataCache = data;
+                    renderLiveTable(); // Update tabel atas
 
-                    data.forEach(rec => {
-                        const shortId = rec.recording_id.substring(0, 8) + '...';
-                        const date = new Date(rec.timestamp).toLocaleString();
-                        const safeDevId = escapeHtml(rec.device_id);
-                        const safeSubjId = escapeHtml(rec.subject_id);
-                        const safeClass = escapeHtml(rec.classification);
-
-                        // Table 1 (Live Log)
-                        const tr1 = document.createElement('tr');
-                        tr1.className = "hover:bg-slate-50 transition-colors";
-                        tr1.innerHTML = `<td class="px-6 py-3 text-slate-500">${date}</td>
-                                 <td class="px-6 py-3 font-medium text-slate-900">${safeDevId}</td>
-                                 <td class="px-6 py-3 text-slate-600">${safeSubjId}</td>
-                                 <td class="px-6 py-3 font-mono text-xs text-slate-500" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
-                                 <td class="px-6 py-3"><span class="inline-flex items-center rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">${safeClass}</span></td>`;
-                        t1.appendChild(tr1);
-
-                        // Table 2 (Download)
-                        const tr2 = document.createElement('tr');
-                        tr2.className = "hover:bg-brand-50 cursor-pointer transition-colors group border-b border-slate-50 last:border-0";
-                        tr2.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
-                                 <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${safeDevId}</td>
-                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${safeSubjId}</td>
-                                 <td class="px-6 py-4 font-mono text-xs" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
-                                 <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100">${safeClass}</span></td>`;
-
-                        tr2.onclick = () => {
-                            Array.from(t2.children).forEach(r => r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200'));
-                            tr2.classList.add('bg-brand-100', 'ring-1', 'ring-brand-200');
-                            selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
-                        };
-                        t2.appendChild(tr2);
-                    });
+                    // UX: Jika user TIDAK sedang mencari arsip (input kosong), 
+                    // update juga tabel bawah agar tetap fresh
+                    if (!isArchiveFilterActive()) {
+                        window.archiveDataCache = data;
+                        renderArchiveTable();
+                    }
                 })
-                .catch(err => console.error("History fetch error:", err));
+                .catch(err => console.error("Live fetch error:", err));
         }
+
+        // Fungsi Render Khusus Live Table
+        function renderLiveTable() {
+            const t1 = document.querySelector("#history-table-full tbody");
+            const searchText = document.getElementById('search-live').value.toLowerCase();
+
+            t1.innerHTML = '';
+
+            // 1. Ambil data dari Cache Live
+            let displayData = window.liveDataCache;
+
+            // 2. Filter Logic: LOCKING saat Recording
+            // (Hanya tampilkan data pasien yg sedang direkam)
+            if (isRecording && currentDevice && hiddenSubjectId.value) {
+                displayData = displayData.filter(rec =>
+                    rec.device_id === currentDevice &&
+                    rec.subject_id === hiddenSubjectId.value
+                );
+            }
+
+            // 3. Filter Logic: Client-Side Search (Optional, hanya visual)
+            if (searchText) {
+                displayData = displayData.filter(rec =>
+                    (rec.patient_name && rec.patient_name.toLowerCase().includes(searchText)) ||
+                    (rec.subject_id && rec.subject_id.toLowerCase().includes(searchText))
+                );
+            }
+
+            // 4. Status Waiting
+            if (isRecording && displayData.length === 0 && !searchText) {
+                const trWait = document.createElement('tr');
+                trWait.innerHTML = `<td colspan="5" class="px-6 py-8 text-center">
+                    <div class="flex flex-col items-center justify-center text-slate-400 gap-2">
+                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span class="text-xs font-medium animate-pulse">Analyzing first segment...</span>
+                    </div></td>`;
+                t1.appendChild(trWait);
+            }
+
+            // 5. Render Rows
+            displayData.forEach(rec => {
+                const safeName = escapeHtml(rec.patient_name);
+                const date = new Date(rec.timestamp).toLocaleString();
+                const safeDevId = escapeHtml(rec.device_id);
+                const safeSubjId = escapeHtml(rec.subject_id);
+                const safeClass = escapeHtml(rec.classification);
+                const timeOnly = date.split(',')[1] || date;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50 transition-colors animate-fade-in-down";
+                const statusColor = (rec.classification === 'Normal') ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20';
+
+                tr.innerHTML = `<td class="px-6 py-3 text-slate-500 text-xs font-mono">${timeOnly}</td>
+                            <td class="px-6 py-3 font-medium text-slate-900">${safeDevId}</td>
+                            <td class="px-6 py-3 text-slate-600">${safeSubjId}</td>
+                            <td class="px-6 py-3 font-bold text-slate-700 truncate max-w-[150px]" title="${safeName}">${safeName}</td>
+                            <td class="px-6 py-3"><span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset ${statusColor}">${safeClass}</span></td>`;
+                t1.appendChild(tr);
+            });
+        }
+
+        // ============================================================
+        // 2. DATA STREAM B: ARCHIVE SEARCH (User Driven)
+        // ============================================================
+
+        // Helper untuk cek apakah user sedang ngetik/filter sesuatu
+        function isArchiveFilterActive() {
+            return document.getElementById('search-download').value.trim() !== '' ||
+                document.getElementById('filter-start-date').value !== '' ||
+                document.getElementById('filter-end-date').value !== '';
+        }
+
+        // Debounce Wrapper untuk Search
+        const performArchiveSearch = debounce(() => {
+            const query = document.getElementById('search-download').value.trim();
+            const startDate = document.getElementById('filter-start-date').value;
+            const endDate = document.getElementById('filter-end-date').value;
+
+            // Jika semua kosong, kembalikan ke mode sync dengan Live Data
+            if (!query && !startDate && !endDate) {
+                window.archiveDataCache = window.liveDataCache;
+                renderArchiveTable();
+                return;
+            }
+
+            // Build URL
+            let url = `/api/history?t=${Date.now()}`;
+            if (query) url += `&search=${encodeURIComponent(query)}`;
+            if (startDate) url += `&start_date=${startDate}`;
+            if (endDate) url += `&end_date=${endDate}`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    window.archiveDataCache = data;
+                    renderArchiveTable();
+                })
+                .catch(err => console.error("Archive fetch error:", err));
+        }, 500);
+
+        // Fungsi Render Khusus Archive Table
+        function renderArchiveTable() {
+            const t2 = document.querySelector("#history-table-body-download");
+            t2.innerHTML = '';
+
+            const data = window.archiveDataCache; // Ambil dari Cache Archive
+
+            if (data.length === 0) {
+                t2.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-slate-400 italic">No recording found in archive.</td></tr>`;
+                return;
+            }
+
+            data.forEach(rec => {
+                const safeName = escapeHtml(rec.patient_name);
+                const date = new Date(rec.timestamp).toLocaleString();
+                const safeDevId = escapeHtml(rec.device_id);
+                const safeSubjId = escapeHtml(rec.subject_id);
+                const safeClass = escapeHtml(rec.classification);
+                const shortId = rec.recording_id.substring(0, 8) + '...';
+
+                const tr = document.createElement('tr');
+                const isSelected = selectedDownloadRecord && selectedDownloadRecord.recording_id === rec.recording_id;
+                tr.className = `cursor-pointer transition-colors group border-b border-slate-50 last:border-0 ${isSelected ? 'bg-brand-100 ring-1 ring-brand-200' : 'hover:bg-brand-50'}`;
+
+                tr.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
+                          <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${safeDevId}</td>
+                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${safeSubjId}</td>
+                          <td class="px-6 py-4 font-bold text-slate-700 group-hover:text-brand-800 truncate max-w-[150px]">${safeName}</td>
+                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100 font-bold text-xs">${safeClass}</span></td>`;
+
+                tr.onclick = () => {
+                    selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
+                    // Re-render untuk update highlight visual
+                    renderArchiveTable();
+                };
+                t2.appendChild(tr);
+            });
+        }
+
+        // function fetchHistory() {
+        //     fetch('/api/history')
+        //         .then(r => r.json())
+        //         .then(data => {
+        //             const t1 = document.querySelector("#history-table-full tbody");
+        //             const t2 = document.querySelector("#history-table-body-download");
+        //             t1.innerHTML = ''; t2.innerHTML = '';
+
+        //             data.forEach(rec => {
+        //                 const shortId = rec.recording_id.substring(0, 8) + '...';
+        //                 const date = new Date(rec.timestamp).toLocaleString();
+        //                 const safeDevId = escapeHtml(rec.device_id);
+        //                 const safeSubjId = escapeHtml(rec.subject_id);
+        //                 const safeClass = escapeHtml(rec.classification);
+
+        //                 // Table 1 (Live Log)
+        //                 const tr1 = document.createElement('tr');
+        //                 tr1.className = "hover:bg-slate-50 transition-colors";
+        //                 tr1.innerHTML = `<td class="px-6 py-3 text-slate-500">${date}</td>
+        //                          <td class="px-6 py-3 font-medium text-slate-900">${safeDevId}</td>
+        //                          <td class="px-6 py-3 text-slate-600">${safeSubjId}</td>
+        //                          <td class="px-6 py-3 font-mono text-xs text-slate-500" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
+        //                          <td class="px-6 py-3"><span class="inline-flex items-center rounded-md bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700 ring-1 ring-inset ring-brand-700/10">${safeClass}</span></td>`;
+        //                 t1.appendChild(tr1);
+
+        //                 // Table 2 (Download)
+        //                 const tr2 = document.createElement('tr');
+        //                 tr2.className = "hover:bg-brand-50 cursor-pointer transition-colors group border-b border-slate-50 last:border-0";
+        //                 tr2.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
+        //                          <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${safeDevId}</td>
+        //                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${safeSubjId}</td>
+        //                          <td class="px-6 py-4 font-mono text-xs" title="${escapeHtml(rec.recording_id)}">${shortId}</td>
+        //                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100">${safeClass}</span></td>`;
+
+        //                 tr2.onclick = () => {
+        //                     Array.from(t2.children).forEach(r => r.classList.remove('bg-brand-100', 'ring-1', 'ring-brand-200'));
+        //                     tr2.classList.add('bg-brand-100', 'ring-1', 'ring-brand-200');
+        //                     selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
+        //                 };
+        //                 t2.appendChild(tr2);
+        //             });
+        //         })
+        //         .catch(err => console.error("History fetch error:", err));
+        // }
 
         // --- WEBSOCKET CONNECT ---
         function connectWebSocket() {
@@ -1255,12 +1508,22 @@
         }
         function sendWebSocketMessage(msg) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); }
 
+        // --- UPDATE INIT ---
+        // Jangan lupa update bagian document.addEventListener
         document.addEventListener('DOMContentLoaded', () => {
             connectWebSocket();
-            fetchHistory();
-            setInterval(fetchHistory, 30000);
+
+            // Panggil fetch Live Data (ini akan otomatis update dua tabel jika filter kosong)
+            fetchLiveData();
+            setInterval(fetchLiveData, 30000); // Auto refresh tiap 30 detik
+
             showInitialState();
         });
+
+        // --- UPDATE UPDATE FUNCTIONS ---
+        // Di fungsi-fungsi lain yang tadinya memanggil fetchHistory(), ganti:
+        // 1. Saat Recording Stop -> fetchLiveData() (agar tabel atas refresh)
+        // 2. Saat User ngetik -> performArchiveSearch()
     </script>
 </body>
 
