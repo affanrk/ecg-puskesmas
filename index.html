@@ -399,7 +399,7 @@
                                     </svg>
                                 </div>
 
-                                <button onclick="fetchHistory()"
+                                <button onclick="fetchLiveData()"
                                     class="text-xs text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1">Refresh</button>
                             </div>
                         </div>
@@ -771,7 +771,7 @@
             const query = document.getElementById('search-download').value.trim() ||
                 document.getElementById('search-live').value.trim();
 
-            fetchHistory(query);
+            fetchLiveData(query);
         }, 500);
 
         // --- SECURITY HELPER (Anti-XSS) ---
@@ -1044,6 +1044,7 @@
                         showPatientReadyState(); // Balik ke ready state, jangan initial state agar data pasien tidak hilang
                         statusEl.textContent = "Idle";
                         progressContainer.style.display = 'none';
+                        fetchLiveData();
                     }
                     break;
             }
@@ -1058,7 +1059,8 @@
                 statusEl.textContent = "Idle";
 
                 // PERBAIKAN 2: Panggil fetchHistory() saat STOP agar tabel kembali menampilkan semua history
-                fetchHistory();
+                // fetchHistory();
+                fetchLiveData();
 
                 return;
             }
