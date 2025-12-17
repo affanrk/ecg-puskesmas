@@ -13,7 +13,7 @@ class Patient(Base):
     tanggal_lahir = Column(Date) # Menggunakan tipe Date agar bisa difilter tanggal
     umur = Column(String(10))    # Varchar sesuai request
     jenis_kelamin = Column(String(10)) # 'L' atau 'P'
-    riwayat_penyakit = Column(String, nullable=True)
+    riwayat_penyakit = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_visit = Column(DateTime(timezone=True), onupdate=func.now())
 
