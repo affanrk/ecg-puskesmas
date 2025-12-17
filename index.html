@@ -289,32 +289,42 @@
                                 <div class="flex gap-3 bg-slate-50 p-2 rounded-xl border border-slate-100">
                                     <div class="flex-1 flex flex-col items-center border-r border-slate-200">
                                         <span class="text-[10px] uppercase text-slate-400 font-bold">Age</span>
-                                        <span class="text-sm font-semibold text-slate-800"><span
-                                                id="disp-age">-</span></span>
+                                        <span class="text-sm font-semibold text-slate-800">
+                                            <span id="disp-age">-</span>
+                                        </span>
                                     </div>
                                     <div class="flex-1 flex flex-col items-center">
                                         <span class="text-[10px] uppercase text-slate-400 font-bold">Gender</span>
                                         <span id="disp-gender" class="text-sm font-semibold text-slate-800">-</span>
                                     </div>
                                 </div>
+                                <div
+                                    class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                                    <span class="text-[10px] uppercase text-slate-400 font-bold">Riwayat Medis</span>
+                                    <span id="disp-riwayat" class="text-sm font-bold text-slate-700">-</span>
+                                </div>
                                 <div class="border-t border-slate-100 pt-4">
                                     <div
                                         class="text-[10px] text-slate-400 font-bold uppercase mb-2 flex justify-between">
                                         <span>Current Session ID</span>
                                         <span class="text-brand-500 cursor-pointer hover:underline"
-                                            onclick="copyToClipboard(document.getElementById('rid').innerText)">Copy</span>
+                                            onclick="copyToClipboard(document.getElementById('rid').innerText)">Copy
+                                        </span>
                                     </div>
                                     <div id="rid"
                                         class="font-mono text-xs text-slate-600 bg-white p-2.5 rounded border border-slate-200 truncate select-all shadow-sm">
-                                        -</div>
+                                        -
+                                    </div>
                                 </div>
                                 <div class="pt-2 flex gap-3">
                                     <button id="start"
                                         class="flex-1 bg-gradient-to-r from-success-600 to-emerald-500 hover:from-success-500 hover:to-emerald-400 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-success-500/20 hover:shadow-success-500/30 flex items-center justify-center gap-2 group hover:-translate-y-0.5">Start
-                                        Recording</button>
+                                        Recording
+                                    </button>
                                     <button id="stop"
                                         class="flex-1 bg-gradient-to-r from-danger-600 to-rose-500 hover:from-danger-500 hover:to-rose-400 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-danger-500/20 hover:shadow-danger-500/30 items-center justify-center gap-2 group hover:-translate-y-0.5"
-                                        style="display: none;">Stop Rec</button>
+                                        style="display: none;">Stop Rec
+                                    </button>
                                 </div>
                                 <button id="btn-reset-data"
                                     class="w-full mt-3 py-2 text-xs font-bold text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg uppercase tracking-wider transition-all border border-transparent hover:border-rose-100">
@@ -678,7 +688,30 @@
                                         <option value="">Select...</option>
                                         <option value="L">Laki-laki (L)</option>
                                         <option value="P">Perempuan (P)</option>
-                                    </select></div>
+                                    </select>
+                                </div>
+                                <div class="mt-4">
+                                    <label
+                                        class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5 ml-1">Riwayat
+                                        Medis
+                                    </label>
+                                    <div class="relative">
+                                        <select id="modal-riwayat"
+                                            class="block w-full px-4 rounded-xl border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white text-sm py-3 transition-all cursor-pointer font-medium appearance-none">
+                                            <option value="Normal">Normal</option>
+                                            <option value="Hipertensi">Hipertensi</option>
+                                            <option value="Punya penyakit jantung">Punya penyakit jantung</option>
+                                        </select>
+                                        <div
+                                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 9l-7 7-7-7">
+                                                </path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -734,6 +767,8 @@
         const inpGender = document.getElementById('modal-gender');
         const inpPOB = document.getElementById('modal-pob');
         const inpDOB = document.getElementById('modal-dob');
+        const inpRiwayat = document.getElementById('modal-riwayat'); // [BARU]
+        const dispRiwayat = document.getElementById('disp-riwayat'); // [BARU]
         const dispSubject = document.getElementById('disp-subject');
         const dispName = document.getElementById('disp-name');
         const dispAge = document.getElementById('disp-age');
@@ -869,8 +904,15 @@
         function showInitialState() {
             sectionInitial.style.display = 'block';
             sectionPatient.style.display = 'none';
+
             // Hanya reset input visual form, jangan reset variabel data jika tidak perlu
-            inpSubject.value = ""; inpName.value = ""; inpAge.value = ""; inpGender.value = ""; inpPOB.value = ""; inpDOB.value = "";
+            inpSubject.value = "";
+            inpName.value = "";
+            inpAge.value = "";
+            inpGender.value = "";
+            inpPOB.value = "";
+            inpDOB.value = "";
+            inpRiwayat.value = "Normal";
 
             dispSubject.textContent = "-"; dispName.textContent = "-"; hiddenSubjectId.value = "";
             startBtn.style.display = 'flex'; stopBtn.style.display = 'none';
@@ -902,6 +944,7 @@
             const g = inpGender.value.trim();
             const p = inpPOB.value.trim();
             const d = inpDOB.value;
+            const r = inpRiwayat.value;
 
             if (!s || !n || !a || !g || !p || !d) {
                 alert("Please fill all patient fields completely.");
@@ -914,7 +957,23 @@
             dispGender.textContent = g === 'L' ? 'Laki-laki' : 'Perempuan';
             hiddenSubjectId.value = s;
 
-            window.currentPatientData = { name: n, tempat_lahir: p, tanggal_lahir: d, umur: a, jenis_kelamin: g };
+            // [BARU] Tampilkan di dashboard jika elemennya ada
+            if (dispRiwayat) {
+                dispRiwayat.textContent = r;
+                // Opsional: Beri warna merah jika ada penyakit
+                if (r !== 'Normal') dispRiwayat.classList.add('text-rose-600');
+                else dispRiwayat.classList.remove('text-rose-600');
+            }
+
+            window.currentPatientData = {
+                name: n,
+                tempat_lahir: p,
+                tanggal_lahir: d,
+                umur: a,
+                jenis_kelamin: g,
+                riwayat_penyakit: r
+            };
+
             modal.classList.add('hidden');
             showPatientReadyState();
         };
@@ -981,6 +1040,8 @@
             inpGender.value = "";
             inpPOB.value = "";
             inpDOB.value = "";
+            // [BARU] Reset input riwayat
+            inpRiwayat.value = "Normal";
 
             // 5. Kembali ke Tampilan Awal
             showInitialState();

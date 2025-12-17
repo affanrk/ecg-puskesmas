@@ -749,20 +749,17 @@ async def save_patient_data(data: dict):
 def _execute_save_patient(data: dict):
     db = SessionLocal()
     try:
-        # Konversi string tanggal ke object date python jika perlu, 
-        # atau biarkan string jika formatnya 'YYYY-MM-DD' yang kompatibel SQL
-        
         patient = Patient(
             nik=data.get('nik'),
             name=data.get('name'),
             tempat_lahir=data.get('tempat_lahir'),
             tanggal_lahir=datetime.strptime(data.get('tanggal_lahir'), '%Y-%m-%d').date() if data.get('tanggal_lahir') else None,
-            umur=str(data.get('umur')), # Paksa string
+            umur=str(data.get('umur')),
             jenis_kelamin=data.get('jenis_kelamin'),
+            riwayat_penyakit=data.get('riwayat_penyakit'), 
             last_visit=datetime.now(timezone.utc)
         )
         
-        # Merge: Insert jika baru, Update jika NIK sudah ada
         db.merge(patient)
         db.commit()
         print(f"[PATIENT] Data saved for NIK: {data.get('nik')}")
@@ -830,7 +827,8 @@ async def handle_websocket_message(websocket: WebSocket, data: dict):
             "tempat_lahir": data.get("tempat_lahir"),
             "tanggal_lahir": data.get("tanggal_lahir"),
             "umur": data.get("umur"),
-            "jenis_kelamin": data.get("jenis_kelamin")
+            "jenis_kelamin": data.get("jenis_kelamin"),
+            "riwayat_penyakit": data.get("riwayat_penyakit")
         }
         
         # Simpan data pasien ke DB Master
