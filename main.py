@@ -498,7 +498,8 @@ def _execute_db_purge(device_id: str):
 
         # Delete Performance Metrics where recording_id is NULL
         db.query(ECGPerformanceMetrics3Lead).filter(
-            ECGPerformanceMetrics3Lead.device_id == device_id
+            ECGPerformanceMetrics3Lead.device_id == device_id,
+            ECGPerformanceMetrics3Lead.recording_id.is_(None)
         ).delete(synchronize_session=False)
 
         db.commit()
@@ -519,7 +520,7 @@ async def purge_temporary_data(device_id: str):
     # --- STEP 1: Wipe the RAM Buffer (The Fix) ---
     # We remove any data for this device that doesn't have a recording ID
     async with batch_lock:
-        global raw_data_batch, perf_data_batch
+        global raw_data_batch, perf_data_batch, ui_data_buffer
         
         # Filter raw_data_batch: Keep item ONLY if it's (Other Device) OR (Has Recording ID)
         original_count = len(raw_data_batch)
@@ -532,10 +533,9 @@ async def purge_temporary_data(device_id: str):
         # Filter perf_data_batch
         perf_data_batch[:] = [
             item for item in perf_data_batch 
-            if item['device_id'] != device_id
+            if item['device_id'] != device_id or item['recording_id'] is not None
         ]
 
-        global ui_data_buffer
         if device_id in ui_data_buffer:
             del ui_data_buffer[device_id]
     
