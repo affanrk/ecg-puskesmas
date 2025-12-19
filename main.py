@@ -103,6 +103,11 @@ class DeviceState:
         self.packet_format = "Unknown"
         self.last_seen = time.time()
         self.is_connected = True
+        self.live_raw_buffer = {
+            'lead_I': deque(maxlen=400),
+            'lead_II': deque(maxlen=400),
+            'v1': deque(maxlen=400)
+        }
 
 device_states: Dict[str, DeviceState] = {}
 websocket_connections: Dict[str, Set[WebSocket]] = defaultdict(set)
@@ -296,17 +301,56 @@ async def process_single_packet(device_id, state, packet_counter, pkt):
     cal_mv_values = pkt['cal']
     timestamp_us = pkt['timestamp_us']
 
-    # --- 1. UI UPDATE (Live Chart) ---
-    normalized_pkt = {
-        'device_id': device_id,
-        'raw_lead_I': raw_adc_values['lead_I'], 'raw_lead_II': raw_adc_values['lead_II'], 'raw_v1': raw_adc_values['v1'],
-        'cal_lead_I': cal_mv_values['lead_I'], 'cal_lead_II': cal_mv_values['lead_II'], 'cal_v1': cal_mv_values['v1']
-    }
-    
+    # --- [NEW] LIVE DSP PROCESSING ---
+    # 1. Masukkan data baru ke buffer sliding window
+    state.live_raw_buffer['lead_I'].append(cal_mv_values['lead_I'])
+    state.live_raw_buffer['lead_II'].append(cal_mv_values['lead_II'])
+    state.live_raw_buffer['v1'].append(cal_mv_values['v1'])
+
+    # Default value (jika buffer belum cukup untuk difilter, pakai raw)
+    live_val_I = cal_mv_values['lead_I']
+    live_val_II = cal_mv_values['lead_II']
+    live_val_v1 = cal_mv_values['v1']
+
+    # 2. Filter hanya dilakukan saat kita akan emit ke UI (Optimization)
+    # UI update rate diatur di bawah (setiap 5 paket)
     ui_buffer = ui_data_buffer[device_id]
     ui_buffer["count"] += 1
-    # Kirim ke UI setiap 5 paket (0.05 detik) agar tidak terlalu berat
+
     if ui_buffer["count"] >= 5: 
+        # Cek apakah data cukup untuk difilter (misal minimal 50 sampel agar filter tidak crash)
+        if len(state.live_raw_buffer['lead_I']) > 50:
+            try:
+                # Convert deque to list for filtering
+                # Kita filter buffer 3-lead sekaligus
+                # Note: apply_dsp_filters return list, kita ambil elemen terakhir [-1]
+                
+                # Filter Lead I
+                filt_I = apply_dsp_filters(list(state.live_raw_buffer['lead_I']), SPS)
+                live_val_I = filt_I[-1] # Ambil data paling baru (filtered)
+
+                # Filter Lead II
+                filt_II = apply_dsp_filters(list(state.live_raw_buffer['lead_II']), SPS)
+                live_val_II = filt_II[-1]
+
+                # Filter V1
+                filt_v1 = apply_dsp_filters(list(state.live_raw_buffer['v1']), SPS)
+                live_val_v1 = filt_v1[-1]
+            except Exception as e:
+                # Jika filter gagal (matematika error), fallback ke raw
+                # print(f"Live Filter Error: {e}") 
+                pass
+
+        # --- 1. UI UPDATE (Live Chart - Now Filtered) ---
+        normalized_pkt = {
+            'device_id': device_id,
+            'raw_lead_I': raw_adc_values['lead_I'], 'raw_lead_II': raw_adc_values['lead_II'], 'raw_v1': raw_adc_values['v1'],
+            # Di sini kita kirim data yang SUDAH DI-FILTER
+            'cal_lead_I': live_val_I, 
+            'cal_lead_II': live_val_II, 
+            'cal_v1': live_val_v1
+        }
+        
         await broadcast_to_device(device_id, "live_data", normalized_pkt)
         ui_buffer["count"] = 0
 
@@ -1536,19 +1580,29 @@ def generate_ecg_plot_image(recording_id: str):
         # Buat array waktu: [0.00, 0.01, 0.02, 0.03, ...]
         time_axis = [i / SPS for i in range(len(rows))]
         
-        # Ambil data voltage (mV)
-        lead_i = [row.cal_mv_lead_I for row in rows]
-        lead_ii = [row.cal_mv_lead_II for row in rows]
-        v1 = [row.cal_mv_v1 for row in rows]
+        # 3. Ambil data voltage (mV) MENTAH dari DB
+        raw_lead_i = [row.cal_mv_lead_I for row in rows]
+        raw_lead_ii = [row.cal_mv_lead_II for row in rows]
+        raw_v1 = [row.cal_mv_v1 for row in rows]
         
-        # 3. Setup Plotting (Lebar tetap 24 agar tidak mepet)
+        # --- [NEW] APPLY DSP FILTERS SEBELUM PLOTTING ---
+        # Agar gambar chart sama persis dengan apa yang dilihat AI
+        try:
+            # Pastikan data cukup panjang, kalau pendek kembalikan raw
+            if len(raw_lead_i) > 20:
+                lead_i = apply_dsp_filters(raw_lead_i, SPS)
+                lead_ii = apply_dsp_filters(raw_lead_ii, SPS)
+                v1 = apply_dsp_filters(raw_v1, SPS)
+            else:
+                lead_i, lead_ii, v1 = raw_lead_i, raw_lead_ii, raw_v1
+        except Exception as e:
+            print(f"Plot filtering error: {e}")
+            lead_i, lead_ii, v1 = raw_lead_i, raw_lead_ii, raw_v1
+        # -----------------------------------------------
+
+        # 4. Setup Plotting (Kode plotting ke bawah tetap sama, hanya variabelnya sudah terfilter)
         fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(24, 12), sharex=True)
-        
-        # Kurangi jarak vertikal sedikit agar lebih compact tapi tetap rapi
         plt.subplots_adjust(hspace=0.2)
-        
-        # --- Style Configuration ---
-        # Menggunakan linewidth lebih tipis sedikit (1.2) agar detail gelombang kecil terlihat tajam
         line_width = 1.2
         
         # --- Plot Lead I ---
