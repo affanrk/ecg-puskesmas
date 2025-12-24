@@ -10,6 +10,7 @@ import uuid
 import traceback
 import math
 import sys
+import warnings
 import uvicorn
 from datetime import datetime, timezone
 from collections import deque, defaultdict
@@ -103,6 +104,10 @@ class DeviceState:
         self.packet_format = "Unknown"
         self.last_seen = time.time()
         self.is_connected = True
+        # [NEW] Menyimpan WebSocket user yang sedang mengunci device ini
+        self.locked_by = None
+        # [BARU] Variabel untuk kompensasi latency (Clock Skew Fix)
+        self.min_latency_offset = float('inf')
         self.live_raw_buffer = {
             'lead_I': deque(maxlen=400),
             'lead_II': deque(maxlen=400),
@@ -200,9 +205,8 @@ async def mqtt_listener():
             await asyncio.sleep(5)
 
 async def process_mqtt_message(message):
-    """Process incoming MQTT message - WITH JITTER BUFFER REORDERING"""
+    """Process incoming MQTT message - Supports BATCH & SINGLE formats"""
     try:
-        # 1. Parsing & Validasi Dasar (Sama seperti sebelumnya)
         if hasattr(message, 'retain') and message.retain: return
         topic_parts = message.topic.value.split('/')
         if len(topic_parts) != 3 or topic_parts[0] != 'raw' or topic_parts[1] != 'ecg': return
@@ -212,11 +216,8 @@ async def process_mqtt_message(message):
             payload_json = json.loads(message.payload.decode('utf-8'))
         except: return
 
-        required_fields = ['id', 'ts_us', 'counter', 'raw_c1', 'raw_c2', 'raw_c3', 'cal_mv_c1', 'cal_mv_c2', 'cal_mv_c3']
-        if not all(field in payload_json for field in required_fields): return
-        
-        device_id = payload_json['id']
-        packet_counter = payload_json['counter']
+        device_id = payload_json.get('id')
+        if not device_id: return
         
         # Initialize device if new
         if device_id not in device_states:
@@ -227,65 +228,98 @@ async def process_mqtt_message(message):
         state = device_states[device_id]
         state.last_seen = time.time()
         state.is_connected = True
-        state.packet_format = 'JSON (calibrated)'
+        
+        # ==================================================================
+        # [LOGIKA BARU] DETEKSI FORMAT BATCH (ARRAY)
+        # ==================================================================
+        # Cek apakah ada key 'r1' dan apakah isinya list/array
+        if 'r1' in payload_json and isinstance(payload_json['r1'], list):
+            state.packet_format = 'JSON Batch (100ms)'
+
+            # Ekstrak data counter dan timestamp
+            end_counter = payload_json['cnt']
+            end_ts_us = payload_json['ts_us']
+            
+            # --- [FIX KRUSIAL] DETEKSI RESTART DEVICE ---
+            # Jika counter tiba-tiba lebih kecil dari sebelumnya (reset),
+            # atau selisihnya terlalu jauh (gap ribuan), anggap device restart.
+            if end_counter < state.last_packet_num or (end_counter - state.last_packet_num > 5000):
+                print(f"[{device_id}] Device Restart Detected! Resetting latency baseline.")
+                state.min_latency_offset = float('inf') # Reset baseline latency
+                state.last_packet_num = 0               # Reset counter tracking
+                state.live_raw_buffer['lead_I'].clear() # Clear buffer grafik
+                state.live_raw_buffer['lead_II'].clear()
+                state.live_raw_buffer['v1'].clear()
+            
+            # 1. Ekstrak Data Array
+            list_r1 = payload_json['r1']
+            list_r2 = payload_json['r2']
+            list_r3 = payload_json['r3']
+            list_c1 = payload_json['c1']
+            list_c2 = payload_json['c2']
+            list_c3 = payload_json['c3']
+        
+            batch_len = len(list_r1)
+            interval_us = 10000 
+
+            # 2. Loop reconstruct data satu per satu
+            for i in range(batch_len):
+                idx_reverse = batch_len - 1 - i
+                sample_counter = end_counter - idx_reverse
+                sample_ts_us = end_ts_us - (idx_reverse * interval_us)
+                
+                # Buat paket virtual tunggal
+                virtual_pkt = {
+                    'timestamp_us': sample_ts_us,
+                    'raw': {'lead_I': list_r1[i], 'lead_II': list_r2[i], 'v1': list_r3[i]},
+                    'cal': {'lead_I': list_c1[i], 'lead_II': list_c2[i], 'v1': list_c3[i]}
+                }
+                
+                # Proses langsung (Batching urutannya sudah pasti aman dari ESP)
+                await process_single_packet(device_id, state, sample_counter, virtual_pkt)
 
         # ==================================================================
-        # LOGIKA BARU: JITTER BUFFER (REORDERING)
+        # [LOGIKA LAMA] FALLBACK UNTUK FORMAT SINGLE PACKET (JIKA DIPERLUKAN)
         # ==================================================================
-        
-        # 1. Masukkan paket data ke dalam Buffer (Heap/Priority Queue)
-        # Heap akan otomatis mengurutkan berdasarkan packet_counter (item pertama tuple)
-        packet_data = {
-            'timestamp_us': payload_json['ts_us'],
-            'raw': {'lead_I': payload_json['raw_c1'], 'lead_II': payload_json['raw_c2'], 'v1': payload_json['raw_c3']},
-            'cal': {'lead_I': payload_json['cal_mv_c1'], 'lead_II': payload_json['cal_mv_c2'], 'v1': payload_json['cal_mv_c3']}
-        }
-        
-        # Push ke heap: (Nomor Urut, Data)
-        heapq.heappush(state.packet_buffer, (packet_counter, packet_data))
-
-        # 2. Tentukan Batas Buffer
-        # Kita tunggu sampai buffer punya minimal 100 paket (1 detik) ATAU paket loncat terlalu jauh
-        # Semakin besar angkanya, semakin kuat menahan data acak, tapi delay live makin besar.
-        BUFFER_LIMIT = 100
-
-        # 3. Proses Loop: Ambil paket dari buffer HANYA jika sudah urut atau buffer penuh
-        while state.packet_buffer:
-            # Intip paket dengan nomor terkecil di buffer
-            smallest_counter, pkt = state.packet_buffer[0]
+        elif 'raw_c1' in payload_json:
+            state.packet_format = 'JSON Single'
+            packet_counter = payload_json['counter']
             
-            # KONDISI A: Inisialisasi awal (belum pernah terima paket)
-            if state.last_packet_num == 0:
-                heapq.heappop(state.packet_buffer) # Ambil
-                await process_single_packet(device_id, state, smallest_counter, pkt)
-                continue
-
-            # KONDISI B: Paket Sempurna (Urutan Next = Last + 1)
-            # Contoh: Last 100, Buffer Paling Kecil 101. Proses!
-            if smallest_counter == state.last_packet_num + 1:
-                heapq.heappop(state.packet_buffer) # Ambil
-                await process_single_packet(device_id, state, smallest_counter, pkt)
-                continue
+            packet_data = {
+                'timestamp_us': payload_json['ts_us'],
+                'raw': {'lead_I': payload_json['raw_c1'], 'lead_II': payload_json['raw_c2'], 'v1': payload_json['raw_c3']},
+                'cal': {'lead_I': payload_json['cal_mv_c1'], 'lead_II': payload_json['cal_mv_c2'], 'v1': payload_json['cal_mv_c3']}
+            }
             
-            # KONDISI C: Paket Duplikat / Kadaluarsa (Counter <= Last)
-            # Contoh: Last 100, Buffer Paling Kecil 98. Buang 98!
-            if smallest_counter <= state.last_packet_num:
-                heapq.heappop(state.packet_buffer) # Buang dari buffer
-                # Jangan di process, loop lagi untuk cek paket berikutnya
-                continue
-
-            # KONDISI D: Buffer Penuh (Time to Give Up)
-            # Jika buffer sudah > 100 item, tapi paket 'next' belum datang juga,
-            # terpaksa kita proses paket terkecil yang ada (dan terima gap-nya).
-            if len(state.packet_buffer) > BUFFER_LIMIT:
-                heapq.heappop(state.packet_buffer) # Ambil paksa
-                await process_single_packet(device_id, state, smallest_counter, pkt)
-                continue
+            # Masuk ke Jitter Buffer (Heap)
+            heapq.heappush(state.packet_buffer, (packet_counter, packet_data))
             
-            # KONDISI E: Belum urut & Buffer belum penuh
-            # Contoh: Last 100, Buffer Paling Kecil 105.
-            # Tunggu dulu, siapa tahu 101-104 datang sebentar lagi.
-            break 
+            # Buffer limit diperkecil karena kita mengutamakan batching sekarang
+            BUFFER_LIMIT = 20 
+
+            while state.packet_buffer:
+                smallest_counter, pkt = state.packet_buffer[0]
+                
+                if state.last_packet_num == 0:
+                    heapq.heappop(state.packet_buffer)
+                    await process_single_packet(device_id, state, smallest_counter, pkt)
+                    continue
+
+                if smallest_counter == state.last_packet_num + 1:
+                    heapq.heappop(state.packet_buffer)
+                    await process_single_packet(device_id, state, smallest_counter, pkt)
+                    continue
+                
+                if smallest_counter <= state.last_packet_num:
+                    heapq.heappop(state.packet_buffer)
+                    continue
+
+                if len(state.packet_buffer) > BUFFER_LIMIT:
+                    heapq.heappop(state.packet_buffer)
+                    await process_single_packet(device_id, state, smallest_counter, pkt)
+                    continue
+                
+                break 
 
     except Exception as e:
         print(f"[MQTT] Error: {e}")
@@ -353,12 +387,51 @@ async def process_single_packet(device_id, state, packet_counter, pkt):
         
         await broadcast_to_device(device_id, "live_data", normalized_pkt)
         ui_buffer["count"] = 0
+    
+    # ==========================================================
+    # [BARU] LIVE METRICS ANALYSIS (Setiap ~1 Detik / 100 paket)
+    # ==========================================================
+    if state.total_packets % 100 == 0:
+        # Ambil buffer Lead II (kualitas terbaik untuk PQRST)
+        # Pastikan buffer cukup (misal > 300 sampel)
+        buffer_data = list(state.live_raw_buffer['lead_II'])
+        
+        if len(buffer_data) > 300:
+            loop = asyncio.get_running_loop()
+            # Jalankan di thread terpisah agar tidak memblokir MQTT/WebSocket
+            metrics = await loop.run_in_executor(
+                process_executor, 
+                calculate_live_metrics_task, 
+                buffer_data, 
+                SPS
+            )
+            
+            if metrics:
+                await broadcast_to_device(device_id, "live_metrics_update", {
+                    "device_id": device_id,
+                    "data": metrics
+                })
 
     # --- 2. PERFORMANCE METRICS CALCULATION ---
-    # Hitung latency realtime
+    # Hitung latency dengan kompensasi clock skew (Offset Compensation)
     server_time_us = int(time.time() * 1_000_000)
-    latency_ms = (server_time_us - timestamp_us) / 1000.0
-    if latency_ms < 0: latency_ms = abs(latency_ms) # Fix clock skew
+    timestamp_us = pkt['timestamp_us']
+    
+    # 1. Hitung selisih mentah (Server Time - Device Time)a tetap valid
+    raw_diff = (server_time_us - timestamp_us) / 1000.0 
+    
+    # 2. Cari selisih TERKECIL yang pernah terjadi (Baseline Network Latency)
+    # Kita asumsikan paket tercepat = latency jaringan murni (misal 20ms)
+    if raw_diff < state.min_latency_offset:
+    # Ini bisa ribuan detik jika jam tidak sinkron, tapi jitter-ny
+        state.min_latency_offset = raw_diff
+        
+    # 3. Hitung Latency Relatif
+    # Latency = (Selisih Sekarang - Selisih Terkecil) + 20ms (Estimasi Base Network)
+    latency_ms = (raw_diff - state.min_latency_offset) + 20 
+    
+    # Safety check agar tidak negatif
+    if latency_ms < 0: latency_ms = 0
     
     state.latencies.append(latency_ms)
 
@@ -751,11 +824,7 @@ async def websocket_endpoint(websocket: WebSocket):
     broadcast_connections.add(websocket)
     
     try:
-        # Send initial device list
-        await websocket.send_json({
-            "type": "device_list_update",
-            "devices": list(device_states.keys())
-        })
+        await broadcast_device_list()
         
         while True:
             data = await websocket.receive_json()
@@ -765,21 +834,21 @@ async def websocket_endpoint(websocket: WebSocket):
         # Handle Disconnect with Purge Logic
         broadcast_connections.discard(websocket)
         
-        # Check which device they were watching
         if websocket in ws_device_map:
-            old_device = ws_device_map[websocket]
+            old_device = ws_device_map.pop(websocket)
             
-            # Remove from device listeners
-            if websocket in websocket_connections[old_device]:
-                websocket_connections[old_device].remove(websocket)
+            # [NEW] Lepas Lock jika user yang disconnect adalah pemilik lock
+            if old_device in device_states:
+                if device_states[old_device].locked_by == websocket:
+                    device_states[old_device].locked_by = None
             
-            # If no one is left watching that device, PURGE temporary data
-            if not websocket_connections[old_device]:
-                # Run purge in a separate thread to avoid blocking the async loop
-                await purge_temporary_data(old_device)
+            if old_device in websocket_connections:
+                websocket_connections[old_device].discard(websocket)
+                if not websocket_connections[old_device]:
+                    await purge_temporary_data(old_device)
             
-            # Cleanup map
-            del ws_device_map[websocket]
+            # Beritahu user lain bahwa device sekarang sudah bebas (Free)
+            await broadcast_device_list()
             
     except Exception as e:
         print(f"[WS] Error: {e}")
@@ -816,50 +885,73 @@ def _execute_save_patient(data: dict):
 async def handle_websocket_message(websocket: WebSocket, data: dict):
     """Handle incoming WebSocket messages"""
     msg_type = data.get("type")
-    
+
     if msg_type == "subscribe_to_device":
         new_device_id = data.get("device_id")
         
-        # 1. ALWAYS Unsubscribe from the old device first
+        # 1. PELEPASAN LOCK LAMA (Tetap sama)
         if websocket in ws_device_map:
             old_device = ws_device_map[websocket]
-            
-            # Remove from the listener list
+            if old_device in device_states:
+                st = device_states[old_device]
+                if st.locked_by == websocket:
+                    st.locked_by = None
             if websocket in websocket_connections[old_device]:
                 websocket_connections[old_device].remove(websocket)
-            
-            # CHECK: If no one is listening anymore, PURGE the temporary data
             if not websocket_connections[old_device]:
-                print(f"[AUTO] No viewers left for {old_device}. Purging temporary data.")
                 await purge_temporary_data(old_device)
-            
-            # Clear the map entry
             del ws_device_map[websocket]
         
-        # 2. Subscribe to New Device (only if not empty)
-        if new_device_id:
-            # Update global map
+        # 2. PROSES LOCK DEVICE BARU
+        if new_device_id and new_device_id in device_states:
+            state = device_states[new_device_id]
+            
+            if state.locked_by is not None and state.locked_by != websocket:
+                await websocket.send_json({"type": "error", "message": f"Device {new_device_id} sedang digunakan!"})
+                await broadcast_device_list() 
+                return
+
+            state.locked_by = websocket
             ws_device_map[websocket] = new_device_id
             websocket_connections[new_device_id].add(websocket)
             
-            if new_device_id in device_states:
-                state = device_states[new_device_id]
-                # Send current state
-                await websocket.send_json({
-                    "type": "state_update",
-                    "device_id": new_device_id,
-                    "is_recording": state.is_recording,
-                    "status_message": state.status_message,
-                    "recording_id": state.recording_id,
-                    "subject_id": state.subject_id
-                })
-                # Send connection status
-                await websocket.send_json({
-                    "type": "device_status_update",
-                    "device_id": new_device_id,
-                    "is_connected": state.is_connected,
-                    "time_since_last_seen": time.time() - state.last_seen if not state.is_connected else 0
-                })
+            # --- BAGIAN BARU: Ambil Data Pasien jika sedang Recording ---
+            patient_info = {}
+            if state.is_recording and state.subject_id:
+                db = SessionLocal()
+                try:
+                    p = db.query(Patient).filter(Patient.nik == state.subject_id).first()
+                    if p:
+                        patient_info = {
+                            "patient_name": p.name,
+                            "patient_age": p.umur,
+                            "patient_gender": p.jenis_kelamin,
+                            "patient_riwayat": p.riwayat_penyakit,
+                            "patient_pob": p.tempat_lahir,
+                            "patient_dob": p.tanggal_lahir.isoformat() if p.tanggal_lahir else None
+                        }
+                finally:
+                    db.close()
+
+            # Kirim state LENGKAP dengan data pasien
+            await websocket.send_json({
+                "type": "state_update",
+                "device_id": new_device_id,
+                "is_recording": state.is_recording,
+                "status_message": state.status_message,
+                "recording_id": state.recording_id,
+                "subject_id": state.subject_id,
+                **patient_info # Masukkan data pasien ke dalam JSON jika ada
+            })
+            
+            await websocket.send_json({
+                "type": "device_status_update",
+                "device_id": new_device_id,
+                "is_connected": state.is_connected,
+                "time_since_last_seen": 0
+            })
+        
+        await broadcast_device_list()
     
     elif msg_type == "start_recording":
         device_id = data.get("device_id")
@@ -928,26 +1020,21 @@ async def broadcast_to_device(device_id: str, event_type: str, data: dict):
     if to_remove:
         websocket_connections[device_id] -= to_remove
 
-# async def broadcast_to_device(device_id: str, event_type: str, data: dict):
-#     """Broadcast message to all clients subscribed to a device"""
-#     global websocket_connections
-    
-#     message = {"type": event_type, **data}
-#     disconnected = set()
-    
-#     for ws in websocket_connections[device_id]:
-#         try:
-#             await ws.send_json(message)
-#         except:
-#             disconnected.add(ws)
-    
-#     websocket_connections[device_id] -= disconnected
-
 async def broadcast_device_list():
     """Broadcast updated device list to all clients"""
     global broadcast_connections
+
+    # [MODIFIKASI] Kirim list object berisi ID dan status lock
+    devices_data = []
+    for dev_id, state in device_states.items():
+        devices_data.append({
+            "id": dev_id,
+            "is_locked": state.locked_by is not None
+        })
     
-    message = {"type": "device_list_update", "devices": list(device_states.keys())}
+    message = {"type": "device_list_update", "devices": devices_data}
+    
+    # message = {"type": "device_list_update", "devices": list(device_states.keys())}
     disconnected = set()
     
     for ws in broadcast_connections:
@@ -1200,6 +1287,47 @@ def correct_peaks(rpeaks, waves_dwt, y_filt):
 # ==================================================================
 # Analysis Pipeline (Async with Complete Logic)
 # ==================================================================
+def calculate_live_metrics_task(ecg_buffer, fs=100):
+    """
+    Analisis cepat untuk UI Real-time (Hanya BPM).
+    Menggunakan Lead II buffer (list of floats).
+    """
+    try:
+        # 1. Cek Ketersediaan Data
+        if len(ecg_buffer) < 200:
+            return None
+
+        data = np.array(ecg_buffer)
+        
+        # 2. Cek apakah sinyal flat/noise
+        if np.std(data) < 0.05: 
+            return None
+
+        # 3. Suppress Warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            
+            # Bersihkan sinyal (Simple Cleaning)
+            clean_signal = nk.ecg_clean(data, sampling_rate=fs, method="neurokit")
+            
+            # Cari R-Peaks
+            signals, info = nk.ecg_peaks(clean_signal, sampling_rate=fs)
+            r_peaks = info["ECG_R_Peaks"]
+            
+            bpm = 0
+            # Hitung BPM jika peaks cukup
+            if len(r_peaks) > 1:
+                rr_intervals = np.diff(r_peaks) / fs * 1000 # dalam ms
+                bpm = 60000 / np.mean(rr_intervals)
+            
+            # [REVISI] Hanya kembalikan BPM, PQRST dihapus
+            return {
+                "bpm": int(round(bpm))
+            }
+
+    except Exception:
+        return None
+    
 async def run_analysis_pipeline(recording_id: str, subject_id: str, device_id: str):
     """
     Run analysis in background - complete pipeline with identical logic
@@ -1606,7 +1734,7 @@ def generate_ecg_plot_image(recording_id: str):
         line_width = 1.2
         
         # --- Plot Lead I ---
-        ax1.plot(time_axis, lead_i, color='#3b82f6', linewidth=line_width, antialiased=True)
+        ax1.plot(time_axis, lead_i, color='#3b82f6', linewidth=1.5, antialiased=True, solid_capstyle='round')
         ax1.set_title('Lead I (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
         ax1.set_ylabel('mV', fontsize=9)
         ax1.grid(True, which='major', linestyle='-', linewidth=0.5, color='#e2e8f0') # Grid solid tipis
@@ -1616,7 +1744,7 @@ def generate_ecg_plot_image(recording_id: str):
         ax1.spines['right'].set_visible(False)
 
         # --- Plot Lead II ---
-        ax2.plot(time_axis, lead_ii, color='#10b981', linewidth=line_width, antialiased=True)
+        ax2.plot(time_axis, lead_ii, color='#10b981', linewidth=1.5, antialiased=True, solid_capstyle='round')
         ax2.set_title('Lead II (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
         ax2.set_ylabel('mV', fontsize=9)
         ax2.grid(True, which='major', linestyle='-', linewidth=0.5, color='#e2e8f0')
@@ -1625,7 +1753,7 @@ def generate_ecg_plot_image(recording_id: str):
         ax2.spines['right'].set_visible(False)
 
         # --- Plot Lead V1 ---
-        ax3.plot(time_axis, v1, color='#f59e0b', linewidth=line_width, antialiased=True)
+        ax3.plot(time_axis, v1, color='#f59e0b', linewidth=1.5, antialiased=True, solid_capstyle='round')
         ax3.set_title('Lead V1 (mV)', loc='left', fontsize=11, fontweight='bold', pad=8)
         ax3.set_ylabel('mV', fontsize=9)
         ax3.set_xlabel('Time (seconds)', fontsize=10, fontweight='bold')
@@ -1708,7 +1836,7 @@ async def get_history(
         # Limit dinamis: Jika ada filter (Search/Date), naikkan limit agar user bisa melihat lebih banyak hasil
         # Jika tidak ada filter sama sekali, batasi 50 agar ringan.
         is_filtering = search or start_date or end_date
-        limit_val = 200 if is_filtering else 50
+        limit_val = 200
         
         results = query.order_by(
             desc(ECGClassification3Lead.timestamp)
@@ -1724,35 +1852,6 @@ async def get_history(
         } for rec, name in results]
     finally:
         db.close()
-
-# @app.get("/api/history")
-# async def get_history(device_id: str = None, subject_id: str = None):
-#     """
-#     Mengambil riwayat klasifikasi, difilter berdasarkan device_id dan/atau subject_id.
-#     """
-#     db = SessionLocal()
-#     try:
-#         query = db.query(ECGClassification3Lead)
-        
-#         if device_id:
-#             query = query.filter(ECGClassification3Lead.device_id == device_id)
-            
-#         if subject_id:
-#             query = query.filter(ECGClassification3Lead.subject_id.ilike(f"%{subject_id}%"))
-        
-#         records = query.order_by(
-#             desc(ECGClassification3Lead.timestamp)
-#         ).limit(50).all()
-        
-#         return [{
-#             'timestamp': rec.timestamp.isoformat(),
-#             'device_id': rec.device_id,
-#             'subject_id': rec.subject_id,
-#             'recording_id': rec.recording_id,
-#             'classification': rec.classification
-#         } for rec in records]
-#     finally:
-#         db.close()
 
 @app.get("/api/download/raw/{recording_id}", response_class=StreamingResponse)
 async def download_raw_data(recording_id: str):

@@ -62,6 +62,42 @@
             animation: fadeIn 0.3s ease-out forwards;
         }
 
+        /* [FIX 2] Date Picker Z-Index Fix */
+        .flatpickr-calendar {
+            z-index: 9999 !important;
+            /* Agar muncul di atas Modal */
+        }
+
+        /* Feedback visual untuk baris baru */
+        @keyframes highlightFade {
+            0% {
+                background-color: #f0f9ff;
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .animate-new-row {
+            animation: highlightFade 2s ease-out;
+        }
+
+        /* Memastikan tinggi baris konsisten agar tidak scroll */
+        #history-table-full-body tr td,
+        #history-table-body-download tr td {
+            padding-top: 0.5rem !important;
+            /* py-2 */
+            padding-bottom: 0.5rem !important;
+            /* py-2 */
+            line-height: 1rem;
+        }
+
+        #history-table-full-body tr,
+        #history-table-body-download tr {
+            transition: opacity 0.2s ease-in-out;
+        }
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -77,6 +113,17 @@
         .glass-blur {
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
+        }
+
+        /* [FIX 1] ECG Grid Style */
+        #chart-container {
+            background-color: #ffffff;
+            background-image:
+                linear-gradient(to right, #f8fafc 1px, transparent 1px),
+                linear-gradient(to bottom, #f8fafc 1px, transparent 1px),
+                linear-gradient(to right, #f1f5f9 2px, transparent 2px),
+                linear-gradient(to bottom, #f1f5f9 2px, transparent 2px);
+            background-size: 20px 20px, 20px 20px, 100px 100px, 100px 100px;
         }
 
         .dropdown-content {
@@ -105,6 +152,46 @@
                 opacity: 1;
                 transform: scale(1);
             }
+        }
+
+        /* [ENHANCEMENT] Modern Skeleton Shimmer Effect */
+        .skeleton-row {
+            background: #f1f5f9;
+            background-image: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0) 0,
+                    rgba(255, 255, 255, 0.6) 50%,
+                    rgba(255, 255, 255, 0) 100%);
+            background-size: 200% 100%;
+            animation: modern-shimmer 1.5s infinite ease-in-out;
+            border-radius: 8px;
+            /* Lebih membulat agar clean */
+            height: 14px;
+        }
+
+        @keyframes modern-shimmer {
+            0% {
+                background-position: -150% 0;
+            }
+
+            100% {
+                background-position: 150% 0;
+            }
+        }
+
+        /* [ENHANCEMENT] Button Click Feedback */
+        .btn-pagination {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-pagination:active {
+            transform: scale(0.92);
+            /* Efek sedikit mengecil saat ditekan */
+            background-color: #f1f5f9;
+        }
+
+        .btn-pagination:disabled {
+            opacity: 0.3;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -194,8 +281,37 @@
                 </button>
 
                 <div
-                    class="dropdown-content bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden max-h-60 overflow-y-auto">
-                    <div id="device-list-container" class="divide-y divide-slate-50">
+                    class="dropdown-content bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden w-full max-h-[400px]">
+
+                    <div class="flex flex-col h-full max-h-[400px]">
+
+                        <div class="p-2 border-b border-slate-100 bg-white sticky top-0 z-20 shrink-0">
+                            <div class="relative">
+                                <input type="text" id="device-search" oninput="filterDeviceList()"
+                                    placeholder="Search device ID..."
+                                    class="w-full pl-8 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder:text-slate-400">
+                                <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div id="device-list-container"
+                            class="overflow-y-auto flex-1 divide-y divide-slate-50 min-h-[50px]">
+                        </div>
+
+                        <div class="p-2 border-t border-slate-100 bg-slate-50 sticky bottom-0 z-20 shrink-0">
+                            <button onclick="selectDevice('')"
+                                class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold uppercase tracking-wide text-rose-600 hover:text-white bg-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 rounded-lg transition-all shadow-sm">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Disconnect / No Device
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -359,74 +475,133 @@
                 </div>
 
                 <div class="lg:col-span-8 space-y-6">
-                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 p-1">
-                        <div class="p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-                            <h3 class="font-semibold text-slate-800 flex items-center gap-2">
-                                <div class="p-1.5 bg-rose-50 text-rose-500 rounded-lg"><svg class="w-4 h-4" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
-                                        </path>
-                                    </svg></div>
-                                Live Waveform (mV)
-                            </h3>
-                            <div class="flex bg-slate-50 p-1 rounded-lg border border-slate-100 shadow-sm">
+                    <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden">
+                        <div
+                            class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50">
+
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="relative flex h-3 w-3">
+                                        <span
+                                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                                    </div>
+                                    <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wide">Live Monitor
+                                    </h3>
+                                </div>
+
+                                <div
+                                    class="flex items-center gap-2 px-3 py-1 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                    <svg class="w-4 h-4 text-rose-500 animate-pulse" fill="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                                    </svg>
+                                    <div class="flex items-baseline gap-1">
+                                        <span id="live-bpm"
+                                            class="text-xl font-bold text-slate-900 font-mono leading-none">--</span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase">BPM</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                                 <label
-                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
-                                        type="checkbox" checked onchange="toggleLead(0, this)"
-                                        class="accent-brand-500 w-3.5 h-3.5"><span
-                                        class="w-2 h-2 rounded-full bg-brand-500"></span> Lead I</label>
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-slate-50 transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none border-r border-slate-100 last:border-0">
+                                    <input type="checkbox" checked onchange="toggleLead(0, this)"
+                                        class="accent-blue-600 w-3.5 h-3.5">
+                                    <span class="w-2 h-2 rounded-full bg-blue-600"></span> Lead I
+                                </label>
                                 <label
-                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
-                                        type="checkbox" checked onchange="toggleLead(1, this)"
-                                        class="accent-success-500 w-3.5 h-3.5"><span
-                                        class="w-2 h-2 rounded-full bg-success-500"></span> Lead II</label>
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-slate-50 transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none border-r border-slate-100 last:border-0">
+                                    <input type="checkbox" checked onchange="toggleLead(1, this)"
+                                        class="accent-emerald-600 w-3.5 h-3.5">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span> Lead II
+                                </label>
                                 <label
-                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-white hover:shadow-sm transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none"><input
-                                        type="checkbox" checked onchange="toggleLead(2, this)"
-                                        class="accent-amber-500 w-3.5 h-3.5"><span
-                                        class="w-2 h-2 rounded-full bg-amber-500"></span> V1</label>
+                                    class="cursor-pointer px-3 py-1.5 rounded-md hover:bg-slate-50 transition-all text-xs font-bold text-slate-600 flex items-center gap-2 select-none">
+                                    <input type="checkbox" checked onchange="toggleLead(2, this)"
+                                        class="accent-amber-500 w-3.5 h-3.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> V1
+                                </label>
                             </div>
                         </div>
+
                         <div
-                            class="relative h-[380px] w-full bg-white rounded-xl border border-slate-50 mx-auto overflow-hidden">
-                            <canvas id="chart"></canvas>
+                            class="relative h-[450px] w-full bg-white rounded-xl overflow-hidden border border-slate-100">
+                            <div class="absolute inset-0 pointer-events-none" style="background-size: 40px 40px; 
+                                        background-image: linear-gradient(to right, #f1f5f9 1px, transparent 1px), 
+                                                          linear-gradient(to bottom, #f1f5f9 1px, transparent 1px);">
+                            </div>
+                            <div class="absolute inset-0 pointer-events-none" style="background-size: 200px 200px; 
+                                        background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px), 
+                                                          linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);">
+                            </div>
+
+                            <canvas id="chart" class="relative z-10"></canvas>
                         </div>
                     </div>
+
                     <div class="bg-white rounded-2xl shadow-soft border border-slate-100 overflow-hidden flex flex-col">
                         <div
-                            class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                            class="px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 shrink-0">
                             <h3 class="font-semibold text-slate-700 text-sm">Real-time Classification Log</h3>
-
                             <div class="flex items-center gap-3 w-full sm:w-auto">
                                 <div class="relative w-full sm:w-64">
                                     <input type="text" id="search-live" oninput="renderLiveTable()"
                                         class="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-all placeholder:text-slate-400"
-                                        placeholder="Search Name, NIK, or Device...">
+                                        placeholder="Search...">
                                     <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1.5" fill="none"
                                         stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                     </svg>
                                 </div>
-
                                 <button onclick="fetchLiveData()"
-                                    class="text-xs text-brand-600 hover:text-brand-700 font-bold hover:underline flex items-center gap-1">Refresh</button>
+                                    class="text-xs text-brand-600 hover:underline font-bold">Refresh</button>
                             </div>
                         </div>
-                        <div class="overflow-x-auto max-h-[300px]">
+
+                        <div class="overflow-x-auto flex-1 bg-white relative min-h-[220px]">
                             <table id="history-table-full" class="w-full text-sm text-left">
                                 <thead class="text-xs text-slate-400 uppercase bg-slate-50 sticky top-0 z-10">
                                     <tr>
-                                        <th class="px-6 py-3 font-bold tracking-wider">Time</th>
-                                        <th class="px-6 py-3 font-bold tracking-wider">Device</th>
-                                        <th class="px-6 py-3 font-bold tracking-wider">NIK</th>
-                                        <th class="px-6 py-3 font-bold tracking-wider">Nama</th>
-                                        <th class="px-6 py-3 font-bold tracking-wider">Result</th>
+                                        <th class="px-6 py-3 font-semibold bg-slate-50">Time</th>
+                                        <th class="px-6 py-3 font-semibold bg-slate-50">Device</th>
+                                        <th class="px-6 py-3 font-semibold bg-slate-50">NIK</th>
+                                        <th class="px-6 py-3 font-semibold bg-slate-50">Nama</th>
+                                        <th class="px-6 py-3 font-semibold bg-slate-50">Result</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 text-slate-600"></tbody>
+                                <tbody id="history-table-full-body" class="divide-y divide-slate-100 text-slate-600">
+                                </tbody>
                             </table>
+                        </div>
+
+                        <div
+                            class="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                            <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                Page <input type="number" id="live-page-input"
+                                    class="w-10 px-1 py-0.5 border border-slate-300 rounded text-center text-xs focus:ring-1 focus:ring-brand-500 outline-none"
+                                    min="1" oninput="jumpToLivePage(this.value)">
+                                of <span id="live-total-pages">1</span>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="changeLivePage(-1)" id="btn-prev-live"
+                                    class="btn-pagination px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:border-brand-300 transition-all shadow-sm flex items-center gap-2 disabled:opacity-30 font-semibold text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg> Prev
+                                </button>
+                                <button onclick="changeLivePage(1)" id="btn-next-live"
+                                    class="btn-pagination px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:border-brand-300 transition-all shadow-sm flex items-center gap-2 disabled:opacity-30 font-semibold text-sm">
+                                    Next <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -486,15 +661,26 @@
                             </div>
 
                             <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                                <div class="relative group w-full sm:w-64">
+                                    <input type="text" id="archive-date-range"
+                                        class="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-600 shadow-sm placeholder:text-slate-400 transition-all hover:border-brand-300 bg-white font-medium"
+                                        placeholder="Filter Date Range...">
 
-                                <div class="flex gap-2">
-                                    <input type="date" id="filter-start-date" onchange="performArchiveSearch()"
-                                        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-600 shadow-sm"
-                                        title="Start Date">
-                                    <span class="text-slate-300 self-center">-</span>
-                                    <input type="date" id="filter-end-date" onchange="performArchiveSearch()"
-                                        class="px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-slate-600 shadow-sm"
-                                        title="End Date">
+                                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none transition-colors group-hover:text-brand-500"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+
+                                    <button id="btn-clear-date"
+                                        class="absolute right-2 top-2 text-slate-300 hover:text-rose-500 hidden transition-colors"
+                                        title="Clear Date">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
                                 </div>
 
                                 <div class="relative w-full sm:w-64">
@@ -523,6 +709,32 @@
                                 <tbody id="history-table-body-download"
                                     class="divide-y divide-slate-100 text-slate-600"></tbody>
                             </table>
+                            <div
+                                class="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+                                <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                                    Page
+                                    <input type="number" id="archive-page-input"
+                                        class="w-12 px-2 py-1 border border-slate-300 rounded text-center focus:ring-2 focus:ring-brand-500 outline-none"
+                                        min="1" oninput="jumpToArchivePage(this.value)">
+                                    of <span id="archive-total-pages" class="font-bold">1</span>
+                                </div>
+                                <div class="flex gap-3">
+                                    <button onclick="changeArchivePage(-1)" id="btn-prev-archive"
+                                        class="btn-pagination px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:border-brand-300 transition-all shadow-sm flex items-center gap-2 disabled:opacity-30 font-semibold text-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round" />
+                                        </svg> Prev
+                                    </button>
+                                    <button onclick="changeArchivePage(1)" id="btn-next-archive"
+                                        class="btn-pagination px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 hover:border-brand-300 transition-all shadow-sm flex items-center gap-2 disabled:opacity-30 font-semibold text-sm">
+                                        Next <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -788,6 +1000,11 @@
         let isRecording = false;
         let currentRecordingId = null;
         let cachedDeviceList = [];
+        let livePage = 1;
+        let archivePage = 1;
+        let lastNewestLiveId = null; // Track baris terbaru
+        const rowsPerPage = 5; // Tampilkan 5 baris saja agar rapi
+        const rowsPerPageArchive = 10;
         window.currentPatientData = {};
         window.allHistoryData = [];
         window.liveDataCache = [];    // Data murni terbaru (50 items) untuk Table Atas
@@ -875,10 +1092,10 @@
 
         // --- HELPER FUNCTIONS ---
         window.copyToClipboard = function (text) {
-            navigator.clipboard.writeText(text).then(() => alert('Session ID copied!'));
+            navigator.clipboard.writeText(text).then(() => showToast('Session ID copied!'));
         }
 
-        // --- TAB SWITCHING ---
+        // --- TAB SWITCHING (UPDATED) ---
         window.openTab = function (evt, name) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.tab-button').forEach(b => {
@@ -888,11 +1105,57 @@
             document.getElementById(name).classList.remove('hidden');
             evt.currentTarget.classList.remove('text-slate-500');
             evt.currentTarget.classList.add('active', 'bg-white', 'text-brand-600', 'shadow-sm');
+
+            // [FIX 1] Trigger load data saat tab Data Export dibuka
+            if (name === 'download-view') {
+                // Reset filter tanggal/search visual jika perlu, atau langsung load default
+                performArchiveSearch();
+            }
+            // [FIX 3 - Part A] Refresh live table saat kembali ke tab live
+            else if (name === 'ecg-view') {
+                renderLiveTable();
+            }
         };
 
         // --- DROPDOWN LOGIC ---
         window.toggleDeviceDropdown = function () {
             deviceDropdownContainer.classList.toggle('dropdown-open');
+            // Auto focus ke search bar saat dibuka
+            if (deviceDropdownContainer.classList.contains('dropdown-open')) {
+                setTimeout(() => {
+                    document.getElementById('device-search').focus();
+                }, 100);
+            }
+        }
+
+        window.filterDeviceList = function () {
+            const query = document.getElementById('device-search').value.toLowerCase();
+            const items = document.querySelectorAll('.device-item');
+            let hasResult = false;
+
+            items.forEach(item => {
+                const devId = item.getAttribute('data-id').toLowerCase();
+                if (devId.includes(query)) {
+                    item.style.display = 'flex'; // Kembalikan ke flex
+                    hasResult = true;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Tampilkan pesan jika tidak ada hasil
+            let emptyMsg = document.getElementById('device-empty-msg');
+            if (!hasResult && query !== '') {
+                if (!emptyMsg) {
+                    emptyMsg = document.createElement('div');
+                    emptyMsg.id = 'device-empty-msg';
+                    emptyMsg.className = "px-4 py-8 text-xs text-slate-400 italic text-center";
+                    emptyMsg.textContent = "No device found matching '" + query + "'";
+                    deviceListContainer.appendChild(emptyMsg);
+                }
+            } else if (emptyMsg) {
+                emptyMsg.remove();
+            }
         }
 
         document.addEventListener('click', (e) => {
@@ -1000,7 +1263,7 @@
             const r = inpRiwayat.value;
 
             if (!s || !n || !a || !g || !p || !d) {
-                alert("Please fill all patient fields completely.");
+                showToast("Please fill all patient fields completely.");
                 return;
             }
 
@@ -1033,8 +1296,8 @@
 
         startBtn.onclick = () => {
             const subjectId = hiddenSubjectId.value;
-            if (!currentDevice) return alert('Please select a device first.');
-            if (!subjectId) return alert('Patient data missing.');
+            if (!currentDevice) return showToast('Please select a device first.');
+            if (!subjectId) return showToast('Patient data missing.');
 
             // --- FIX 1: BERSIHKAN TABLE & SET UI SEGERA ---
             // Kosongkan tabel history
@@ -1072,7 +1335,7 @@
 
         btnResetData.onclick = function () {
             if (isRecording) {
-                alert("Harap hentikan (Stop) recording terlebih dahulu.");
+                showToast("Harap hentikan (Stop) recording terlebih dahulu.");
                 return;
             }
             if (!confirm("Reset form data pasien?")) return;
@@ -1104,27 +1367,34 @@
             connectionStatusText.textContent = '-';
             connectionStatusText.className = 'text-sm font-medium text-slate-400';
 
-            // 2. Reset Grafik & Data Visual
-            chartDataLeadI.fill(null); chartDataLeadII.fill(null); chartDataV1.fill(null);
-            ecgChart.update('none');
+            // 2. Reset Grafik
+            // Mengisi ulang array dengan null agar grafik bersih seketika
+            chartDataLeadI.fill(null);
+            chartDataLeadII.fill(null);
+            chartDataV1.fill(null);
+            ecgChart.update('none'); // Update tanpa animasi agar instan
+
+            // 3. Reset Angka Raw ADC (Existing)
             document.querySelectorAll('.metric-value').forEach(el => el.textContent = '-');
 
-            // 3. Reset Status Recording
+            // [PERBAIKAN] Definisikan bpmEl terlebih dahulu sebelum dicek
+            const bpmEl = document.getElementById('live-bpm');
+            if (bpmEl) {
+                bpmEl.textContent = '--';
+                bpmEl.className = 'text-xl font-bold text-slate-900 font-mono leading-none'; // Reset warna ke default
+            }
+
+            // 4. Reset Status Recording
             statusEl.textContent = "Idle";
             ridEl.textContent = "-";
             progressContainer.style.display = 'none';
             progressBar.style.width = '0%';
             progressLabel.textContent = '';
 
-            // --- BAGIAN PERBAIKAN (LOGIKA DATA PASIEN) ---
-            // Cek apakah sudah ada data pasien yang tersimpan (dari hidden input atau global var)
+            // 5. Logika Data Pasien (Tetap sama)
             if (hiddenSubjectId.value && window.currentPatientData && window.currentPatientData.name) {
-                // Jika data pasien ADA:
-                // Jangan reset form! Cukup pastikan tampilan kembali ke mode "Siap Rekam"
                 showPatientReadyState();
             } else {
-                // Jika data pasien TIDAK ADA:
-                // Baru reset total ke tampilan awal (Create New Session)
                 showInitialState();
             }
         }
@@ -1134,6 +1404,11 @@
             if (!message) return; // Guard clause
 
             switch (message.type) {
+                // [NEW] Tangkap pesan penolakan akses dari server
+                case 'error':
+                    showToast(message.message);
+                    resetDeviceView(); // Kembalikan ke tampilan awal karena akses ditolak
+                    break;
                 case 'device_list_update': updateDeviceList(message.devices); break;
                 case 'global_performance_update': updateGlobalPerformance(message.data); break;
                 case 'live_data': if (message.device_id === currentDevice) updateLiveData(message); break;
@@ -1144,7 +1419,7 @@
                 case 'history_updated': fetchLiveData(); break;
                 case 'recording_cancelled':
                     if (message.device_id === currentDevice) {
-                        alert(`Recording Stopped: ${message.reason}`);
+                        showToast(`Recording Stopped: ${message.reason}`);
                         isRecording = false;
                         showPatientReadyState(); // Balik ke ready state, jangan initial state agar data pasien tidak hilang
                         statusEl.textContent = "Idle";
@@ -1152,29 +1427,83 @@
                         fetchLiveData();
                     }
                     break;
+                case 'live_metrics_update':
+                    if (message.device_id === currentDevice) updateLiveMetricsUI(message.data);
+                    break;
+            }
+        }
+
+        // [BARU] Fungsi Update UI Metrics
+        function updateLiveMetricsUI(data) {
+            if (!data) return;
+
+            // Hanya update BPM
+            const bpmEl = document.getElementById('live-bpm');
+            if (bpmEl) {
+                if (data.bpm > 0) {
+                    bpmEl.textContent = data.bpm;
+                    // Efek visual warning jika BPM tidak normal (opsional)
+                    if (data.bpm < 60 || data.bpm > 100) {
+                        bpmEl.classList.remove('text-slate-900');
+                        bpmEl.classList.add('text-rose-600');
+                    } else {
+                        bpmEl.classList.remove('text-rose-600');
+                        bpmEl.classList.add('text-slate-900');
+                    }
+                } else {
+                    bpmEl.textContent = '--';
+                }
             }
         }
 
         function updateDeviceState(data) {
+            // Jika status Idle
             if (data.status_message === "Idle" || (!data.is_recording && isRecording)) {
                 isRecording = false;
                 currentRecordingId = null;
-
                 if (hiddenSubjectId.value) showPatientReadyState(); else showInitialState();
                 statusEl.textContent = "Idle";
-
-                // PERBAIKAN 2: Panggil fetchHistory() saat STOP agar tabel kembali menampilkan semua history
-                // fetchHistory();
+                progressContainer.style.display = 'none';
                 fetchLiveData();
-
                 return;
             }
 
+            // Jika status Recording
             isRecording = data.is_recording;
             currentRecordingId = data.recording_id;
 
+            // --- BAGIAN BARU: Auto-fill data diri pasien jika tersedia dari server ---
+            if (data.subject_id) {
+                hiddenSubjectId.value = data.subject_id;
+                dispSubject.textContent = data.subject_id;
+            }
+
+            if (data.patient_name) {
+                // Update tampilan dashboard
+                dispName.textContent = data.patient_name;
+                dispAge.textContent = data.patient_age + " Th";
+                dispGender.textContent = data.patient_gender === 'L' ? 'Laki-laki' : 'Perempuan';
+                if (dispRiwayat) {
+                    dispRiwayat.textContent = data.patient_riwayat || 'Normal';
+                    if (data.patient_riwayat !== 'Normal') dispRiwayat.classList.add('text-rose-600');
+                }
+
+                // Update global state agar sync
+                window.currentPatientData = {
+                    name: data.patient_name,
+                    umur: data.patient_age,
+                    jenis_kelamin: data.patient_gender,
+                    riwayat_penyakit: data.patient_riwayat,
+                    tempat_lahir: data.patient_pob,
+                    tanggal_lahir: data.patient_dob
+                };
+
+                // Pastikan UI menampilkan panel data pasien
+                showPatientReadyState();
+            }
+
             if (isRecording) showRecordingState();
-            statusEl.textContent = data.status_message || 'Idle';
+            statusEl.textContent = data.status_message || 'Recording...';
             ridEl.textContent = data.recording_id || '-';
             progressContainer.style.display = isRecording ? 'block' : 'none';
         }
@@ -1204,9 +1533,9 @@
         });
 
         const chartCtx = document.getElementById('chart').getContext('2d');
-        const MAX_CHART_POINTS = 300;
+        const MAX_CHART_POINTS = 250;
+
         const chartLabels = new Array(MAX_CHART_POINTS).fill('');
-        // Gunakan TypedArray atau array biasa (array biasa lebih mudah kompatibel dengan ChartJS standard)
         const chartDataLeadI = new Array(MAX_CHART_POINTS).fill(null);
         const chartDataLeadII = new Array(MAX_CHART_POINTS).fill(null);
         const chartDataV1 = new Array(MAX_CHART_POINTS).fill(null);
@@ -1214,37 +1543,135 @@
         const ecgChart = new Chart(chartCtx, {
             type: 'line',
             data: {
+                // ... (bagian data tetap sama)
                 labels: chartLabels,
                 datasets: [
-                    { label: 'Lead I', data: chartDataLeadI, borderColor: '#3b82f6', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                    { label: 'Lead II', data: chartDataLeadII, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                    { label: 'V1', data: chartDataV1, borderColor: '#f59e0b', borderWidth: 2, pointRadius: 0, tension: 0.1 }
+                    {
+                        label: 'Lead I',
+                        data: chartDataLeadI,
+                        borderColor: '#2563eb',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        cubicInterpolationMode: 'monotone'
+                    },
+                    {
+                        label: 'Lead II',
+                        data: chartDataLeadII,
+                        borderColor: '#059669',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        cubicInterpolationMode: 'monotone'
+                    },
+                    {
+                        label: 'V1',
+                        data: chartDataV1,
+                        borderColor: '#d97706',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        cubicInterpolationMode: 'monotone'
+                    }
                 ]
             },
             options: {
                 animation: false,
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    mode: 'nearest',
-                    intersect: false
-                },
+                layout: { padding: 0 },
+                interaction: { mode: 'none', intersect: false },
                 scales: {
-                    x: { display: false },
+                    x: {
+                        display: false,
+                        min: 0,
+                        max: MAX_CHART_POINTS - 1,
+                        offset: false,
+                        grid: { display: false }
+                    },
                     y: {
-                        ticks: { color: '#94a3b8', font: { size: 10 } },
-                        grid: { color: '#f1f5f9' },
-                        border: { display: false }
+                        // // [PERBAIKAN] Kunci Sumbu Y agar Simetris dan 0 di Tengah
+                        // min: -2.5, // Batas bawah mutlak
+                        // max: 2.5,  // Batas atas mutlak (Harus sama nilai absolutnya dengan min)
+
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'mV',
+                            color: '#94a3b8',
+                            font: { size: 10, weight: 'bold' },
+                            padding: { bottom: 0 }
+                        },
+                        grid: {
+                            display: false,
+                            color: 'transparent',
+                            drawBorder: false,
+                        },
+                        border: { display: false },
+                        ticks: {
+                            display: true,
+                            color: '#64748b',
+                            font: { family: 'JetBrains Mono', size: 10 },
+                            padding: 8,
+                            stepSize: 0.5, // Opsional: Jarak antar angka lebih rapi
+                            maxTicksLimit: 6,
+                            callback: function (value) {
+                                // Tampilkan angka decimal rapi, atau hilangkan 0 jika ingin bersih
+                                return value.toFixed(1);
+                            }
+                        }
                     }
                 },
-                plugins: { legend: { display: false }, tooltip: { enabled: false } } // Disable tooltip for performance
+                plugins: { legend: { display: false } }
             }
         });
 
+        // --- AUTO SCALE FUNCTION ---
+        function adjustChartScale() {
+            let maxVal = 0;
+            
+            // 1. Cek semua dataset (Lead I, II, V1)
+            ecgChart.data.datasets.forEach((ds, i) => {
+                // Hanya hitung lead yang sedang DITAMPILKAN (Checkbox dicentang)
+                // Ini menjawab kebutuhan: "mengikuti opsi yang dipilih"
+                if (ecgChart.isDatasetVisible(i)) {
+                    
+                    // Cari nilai absolut tertinggi di buffer saat ini
+                    // Kita scan array data untuk mencari peak tertinggi/terendah
+                    for (let j = 0; j < ds.data.length; j++) {
+                        const v = ds.data[j];
+                        if (v !== null) {
+                            const abs = Math.abs(v);
+                            if (abs > maxVal) maxVal = abs;
+                        }
+                    }
+                }
+            });
+
+            // 2. Tentukan Batas Minimal (Floor)
+            // Agar jika sinyal datar (0 mV), grafik tidak zoom-in ke noise mikroskopis.
+            // Kita set minimal +/- 1.0 mV (Standar tampilan EKG)
+            if (maxVal < 1.0) maxVal = 1.0;
+
+            // 3. Tambahkan Padding Headroom (10%)
+            // Agar puncak gelombang tidak menempel persis di atap canvas
+            const limit = maxVal * 1.1;
+
+            // 4. Update Skala Chart (Hanya jika berubah signifikan untuk performa)
+            // Kita set Min dan Max sama (negatif & positif) agar 0 tetap di TENGAH
+            if (Math.abs(ecgChart.options.scales.y.max - limit) > 0.05) {
+                ecgChart.options.scales.y.min = -limit;
+                ecgChart.options.scales.y.max = limit;
+            }
+        }
+
         // --- OPTIMIZED CHART LOOP ---
-        // Update grafik hanya saat browser siap menggambar (60fps), bukan setiap kali data masuk
         function renderLoop() {
             if (needsChartUpdate) {
+                // [BARU] Hitung ulang skala sebelum update
+                adjustChartScale(); 
+                
                 ecgChart.update('none');
                 needsChartUpdate = false;
             }
@@ -1301,63 +1728,106 @@
         }
 
         function updateDeviceList(devs) {
+            devs.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
             cachedDeviceList = devs;
             deviceCountEl.textContent = devs.length;
-            deviceListContainer.innerHTML = ''; // Reset
+            deviceListContainer.innerHTML = '';
 
-            // Disconnect Item
-            const disconnectItem = document.createElement('div');
-            disconnectItem.className = "px-4 py-2 hover:bg-rose-50 cursor-pointer flex items-center gap-3 border-b border-slate-100 transition-colors text-rose-600 font-medium text-xs uppercase tracking-wide";
-            disconnectItem.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Disconnect / No Device`;
-            disconnectItem.onclick = () => selectDevice("");
-            deviceListContainer.appendChild(disconnectItem);
+            // LOGIKA BARU: Cek apakah device yang sedang kita pilih MASIH ADA di list?
+            if (currentDevice) {
+                const isStillAvailable = devs.some(d => d.id === currentDevice);
 
-            if (currentDevice && !devs.includes(currentDevice)) {
-                resetDeviceView();
-                alert(`Device has lost connection.`);
+                // Jika device tiba-tiba hilang dari list (mati/timeout)
+                if (!isStillAvailable) {
+                    showToast(`Device ${currentDevice} disconnected/offline.`, 'error');
+
+                    // Paksa Stop Recording jika sedang jalan (Cleanup Frontend)
+                    if (isRecording) {
+                        isRecording = false; // Reset flag state
+                    }
+
+                    // Reset UI ke tampilan awal ("Select Device")
+                    selectDevice('');
+                }
             }
 
             if (devs.length === 0) {
                 const emptyItem = document.createElement('div');
-                emptyItem.className = "px-4 py-3 text-sm text-slate-400 italic text-center";
-                emptyItem.textContent = "No active devices found";
+                emptyItem.className = "px-4 py-8 text-sm text-slate-400 italic text-center flex flex-col items-center gap-2";
+                emptyItem.innerHTML = `<svg class="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M12 14v-4m-9 9h18a2 2 0 002-2V7a2 2 0 00-2-2H3a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg><span>No active devices detected</span>`;
                 deviceListContainer.appendChild(emptyItem);
-                if (currentDevice) resetDeviceView();
             } else {
                 devs.forEach(d => {
+                    const devId = d.id;
+                    const isLocked = d.is_locked;
+                    const isSelectedByMe = (devId === currentDevice);
+                    const isBusy = isLocked && !isSelectedByMe;
+
                     const item = document.createElement('div');
-                    item.className = "px-4 py-3 hover:bg-slate-50 cursor-pointer flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors group";
-                    const isSelected = d === currentDevice;
+                    // Tambahkan class 'device-item' dan data-id untuk fitur search
+                    item.setAttribute('data-id', devId);
 
-                    // Gunakan Template Literal aman
-                    const dotClass = isSelected ? 'bg-brand-500 ring-2 ring-brand-200' : 'bg-slate-300';
-                    const textClass = isSelected ? 'text-brand-700 font-bold' : 'text-slate-700';
-                    const iconCheck = isSelected ? '<svg class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '';
+                    let baseClass = "device-item px-4 py-3 flex items-center justify-between border-b border-slate-50 last:border-0 transition-colors group ";
 
-                    // Hati-hati: device ID (d) dimasukkan sebagai textContent jika memungkinkan, 
-                    // tapi karena struktur HTML kompleks, kita pastikan d di-escape dulu jika mau pakai innerHTML
-                    const safeD = escapeHtml(d);
+                    if (isBusy) {
+                        baseClass += "bg-slate-50 opacity-60 cursor-not-allowed";
+                    } else {
+                        baseClass += "hover:bg-brand-50 cursor-pointer";
+                    }
+                    item.className = baseClass;
 
+                    const dotClass = isSelectedByMe ? 'bg-brand-500 ring-2 ring-brand-200' : (isBusy ? 'bg-rose-300' : 'bg-emerald-400');
+                    const textClass = isSelectedByMe ? 'text-brand-700 font-bold' : (isBusy ? 'text-slate-400' : 'text-slate-700 font-medium');
+
+                    let statusIcon = '';
+                    if (isSelectedByMe) {
+                        statusIcon = '<div class="px-2 py-0.5 bg-brand-100 text-brand-600 text-[10px] font-bold uppercase rounded border border-brand-200">Connected</div>';
+                    } else if (isBusy) {
+                        statusIcon = '<div class="flex items-center gap-1 text-[10px] text-rose-500 font-bold uppercase"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> In Use</div>';
+                    } else {
+                        statusIcon = '<div class="hidden group-hover:block px-2 py-0.5 bg-slate-100 text-slate-500 text-[10px] font-bold uppercase rounded">Connect</div>';
+                    }
+
+                    const safeD = escapeHtml(devId);
                     item.innerHTML = `
-                    <div class="flex items-center gap-3">
-                         <div class="w-2 h-2 rounded-full ${dotClass} transition-all"></div>
-                         <span class="text-sm font-medium ${textClass}">${safeD}</span>
-                    </div>
-                    ${iconCheck}
-                `;
-                    item.onclick = () => selectDevice(d);
+                            <div class="flex items-center gap-3">
+                                <div class="w-2.5 h-2.5 rounded-full ${dotClass} shadow-sm transition-all"></div>
+                                <span class="text-sm ${textClass}">${safeD}</span>
+                            </div>
+                            ${statusIcon}
+                        `;
+
+                    if (!isBusy) {
+                        item.onclick = () => {
+                            selectDevice(devId);
+                            // Reset search saat item dipilih
+                            document.getElementById('device-search').value = '';
+                        };
+                    } else {
+                        item.onclick = (e) => {
+                            e.stopPropagation();
+                            showToast("Device sedang digunakan user lain.");
+                        };
+                    }
                     deviceListContainer.appendChild(item);
                 });
+
+                // Re-apply filter jika ada text di search bar (untuk kasus auto-refresh list)
+                const currentSearch = document.getElementById('device-search').value;
+                if (currentSearch) filterDeviceList();
             }
         }
 
         function updateGlobalPerformance(data) {
             const tbody = document.getElementById('overview-table-body');
-            tbody.innerHTML = ''; // Reset
+            if (!tbody) return;
+            // [FIX] Sorting alfabetis berdasarkan Device ID
+            data.sort((a, b) => a.device_id.localeCompare(b.device_id));
 
+            tbody.innerHTML = ''; // Reset
             data.forEach(d => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors";
+                tr.className = "hover:bg-slate-50 transition-colors border-b border-slate-50";
 
                 // SECURITY: Gunakan escapeHtml untuk string dari server
                 tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-900">${escapeHtml(d.device_id)}</td>
@@ -1373,64 +1843,126 @@
         // ============================================================
         // 1. DATA STREAM A: LIVE DATA (Auto Refresh)
         // ============================================================
+        // [FIX 3 - Part B] Logic Fetch Cerdas
         function fetchLiveData() {
-            // Selalu ambil data terbaru tanpa filter search/tanggal
-            fetch('/api/history?t=' + Date.now())
+            // Tampilkan skeleton hanya saat inisialisasi awal
+            if (window.liveDataCache.length === 0) {
+                showTableSkeleton('history-table-full-body', 5);
+            }
+
+            // Bangun URL
+            let url = '/api/history?t=' + Date.now();
+
+            // JIKA RECORDING: Minta server hanya kirim data device & pasien ini
+            // Agar user fokus melihat progress recordingnya sendiri
+            if (isRecording && currentDevice && hiddenSubjectId.value) {
+                url += `&device_id=${encodeURIComponent(currentDevice)}`;
+                url += `&subject_id=${encodeURIComponent(hiddenSubjectId.value)}`;
+            }
+            // JIKA TIDAK RECORDING: Server akan mengirim 50 data global terakhir (Default behavior main.py)
+
+            fetch(url)
                 .then(r => r.json())
                 .then(data => {
                     window.liveDataCache = data;
-                    renderLiveTable(); // Update tabel atas
+                    renderLiveTable(); // Render ulang tabel
 
-                    // UX: Jika user TIDAK sedang mencari arsip (input kosong), 
-                    // update juga tabel bawah agar tetap fresh
+                    // Sync ke tab download HANYA jika user belum mengotak-atik filter di tab download
                     if (!isArchiveFilterActive()) {
                         window.archiveDataCache = data;
-                        renderArchiveTable();
+                        // Jangan renderArchiveTable() disini agar hemat resource, 
+                        // render hanya saat tab download dibuka (lihat Fix 1)
                     }
                 })
                 .catch(err => console.error("Live fetch error:", err));
         }
 
-        // Fungsi Render Khusus Live Table
-        function renderLiveTable() {
-            const t1 = document.querySelector("#history-table-full tbody");
-            const searchText = document.getElementById('search-live').value.toLowerCase();
+        // Navigasi Live Table dengan Feedback
+        window.changeLivePage = function (delta) {
+            showTableSkeleton('history-table-full-body', 5); // Feedback skeleton segera
+            setTimeout(() => {
+                livePage += delta;
+                renderLiveTable();
+            }, 200); // Delay singkat untuk transisi halus
+        }
 
+        // Jump to Page Live (Instant Load via oninput)
+        window.jumpToLivePage = function (val) {
+            if (val === "" || val < 1) return;
+            const page = parseInt(val);
+            const total = Math.ceil(Math.min(window.liveDataCache.length, 100) / rowsPerPage) || 1;
+
+            if (page >= 1 && page <= total) {
+                showTableSkeleton('history-table-full-body', 5);
+                setTimeout(() => {
+                    livePage = page;
+                    renderLiveTable();
+                }, 200);
+            }
+        }
+
+        // Navigasi Archive Table dengan Feedback
+        window.changeArchivePage = function (delta) {
+            showTableSkeleton('history-table-body-download', 5);
+            setTimeout(() => {
+                archivePage += delta;
+                renderArchiveTable();
+            }, 200);
+        }
+
+        // Jump to Page Archive (Instant Load)
+        window.jumpToArchivePage = function (val) {
+            if (val === "" || val < 1) return;
+            const page = parseInt(val);
+            const total = Math.ceil((window.archiveDataCache.length || 0) / rowsPerPageArchive) || 1;
+
+            if (page >= 1 && page <= total) {
+                showTableSkeleton('history-table-body-download', 5);
+                setTimeout(() => {
+                    archivePage = page;
+                    renderArchiveTable();
+                }, 200);
+            }
+        }
+
+        function renderLiveTable() {
+            const t1 = document.getElementById("history-table-full-body");
+            if (!t1) return;
+            const searchText = document.getElementById('search-live').value.toLowerCase();
             t1.innerHTML = '';
 
-            // 1. Ambil data dari Cache Live
-            let displayData = window.liveDataCache;
+            let displayData = (window.liveDataCache || []).slice(0, 100);
 
-            // 2. Filter Logic: LOCKING saat Recording
-            // (Hanya tampilkan data pasien yg sedang direkam)
             if (isRecording && currentDevice && hiddenSubjectId.value) {
                 displayData = displayData.filter(rec =>
-                    rec.device_id === currentDevice &&
-                    rec.subject_id === hiddenSubjectId.value
+                    rec.device_id === currentDevice && rec.subject_id === hiddenSubjectId.value
                 );
             }
 
-            // 3. Filter Logic: Client-Side Search (Optional, hanya visual)
             if (searchText) {
                 displayData = displayData.filter(rec =>
                     (rec.patient_name && rec.patient_name.toLowerCase().includes(searchText)) ||
-                    (rec.subject_id && rec.subject_id.toLowerCase().includes(searchText))
+                    (rec.subject_id && rec.subject_id.toLowerCase().includes(searchText)) ||
+                    (rec.device_id && rec.device_id.toLowerCase().includes(searchText))
                 );
             }
 
-            // 4. Status Waiting
-            if (isRecording && displayData.length === 0 && !searchText) {
-                const trWait = document.createElement('tr');
-                trWait.innerHTML = `<td colspan="5" class="px-6 py-8 text-center">
-                    <div class="flex flex-col items-center justify-center text-slate-400 gap-2">
-                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span class="text-xs font-medium animate-pulse">Analyzing first segment...</span>
-                    </div></td>`;
-                t1.appendChild(trWait);
-            }
+            const totalPages = Math.ceil(displayData.length / rowsPerPage) || 1;
+            if (livePage > totalPages) livePage = totalPages;
 
-            // 5. Render Rows
-            displayData.forEach(rec => {
+            // Update Pagination UI
+            document.getElementById('live-total-pages').textContent = totalPages;
+            document.getElementById('live-page-input').value = livePage;
+            document.getElementById('btn-prev-live').disabled = (livePage === 1);
+            document.getElementById('btn-next-live').disabled = (livePage === totalPages);
+
+            const start = (livePage - 1) * rowsPerPage;
+            const paginatedData = displayData.slice(start, start + rowsPerPage);
+
+            // [FIX 2] Tentukan ID terbaru untuk animasi
+            const newestIdInBatch = displayData.length > 0 ? displayData[0].recording_id : null;
+
+            paginatedData.forEach((rec, index) => {
                 const safeName = escapeHtml(rec.patient_name);
                 const date = new Date(rec.timestamp).toLocaleString();
                 const safeDevId = escapeHtml(rec.device_id);
@@ -1439,16 +1971,31 @@
                 const timeOnly = date.split(',')[1] || date;
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors animate-fade-in-down";
-                const statusColor = (rec.classification === 'Normal') ? 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' : 'bg-rose-50 text-rose-700 ring-rose-600/20';
+                // [FIX 2] Efek animasi hanya untuk baris paling atas (terbaru) DAN jika data tersebut benar-benar baru
+                let animationClass = "";
+                if (index === 0 && livePage === 1 && rec.recording_id !== lastNewestLiveId) {
+                    animationClass = "animate-new-row";
+                }
+                tr.className = `hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${animationClass}`;
 
-                tr.innerHTML = `<td class="px-6 py-3 text-slate-500 text-xs font-mono">${timeOnly}</td>
-                            <td class="px-6 py-3 font-medium text-slate-900">${safeDevId}</td>
-                            <td class="px-6 py-3 text-slate-600">${safeSubjId}</td>
-                            <td class="px-6 py-3 font-bold text-slate-700 truncate max-w-[150px]" title="${safeName}">${safeName}</td>
-                            <td class="px-6 py-3"><span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold ring-1 ring-inset ${statusColor}">${safeClass}</span></td>`;
+                let statusColor = 'bg-slate-100 text-slate-600 ring-slate-500/10';
+                if (rec.classification === 'Normal') statusColor = 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+                else if (rec.classification.includes('Abnormal') || rec.classification.includes('Aritmia')) statusColor = 'bg-rose-50 text-rose-700 ring-rose-600/20';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-2 text-slate-500 text-xs font-mono whitespace-nowrap">${timeOnly}</td>
+                    <td class="px-6 py-2 font-medium text-slate-900 text-xs">${safeDevId}</td>
+                    <td class="px-6 py-2 text-slate-600 text-xs font-mono">${safeSubjId}</td>
+                    <td class="px-6 py-2 font-bold text-slate-700 text-xs truncate max-w-[140px]" title="${safeName}">${safeName}</td>
+                    <td class="px-6 py-2"><span class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold ring-1 ring-inset uppercase tracking-wide ${statusColor}">${safeClass}</span></td>
+                `;
                 t1.appendChild(tr);
             });
+
+            // Update tracker ID terbaru setelah render selesai
+            if (livePage === 1 && displayData.length > 0) {
+                lastNewestLiveId = displayData[0].recording_id;
+            }
         }
 
         // ============================================================
@@ -1457,72 +2004,133 @@
 
         // Helper untuk cek apakah user sedang ngetik/filter sesuatu
         function isArchiveFilterActive() {
-            return document.getElementById('search-download').value.trim() !== '' ||
-                document.getElementById('filter-start-date').value !== '' ||
-                document.getElementById('filter-end-date').value !== '';
+            // [FIX] Cek elemen yang benar (search box & range picker baru)
+            const searchVal = document.getElementById('search-download').value.trim();
+            const dateRangeVal = document.getElementById('archive-date-range').value;
+
+            return searchVal !== '' || dateRangeVal !== '';
         }
 
         // Debounce Wrapper untuk Search
+        // Update fungsi search
         const performArchiveSearch = debounce(() => {
-            const query = document.getElementById('search-download').value.trim();
-            const startDate = document.getElementById('filter-start-date').value;
-            const endDate = document.getElementById('filter-end-date').value;
+            // Tampilkan Skeleton
+            showTableSkeleton('history-table-body-download', 5);
 
-            // Jika semua kosong, kembalikan ke mode sync dengan Live Data
+            const query = document.getElementById('search-download').value.trim();
+            const rangeValue = document.getElementById('archive-date-range').value;
+
+            let startDate = '';
+            let endDate = '';
+
+            // [FIX 2] Parsing tanggal sesuai separator baru " - "
+            if (rangeValue) {
+                if (rangeValue.includes(' - ')) {
+                    [startDate, endDate] = rangeValue.split(' - ');
+                } else {
+                    // Fallback jika user baru pilih 1 tanggal
+                    startDate = rangeValue;
+                    endDate = rangeValue;
+                }
+            }
+
+            // Jika filter kosong, load dari cache Live Data
             if (!query && !startDate && !endDate) {
-                window.archiveDataCache = window.liveDataCache;
-                renderArchiveTable();
+                setTimeout(() => {
+                    window.archiveDataCache = window.liveDataCache || [];
+                    renderArchiveTable();
+                }, 200);
                 return;
             }
 
-            // Build URL
             let url = `/api/history?t=${Date.now()}`;
             if (query) url += `&search=${encodeURIComponent(query)}`;
             if (startDate) url += `&start_date=${startDate}`;
             if (endDate) url += `&end_date=${endDate}`;
 
             fetch(url)
-                .then(r => r.json())
-                .then(data => {
-                    window.archiveDataCache = data;
-                    renderArchiveTable();
+                .then(r => {
+                    // [FIX 1] Cek status HTTP. Jika 500/404, lempar error agar masuk catch
+                    if (!r.ok) throw new Error("Server Error");
+                    return r.json();
                 })
-                .catch(err => console.error("Archive fetch error:", err));
+                .then(data => {
+                    setTimeout(() => {
+                        window.archiveDataCache = data;
+                        archivePage = 1;
+                        renderArchiveTable(); // Ini akan menghapus skeleton dan menampilkan data
+                    }, 200);
+                })
+                .catch(err => {
+                    console.error("Archive fetch error:", err);
+
+                    // [FIX 1] PENTING: Hapus skeleton jika terjadi error!
+                    // Tampilkan pesan error agar user tahu loading sudah selesai (gagal)
+                    const t2 = document.getElementById("history-table-body-download");
+                    if (t2) {
+                        t2.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-rose-500 italic flex flex-col items-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Failed to load data. Please check connection.</span>
+                        </td>
+                    </tr>`;
+                    }
+                });
         }, 500);
 
-        // Fungsi Render Khusus Archive Table
         function renderArchiveTable() {
-            const t2 = document.querySelector("#history-table-body-download");
+            const t2 = document.getElementById("history-table-body-download");
+            if (!t2) return;
             t2.innerHTML = '';
+            const data = window.archiveDataCache || [];
 
-            const data = window.archiveDataCache; // Ambil dari Cache Archive
+            const totalPages = Math.ceil(data.length / rowsPerPageArchive) || 1;
+            if (archivePage > totalPages) archivePage = totalPages;
 
-            if (data.length === 0) {
-                t2.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-slate-400 italic">No recording found in archive.</td></tr>`;
+            // Update UI Pagination
+            const totalEl = document.getElementById('archive-total-pages');
+            const inputEl = document.getElementById('archive-page-input');
+            if (totalEl) totalEl.textContent = totalPages;
+            if (inputEl) inputEl.value = archivePage;
+
+            document.getElementById('btn-prev-archive').disabled = (archivePage === 1);
+            document.getElementById('btn-next-archive').disabled = (archivePage === totalPages);
+
+            const start = (archivePage - 1) * rowsPerPageArchive;
+            const paginatedData = data.slice(start, start + rowsPerPageArchive);
+
+            if (paginatedData.length === 0) {
+                t2.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 italic">No recording found.</td></tr>`;
                 return;
             }
 
-            data.forEach(rec => {
+            paginatedData.forEach((rec, index) => {
                 const safeName = escapeHtml(rec.patient_name);
                 const date = new Date(rec.timestamp).toLocaleString();
-                const safeDevId = escapeHtml(rec.device_id);
-                const safeSubjId = escapeHtml(rec.subject_id);
                 const safeClass = escapeHtml(rec.classification);
-                const shortId = rec.recording_id.substring(0, 8) + '...';
+                const timeOnly = date.split(',')[1] || date;
 
                 const tr = document.createElement('tr');
                 const isSelected = selectedDownloadRecord && selectedDownloadRecord.recording_id === rec.recording_id;
-                tr.className = `cursor-pointer transition-colors group border-b border-slate-50 last:border-0 ${isSelected ? 'bg-brand-100 ring-1 ring-brand-200' : 'hover:bg-brand-50'}`;
 
-                tr.innerHTML = `<td class="px-6 py-4 text-slate-500 group-hover:text-brand-700">${date}</td>
-                          <td class="px-6 py-4 group-hover:text-brand-700 font-medium">${safeDevId}</td>
-                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-900">${safeSubjId}</td>
-                          <td class="px-6 py-4 font-bold text-slate-700 group-hover:text-brand-800 truncate max-w-[150px]">${safeName}</td>
-                          <td class="px-6 py-4 text-slate-600 group-hover:text-brand-700"><span class="bg-white px-2 py-1 rounded border border-slate-100 font-bold text-xs">${safeClass}</span></td>`;
+                // Compact padding py-2.5
+                tr.className = `cursor-pointer transition-colors group border-b border-slate-50 ${isSelected ? 'bg-brand-50 ring-1 ring-brand-200' : 'hover:bg-slate-50'}`;
+
+                let statusColor = 'bg-slate-100 text-slate-600 ring-slate-500/10';
+                if (rec.classification === 'Normal') statusColor = 'bg-emerald-50 text-emerald-700 ring-emerald-600/20';
+                else if (rec.classification.includes('Abnormal') || rec.classification.includes('Aritmia')) statusColor = 'bg-rose-50 text-rose-700 ring-rose-600/20';
+
+                tr.innerHTML = `
+                    <td class="px-6 py-2.5 text-slate-500 text-xs font-mono whitespace-nowrap">${timeOnly}</td>
+                    <td class="px-6 py-2.5 font-medium text-slate-900 text-xs">${escapeHtml(rec.device_id)}</td>
+                    <td class="px-6 py-2.5 text-slate-600 text-xs font-mono">${escapeHtml(rec.subject_id)}</td>
+                    <td class="px-6 py-2.5 font-bold text-slate-700 text-xs truncate max-w-[140px]" title="${safeName}">${safeName}</td>
+                    <td class="px-6 py-2.5"><span class="inline-flex items-center rounded-md px-2.5 py-1 text-[10px] font-bold ring-1 ring-inset uppercase tracking-wide ${statusColor}">${safeClass}</span></td>
+                `;
 
                 tr.onclick = () => {
                     selectRecordingForDownload(rec.recording_id, rec.subject_id, rec.classification);
-                    // Re-render untuk update highlight visual
                     renderArchiveTable();
                 };
                 t2.appendChild(tr);
@@ -1576,35 +2184,72 @@
             setInterval(fetchLiveData, 30000);
             showInitialState();
 
-            // ============================================================
-            // [BARU] INISIALISASI FLATPICKR (KALENDER USER FRIENDLY)
-            // ============================================================
-            dobPicker = flatpickr("#modal-dob", {
+            const dateRangeInput = document.getElementById("archive-date-range");
+            const btnClearDate = document.getElementById("btn-clear-date");
+
+            const rangePicker = flatpickr(dateRangeInput, {
+                mode: "range",
                 dateFormat: "Y-m-d",
                 altInput: true,
-                altFormat: "j F Y",
+                altFormat: "j M Y",
                 maxDate: "today",
-                disableMobile: "true",
-                yearSelectorType: 'dropdown', // Dropdown tahun (User Friendly)
 
-                // LOGIKA UTAMA: Dijalankan saat tanggal berubah (dipilih atau dihapus)
-                onChange: function (selectedDates, dateStr, instance) {
+                // [FIX 2] Ubah separator visual dari "to" menjadi "-"
+                locale: {
+                    rangeSeparator: " - "
+                },
+
+                onChange: function (selectedDates, dateStr) {
                     if (selectedDates.length > 0) {
-                        // Jika ada tanggal -> Hitung Umur
-                        calculateAge(selectedDates[0]);
-                        if (btnClearDob) btnClearDob.classList.remove('hidden'); // Munculkan tombol X
+                        btnClearDate.classList.remove('hidden');
+                        if (selectedDates.length === 2) {
+                            performArchiveSearch();
+                        }
                     } else {
-                        // Jika tanggal dihapus/kosong -> Reset Umur
-                        resetAgeField();
+                        btnClearDate.classList.add('hidden');
+                        performArchiveSearch();
                     }
                 }
             });
-            if (btnClearDob) {
-                btnClearDob.onclick = function () {
-                    if (dobPicker) {
-                        dobPicker.clear(); // Ini akan memicu event onChange di atas (masuk ke blok else)
+
+            // Event Listener Tombol Clear
+            btnClearDate.onclick = function () {
+                rangePicker.clear();
+                performArchiveSearch(); // Refresh data tanpa filter tanggal
+            };
+
+            // --- FIX: Inisialisasi Flatpickr untuk Input Tanggal Lahir (Modal) ---
+            const dobInput = document.getElementById('modal-dob');
+            const btnClearDobModal = document.getElementById('btn-clear-dob');
+
+            if (dobInput) {
+                dobPicker = flatpickr(dobInput, {
+                    dateFormat: "Y-m-d",      // Format nilai value (hidden)
+                    altInput: true,           // Tampilkan input alternatif yang user-friendly
+                    altFormat: "j F Y",       // Contoh: 14 Oktober 2023
+                    maxDate: "today",         // Tidak boleh tanggal masa depan
+                    disableMobile: "true",    // Paksa custom picker agar z-index jalan di mobile
+
+                    onChange: function (selectedDates, dateStr, instance) {
+                        if (selectedDates.length > 0) {
+                            // Hitung umur otomatis
+                            calculateAge(selectedDates[0]);
+                            // Tampilkan tombol clear
+                            if (btnClearDobModal) btnClearDobModal.classList.remove('hidden');
+                        } else {
+                            // Reset umur
+                            resetAgeField();
+                            if (btnClearDobModal) btnClearDobModal.classList.add('hidden');
+                        }
                     }
-                };
+                });
+            }
+
+            // Event listener manual untuk tombol X di datepicker modal
+            if (btnClearDobModal) {
+                btnClearDobModal.onclick = function () {
+                    if (dobPicker) dobPicker.clear();
+                }
             }
         });
 
@@ -1638,6 +2283,76 @@
             if (btnClearDob) btnClearDob.classList.add('hidden'); // Sembunyikan tombol X
         }
 
+        function showTableSkeleton(tbodyId, colCount = 5) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            // Membuat 5 baris loading yang teratur
+            for (let i = 0; i < 5; i++) {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-50";
+
+                let tds = '';
+                for (let j = 0; j < colCount; j++) {
+                    // Lebar yang bervariasi antar kolom agar terlihat seperti data asli
+                    let width = "w-full";
+                    if (j === 0) width = "w-16"; // Kolom waktu
+                    if (j === 1) width = "w-24"; // Kolom device
+
+                    tds += `
+                <td class="px-6 py-4">
+                    <div class="skeleton-row ${width}"></div>
+                </td>`;
+                }
+                tr.innerHTML = tds;
+                tbody.appendChild(tr);
+            }
+        }
+
+    </script>
+    <div id="toast-container"
+        class="fixed top-24 right-5 z-[60] flex flex-col gap-2 w-full max-w-xs pointer-events-none"></div>
+    <script>
+        // --- FITUR UX BARU: TOAST NOTIFICATION ---
+        window.showToast = function (message, type = 'info') {
+            const container = document.getElementById('toast-container');
+
+            // Tentukan warna berdasarkan tipe
+            let bgClass = 'bg-white border-slate-200 text-slate-700';
+            let icon = '';
+
+            if (type === 'success') {
+                bgClass = 'bg-emerald-50 border-emerald-100 text-emerald-700';
+                icon = `<svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+            } else if (type === 'error') {
+                bgClass = 'bg-rose-50 border-rose-100 text-rose-700';
+                icon = `<svg class="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+            } else {
+                icon = `<svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `${bgClass} border shadow-lg rounded-xl p-4 flex items-start gap-3 transform transition-all duration-300 translate-x-10 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `
+                <div class="shrink-0 mt-0.5">${icon}</div>
+                <div class="text-sm font-semibold">${message}</div>
+            `;
+
+            container.appendChild(toast);
+
+            // Animasi Masuk
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            });
+
+            // Hilang otomatis setelah 3 detik
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
 </body>
 
