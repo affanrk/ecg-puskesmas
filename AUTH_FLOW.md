@@ -104,43 +104,63 @@ The authentication system is built using:
 
 ---
 
-## 6. Flow Diagram (Sequence)
+## 6. Process Flow Diagram (Swimlane)
+
+### Registration Process
 
 ```mermaid
-sequenceDiagram
-    participant User
-    participant Frontend
-    participant API
-    participant DB
-
-    %% Registration
-    User->>Frontend: Fill Register Form
-    Frontend->>API: POST /api/auth/register
-    API->>DB: Check Email Exists?
-    alt Email Exists
-        DB-->>API: Yes
-        API-->>Frontend: 400 Error
-        Frontend-->>User: Show Error
-    else Email New
-        API->>API: Hash Password (Argon2)
-        API->>DB: Save User
-        DB-->>API: Success
-        API-->>Frontend: 200 OK
-        Frontend-->>User: Redirect to Login
+flowchart TD
+    subgraph Frontend [**Frontend**]
+        StartReg([Start Registration]) --> FillForm[Fill Registration Form]
+        FillForm --> ValidateForm{Validate Input}
+        ValidateForm -- Invalid --> ShowFormError[Show Error Message]
+        ShowFormError --> FillForm
+        ValidateForm -- Valid --> SendRegReq[POST /api/auth/register]
+        RecvRegRes{Receive Response} -->|Success| ShowSuccess[Show Success Toast]
+        RecvRegRes -->|Error| ShowApiError[Show API Error]
+        ShowSuccess --> RedirectLogin[Redirect to Login]
+        ShowApiError --> FillForm
     end
 
-    %% Login
-    User->>Frontend: Fill Login Form
-    Frontend->>API: POST /api/auth/login
-    API->>DB: Get User by Email
-    DB-->>API: User Data (w/ Hash)
-    API->>API: Verify Password
-    alt Invalid
-        API-->>Frontend: 401 Unauthorized
-    else Valid
-        API->>API: Generate JWT
-        API-->>Frontend: 200 OK (Token)
-        Frontend->>Frontend: Save Token (LocalStorage)
-        Frontend-->>User: Redirect to Dashboard
+    subgraph Backend [**Backend API**]
+        SendRegReq --> API_Reg[Receive Request]
+        API_Reg --> ValidateSchema{Validate Schema}
+        ValidateSchema -- Invalid --> Ret422[Return 422 Unprocessable Entity]
+        ValidateSchema -- Valid --> CheckEmail{Check Email Exists}
+        CheckEmail -- Yes --> Ret400[Return 400 Email Registered]
+        CheckEmail -- No --> HashPwd[Hash Password (Argon2)]
+        HashPwd --> SaveUser[Save User to DB]
+        SaveUser --> Ret200[Return 200 OK]
     end
+
+    Ret422 -.-> RecvRegRes
+    Ret400 -.-> RecvRegRes
+    Ret200 -.-> RecvRegRes
+```
+
+### Login Process
+
+```mermaid
+flowchart TD
+    subgraph Frontend [**Frontend**]
+        StartLogin([Start Login]) --> FillLogin[Fill Email & Password]
+        FillLogin --> SendLoginReq[POST /api/auth/login]
+        RecvLoginRes{Receive Response} -->|Success| StoreToken[Store Token in LocalStorage]
+        RecvLoginRes -->|Error| ShowLoginError[Show 'Incorrect email/password']
+        StoreToken --> RedirectDash[Redirect to Dashboard]
+        ShowLoginError --> FillLogin
+    end
+
+    subgraph Backend [**Backend API**]
+        SendLoginReq --> API_Login[Receive Credentials]
+        API_Login --> FindUser{Find User by Email}
+        FindUser -- Not Found --> Ret401[Return 401 Unauthorized]
+        FindUser -- Found --> VerifyPwd{Verify Password (Argon2)}
+        VerifyPwd -- Invalid --> Ret401
+        VerifyPwd -- Valid --> GenJWT[Generate JWT Token]
+        GenJWT --> RetToken[Return 200 OK + Token]
+    end
+
+    Ret401 -.-> RecvLoginRes
+    RetToken -.-> RecvLoginRes
 ```
