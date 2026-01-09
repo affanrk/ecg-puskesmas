@@ -128,7 +128,7 @@ flowchart TD
         ValidateSchema -- Invalid --> Ret422[Return 422 Unprocessable Entity]
         ValidateSchema -- Valid --> CheckEmail{Check Email Exists}
         CheckEmail -- Yes --> Ret400[Return 400 Email Registered]
-        CheckEmail -- No --> HashPwd[Hash Password (Argon2)]
+        CheckEmail -- No --> HashPwd[Hash Password with Argon2]
         HashPwd --> SaveUser[Save User to DB]
         SaveUser --> Ret200[Return 200 OK]
     end
