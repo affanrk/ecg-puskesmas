@@ -15,7 +15,7 @@ flowchart LR
         FillForm --> ValidateForm{"Validate Input"}
         ValidateForm -- Invalid --> ShowFormError[Show Error Message]
         ShowFormError --> FillForm
-        ValidateForm -- Valid --> SendRegReq[POST /api/auth/register]
+        ValidateForm -- Valid --> SendRegReq["POST /api/auth/register"]
         RecvRegRes{"Receive Response"} -->|Success| ShowSuccess[Show Success Toast]
         RecvRegRes -->|Error| ShowApiError[Show API Error]
         ShowSuccess --> RedirectLogin[Redirect to Login]
@@ -44,9 +44,9 @@ flowchart LR
 flowchart LR
     subgraph Frontend [Frontend]
         StartLogin([Start Login]) --> FillLogin[Fill Email & Password]
-        FillLogin --> SendLoginReq[POST /api/auth/login]
+        FillLogin --> SendLoginReq["POST /api/auth/login"]
         RecvLoginRes{"Receive Response"} -->|Success| StoreToken[Store Token in LocalStorage]
-        RecvLoginRes -->|Error| ShowLoginError[Show 'Incorrect email/password']
+        RecvLoginRes -->|Error| ShowLoginError["Show 'Incorrect email/password'"]
         StoreToken --> RedirectDash[Redirect to Dashboard]
         ShowLoginError --> FillLogin
     end
@@ -88,17 +88,17 @@ flowchart LR
         
         WSBroad -->|Throttled Update| WSServer[WebSocket Server]
         
-        SignalProc --> CheckRec{Is Recording?}
+        SignalProc --> CheckRec{"Is Recording?"}
         CheckRec -- Yes --> BatchStore[Batch Storage Buffer]
         BatchStore -->|Periodically| DBWrite[(Database)]
         
-        BatchStore --> CheckSeg{Segment Full?}
+        BatchStore --> CheckSeg{"Segment Full?"}
         CheckSeg -- Yes --> TrigML[Trigger ML Analysis]
         TrigML --> NewSeg[Start New Segment]
         
         RecCmd[Receive Start Command] --> CreatePat[Create/Update Patient]
         CreatePat --> CreateSess[Create Session]
-        CreateSess --> SetFlag[Set is_recording = True]
+        CreateSess --> SetFlag["Set is_recording = True"]
     end
 
     subgraph Frontend [User Interface]
@@ -106,7 +106,7 @@ flowchart LR
         WSConn -->|Subscribed| RecvLive[Receive Live Data]
         RecvLive --> UpdateChart[Update ECG Charts]
         
-        UserStart[Click 'Start Recording'] --> SendStart[Send START Command]
+        UserStart["Click 'Start Recording'"] --> SendStart[Send START Command]
         SendStart --> WSServer
         
         RecvProg[Receive Progress] --> UpdateProg[Update Progress Bar]
@@ -127,11 +127,11 @@ This flow illustrates how users retrieve past recordings and view analysis resul
 ```mermaid
 flowchart LR
     subgraph Frontend [User Interface]
-        NavHist[Navigate to History] --> FillFilter[Set Filters (Date, Patient)]
-        FillFilter --> ReqList[GET /api/history]
+        NavHist[Navigate to History] --> FillFilter["Set Filters (Date, Patient)"]
+        FillFilter --> ReqList["GET /api/history"]
         
         RecvList[Render List] --> ClickItem[Select Recording]
-        ClickItem --> ReqDetail[GET /api/history/{id}]
+        ClickItem --> ReqDetail["GET /api/history/{id}"]
         
         RecvDetail[Render Detail] --> ViewRes[View Classification & Metrics]
     end
@@ -163,9 +163,9 @@ flowchart LR
     subgraph Service [Analysis Service]
         Trigger([Segment Complete]) --> FetchData[Fetch Recording Data]
         FetchData --> FeatExt[Feature Extraction]
-        FeatExt -->|RR, PR, QT Intervals| MLModel[ML Model (ANN)]
+        FeatExt -->|RR, PR, QT Intervals| MLModel["ML Model (ANN)"]
         
-        MLModel -->|Classify| Result{Abnormal?}
+        MLModel -->|Classify| Result{"Abnormal?"}
         Result -->|Yes/No| SaveRes[Save Classification]
         
         FeatExt --> SaveMetrics[Save Interval Metrics]
@@ -184,9 +184,9 @@ Processes for downloading data and generating reports.
 ```mermaid
 flowchart LR
     subgraph Frontend [User Interface]
-        ClickExpRaw[Click 'Export CSV'] --> ReqRaw[GET /export/raw/{id}]
-        ClickExpChart[Click 'Export Chart'] --> ReqChart[GET /export/plot/{id}]
-        ClickExpFeat[Click 'Export Features'] --> ReqFeat[GET /export/features/{id}]
+        ClickExpRaw["Click 'Export CSV'"] --> ReqRaw["GET /export/raw/{id}"]
+        ClickExpChart["Click 'Export Chart'"] --> ReqChart["GET /export/plot/{id}"]
+        ClickExpFeat["Click 'Export Features'"] --> ReqFeat["GET /export/features/{id}"]
     end
 
     subgraph Backend [Backend API]
@@ -194,7 +194,7 @@ flowchart LR
         FetchRaw --> GenCSV[Generate CSV]
         GenCSV --> StreamRaw[Stream File]
         
-        ReqChart --> GenPlot[Generate Plot (Thread Pool)]
+        ReqChart --> GenPlot["Generate Plot (Thread Pool)"]
         GenPlot --> DrawWave[Draw Waveforms]
         DrawWave --> StreamImg[Stream PNG]
         
@@ -217,8 +217,8 @@ Continuous monitoring of system status and performance.
 ```mermaid
 flowchart LR
     subgraph Frontend [Dashboard / Admin]
-        PageLoad[Load Dashboard] --> ReqHealth[GET /monitoring/devices]
-        AdminCheck[Admin Check] --> ReqDetailed[GET /health/detailed]
+        PageLoad[Load Dashboard] --> ReqHealth["GET /monitoring/devices"]
+        AdminCheck[Admin Check] --> ReqDetailed["GET /health/detailed"]
     end
 
     subgraph Backend [Backend API]
