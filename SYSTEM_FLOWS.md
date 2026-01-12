@@ -4,11 +4,11 @@ This document maps the architectural flows using standard flowchart notation org
 
 **Notation Legend:**
 - `([Start/End])`: Terminal Point (Trigger or End of flow).
-- `[Process]`: internal function call or calculation.
+- `[Process]`: Internal function call, calculation, or logic execution.
 - `[/Input/Output/]`: Data transmission (WebSocket/MQTT) or User Input.
 - `{Decision}`: Conditional Logic (If/Else).
-- `[(Database)]`: Read/Write to PostgreSQL/Filesystem.
-- `[[Subroutine]]`: Complex process defined elsewhere (e.g., ML Inference).
+- `[(Database)]`: Read/Write to PostgreSQL.
+- `[[Subroutine]]`: Complex process defined elsewhere.
 
 ---
 
@@ -17,40 +17,41 @@ This document maps the architectural flows using standard flowchart notation org
 
 ```mermaid
 flowchart LR
-    %% SWIMLANE: HARDWARE / BROKER
-    subgraph External [External / MQTT Broker]
-        StartStream([MQTT Pub: raw/ecg/+])
+    %% SWIMLANE: HARDWARE
+    subgraph External [External / Hardware]
+        StartStream([Start: MQTT Pub])
     end
 
-    %% SWIMLANE: BACKEND SERVICE LAYER
-    subgraph Backend_MQTT [App: MQTT Service]
+    %% SWIMLANE: BACKEND SERVICE
+    subgraph Backend_Service [App: MQTT Service]
         direction TB
         RecvMsg[/Client: _handle_message/]
         Parse[[Protocol: parse_packet]]
         CheckNew{New Device?}
         
-        RecvMsg --> Parse
         RecvMsg --> CheckNew
         CheckNew -- Yes --> NotifyList[/Notify List Update/]
+        CheckNew -- No --> Parse
         
         Parse --> Process["Handler: process_samples()"]
         Process --> Jitter["Handler: _handle_jitter_buffer()"]
         Jitter --> LiveCalc["Handler: _process_single_sample()"]
     end
 
-    %% SWIMLANE: BACKEND STATE MANAGEMENT
+    %% SWIMLANE: BACKEND STATE
     subgraph Backend_State [App: Device State]
         LiveCalc --> Thrott{Throttle Limit?}
         Thrott -- Pass --> BroadWS[/State: broadcast_to_device/]
-        Thrott -- Block --> Drop([Drop Frame])
+        Thrott -- Block --> Drop([End: Drop Frame])
     end
 
     %% SWIMLANE: FRONTEND
-    subgraph Frontend [Frontend: MonitorController]
+    subgraph Frontend [Frontend: UI]
+        direction TB
         BroadWS -.->|WS: live_data| SocketRx[/Socket.js: onmessage/]
         SocketRx --> EvBus[Events.js: emit 'ecg-data']
         EvBus --> Chart["Charts.js: uPlot.setData()"]
-        Chart --> Render([Render Graph])
+        Chart --> Render([End: Render Graph])
     end
 
     StartStream --> RecvMsg
@@ -59,42 +60,46 @@ flowchart LR
 ---
 
 ## 2. Recording Session Control
-*Flow: User initiates recording -> System persists data.*
+*Flow: Split into (A) The Command to Start and (B) The Data Storage Loop.*
 
 ```mermaid
 flowchart LR
-    %% SWIMLANE: FRONTEND USER
-    subgraph Frontend [Frontend Client]
-        UserStart([User Click 'Start Rec'])
-        ValInput{Patient Data Valid?}
+    %% SWIMLANE: FRONTEND USER INTERACTION
+    subgraph Frontend [Frontend: User Action]
+        direction TB
+        UserStart([Start: Click 'Start Rec'])
+        ValInput{Valid Input?}
         
         UserStart --> ValInput
         ValInput -- No --> Toast[/Toast Error/]
-        ValInput -- Yes --> SendReq[/Socket.js: sendJson 'start_recording'/]
+        ValInput -- Yes --> SendCmd[/Socket.js: sendJson 'start_recording'/]
     end
 
-    %% SWIMLANE: BACKEND API
-    subgraph Backend_API [App: WebSocket Endpoint]
-        SendReq -.->|WS Payload| Endpoint[websocket.py: websocket_endpoint]
+    %% SWIMLANE: BACKEND CONTROL (API)
+    subgraph Backend_Control [Backend: Control Logic]
+        direction TB
+        SendCmd -.->|WS Payload| Endpoint[websocket.py: websocket_endpoint]
         Endpoint --> ParseReq[Parse Patient Data]
-    end
-
-    %% SWIMLANE: BACKEND LOGIC
-    subgraph Backend_Logic [App: Services & Repo]
         ParseReq --> CreateSess[(SessionRepo: create_session)]
         CreateSess --> SetFlag[State: is_recording = True]
         SetFlag --> BroadState[/State: notify_state_update/]
     end
 
-    %% SWIMLANE: DATA HANDLER
-    subgraph Data_Handler [App: MQTT Handler]
-        Incoming([New Sample Stream]) --> IsRec{is_recording?}
-        IsRec -- Yes --> Buffer[Handler: _store_recording_data]
-        Buffer --> AddBatch[(Add to Batch Buffer)]
+    %% SWIMLANE: BACKEND DATA (STREAMING)
+    subgraph Backend_Data [Backend: Data Handler]
+        direction TB
+        Incoming([Start: New Sample Stream]) --> CheckFlag{is_recording?}
+        
+        CheckFlag -- No --> Skip([Skip Storage])
+        CheckFlag -- Yes --> Buffer["Handler: _store_recording_data()"]
+        Buffer --> AddBatch[(Buffer: Append to Batch)]
+        AddBatch --> BackgroundDB[(Background: Flush to DB)]
     end
 
-    BroadState -.->|WS Update| Frontend
-    Toast --> EndUser([Stop])
+    %% CONNECTIONS
+    Toast --> EndUser([End])
+    BroadState -.->|Update UI| Frontend
+    SetFlag -.->|Controls| CheckFlag
 ```
 
 ---
@@ -106,7 +111,8 @@ flowchart LR
 flowchart LR
     %% SWIMLANE: BACKGROUND SERVICE
     subgraph Watchdog [App: DeviceWatchdogService]
-        Timer([Timer: 0.5s Interval])
+        direction TB
+        Timer([Start: Timer 0.5s])
         CheckLoop[Iterate All Devices]
         CalcDiff[Diff = Now - LastSeen]
         
@@ -124,7 +130,8 @@ flowchart LR
 
     %% SWIMLANE: DISCONNECTION LOGIC
     subgraph Cleanup_Logic [App: Cleanup & Notify]
-        GetRecState --> Payload[/Construct Payload: {reason, was_recording}/]
+        direction TB
+        GetRecState --> Payload[/"Construct Payload (reason, was_recording)"/]
         Payload --> Broadcast[/State: broadcast_to_device 'device_disconnected'/]
         Broadcast --> CancelRec["_cancel_device_recording()"]
         CancelRec --> WipeMem["_cleanup_device()"]
@@ -132,8 +139,9 @@ flowchart LR
 
     %% SWIMLANE: FRONTEND RESPONSE
     subgraph Frontend_UI [Frontend: MonitorController]
+        direction TB
         Broadcast -.->|WS Event| HdlDisc[handleDeviceDisconnection]
-        HdlDisc --> ResetUI[selectDevice '' -> Reset Charts/Dropdown]
+        HdlDisc --> ResetUI[selectDevice '' -> Reset Charts]
         
         ResetUI --> CheckFlag{Payload.was_recording?}
         CheckFlag -- Yes --> Alert[/Alert: 'Recording Stopped'/]
@@ -151,8 +159,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     %% SWIMLANE: BACKEND
-    subgraph MQTT_Service [App: MQTT Service]
-        MsgIn([Message Received]) --> CheckStatus{Status Changed?}
+    subgraph Backend_MQTT [App: MQTT Service]
+        MsgIn([Start: Message Received]) --> CheckStatus{Status Changed?}
         CheckStatus -- Yes --> InitDev[Init Device State]
         InitDev --> SendList[/Notify: device_list_update/]
     end
@@ -160,15 +168,16 @@ flowchart LR
     %% SWIMLANE: FRONTEND
     subgraph Frontend_Logic [Frontend: MonitorController]
         SendList -.->|WS Event| Render[renderDeviceList]
-        Render --> LoopCheck{Current Device in List?}
+        Render --> LoopCheck{Current Device Missing?}
         
-        LoopCheck -- Yes --> UpdateUI[Update List UI]
-        LoopCheck -- No --> TriggerDisc[Trigger: handleDeviceDisconnection]
+        LoopCheck -- Yes --> TriggerDisc[Trigger: handleDeviceDisconnection]
+        LoopCheck -- No --> UpdateUI[Update List UI]
         
         TriggerDisc --> ResetComp[[Run Reset Sequence]]
     end
     
     ResetComp --> EndSync([End])
+    UpdateUI --> EndSync
 ```
 
 ---
@@ -180,13 +189,15 @@ flowchart LR
 flowchart LR
     %% SWIMLANE: TRIGGER
     subgraph Handler [App: MQTT Handler]
-        SegFull([Segment Full: 1000 samples]) --> Trigger[ml_engine.trigger_analysis]
+        SampleCount([Start: 1000 samples collected]) --> SegComp["_complete_segment()"]
+        SegComp --> TrigML["ml_engine.trigger_analysis()"]
     end
 
     %% SWIMLANE: ML WORKER
     subgraph Worker_Thread [App: ML Engine Service]
-        Trigger --> Exec[ThreadPoolExecutor]
-        Exec --> FetchDB[(RawDataRepo: Fetch)]
+        direction TB
+        TrigML --> ThreadPool[Run in ThreadPool]
+        ThreadPool --> FetchDB[(RawDataRepo: Fetch Data)]
         FetchDB --> FeatExt[[feature_extractor.extract]]
         FeatExt --> ModelPred[[Keras Model: predict]]
         ModelPred --> SaveRes[(SessionRepo: Update Result)]
@@ -201,5 +212,120 @@ flowchart LR
     subgraph UI [Frontend: MonitorController]
         SendRes -.->|WS Event| UpdateCard[updateAICard]
         UpdateCard --> ShowBar[/Animate Confidence Bar/]
+        ShowBar --> EndML([End])
+    end
+```
+
+---
+
+## 6. Authentication (Login Flow)
+*Flow: User authentication and JWT Token generation.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: AuthController]
+        UserLogin([Start: Click Login]) --> Payload[/Input: Email/Pass/]
+        Payload --> ReqPost[/API: POST /api/v1/auth/login/]
+    end
+
+    %% SWIMLANE: BACKEND API
+    subgraph API [App: Auth Endpoint]
+        ReqPost -.->|HTTP Request| Route["auth.py: login_access_token"]
+        Route --> AuthSvc["security.py: authenticate_user"]
+        AuthSvc --> DBQuery[(UserRepo: get_by_email)]
+        
+        DBQuery --> Verify{Password Valid?}
+        Verify -- No --> Err401([End: Return 401])
+        Verify -- Yes --> CreateTok["security.py: create_access_token"]
+    end
+
+    %% SWIMLANE: RESPONSE
+    subgraph Response [Frontend: Handling]
+        CreateTok --> Ret200[/Return: access_token/]
+        Ret200 -.->|JSON| SaveTok["Helpers.js: setToken"]
+        SaveTok --> Redir([End: Redirect Dashboard])
+        Err401 -.-> ShowErr[/Show Error Alert/]
+    end
+```
+
+---
+
+## 7. History Archive Retrieval
+*Flow: Fetching paginated history data.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: HistoryController]
+        LoadPage([Start: Page Load]) --> FetchReq["Api.js: fetch('/history')"]
+    end
+
+    %% SWIMLANE: BACKEND
+    subgraph API [App: History Endpoint]
+        FetchReq -.->|HTTP GET| Endpoint["history.py: read_sessions"]
+        Endpoint --> RepoCall["SessionRepo: get_multi"]
+        RepoCall --> DBQuery[(Database: SELECT Sessions)]
+        DBQuery --> Serialize["Pydantic: SessionOut Schema"]
+    end
+
+    %% SWIMLANE: RENDER
+    subgraph Render [Frontend: UI Update]
+        Serialize -.->|JSON List| RecvData["HistoryController: renderTable"]
+        RecvData --> DOMUpd([End: Update HTML Table])
+    end
+```
+
+---
+
+## 8. Export Data (CSV/Plot)
+*Flow: Generating and downloading reports.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: HistoryController]
+        ClickExp([Start: Click Export CSV]) --> ReqExp["window.open('/export/csv')"]
+    end
+
+    %% SWIMLANE: BACKEND
+    subgraph API [App: Export Endpoint]
+        ReqExp -.->|HTTP GET| Route["export.py: export_recording_csv"]
+        Route --> FetchRaw[(RawDataRepo: get_raw_data)]
+        FetchRaw --> Pandas["pd.DataFrame()"]
+        Pandas --> Stream["StreamingResponse(BytesIO)"]
+    end
+
+    %% SWIMLANE: BROWSER
+    subgraph Browser [Client Browser]
+        Stream -.->|File Stream| Download([End: Save .csv File])
+    end
+```
+
+---
+
+## 9. Performance Monitoring Loop
+*Flow: Calculating and broadcasting network metrics.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: INGESTION
+    subgraph Handler [App: MQTT Handler]
+        PktIn([New Packet]) --> CalcLat["Calc: Now - PacketTime"]
+        CalcLat --> UpdateStat["State: latencies.append()"]
+    end
+
+    %% SWIMLANE: LOGGING
+    subgraph Periodic [App: Handler Loop]
+        CheckInt{Every 10 Pkts?}
+        UpdateStat --> CheckInt
+        CheckInt -- Yes --> CalcAgg["Calc: Avg Latency / Jitter"]
+        CalcAgg --> BroadPerf[/Broadcast: performance_update/]
+    end
+
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: MonitorController]
+        BroadPerf -.->|WS Event| RecvPerf["Socket.js: onmessage"]
+        RecvPerf --> UpdateBadge([End: Update Color/Text])
     end
 ```
