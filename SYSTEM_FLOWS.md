@@ -123,9 +123,11 @@ flowchart LR
         
         CalcDiff --> IsOffline
         IsOffline -- Yes --> MarkOff[Set Status: Offline]
+        IsOffline -- No --> Cont1[Continue]
         
         CalcDiff --> IsDisc
         IsDisc -- Yes --> GetRecState[Get 'was_recording' State]
+        IsDisc -- No --> Cont2[Continue]
     end
 
     %% SWIMLANE: DISCONNECTION LOGIC
@@ -163,6 +165,7 @@ flowchart LR
         MsgIn([Start: Message Received]) --> CheckStatus{Status Changed?}
         CheckStatus -- Yes --> InitDev[Init Device State]
         InitDev --> SendList[/Notify: device_list_update/]
+        CheckStatus -- No --> Ignore([Ignore Update])
     end
 
     %% SWIMLANE: FRONTEND
@@ -341,27 +344,35 @@ flowchart LR
 
 ---
 
-## 10. Export Data (CSV/Plot)
+## 10. Export Data (CSV & Plot)
 *Flow: Generating and downloading reports.*
 
 ```mermaid
 flowchart LR
     %% SWIMLANE: FRONTEND
     subgraph UI [Frontend: HistoryController]
-        ClickExp([Start: Click Export CSV]) --> ReqExp["window.open('/export/csv')"]
+        ClickExp([Start: Click Export]) --> Type{"Export Type?"}
+        Type -- CSV --> ReqCSV["window.open('/export/raw')"]
+        Type -- Chart --> ReqPlot["window.open('/export/plot')"]
     end
 
-    %% SWIMLANE: BACKEND
+    %% SWIMLANE: BACKEND API
     subgraph API [App: Export Endpoint]
-        ReqExp -.->|HTTP GET| Route["export.py: export_recording_csv"]
-        Route --> FetchRaw[(RawDataRepo: get_raw_data)]
+        ReqCSV -.->|HTTP GET| EndCSV["export.py: export_raw_ecg_data"]
+        EndCSV --> FetchRaw[(RawDataRepo: get_raw_data)]
         FetchRaw --> Pandas["pd.DataFrame()"]
-        Pandas --> Stream["StreamingResponse(BytesIO)"]
+        Pandas --> StreamCSV["StreamingResponse(BytesIO)"]
+
+        ReqPlot -.->|HTTP GET| EndPlot["export.py: export_ecg_chart"]
+        EndPlot --> ExecPool[Run in ThreadPool]
+        ExecPool --> MatPlot[[plot_generator.generate_ecg_plot]]
+        MatPlot --> StreamPNG["StreamingResponse(BytesIO)"]
     end
 
     %% SWIMLANE: BROWSER
     subgraph Browser [Client Browser]
-        Stream -.->|File Stream| Download([End: Save .csv File])
+        StreamCSV -.->|File Stream| DownloadCSV([End: Save .csv])
+        StreamPNG -.->|File Stream| DownloadPNG([End: Save .png])
     end
 ```
 
@@ -383,6 +394,8 @@ flowchart LR
         CheckInt{Every 10 Pkts?}
         UpdateStat --> CheckInt
         CheckInt -- Yes --> CalcAgg["Calc: Avg Latency / Jitter"]
+        CheckInt -- No --> Continue([Continue])
+        
         CalcAgg --> BroadPerf[/Broadcast: performance_update/]
     end
 
@@ -390,31 +403,5 @@ flowchart LR
     subgraph UI [Frontend: MonitorController]
         BroadPerf -.->|WS Event| RecvPerf["Socket.js: onmessage"]
         RecvPerf --> UpdateBadge([End: Update Color/Text])
-    end
-```
-
----
-
-## 12. Global Health Monitoring (Admin)
-*Flow: Dashboard-wide system status broadcast.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: BACKGROUND
-    subgraph Watchdog [App: DeviceWatchdogService]
-        Timer([Start: Timer 2.0s]) --> Agg["_broadcast_global_performance()"]
-        Agg --> LoopDev[Loop: Aggregate All Device Stats]
-        LoopDev --> Payload[/Construct: Global Summary JSON/]
-    end
-
-    %% SWIMLANE: BROADCAST
-    subgraph WebSocket [App: Device State]
-        Payload --> SendAll["broadcast_to_all()"]
-    end
-
-    %% SWIMLANE: FRONTEND
-    subgraph Admin_UI [Frontend: Dashboard]
-        SendAll -.->|WS: global_performance_update| Recv["Socket.js: onmessage"]
-        Recv --> RenderCards([End: Update Admin Cards])
     end
 ```
