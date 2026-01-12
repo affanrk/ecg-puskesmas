@@ -30,7 +30,7 @@ flowchart LR
         SendReq --> RecvReq[Receive Request]
         RecvReq --> CheckDup{"Email Exists?"}
         CheckDup -- Yes --> Ret400([Return 400])
-        CheckDup -- No --> Hash[[Hash Password (Argon2)]]
+        CheckDup -- No --> Hash[["Hash Password (Argon2)"]]
         Hash --> SaveDB[(Insert User)]
         SaveDB --> Ret200([Return 200 OK])
     end
@@ -168,7 +168,7 @@ flowchart LR
 
     RetList -.-> RenderList[/Render Table/]
     RenderList --> ClickItem[/User Selects Row/]
-    ClickItem --> ReqDet[/GET /api/history/{id}/]
+    ClickItem --> ReqDet["GET /api/history/{id}/"]
     ReqDet --> RetDet([Return Details])
     RetDet -.-> ViewDet[/Show Analysis & Charts/]
     ViewDet --> EndHist([End])
