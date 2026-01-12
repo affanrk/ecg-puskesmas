@@ -1,177 +1,200 @@
 # System Flow Diagrams
 
-This document outlines the core functional flows of the ECG Live Platform, including authentication, real-time monitoring, recording, data processing, and historical review.
+This document outlines the core functional flows of the ECG Live Platform.
+
+**Legend:**
+- `([Start/End])`: Terminal points.
+- `[Process]`: Action or processing step.
+- `[/Input/Output/]`: Data I/O or User Interaction.
+- `{Decision}`: Conditional logic.
+- `[(Database)]`: Data storage.
+- `[[Sub-process]]`: Reference to another defined process.
+
+---
 
 ## 1. Authentication Flow
 
-This section details the Registration and Login processes.
-
-### Registration Process
+### 1.1 Registration Process
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [Frontend]
-        StartReg([Start Registration]) --> FillForm[Fill Registration Form]
-        FillForm --> ValidateForm{"Validate Input"}
-        ValidateForm -- Invalid --> ShowFormError[Show Error Message]
-        ShowFormError --> FillForm
-        ValidateForm -- Valid --> SendRegReq["POST /api/auth/register"]
-        RecvRegRes{"Receive Response"} -->|Success| ShowSuccess[Show Success Toast]
-        RecvRegRes -->|Error| ShowApiError[Show API Error]
-        ShowSuccess --> RedirectLogin[Redirect to Login]
-        ShowApiError --> FillForm
+    subgraph Frontend [Frontend Client]
+        StartReg([Start]) --> InputForm[/User Fills Form/]
+        InputForm --> Validate{"Validate Input?"}
+        Validate -- No --> ShowErr[/Show Error/]
+        ShowErr --> InputForm
+        Validate -- Yes --> SendReq[/POST /register/]
     end
 
     subgraph Backend [Backend API]
-        SendRegReq --> API_Reg[Receive Request]
-        API_Reg --> ValidateSchema{"Validate Schema"}
-        ValidateSchema -- Invalid --> Ret422[Return 422 Unprocessable Entity]
-        ValidateSchema -- Valid --> CheckEmail{"Check Email Exists"}
-        CheckEmail -- Yes --> Ret400[Return 400 Email Registered]
-        CheckEmail -- No --> HashPwd[Hash Password with Argon2]
-        HashPwd --> SaveUser[Save User to DB]
-        SaveUser --> Ret200[Return 200 OK]
+        SendReq --> RecvReq[Receive Request]
+        RecvReq --> CheckDup{"Email Exists?"}
+        CheckDup -- Yes --> Ret400([Return 400])
+        CheckDup -- No --> Hash[[Hash Password (Argon2)]]
+        Hash --> SaveDB[(Insert User)]
+        SaveDB --> Ret200([Return 200 OK])
     end
 
-    Ret422 -.-> RecvRegRes
-    Ret400 -.-> RecvRegRes
-    Ret200 -.-> RecvRegRes
+    Ret400 -.-> ShowErr
+    Ret200 -.-> ShowSuccess[/Show Success Toast/]
+    ShowSuccess --> EndReg([End])
 ```
 
-### Login Process
+### 1.2 Login Process
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [Frontend]
-        StartLogin([Start Login]) --> FillLogin[Fill Email & Password]
-        FillLogin --> SendLoginReq["POST /api/auth/login"]
-        RecvLoginRes{"Receive Response"} -->|Success| StoreToken[Store Token in LocalStorage]
-        RecvLoginRes -->|Error| ShowLoginError["Show 'Incorrect email/password'"]
-        StoreToken --> RedirectDash[Redirect to Dashboard]
-        ShowLoginError --> FillLogin
+    subgraph Frontend [Frontend Client]
+        StartLogin([Start]) --> InputCreds[/Input Email & Pass/]
+        InputCreds --> SendLogin[/POST /login/]
     end
 
     subgraph Backend [Backend API]
-        SendLoginReq --> API_Login[Receive Credentials]
-        API_Login --> FindUser{"Find User by Email"}
-        FindUser -- Not Found --> Ret401[Return 401 Unauthorized]
-        FindUser -- Found --> VerifyPwd{"Verify Password (Argon2)"}
-        VerifyPwd -- Invalid --> Ret401
-        VerifyPwd -- Valid --> GenJWT[Generate JWT Token]
-        GenJWT --> RetToken[Return 200 OK + Token]
+        SendLogin --> FindUser{"User Exists?"}
+        FindUser -- No --> Ret401([Return 401])
+        FindUser -- Yes --> VerifyPass{"Verify Hash?"}
+        VerifyPass -- No --> Ret401
+        VerifyPass -- Yes --> GenJWT[[Generate Token]]
+        GenJWT --> RetToken([Return Token])
     end
 
-    Ret401 -.-> RecvLoginRes
-    RetToken -.-> RecvLoginRes
+    Ret401 -.-> ShowLoginErr[/Show Error/]
+    ShowLoginErr --> InputCreds
+    RetToken -.-> SaveLocally[Store Token]
+    SaveLocally --> RedirDash[/Redirect Dashboard/]
+    RedirDash --> EndLogin([End])
 ```
 
 ---
 
-## 2. Live Monitoring & Recording Flow
+## 2. Live Monitoring System
 
-This flow describes how ECG data moves from the hardware device to the user's screen and how recording sessions are managed.
+To reduce complexity, this system is split into **Data Streaming** (automatic) and **Recording Control** (manual).
+
+### 2.1 Live Data Pipeline (Streaming)
+*Flow of ECG signal data from hardware to screen.*
 
 ```mermaid
 flowchart LR
-    subgraph Hardware [ECG Device]
-        GenData([Generate ECG Signal]) --> PkgData[Packetize Data]
-        PkgData --> SendMQTT[Publish to MQTT Topic]
+    subgraph Hardware [Device]
+        StartStream([Sensor Input]) --> Pkg[Packetize Data]
+        Pkg --> PubMQTT[/Publish MQTT/]
     end
 
-    subgraph Backend [Backend Service]
-        recvMQTT[MQTT Listener] -->|Raw Packets| JitterBuf[Jitter Buffer]
-        JitterBuf -->|Ordered Samples| SignalProc[Signal Processor]
+    subgraph Backend [Server Processing]
+        PubMQTT --> RecvMQTT[MQTT Listener]
+        RecvMQTT --> Jitter[[Jitter Buffer]]
         
-        SignalProc -->|Filtered Data| WSBroad[Broadcast to WebSocket]
-        SignalProc -->|Raw Data| BPMEng[BPM Calculator]
-        BPMEng --> WSBroad
+        Jitter --> ProcessLoop{Processing}
+        ProcessLoop -->|Raw| Filter[[DSP Filtering]]
+        ProcessLoop -->|Raw| CalcBPM[[Calc BPM]]
         
-        WSBroad -->|Throttled Update| WSServer[WebSocket Server]
+        Filter --> AggState[Update Device State]
+        CalcBPM --> AggState
         
-        SignalProc --> CheckRec{"Is Recording?"}
-        CheckRec -- Yes --> BatchStore[Batch Storage Buffer]
-        BatchStore -->|Periodically| DBWrite[(Database)]
-        
-        BatchStore --> CheckSeg{"Segment Full?"}
-        CheckSeg -- Yes --> TrigML[Trigger ML Analysis]
-        TrigML --> NewSeg[Start New Segment]
-        
-        RecCmd[Receive Start Command] --> CreatePat[Create/Update Patient]
-        CreatePat --> CreateSess[Create Session]
-        CreateSess --> SetFlag["Set is_recording = True"]
+        AggState --> CheckSocket{"Socket Open?"}
+        CheckSocket -- Yes --> BroadWS[/Broadcast WebSocket/]
+        CheckSocket -- No --> Drop[Drop Frame]
     end
 
+    subgraph Frontend [Dashboard]
+        BroadWS --> RecvWS[/Receive Data/]
+        RecvWS --> Render[[Update Charts]]
+    end
+```
+
+### 2.2 Recording Control Logic
+*User interaction to Start/Stop recording sessions.*
+
+```mermaid
+flowchart LR
     subgraph Frontend [User Interface]
-        UserOpen[Open Monitor Page] --> WSConn[Connect WebSocket]
-        WSConn -->|Subscribed| RecvLive[Receive Live Data]
-        RecvLive --> UpdateChart[Update ECG Charts]
+        StartRec([User Clicks Start]) --> InputPat[/Input Patient Data/]
+        InputPat --> SendCmd[/Send WS: START_RECORDING/]
         
-        UserStart["Click 'Start Recording'"] --> SendStart[Send START Command]
-        SendStart --> WSServer
-        
-        RecvProg[Receive Progress] --> UpdateProg[Update Progress Bar]
-        WSServer --> RecvProg
+        RecvState[/Receive State Update/] --> UpdateUI[Lock UI & Show Timer]
     end
 
-    SendMQTT --> recvMQTT
-    WSServer --> RecvLive
-    SetFlag -.-> CheckRec
+    subgraph Backend [Control Logic]
+        SendCmd --> ValidReq{"Valid Request?"}
+        ValidReq -- No --> ErrResp[/Send Error/]
+        
+        ValidReq -- Yes --> CreatePat[(Save Patient)]
+        CreatePat --> InitSess[(Create Session)]
+        InitSess --> SetFlag[Set is_recording = True]
+        SetFlag --> AckOK[/Broadcast State: RECORDING/]
+    end
+
+    AckOK -.-> RecvState
+    ErrResp -.-> UpdateUI
+```
+
+### 2.3 Recording Data Storage (Background)
+*How data is saved when `is_recording = True`.*
+
+```mermaid
+flowchart LR
+    subgraph Backend [Data Handler]
+        StreamData([Incoming Stream]) --> IsRec{"is_recording?"}
+        IsRec -- No --> Discard([Skip Storage])
+        IsRec -- Yes --> Buffer[Add to Batch Buffer]
+        
+        Buffer --> CheckSeg{"Segment Full?"}
+        CheckSeg -- No --> Wait[Wait for More]
+        CheckSeg -- Yes --> FlushDB[(Write to DB)]
+        
+        FlushDB --> TriggerML[[Trigger ML Analysis]]
+        TriggerML --> NewSeg[Start New Segment]
+        NewSeg --> Buffer
+    end
 ```
 
 ---
 
 ## 3. History & Analysis Review Flow
 
-This flow illustrates how users retrieve past recordings and view analysis results.
-
 ```mermaid
 flowchart LR
     subgraph Frontend [User Interface]
-        NavHist[Navigate to History] --> FillFilter["Set Filters (Date, Patient)"]
-        FillFilter --> ReqList["GET /api/history"]
-        
-        RecvList[Render List] --> ClickItem[Select Recording]
-        ClickItem --> ReqDetail["GET /api/history/{id}"]
-        
-        RecvDetail[Render Detail] --> ViewRes[View Classification & Metrics]
+        StartHist([Open History]) --> SetFilt[/Set Filters/]
+        SetFilt --> ReqList[/GET /api/history/]
     end
 
     subgraph Backend [Backend API]
-        ReqList --> SearchRepo[SessionRepo.search_sessions]
-        SearchRepo --> QueryDB[(Database)]
-        QueryDB -->|Results| SearchRepo
-        SearchRepo --> RetList[Return Session List]
-        
-        ReqDetail --> GetRepo[SessionRepo.get_by_id]
-        GetRepo --> QueryDBDetail[(Database)]
-        QueryDBDetail -->|Session + Patient| GetRepo
-        GetRepo --> RetDetail[Return Session Details]
+        ReqList --> QueryRepo[[Query Repository]]
+        QueryRepo --> FetchDB[(Fetch Sessions)]
+        FetchDB --> RetList([Return JSON])
     end
-    
-    RetList -.-> RecvList
-    RetDetail -.-> RecvDetail
+
+    RetList -.-> RenderList[/Render Table/]
+    RenderList --> ClickItem[/User Selects Row/]
+    ClickItem --> ReqDet[/GET /api/history/{id}/]
+    ReqDet --> RetDet([Return Details])
+    RetDet -.-> ViewDet[/Show Analysis & Charts/]
+    ViewDet --> EndHist([End])
 ```
 
 ---
 
 ## 4. Data Analysis Pipeline (ML)
 
-Triggered automatically when a recording segment completes.
+*Asynchronous process triggered by Segment Completion.*
 
 ```mermaid
 flowchart LR
-    subgraph Service [Analysis Service]
-        Trigger([Segment Complete]) --> FetchData[Fetch Recording Data]
-        FetchData --> FeatExt[Feature Extraction]
-        FeatExt -->|RR, PR, QT Intervals| MLModel["ML Model (ANN)"]
+    subgraph Analysis_Service [ML Engine]
+        StartML([Trigger Received]) --> FetchRaw[(Fetch Raw Data)]
+        FetchRaw --> FeatExt[[Feature Extraction]]
         
-        MLModel -->|Classify| Result{"Abnormal?"}
-        Result -->|Yes/No| SaveRes[Save Classification]
+        FeatExt --> CalcMet[Calc RR, PR, QT]
+        FeatExt --> RunModel[[Run ANN Model]]
         
-        FeatExt --> SaveMetrics[Save Interval Metrics]
+        RunModel --> Classify{"Abnormal?"}
+        Classify --> Result[Set Classification]
         
-        SaveRes --> UpdateDB[(Database)]
-        SaveMetrics --> UpdateDB
+        Result --> SaveRes[(Update Session Record)]
+        CalcMet --> SaveRes
+        SaveRes --> EndML([End])
     end
 ```
 
@@ -179,59 +202,49 @@ flowchart LR
 
 ## 5. Export & Reporting Flow
 
-Processes for downloading data and generating reports.
-
 ```mermaid
 flowchart LR
     subgraph Frontend [User Interface]
-        ClickExpRaw["Click 'Export CSV'"] --> ReqRaw["GET /export/raw/{id}"]
-        ClickExpChart["Click 'Export Chart'"] --> ReqChart["GET /export/plot/{id}"]
-        ClickExpFeat["Click 'Export Features'"] --> ReqFeat["GET /export/features/{id}"]
+        StartExp([User Clicks Export]) --> Type{"Export Type?"}
+        Type -- CSV --> ReqRaw[/GET /export/raw/]
+        Type -- Chart --> ReqPlot[/GET /export/plot/]
     end
 
     subgraph Backend [Backend API]
-        ReqRaw --> FetchRaw[Fetch Raw Data]
-        FetchRaw --> GenCSV[Generate CSV]
-        GenCSV --> StreamRaw[Stream File]
+        ReqRaw --> FetchDat[(Fetch Data)]
+        FetchDat --> GenCSV[[Generate CSV]]
+        GenCSV --> Stream1[/Stream File/]
         
-        ReqChart --> GenPlot["Generate Plot (Thread Pool)"]
-        GenPlot --> DrawWave[Draw Waveforms]
-        DrawWave --> StreamImg[Stream PNG]
-        
-        ReqFeat --> FetchFeat[Fetch Features]
-        FetchFeat --> GenFeatCSV[Generate CSV]
-        GenFeatCSV --> StreamFeat[Stream File]
+        ReqPlot --> ThreadPool[Submit to ThreadPool]
+        ThreadPool --> MatPlotLib[[Generate Image]]
+        MatPlotLib --> Stream2[/Stream PNG/]
     end
     
-    StreamRaw -.-> ClickExpRaw
-    StreamImg -.-> ClickExpChart
-    StreamFeat -.-> ClickExpFeat
+    Stream1 -.-> Download1[/Download CSV/]
+    Stream2 -.-> Download2[/Download PNG/]
+    Download1 --> EndExp([End])
+    Download2 --> EndExp
 ```
 
 ---
 
 ## 6. System Health & Monitoring Flow
 
-Continuous monitoring of system status and performance.
-
 ```mermaid
 flowchart LR
-    subgraph Frontend [Dashboard / Admin]
-        PageLoad[Load Dashboard] --> ReqHealth["GET /monitoring/devices"]
-        AdminCheck[Admin Check] --> ReqDetailed["GET /health/detailed"]
+    subgraph Admin [Dashboard / Monitor]
+        StartMon([Load Page]) --> ReqStat[/GET /monitoring/]
     end
 
     subgraph Backend [Backend API]
-        ReqHealth --> AggState[Aggregate Device States]
-        AggState --> CalcPerf[Calculate Real-time Perf]
-        CalcPerf --> RetDevStats[Return Device Status]
+        ReqStat --> CheckConn[[Check Devices]]
+        CheckConn --> CalcPerf[[Calc Latency/Loss]]
         
-        ReqDetailed --> CheckDB[Ping Database]
-        CheckDB --> CheckMQTT[Check MQTT Status]
-        CheckMQTT --> CheckML[Verify ML Model]
-        CheckML --> RetSysHealth[Return System Health]
+        CalcPerf --> CheckComp{"Components OK?"}
+        CheckComp --> AggRes[Aggregate Result]
+        AggRes --> RetStat([Return Status])
     end
-    
-    RetDevStats -.-> PageLoad
-    RetSysHealth -.-> AdminCheck
+
+    RetStat -.-> RenderStat[/Update Dashboard/]
+    RenderStat --> EndMon([End])
 ```
