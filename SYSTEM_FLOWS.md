@@ -1,6 +1,6 @@
 # System Flow Documentation (Technical Swimlanes)
 
-This document maps the architectural flows using standard flowchart notation organized into "Swimlanes" (Subsystems). It reflects the current codebase structure in `E:\KERJAAN\Oneject\Development\ecg-puskesmas\app`.
+This document maps the architectural flows using standard flowchart notation organized into "Swimlanes" (Subsystems). It reflects the complete codebase structure in `E:\KERJAAN\Oneject\Development\ecg-puskesmas\app`.
 
 **Notation Legend:**
 - `([Start/End])`: Terminal Point (Trigger or End of flow).
@@ -218,7 +218,7 @@ flowchart LR
 
 ---
 
-## 6. Authentication (Login Flow)
+## 6. Authentication: Login Flow
 *Flow: User authentication and JWT Token generation.*
 
 ```mermaid
@@ -251,7 +251,42 @@ flowchart LR
 
 ---
 
-## 7. History Archive Retrieval
+## 7. Authentication: Registration Flow
+*Flow: New user signup and database insertion.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: AuthController]
+        UserReg([Start: Click Register]) --> InputData[/Input: Email/Pass/Name/]
+        InputData --> ClientVal{JS Validation?}
+        ClientVal -- Fail --> ShowToast[/Toast Error/]
+        ClientVal -- Pass --> ReqReg[/API: POST /api/v1/auth/register/]
+    end
+
+    %% SWIMLANE: BACKEND API
+    subgraph API [App: Auth Endpoint]
+        ReqReg -.->|HTTP Request| Route["auth.py: register_user"]
+        Route --> CheckDup[(UserRepo: get_by_email)]
+        CheckDup --> Exists{Email Exists?}
+        
+        Exists -- Yes --> Err400([End: Return 400])
+        Exists -- No --> Hash["security.py: get_password_hash"]
+        Hash --> Insert[(UserRepo: create)]
+    end
+
+    %% SWIMLANE: RESPONSE
+    subgraph Response [Frontend: Handling]
+        Insert --> Ret200[/Return: User Schema/]
+        Ret200 -.->|JSON| SuccessToast[/Show Success/]
+        SuccessToast --> NavLogin([End: Navigate to Login])
+        Err400 -.-> ShowToast
+    end
+```
+
+---
+
+## 8. History: Archive Retrieval
 *Flow: Fetching paginated history data.*
 
 ```mermaid
@@ -278,7 +313,35 @@ flowchart LR
 
 ---
 
-## 8. Export Data (CSV/Plot)
+## 9. History: Detail View & Charts
+*Flow: Viewing deep analytics for a specific session.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [Frontend: HistoryController]
+        ClickRow([Start: Click Table Row]) --> ReqDet["Api.js: fetch('/history/{id}')"]
+    end
+
+    %% SWIMLANE: BACKEND
+    subgraph API [App: History Endpoint]
+        ReqDet -.->|HTTP GET| Endpoint["history.py: read_session"]
+        Endpoint --> FetchSess[(SessionRepo: get)]
+        FetchSess --> FetchRaw[(RawDataRepo: get_by_session)]
+        FetchRaw --> Combine[Combine Session + Analysis + Raw]
+    end
+
+    %% SWIMLANE: RENDER
+    subgraph Frontend_Modal [Frontend: PatientModal]
+        Combine -.->|JSON Detail| OpenMod["PatientModal: show()"]
+        OpenMod --> RenderChart["ChartManager: renderStatic()"]
+        RenderChart --> View([End: View Details])
+    end
+```
+
+---
+
+## 10. Export Data (CSV/Plot)
 *Flow: Generating and downloading reports.*
 
 ```mermaid
@@ -304,7 +367,7 @@ flowchart LR
 
 ---
 
-## 9. Performance Monitoring Loop
+## 11. Performance Monitoring (Per Device)
 *Flow: Calculating and broadcasting network metrics.*
 
 ```mermaid
@@ -327,5 +390,31 @@ flowchart LR
     subgraph UI [Frontend: MonitorController]
         BroadPerf -.->|WS Event| RecvPerf["Socket.js: onmessage"]
         RecvPerf --> UpdateBadge([End: Update Color/Text])
+    end
+```
+
+---
+
+## 12. Global Health Monitoring (Admin)
+*Flow: Dashboard-wide system status broadcast.*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: BACKGROUND
+    subgraph Watchdog [App: DeviceWatchdogService]
+        Timer([Start: Timer 2.0s]) --> Agg["_broadcast_global_performance()"]
+        Agg --> LoopDev[Loop: Aggregate All Device Stats]
+        LoopDev --> Payload[/Construct: Global Summary JSON/]
+    end
+
+    %% SWIMLANE: BROADCAST
+    subgraph WebSocket [App: Device State]
+        Payload --> SendAll["broadcast_to_all()"]
+    end
+
+    %% SWIMLANE: FRONTEND
+    subgraph Admin_UI [Frontend: Dashboard]
+        SendAll -.->|WS: global_performance_update| Recv["Socket.js: onmessage"]
+        Recv --> RenderCards([End: Update Admin Cards])
     end
 ```
