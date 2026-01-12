@@ -36,9 +36,9 @@ MQTT_QOS = 0
 # DEVICE MANAGEMENT
 # ============================================================================
 
-DEVICE_TIMEOUT_SECONDS = 10.0  # Time before device considered disconnected
-DEVICE_OFFLINE_THRESHOLD = 5.0  # Time before marking device offline
-WATCHDOG_CHECK_INTERVAL = 2.0  # Seconds between watchdog checks
+DEVICE_TIMEOUT_SECONDS = 2.0  # Time before device considered disconnected (Aggressive)
+DEVICE_OFFLINE_THRESHOLD = 1.0  # Time before marking device offline
+WATCHDOG_CHECK_INTERVAL = 0.5  # Check twice per second
 
 
 # ============================================================================
@@ -120,6 +120,7 @@ class WSMessageType(str, Enum):
     PROGRESS_UPDATE = "progress_update"
     DEVICE_LIST_UPDATE = "device_list_update"
     DEVICE_STATUS_UPDATE = "device_status_update"
+    DEVICE_DISCONNECTED = "device_disconnected"
     RECORDING_CANCELLED = "recording_cancelled"
     HISTORY_UPDATED = "history_updated"
     LIVE_RESULT = "live_result"  # New classification available

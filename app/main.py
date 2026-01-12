@@ -24,6 +24,7 @@ try:
 except ImportError:
     pass
 
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -121,8 +122,11 @@ async def analysis_exception_handler(request: Request, exc: AnalysisException):
 # STATIC FILES & TEMPLATES
 # ============================================================================
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Define base directory relative to this file (app/main.py)
+BASE_DIR = Path(__file__).resolve().parent
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # ============================================================================
 # ROUTES
@@ -165,7 +169,7 @@ async def chrome_devtools_json():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse("static/favicon.ico")
+    return FileResponse(str(BASE_DIR / "static/favicon.ico"))
 
 
 # ============================================================================

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     
     # Application
     FLASK_PORT: int = 5000  # Port aplikasi (Legacy naming kept)
-    MODEL_PATH: str = "models"
+    MODEL_PATH: str = "app/ml_models"
     
     # Security
     SECRET_KEY: str # Must be set in .env or environment variable

@@ -91,8 +91,22 @@ class DeviceWatchdogService:
                     f"({time_since_last_seen:.1f}s since last seen)"
                 )
                 
+                was_recording_active = state.is_recording
+
+                # Notify subscribers about disconnection BEFORE cleanup
+                # Include 'was_recording' so frontend knows to show Alert instead of Toast
+                await device_state_manager.broadcast_to_device(
+                    device_id,
+                    WSMessageType.DEVICE_DISCONNECTED.value,
+                    {
+                        "device_id": device_id,
+                        "reason": "Timeout",
+                        "was_recording": was_recording_active
+                    }
+                )
+
                 # Cancel recording if active
-                if state.is_recording:
+                if was_recording_active:
                     await self._cancel_device_recording(
                         device_id,
                         "Device timeout"

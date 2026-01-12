@@ -105,6 +105,12 @@ function handleMessage(msg) {
             globalEventBus.emit(EVENTS.CHART.METRICS, msg.data);
             break;
 
+        case "device_disconnected":
+            globalEventBus.emit(EVENTS.DEVICE.DISCONNECTED, {
+                device_id: msg.device_id
+            });
+            break;
+
         case "error":
             const errorEvent = new CustomEvent('app:error', { detail: msg.message });
             window.dispatchEvent(errorEvent);

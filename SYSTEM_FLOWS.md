@@ -1,250 +1,136 @@
-# System Flow Diagrams
+# System Flow Documentation
 
-This document outlines the core functional flows of the ECG Live Platform.
-
-**Legend:**
-- `([Start/End])`: Terminal points.
-- `[Process]`: Action or processing step.
-- `[/Input/Output/]`: Data I/O or User Interaction.
-- `{Decision}`: Conditional logic.
-- `[(Database)]`: Data storage.
-- `[[Sub-process]]`: Reference to another defined process.
+This document details the low-level code execution paths for the ECG Live Platform. It maps logical flows to specific files, classes, and functions within the codebase.
 
 ---
 
-## 1. Authentication Flow
+## 1. Device Connection & Data Ingestion
+*Flow of raw data from MQTT Broker to Memory/UI.*
 
-### 1.1 Registration Process
+### 1.1 Ingestion Pipeline
+**Trigger:** MQTT Broker publishes message to topic `raw/ecg/+`.
 
-```mermaid
-flowchart LR
-    subgraph Frontend [Frontend Client]
-        StartReg([Start]) --> InputForm[/User Fills Form/]
-        InputForm --> Validate{"Validate Input?"}
-        Validate -- No --> ShowErr[/Show Error/]
-        ShowErr --> InputForm
-        Validate -- Yes --> SendReq[/POST /register/]
-    end
+1.  **Listener:** `app/services/mqtt/client.py`
+    *   Function: `MQTTClientService._handle_message(message)`
+    *   Action: Decodes JSON, detects new devices (calls `notify_device_list_update`), and invokes the protocol parser.
+2.  **Parsing:** `app/services/mqtt/protocol.py`
+    *   Function: `MQTTProtocol.parse_packet(payload)`
+    *   Action: Validates packet structure, extracts samples (Lead I, II, V1), and sequence counters.
+3.  **Processing:** `app/services/mqtt/handler.py`
+    *   Function: `MQTTDataHandler.process_samples(device_id, samples, ...)`
+    *   Action:
+        *   Updates `DeviceState.last_seen`.
+        *   Manages Jitter Buffer: `_handle_jitter_buffer()`.
+        *   Routes to specific sub-handlers: `_process_single_sample()`.
 
-    subgraph Backend [Backend API]
-        SendReq --> RecvReq[Receive Request]
-        RecvReq --> CheckDup{"Email Exists?"}
-        CheckDup -- Yes --> Ret400([Return 400])
-        CheckDup -- No --> Hash[["Hash Password (Argon2)"]]
-        Hash --> SaveDB[(Insert User)]
-        SaveDB --> Ret200([Return 200 OK])
-    end
+### 1.2 Live WebSocket Broadcast
+**Trigger:** Inside `MQTTDataHandler.process_samples`.
 
-    Ret400 -.-> ShowErr
-    Ret200 -.-> ShowSuccess[/Show Success Toast/]
-    ShowSuccess --> EndReg([End])
-```
-
-### 1.2 Login Process
-
-```mermaid
-flowchart LR
-    subgraph Frontend [Frontend Client]
-        StartLogin([Start]) --> InputCreds[/Input Email & Pass/]
-        InputCreds --> SendLogin[/POST /login/]
-    end
-
-    subgraph Backend [Backend API]
-        SendLogin --> FindUser{"User Exists?"}
-        FindUser -- No --> Ret401([Return 401])
-        FindUser -- Yes --> VerifyPass{"Verify Hash?"}
-        VerifyPass -- No --> Ret401
-        VerifyPass -- Yes --> GenJWT[[Generate Token]]
-        GenJWT --> RetToken([Return Token])
-    end
-
-    Ret401 -.-> ShowLoginErr[/Show Error/]
-    ShowLoginErr --> InputCreds
-    RetToken -.-> SaveLocally[Store Token]
-    SaveLocally --> RedirDash[/Redirect Dashboard/]
-    RedirDash --> EndLogin([End])
-```
+1.  **Throttling:** `app/services/mqtt/handler.py`
+    *   Function: `_broadcast_live_data(state, sample)`
+    *   Logic: Checks `UI_BROADCAST_THROTTLE` (send 1 every 5 samples).
+2.  **Broadcasting:** `app/services/device/state.py`
+    *   Function: `DeviceStateManager.broadcast_to_device(device_id, type, data)`
+    *   Action: Iterates through active `WebSocket` connections in `self.websocket_connections[device_id]` and sends JSON.
+3.  **Frontend Reception:** `app/static/js/services/Socket.js`
+    *   Event: `socket.onmessage` -> `type: "live_data"`
+    *   Action: Emits `EVENTS.CHART.ECG_DATA`.
+4.  **Rendering:** `app/static/js/modules/monitor/MonitorController.js`
+    *   Component: `ChartManager.updateECG(data)`.
 
 ---
 
-## 2. Live Monitoring System
+## 2. Recording Management
+*Flow for starting, stopping, and saving recording sessions.*
 
-To reduce complexity, this system is split into **Data Streaming** (automatic) and **Recording Control** (manual).
+### 2.1 Start Recording (User Action)
+**Trigger:** User clicks "Start Rec" in UI.
 
-### 2.1 Live Data Pipeline (Streaming)
-*Flow of ECG signal data from hardware to screen.*
+1.  **Frontend Request:** `app/static/js/services/Socket.js`
+    *   Function: `sendJson({ type: "start_recording", ... })`
+2.  **API Handling:** `app/api/v1/endpoints/websocket.py`
+    *   Function: `websocket_endpoint` (Main Loop)
+    *   Match: `data["type"] == WSMessageType.START_RECORDING`
+    *   Action: Parses patient data, creates `Session` in DB via `SessionRepository`, sets `state.is_recording = True`.
+3.  **Confirmation:** Server broadcasts `WSMessageType.STATE_UPDATE` to all clients.
 
-```mermaid
-flowchart LR
-    subgraph Hardware [Device]
-        StartStream([Sensor Input]) --> Pkg[Packetize Data]
-        Pkg --> PubMQTT[/Publish MQTT/]
-    end
+### 2.2 Data Persistence (Background)
+**Trigger:** `MQTTDataHandler._process_single_sample` while `state.is_recording == True`.
 
-    subgraph Backend [Server Processing]
-        PubMQTT --> RecvMQTT[MQTT Listener]
-        RecvMQTT --> Jitter[[Jitter Buffer]]
-        
-        Jitter --> ProcessLoop{Processing}
-        ProcessLoop -->|Raw| Filter[[DSP Filtering]]
-        ProcessLoop -->|Raw| CalcBPM[[Calc BPM]]
-        
-        Filter --> AggState[Update Device State]
-        CalcBPM --> AggState
-        
-        AggState --> CheckSocket{"Socket Open?"}
-        CheckSocket -- Yes --> BroadWS[/Broadcast WebSocket/]
-        CheckSocket -- No --> Drop[Drop Frame]
-    end
-
-    subgraph Frontend [Dashboard]
-        BroadWS --> RecvWS[/Receive Data/]
-        RecvWS --> Render[[Update Charts]]
-    end
-```
-
-### 2.2 Recording Control Logic
-*User interaction to Start/Stop recording sessions.*
-
-```mermaid
-flowchart LR
-    subgraph Frontend [User Interface]
-        StartRec([User Clicks Start]) --> InputPat[/Input Patient Data/]
-        InputPat --> SendCmd[/Send WS: START_RECORDING/]
-        
-        RecvState[/Receive State Update/] --> UpdateUI[Lock UI & Show Timer]
-    end
-
-    subgraph Backend [Control Logic]
-        SendCmd --> ValidReq{"Valid Request?"}
-        ValidReq -- No --> ErrResp[/Send Error/]
-        
-        ValidReq -- Yes --> CreatePat[(Save Patient)]
-        CreatePat --> InitSess[(Create Session)]
-        InitSess --> SetFlag[Set is_recording = True]
-        SetFlag --> AckOK[/Broadcast State: RECORDING/]
-    end
-
-    AckOK -.-> RecvState
-    ErrResp -.-> UpdateUI
-```
-
-### 2.3 Recording Data Storage (Background)
-*How data is saved when `is_recording = True`.*
-
-```mermaid
-flowchart LR
-    subgraph Backend [Data Handler]
-        StreamData([Incoming Stream]) --> IsRec{"is_recording?"}
-        IsRec -- No --> Discard([Skip Storage])
-        IsRec -- Yes --> Buffer[Add to Batch Buffer]
-        
-        Buffer --> CheckSeg{"Segment Full?"}
-        CheckSeg -- No --> Wait[Wait for More]
-        CheckSeg -- Yes --> FlushDB[(Write to DB)]
-        
-        FlushDB --> TriggerML[[Trigger ML Analysis]]
-        TriggerML --> NewSeg[Start New Segment]
-        NewSeg --> Buffer
-    end
-```
+1.  **Buffering:** `app/services/mqtt/handler.py`
+    *   Function: `_store_recording_data()`
+    *   Action: Appends sample to `device_state_manager.buffer_recording_batch`.
+2.  **Batch Write:** `app/main.py` (Lifespan Event Loop) or `app/services/device/state.py`
+    *   *Note: Database writes happen periodically via background task consuming the buffer.*
 
 ---
 
-## 3. History & Analysis Review Flow
+## 3. Disconnection & Error Handling (Watchdog)
+*Critical flow for detecting lost devices and resetting UI state.*
 
-```mermaid
-flowchart LR
-    subgraph Frontend [User Interface]
-        StartHist([Open History]) --> SetFilt[/Set Filters/]
-        SetFilt --> ReqList[/GET /api/history/]
-    end
+### 3.1 Device Timeout Detection
+**Trigger:** `app/services/device/watchdog.py` background task (Runs every 0.5s).
 
-    subgraph Backend [Backend API]
-        ReqList --> QueryRepo[[Query Repository]]
-        QueryRepo --> FetchDB[(Fetch Sessions)]
-        FetchDB --> RetList([Return JSON])
-    end
+1.  **Check Loop:** `DeviceWatchdogService._check_all_devices()`
+    *   Logic: Iterates all known devices. Calculates `time_since_last_seen`.
+2.  **Threshold Check:**
+    *   **Offline (> 1.0s):** Sends `WSMessageType.DEVICE_STATUS_UPDATE` (Red Dot).
+    *   **Disconnected (> 2.0s):** Triggers Cleanup Sequence.
+3.  **Disconnection Sequence:**
+    *   **Capture State:** Stores `was_recording = state.is_recording`.
+    *   **Notify UI:** Calls `device_state_manager.broadcast_to_device()`
+        *   Type: `WSMessageType.DEVICE_DISCONNECTED`
+        *   Payload: `{ device_id, reason: "Timeout", was_recording: true/false }`
+    *   **Cancel Recording:** Calls `_cancel_device_recording()` if active.
+    *   **Cleanup:** Calls `_cleanup_device()` (Removes from memory).
 
-    RetList -.-> RenderList[/Render Table/]
-    RenderList --> ClickItem[/User Selects Row/]
-    ClickItem --> ReqDet["GET /api/history/{id}/"]
-    ReqDet --> RetDet([Return Details])
-    RetDet -.-> ViewDet[/Show Analysis & Charts/]
-    ViewDet --> EndHist([End])
-```
+### 3.2 Frontend Handling
+**Trigger:** WebSocket message `device_disconnected`.
 
----
-
-## 4. Data Analysis Pipeline (ML)
-
-*Asynchronous process triggered by Segment Completion.*
-
-```mermaid
-flowchart LR
-    subgraph Analysis_Service [ML Engine]
-        StartML([Trigger Received]) --> FetchRaw[(Fetch Raw Data)]
-        FetchRaw --> FeatExt[[Feature Extraction]]
-        
-        FeatExt --> CalcMet[Calc RR, PR, QT]
-        FeatExt --> RunModel[[Run ANN Model]]
-        
-        RunModel --> Classify{"Abnormal?"}
-        Classify --> Result[Set Classification]
-        
-        Result --> SaveRes[(Update Session Record)]
-        CalcMet --> SaveRes
-        SaveRes --> EndML([End])
-    end
-```
+1.  **Router:** `app/static/js/services/Socket.js`
+    *   Action: Emits global event `EVENTS.DEVICE.DISCONNECTED`.
+2.  **Handler:** `app/static/js/modules/monitor/MonitorController.js`
+    *   Function: `handleDeviceDisconnection(data)`
+    *   Logic:
+        *   **Reset UI:** Calls `this.selectDevice("")` -> Clears Dropdown & Charts.
+        *   **Alert:** Checks `data.was_recording`. If true, shows `alert("Recording Stopped...")`.
+        *   **Toast:** If not recording, shows `Toast.show("Device disconnected")`.
+        *   **Data Safety:** If patient data exists, it is **PRESERVED** (not nullified) to allow reconnection.
 
 ---
 
-## 5. Export & Reporting Flow
+## 4. ML Analysis Pipeline
+*Asynchronous classification of ECG segments.*
 
-```mermaid
-flowchart LR
-    subgraph Frontend [User Interface]
-        StartExp([User Clicks Export]) --> Type{"Export Type?"}
-        Type -- CSV --> ReqRaw[/GET /export/raw/]
-        Type -- Chart --> ReqPlot[/GET /export/plot/]
-    end
+### 4.1 Triggering Analysis
+**Trigger:** `MQTTDataHandler` accumulates `BUFFER_SIZE` samples (e.g., 1000 samples).
 
-    subgraph Backend [Backend API]
-        ReqRaw --> FetchDat[(Fetch Data)]
-        FetchDat --> GenCSV[[Generate CSV]]
-        GenCSV --> Stream1[/Stream File/]
-        
-        ReqPlot --> ThreadPool[Submit to ThreadPool]
-        ThreadPool --> MatPlotLib[[Generate Image]]
-        MatPlotLib --> Stream2[/Stream PNG/]
-    end
-    
-    Stream1 -.-> Download1[/Download CSV/]
-    Stream2 -.-> Download2[/Download PNG/]
-    Download1 --> EndExp([End])
-    Download2 --> EndExp
-```
+1.  **Segment Completion:** `app/services/mqtt/handler.py`
+    *   Function: `_complete_segment(state)`
+    *   Action: Calls `ml_engine_service.trigger_analysis()`.
+2.  **Execution (Thread Pool):** `app/services/analysis/ml_engine.py`
+    *   Function: `trigger_analysis` -> `_analyze_recording`
+    *   Steps:
+        1.  `_fetch_raw_data`: Reads from DB (`RawDataRepository`).
+        2.  `_extract_features_from_data`: Calls `app/services/analysis/feature_extractor.py`.
+        3.  `_predict`: Uses `tensorflow.keras.models.load_model` and `scaler.transform`.
+        4.  `_save_results`: Updates DB via `SessionRepository`.
+3.  **Result Broadcast:**
+    *   Function: `_broadcast_result`
+    *   Action: Sends `WSMessageType.LIVE_RESULT` to UI.
 
 ---
 
-## 6. System Health & Monitoring Flow
+## 5. Frontend Architecture (Vanilla JS)
+*Modular structure without frameworks.*
 
-```mermaid
-flowchart LR
-    subgraph Admin [Dashboard / Monitor]
-        StartMon([Load Page]) --> ReqStat[/GET /monitoring/]
-    end
+*   **Entry Point:** `app/static/js/app.js` -> `main.js` (Bootstraps Controllers).
+*   **State Management:** `app/static/js/core/State.js` (Singleton `store` pattern).
+*   **Event Bus:** `app/static/js/core/Events.js` (Pub/Sub pattern for decoupling).
+*   **Communication:** `app/static/js/services/Socket.js` (WebSocket Wrapper).
+*   **Visualization:** `app/static/js/shared/Charts.js` (U-Plot Wrapper).
 
-    subgraph Backend [Backend API]
-        ReqStat --> CheckConn[[Check Devices]]
-        CheckConn --> CalcPerf[[Calc Latency/Loss]]
-        
-        CalcPerf --> CheckComp{"Components OK?"}
-        CheckComp --> AggRes[Aggregate Result]
-        AggRes --> RetStat([Return Status])
-    end
-
-    RetStat -.-> RenderStat[/Update Dashboard/]
-    RenderStat --> EndMon([End])
-```
+### Key Controllers
+*   `MonitorController.js`: Handles the main Live ECG page interactions.
+*   `HistoryController.js`: Manages the archive/history table and modal views.
+*   `AuthController.js`: Handles Login/Register logic.

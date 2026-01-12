@@ -162,9 +162,44 @@ export class MonitorController {
 
         globalEventBus.on(EVENTS.WS.CONNECTED, () => this.updateConnectionStatus(true));
         globalEventBus.on(EVENTS.WS.DISCONNECTED, () => this.updateConnectionStatus(false));
+        
+        // Handle Device Specific Disconnect (e.g. lost power/signal)
+        globalEventBus.on(EVENTS.DEVICE.DISCONNECTED, (data) => this.handleDeviceDisconnection(data));
     }
 
     // --- Logic Interaksi ---
+    handleDeviceDisconnection(data) {
+        // Data usually comes as { device_id: "..." } or just string
+        const disconnectedId = data.device_id || data; 
+        
+        // Only act if the disconnected device is the one currently active
+        if (disconnectedId !== store.currentDeviceId) return;
+
+        // Check if we were recording (either from local store or payload from server)
+        const wasRecording = store.isRecording || data.was_recording;
+        const hasPatient = !!store.patient;
+
+        // Logic for All Scenarios:
+        // Execute Reset First to ensure UI consistency
+        this.selectDevice(""); 
+
+        // Scenario 3: Recording -> Alert, Stop, Reset
+        if (wasRecording) {
+            // Force stop recording state locally just in case
+            store.setRecordingState(false);
+            alert(`Recording Stopped! Connection lost with device ${disconnectedId}.`);
+        } else {
+            Toast.show(`Device ${disconnectedId} disconnected`, "warning");
+        }
+
+        // Skenario 1: Jika belum ada pasien, reset total
+        if (!wasRecording && !hasPatient) {
+            store.setPatientData(null);
+        }
+        
+        // Skenario 2 & 3: Data pasien tetap tersimpan di memori
+    }
+
     updateConnectionStatus(isOnline) {
         if (isOnline) {
             this.dom.connBadge.className = "flex w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]";
@@ -319,6 +354,16 @@ export class MonitorController {
     }
 
     renderDeviceList(devices) {
+        // Detect Implicit Disconnection:
+        // If current selected device is NOT in the new list, it means it disconnected.
+        if (store.currentDeviceId) {
+            const isCurrentDeviceAvailable = devices.some(d => d.id === store.currentDeviceId);
+            if (!isCurrentDeviceAvailable) {
+                // Trigger disconnect handler
+                this.handleDeviceDisconnection(store.currentDeviceId);
+            }
+        }
+
         devices.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }));
         this.dom.deviceListContainer.innerHTML = '';
 

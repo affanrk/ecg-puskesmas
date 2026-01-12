@@ -120,12 +120,24 @@ class MQTTClientService:
                 logger.warning("[MQTT] Received packet without device ID")
                 return
                 
-            # Check for new device
-            is_new_device = not device_state_manager.has_device(device_id)
+            # Check device state for list updates
+            should_update_list = False
             
-            if is_new_device:
+            # 1. New Device: Initialize it immediately so it appears in summaries
+            if not device_state_manager.has_device(device_id):
+                should_update_list = True
+                # Force initialization of state
+                device_state_manager.get_state(device_id)
                 logger.info(f"[MQTT] New device detected: {device_id}")
-                # Notify all clients about new device
+            else:
+                # 2. Existing Device: Check if it was offline
+                state = device_state_manager.get_state(device_id)
+                if not state.is_connected:
+                    should_update_list = True
+                    logger.info(f"[MQTT] Device re-connected: {device_id}")
+
+            # Notify clients if status changed
+            if should_update_list:
                 await device_state_manager.notify_device_list_update()
                 
             # Parse packet
