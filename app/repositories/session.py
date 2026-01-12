@@ -12,7 +12,6 @@ from app.models.database import TbREcgSession, TbREcgRaw, TbMPatient
 from app.core.exceptions import (
     DatabaseException, 
     RecordingNotFoundException,
-    InsufficientDataException
 )
 from app.utils.constants import ECGClassification
 

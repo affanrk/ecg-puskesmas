@@ -1,9 +1,8 @@
-# app/repositories/performance.py
 """
 Performance log repository - handles network/device performance metrics.
 Provides analytics and monitoring data access.
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta

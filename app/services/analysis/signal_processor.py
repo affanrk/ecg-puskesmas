@@ -358,15 +358,17 @@ class SignalProcessor:
             if len(r_peaks) > 1:
                 # Calculate RR intervals in milliseconds
                 rr_intervals = np.diff(r_peaks) / self.sampling_rate * 1000
-                avg_rr = np.mean(rr_intervals)
                 
-                # Convert to BPM
-                bpm = 60000 / avg_rr
-                
-                # Sanity check (30-200 BPM)
-                if 30 <= bpm <= 200:
-                    return round(bpm, 1)
+                if rr_intervals.size > 0:
+                    avg_rr = np.mean(rr_intervals)
                     
+                    # Convert to BPM
+                    bpm = 60000 / avg_rr
+                    
+                    # Sanity check (30-200 BPM)
+                    if 30 <= bpm <= 200:
+                        return round(bpm, 1)
+            
             return None
             
         except Exception as e:

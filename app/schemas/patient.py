@@ -1,4 +1,3 @@
-# app/schemas/patient.py
 """
 Patient schemas - request/response models for patient data.
 Extracted from the original ecg.py for better organization.

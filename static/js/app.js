@@ -2,18 +2,25 @@ import { connectWebSocket } from './services/Socket.js';
 import { MonitorController } from './modules/monitor/MonitorController.js';
 import { HistoryController } from './modules/history/HistoryController.js';
 import { PerformanceController } from './modules/performance/PerformanceController.js';
+import { AuthController } from './modules/auth/AuthController.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inisialisasi Modules/Controllers
-    const monitor = new MonitorController();
-    const history = new HistoryController();
-    const performance = new PerformanceController(monitor.charts);
+    // 1. Global Auth Controller (Handles Logout, Auth Checks)
+    new AuthController();
 
-    // 2. Setup Navigasi Tab (Single Page Application logic sederhana)
-    setupNavigation();
+    // 2. Inisialisasi Modules/Controllers (Only for Operator Dashboard)
+    // We check for a unique element on the operator dashboard to avoid errors on other panels
+    if (document.getElementById('bpm-value')) {
+        const monitor = new MonitorController();
+        const history = new HistoryController();
+        const performance = new PerformanceController(monitor.charts);
 
-    // 3. Mulai Koneksi WebSocket
-    connectWebSocket();
+        // 3. Setup Navigasi Tab (Single Page Application logic sederhana)
+        setupNavigation();
+
+        // 4. Mulai Koneksi WebSocket
+        connectWebSocket();
+    }
 });
 
 function setupNavigation() {

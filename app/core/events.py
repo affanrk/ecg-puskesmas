@@ -34,6 +34,13 @@ class ApplicationState:
         logger.info("STARTING ECG LIVE PLATFORM")
         logger.info("=" * 60)
         
+        # Check Event Loop Type
+        loop = asyncio.get_running_loop()
+        logger.info(f"Event Loop: {type(loop).__name__}")
+        if "Proactor" in type(loop).__name__:
+            logger.warning("⚠️  WARNING: Running on ProactorEventLoop. MQTT may fail on Windows.")
+            logger.warning("   Please run with 'python app/main.py' to ensure SelectorEventLoop is used.")
+        
         # 1. Initialize Database
         await self._init_database()
         

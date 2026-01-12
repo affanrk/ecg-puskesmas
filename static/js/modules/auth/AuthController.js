@@ -65,7 +65,14 @@ export class AuthController {
             localStorage.setItem('ecg_user', JSON.stringify({ name: data.user_name, role: data.role }));
             
             Toast.show("Welcome back!");
-            setTimeout(() => window.location.href = "/", 1000);
+            
+            // Redirect based on Role
+            setTimeout(() => {
+                if (data.role === 'admin') window.location.href = "/panel/admin";
+                else if (data.role === 'doctor') window.location.href = "/panel/doctor";
+                else if (data.role === 'user') window.location.href = "/panel/user";
+                else window.location.href = "/";
+            }, 1000);
 
         } catch (error) {
             Toast.show(error.message, "error");
@@ -124,7 +131,20 @@ export class AuthController {
         if (!token && !isAuthPage) {
             window.location.href = "/login";
         } else if (token && isAuthPage) {
-            window.location.href = "/";
+            const user = JSON.parse(localStorage.getItem('ecg_user') || '{}');
+            if (user.role === 'admin') window.location.href = "/panel/admin";
+            else if (user.role === 'doctor') window.location.href = "/panel/doctor";
+            else if (user.role === 'user') window.location.href = "/panel/user";
+            else window.location.href = "/";
+        }
+
+        // Update UI Name Display if logged in
+        if (token) {
+            const user = JSON.parse(localStorage.getItem('ecg_user') || '{}');
+            const nameElements = document.querySelectorAll('.user-name-display');
+            nameElements.forEach(el => {
+                el.textContent = user.name || 'User';
+            });
         }
     }
 }
