@@ -109,14 +109,14 @@ The authentication system is built using:
 ### Registration Process
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph Frontend [Frontend]
         StartReg([Start Registration]) --> FillForm[Fill Registration Form]
-        FillForm --> ValidateForm{Validate Input}
+        FillForm --> ValidateForm{"Validate Input"}
         ValidateForm -- Invalid --> ShowFormError[Show Error Message]
         ShowFormError --> FillForm
         ValidateForm -- Valid --> SendRegReq[POST /api/auth/register]
-        RecvRegRes{Receive Response} -->|Success| ShowSuccess[Show Success Toast]
+        RecvRegRes{"Receive Response"} -->|Success| ShowSuccess[Show Success Toast]
         RecvRegRes -->|Error| ShowApiError[Show API Error]
         ShowSuccess --> RedirectLogin[Redirect to Login]
         ShowApiError --> FillForm
@@ -124,9 +124,9 @@ flowchart TD
 
     subgraph Backend [Backend API]
         SendRegReq --> API_Reg[Receive Request]
-        API_Reg --> ValidateSchema{Validate Schema}
+        API_Reg --> ValidateSchema{"Validate Schema"}
         ValidateSchema -- Invalid --> Ret422[Return 422 Unprocessable Entity]
-        ValidateSchema -- Valid --> CheckEmail{Check Email Exists}
+        ValidateSchema -- Valid --> CheckEmail{"Check Email Exists"}
         CheckEmail -- Yes --> Ret400[Return 400 Email Registered]
         CheckEmail -- No --> HashPwd[Hash Password with Argon2]
         HashPwd --> SaveUser[Save User to DB]
@@ -141,11 +141,11 @@ flowchart TD
 ### Login Process
 
 ```mermaid
-flowchart TD
+flowchart LR
     subgraph Frontend [Frontend]
         StartLogin([Start Login]) --> FillLogin[Fill Email & Password]
         FillLogin --> SendLoginReq[POST /api/auth/login]
-        RecvLoginRes{Receive Response} -->|Success| StoreToken[Store Token in LocalStorage]
+        RecvLoginRes{"Receive Response"} -->|Success| StoreToken[Store Token in LocalStorage]
         RecvLoginRes -->|Error| ShowLoginError[Show 'Incorrect email/password']
         StoreToken --> RedirectDash[Redirect to Dashboard]
         ShowLoginError --> FillLogin
@@ -153,9 +153,9 @@ flowchart TD
 
     subgraph Backend [Backend API]
         SendLoginReq --> API_Login[Receive Credentials]
-        API_Login --> FindUser{Find User by Email}
+        API_Login --> FindUser{"Find User by Email"}
         FindUser -- Not Found --> Ret401[Return 401 Unauthorized]
-        FindUser -- Found --> VerifyPwd{Verify Password (Argon2)}
+        FindUser -- Found --> VerifyPwd{"Verify Password (Argon2)"}
         VerifyPwd -- Invalid --> Ret401
         VerifyPwd -- Valid --> GenJWT[Generate JWT Token]
         GenJWT --> RetToken[Return 200 OK + Token]
