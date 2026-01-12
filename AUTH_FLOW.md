@@ -110,7 +110,7 @@ The authentication system is built using:
 
 ```mermaid
 flowchart TD
-    subgraph Frontend [**Frontend**]
+    subgraph Frontend [Frontend]
         StartReg([Start Registration]) --> FillForm[Fill Registration Form]
         FillForm --> ValidateForm{Validate Input}
         ValidateForm -- Invalid --> ShowFormError[Show Error Message]
@@ -122,7 +122,7 @@ flowchart TD
         ShowApiError --> FillForm
     end
 
-    subgraph Backend [**Backend API**]
+    subgraph Backend [Backend API]
         SendRegReq --> API_Reg[Receive Request]
         API_Reg --> ValidateSchema{Validate Schema}
         ValidateSchema -- Invalid --> Ret422[Return 422 Unprocessable Entity]
@@ -142,7 +142,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Frontend [**Frontend**]
+    subgraph Frontend [Frontend]
         StartLogin([Start Login]) --> FillLogin[Fill Email & Password]
         FillLogin --> SendLoginReq[POST /api/auth/login]
         RecvLoginRes{Receive Response} -->|Success| StoreToken[Store Token in LocalStorage]
@@ -151,7 +151,7 @@ flowchart TD
         ShowLoginError --> FillLogin
     end
 
-    subgraph Backend [**Backend API**]
+    subgraph Backend [Backend API]
         SendLoginReq --> API_Login[Receive Credentials]
         API_Login --> FindUser{Find User by Email}
         FindUser -- Not Found --> Ret401[Return 401 Unauthorized]
