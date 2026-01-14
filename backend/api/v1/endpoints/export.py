@@ -23,7 +23,7 @@ router = APIRouter()
 plot_executor = ThreadPoolExecutor(max_workers=2)
 
 
-@router.get("/export/raw/{recording_id}")
+@router.get("/raw/{recording_id}")
 async def export_raw_ecg_data(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository)
@@ -92,7 +92,7 @@ async def export_raw_ecg_data(
         db.close()
 
 
-@router.get("/export/features/{recording_id}")
+@router.get("/features/{recording_id}")
 async def export_analysis_features(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository)
@@ -160,7 +160,7 @@ async def export_analysis_features(
     )
 
 
-@router.get("/export/plot/{recording_id}")
+@router.get("/plot/{recording_id}")
 async def export_ecg_chart(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository)
@@ -224,7 +224,7 @@ async def export_ecg_chart(
         )
 
 
-@router.get("/export/complete/{recording_id}")
+@router.get("/complete/{recording_id}")
 async def export_complete_package(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository)
@@ -256,7 +256,7 @@ async def export_complete_package(
     )
 
 
-@router.get("/export/batch")
+@router.get("/batch")
 async def export_batch_recordings(
     recording_ids: str,  # Comma-separated list
     format: str = "csv",

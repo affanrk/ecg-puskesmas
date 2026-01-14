@@ -28,7 +28,7 @@ api_router.include_router(
 
 api_router.include_router(
     history.router,
-    prefix="",
+    prefix="/history",
     tags=["History & Data"]
 )
 
@@ -39,7 +39,7 @@ api_router.include_router(
 
 api_router.include_router(
     export.router,
-    prefix="",
+    prefix="/export",
     tags=["Export"]
 )
 
@@ -50,6 +50,6 @@ api_router.include_router(
 
 api_router.include_router(
     health.router,
-    prefix="",
+    prefix="/health",
     tags=["Health & Monitoring"]
 )

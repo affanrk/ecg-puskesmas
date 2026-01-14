@@ -19,7 +19,7 @@ from backend.utils.logger import logger
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("")
 async def health_check():
     """
     Basic health check endpoint.
@@ -47,7 +47,7 @@ async def health_check():
     }
 
 
-@router.get("/health/detailed")
+@router.get("/detailed")
 async def detailed_health_check(
     perf_repo: PerformanceRepository = Depends(get_performance_repository)
 ):

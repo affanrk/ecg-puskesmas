@@ -14,7 +14,7 @@ from backend.utils.constants import MAX_HISTORY_RESULTS
 router = APIRouter()
 
 
-@router.get("/history", response_model=List[SessionResponse])
+@router.get("", response_model=List[SessionResponse])
 async def get_recording_history(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
     subject_id: Optional[str] = Query(None, description="Filter by patient ID"),
@@ -78,7 +78,7 @@ async def get_recording_history(
     return response_data
 
 
-@router.get("/history/{recording_id}", response_model=SessionResponse)
+@router.get("/{recording_id}", response_model=SessionResponse)
 async def get_recording_detail(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository)
@@ -124,7 +124,7 @@ async def get_recording_detail(
     )
 
 
-@router.get("/history/device/{device_id}", response_model=List[SessionResponse])
+@router.get("/device/{device_id}", response_model=List[SessionResponse])
 async def get_device_history(
     device_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
@@ -173,7 +173,7 @@ async def get_device_history(
     return response_data
 
 
-@router.get("/history/patient/{patient_id}", response_model=List[SessionResponse])
+@router.get("/patient/{patient_id}", response_model=List[SessionResponse])
 async def get_patient_history(
     patient_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
