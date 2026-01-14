@@ -29,36 +29,47 @@ services:
       - mosquitto_log:/mosquitto/log
 
   backend:
-    build: .
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: ecg_backend
     restart: always
     ports:
-    - "5000:5000"
+      - "5000:5000"
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       DATABASE_USER: ${DATABASE_USER:-ecg_user} 
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:-ecg_pass}
       DATABASE_NAME: ${DATABASE_NAME:-ecg_db}
-  
       MQTT_BROKER: mosquitto 
       MQTT_PORT: 1883
-      MQTT_USERNAME: "admin"    
-      MQTT_PASSWORD: "ecgctai"
-
-      MODEL_PATH: ${MODEL_PATH}
+      MQTT_USERNAME: ${MQTT_USERNAME:-admin}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-ecgctai}
+      MODEL_PATH: "/app/ml_models"
       FLASK_PORT: 5000
-    
+      SECRET_KEY: ${SECRET_KEY:-your-super-secret-key-change-it}
     depends_on:
       postgres:
         condition: service_healthy
       mosquitto:
         condition: service_started
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api/v1}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:5000/ws}
+    container_name: ecg_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
-    driver: local
   mosquitto_data:
-    driver: local
   mosquitto_log:
-    driver: local
