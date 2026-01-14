@@ -11,6 +11,7 @@ websockets
 
 # MQTT (Async)
 aiomqtt
+orjson
 
 # Database
 sqlalchemy

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     
     # Application
     FLASK_PORT: int = 5000  # Port aplikasi (Legacy naming kept)
-    MODEL_PATH: str = "backend/ml_models"
+    MODEL_PATH: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_models")
     
     # Security
     SECRET_KEY: str # Must be set in .env or environment variable
@@ -29,9 +29,10 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
-        extra = "ignore" # Ignore extra fields in .env
+    model_config = {
+        "env_file": os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+        "env_file_encoding": "utf-8",
+        "extra": "ignore"
+    }
 
 settings = Settings()

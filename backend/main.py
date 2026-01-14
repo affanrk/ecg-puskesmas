@@ -15,6 +15,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 warnings.filterwarnings("ignore", category=UserWarning, module='sklearn')
 warnings.filterwarnings("ignore", category=UserWarning, module='keras')
+warnings.filterwarnings("ignore", category=FutureWarning, module='keras')
 warnings.filterwarnings("ignore", module='tensorflow')
 logging.getLogger('absl').setLevel(logging.ERROR)
 
