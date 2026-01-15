@@ -6,9 +6,9 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from datetime import date
 
-from backend.repositories.base import BaseRepository
-from backend.models.database import TbMPatient
-from backend.core.exceptions import DatabaseException, PatientNotFoundException
+from repositories.base import BaseRepository
+from models.database import TbMPatient
+from core.exceptions import DatabaseException, PatientNotFoundException
 
 
 class PatientRepository(BaseRepository[TbMPatient]):
@@ -90,7 +90,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         Useful for MQTT auto-patient creation.
         
         Args:
-            patient_id: Patient identifier
+            patient_id: Patient identifier (NIK)
             name: Patient name
             gender: Gender code
             age: Age as string
@@ -136,7 +136,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         Only updates provided fields (None values are skipped).
         
         Args:
-            patient_id: Patient identifier
+            patient_id: Patient identifier(NIK)
             name: New name (optional)
             age: New age (optional)
             gender: New gender (optional)
@@ -252,7 +252,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         Check if patient has any recording sessions.
         
         Args:
-            patient_id: Patient identifier
+            patient_id: Patient identifier (NIK)
             
         Returns:
             True if patient has sessions

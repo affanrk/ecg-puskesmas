@@ -31,7 +31,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
                 if (role === 'user') {
                     setAuthorized(true);
-                } else if (['admin', 'doctor', 'nurse', 'operator'].includes(role)) {
+                } else if (['admin', 'doctor'].includes(role)) {
                     if (pathname !== '/coming-soon') {
                         toast("Access restricted for your role", "warning");
                         router.push('/coming-soon');

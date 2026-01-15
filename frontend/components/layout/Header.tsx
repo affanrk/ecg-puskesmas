@@ -13,7 +13,6 @@ export default function Header() {
     const [userName, setUserName] = useState('User');
 
     useEffect(() => {
-        // Load user info
         const userStr = localStorage.getItem('ecg_user');
         if (userStr) {
             try {

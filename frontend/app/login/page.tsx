@@ -39,7 +39,7 @@ export default function LoginPage() {
             
             toast("Welcome back!", "success");
             
-            // Redirect based on role (similar to legacy)
+            // Redirect based on role
             setTimeout(() => {
                 router.push('/monitor');
             }, 500);

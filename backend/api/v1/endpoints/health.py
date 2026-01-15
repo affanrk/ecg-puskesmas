@@ -6,14 +6,14 @@ from fastapi import APIRouter, Depends
 from typing import Dict, Any
 import time
 
-from backend.services.device.state import device_state_manager
-from backend.services.analysis.ml_engine import ml_engine_service
-from backend.services.recording.storage import recording_storage_service
-from backend.services.mqtt.client import mqtt_service
-from backend.repositories.performance import PerformanceRepository
-from backend.core.dependencies import get_performance_repository
-from backend.core.database import engine
-from backend.utils.logger import logger
+from services.device.state import device_state_manager
+from services.analysis.ml_engine import ml_engine_service
+from services.recording.storage import recording_storage_service
+from services.mqtt.client import mqtt_service
+from repositories.performance import PerformanceRepository
+from core.dependencies import get_performance_repository
+from core.database import engine
+from utils.logger import logger
 
 
 router = APIRouter()

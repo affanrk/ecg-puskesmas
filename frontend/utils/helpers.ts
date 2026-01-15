@@ -45,7 +45,6 @@ export function calculateAge(birthDateString: string | null | undefined): number
         age--;
     }
     
-    // Safety check for future dates or extreme values
     if (age < 0) return 0;
     if (age > 150) return "";
     

@@ -8,17 +8,17 @@ import asyncio
 import time
 from typing import List
 
-from backend.services.device.state import device_state_manager
-from backend.repositories.patient import PatientRepository
-from backend.repositories.session import SessionRepository, RawDataRepository
-from backend.core.database import SessionLocal
-from backend.utils.constants import (
+from services.device.state import device_state_manager
+from repositories.patient import PatientRepository
+from repositories.session import SessionRepository, RawDataRepository
+from core.database import SessionLocal
+from utils.constants import (
     DEVICE_TIMEOUT_SECONDS,
     DEVICE_OFFLINE_THRESHOLD,
     WATCHDOG_CHECK_INTERVAL,
     WSMessageType
 )
-from backend.utils.logger import logger
+from utils.logger import logger
 
 
 class DeviceWatchdogService:

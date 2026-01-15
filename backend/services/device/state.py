@@ -9,8 +9,8 @@ from collections import deque, defaultdict
 from typing import Dict, Set, List, Optional
 from fastapi import WebSocket
 
-from backend.utils.constants import LIVE_BUFFER_SIZE, WSMessageType
-from backend.utils.logger import logger
+from utils.constants import LIVE_BUFFER_SIZE, WSMessageType
+from utils.logger import logger
 
 
 class DeviceState:

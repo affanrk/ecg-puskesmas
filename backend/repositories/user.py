@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from backend.models.database import TbMUser
-from backend.schemas.auth import UserCreate
-from backend.core.security import get_password_hash
+from models.database import TbMUser
+from schemas.auth import UserCreate
+from core.security import get_password_hash
 
 class UserRepository:
     def get_by_email(self, db: Session, email: str):

@@ -17,7 +17,6 @@ export default function ComingSoonPage() {
     }, []);
 
     const handleLogout = () => {
-        // Brief buffer before redirecting
         setTimeout(() => {
             localStorage.removeItem('ecg_token');
             localStorage.removeItem('ecg_user');

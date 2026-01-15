@@ -6,12 +6,12 @@ from typing import AsyncGenerator, Generator
 from fastapi import Depends, WebSocket
 from sqlalchemy.orm import Session
 
-from backend.core.database import SessionLocal
-from backend.core.exceptions import DeviceBusyException, DeviceNotFoundException
-from backend.services.device.state import device_state_manager
-from backend.repositories.patient import PatientRepository
-from backend.repositories.session import SessionRepository
-from backend.repositories.performance import PerformanceRepository
+from core.database import SessionLocal
+from core.exceptions import DeviceBusyException, DeviceNotFoundException
+from services.device.state import device_state_manager
+from repositories.patient import PatientRepository
+from repositories.session import SessionRepository
+from repositories.performance import PerformanceRepository
 
 
 # ============================================================================

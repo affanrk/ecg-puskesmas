@@ -8,7 +8,7 @@ import os
 from typing import Optional
 from pathlib import Path
 
-from backend.utils.constants import LOG_FORMAT, LOG_DATE_FORMAT
+from utils.constants import LOG_FORMAT, LOG_DATE_FORMAT
 
 
 class ContextLogger(logging.Logger):
@@ -202,7 +202,7 @@ def get_logger(name: str = "ECG-Platform") -> ContextLogger:
         ContextLogger instance
         
     Example:
-        from backend.utils.logger import get_logger
+        from utils.logger import get_logger
         
         logger = get_logger("MyModule")
         logger.info("Starting process")

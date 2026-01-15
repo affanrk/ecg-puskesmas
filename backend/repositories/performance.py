@@ -7,9 +7,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime, timedelta
 
-from backend.repositories.base import BaseRepository
-from backend.models.database import TbRPerformanceLog
-from backend.core.exceptions import DatabaseException
+from repositories.base import BaseRepository
+from models.database import TbRPerformanceLog
+from core.exceptions import DatabaseException
 
 
 class PerformanceRepository(BaseRepository[TbRPerformanceLog]):

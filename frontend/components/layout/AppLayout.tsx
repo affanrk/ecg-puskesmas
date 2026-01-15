@@ -10,15 +10,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const { isRecording, incrementTimer } = useStore();
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Connect to WebSocket once on mount
     useEffect(() => {
         connectWebSocket();
-        
-        // Check if already open (if connectWebSocket returned early)
-        // or just rely on the onopen handler.
     }, []);
 
-    // Global Recording Timer
     useEffect(() => {
         if (isRecording) {
             if (!timerRef.current) {

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from jose import jwt
 from passlib.context import CryptContext
-from backend.core.config import settings
+from core.config import settings
 
 # Password Hashing Context
 # switched to argon2 due to passlib/bcrypt compatibility issues

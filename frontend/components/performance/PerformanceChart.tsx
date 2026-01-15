@@ -48,7 +48,8 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
                     y: {
                         beginAtZero: true,
                         suggestedMax: suggestedMax,
-                        grid: { color: CONFIG.COLORS.grid, drawBorder: false },
+                        grid: { color: CONFIG.COLORS.grid },
+                        border: { display: false },
                         ticks: { color: CONFIG.COLORS.text, font: { size: 10 } }
                     }
                 }

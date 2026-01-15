@@ -7,13 +7,13 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, or_, and_, insert
 from datetime import datetime
 
-from backend.repositories.base import BaseRepository
-from backend.models.database import TbREcgSession, TbREcgRaw, TbMPatient
-from backend.core.exceptions import (
+from repositories.base import BaseRepository
+from models.database import TbREcgSession, TbREcgRaw, TbMPatient
+from core.exceptions import (
     DatabaseException, 
     RecordingNotFoundException,
 )
-from backend.utils.constants import ECGClassification
+from utils.constants import ECGClassification
 
 
 class SessionRepository(BaseRepository[TbREcgSession]):
@@ -55,7 +55,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         Args:
             recording_id: Unique recording identifier
             device_id: Device identifier
-            patient_id: Patient identifier
+            patient_id: Patient identifier (NIK)
             created_by: User/system creating the session
             classification: Initial classification status
             
@@ -186,12 +186,15 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 )
                 
             if search_query:
-                search_pattern = f"%{search_query}%"
-                query = query.filter(or_(
-                    TbMPatient.name.ilike(search_pattern),
-                    TbREcgSession.patient_id.ilike(search_pattern),
-                    TbREcgSession.device_id.ilike(search_pattern)
-                ))
+                # Split search query by spaces to support multi-word search (AND logic)
+                keywords = search_query.split()
+                for kw in keywords:
+                    pattern = f"%{kw}%"
+                    query = query.filter(or_(
+                        TbMPatient.name.ilike(pattern),
+                        TbREcgSession.patient_id.ilike(pattern),
+                        TbREcgSession.device_id.ilike(pattern)
+                    ))
                 
             if start_date:
                 query = query.filter(

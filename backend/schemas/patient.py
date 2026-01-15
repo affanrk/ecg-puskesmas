@@ -19,7 +19,7 @@ class PatientBase(BaseModel):
     patient_id: str = Field(
         ..., 
         title="Patient ID (NIK)", 
-        description="National identification number or unique patient identifier",
+        description="National identification number or unique patient identifier (NIK)",
         max_length=50,
         examples=["1234567890123456"]
     )
@@ -293,7 +293,7 @@ class PatientValidationResponse(BaseModel):
             "example": {
                 "is_valid": False,
                 "errors": [
-                    "Patient ID must be exactly 16 digits",
+                    "NIK must be exactly 16 digits",
                     "Date of birth cannot be in the future"
                 ],
                 "warnings": [

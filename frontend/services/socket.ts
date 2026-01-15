@@ -10,14 +10,13 @@ const getWsUrl = () => {
     if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname;
-    const port = '5000'; // Backend port
+    const port = '5000';
     return `${protocol}//${host}:${port}/ws`;
 };
 
 export const connectWebSocket = () => {
     const WS_URL = getWsUrl();
     
-    // If already connected or connecting, do nothing
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
         if (socket.readyState === WebSocket.OPEN) {
             useStore.getState().setIsConnected(true);
@@ -25,7 +24,6 @@ export const connectWebSocket = () => {
         return;
     }
 
-    // Only close if it's explicitly broken
     if (socket && socket.readyState !== WebSocket.CLOSED) {
         socket.close();
     }
@@ -43,7 +41,6 @@ export const connectWebSocket = () => {
     socket.onmessage = (event) => {
         try {
             const msg = JSON.parse(event.data);
-            // console.log("[WS] Message received:", msg.type);
             handleMessage(msg);
         } catch (e) {
             console.error("[WS] Parse Error:", e);
@@ -55,7 +52,6 @@ export const connectWebSocket = () => {
         globalEventBus.emit(EVENTS.WS.DISCONNECTED);
         useStore.getState().setIsConnected(false);
         
-        // Exponential Backoff matching legacy
         setTimeout(connectWebSocket, reconnectInterval);
         reconnectInterval = Math.min(reconnectInterval * 2, 30000);
         socket = null;
@@ -82,12 +78,9 @@ let watchdogTimer: NodeJS.Timeout | null = null;
 function resetWatchdog() {
     if (watchdogTimer) clearTimeout(watchdogTimer);
     
-    // Legacy logic: Watchdog checks if no data received for 3 seconds while device is selected
     watchdogTimer = setTimeout(() => {
         const store = useStore.getState();
         if (store.currentDeviceId) {
-            // In legacy this was just a comment, but we can emit a warning if needed
-            // console.warn("Watchdog: No data received for 3s");
         }
     }, 3000);
 }
@@ -138,7 +131,6 @@ function handleMessage(msg: any) {
             break;
 
         case "state_update":
-            // Exactly matching legacy: store.setRecordingState(msg.is_recording)
             store.setRecording(msg.is_recording);
 
             if (msg.patient_name) {

@@ -9,12 +9,12 @@ import orjson
 import ssl
 from typing import Optional
 
-from backend.services.mqtt.protocol import mqtt_protocol, ECGSample
-from backend.services.mqtt.handler import mqtt_data_handler
-from backend.services.device.state import device_state_manager
-from backend.core.config import settings
-from backend.utils.constants import MQTT_TOPIC_PATTERN, MQTT_QOS
-from backend.utils.logger import logger
+from services.mqtt.protocol import mqtt_protocol, ECGSample
+from services.mqtt.handler import mqtt_data_handler
+from services.device.state import device_state_manager
+from core.config import settings
+from utils.constants import MQTT_TOPIC_PATTERN, MQTT_QOS
+from utils.logger import logger
 
 
 class MQTTClientService:

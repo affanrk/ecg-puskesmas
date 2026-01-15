@@ -67,7 +67,6 @@ export default function PatientModal({ isOpen, onClose }: PatientModalProps) {
         });
         toast(`Monitoring started for ${formData.name}`, "success");
         onClose();
-        // Reset form
         setFormData({
             nik: '',
             name: '',
@@ -103,7 +102,7 @@ export default function PatientModal({ isOpen, onClose }: PatientModalProps) {
                     <div className="p-5 space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Patient ID (NIK)</label>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">NIK</label>
                                 <input 
                                     type="text"
                                     required
@@ -184,9 +183,9 @@ export default function PatientModal({ isOpen, onClose }: PatientModalProps) {
                                 onChange={(e) => setFormData(prev => ({ ...prev, riwayat: e.target.value }))}
                                 className="block w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 text-xs font-semibold outline-none cursor-pointer shadow-sm transition-all hover:border-brand-300"
                             >
-                                <option value="Normal">Normal / Healthy</option>
-                                <option value="Hipertensi">Hypertension</option>
-                                <option value="Jantung">Heart Condition</option>
+                                <option value="Normal">Normal</option>
+                                <option value="Hipertensi">Hipertensi</option>
+                                <option value="Jantung">Penyakit Jantung</option>
                             </select>
                         </div>
                     </div>

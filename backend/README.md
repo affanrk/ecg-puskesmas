@@ -45,7 +45,7 @@ FastAPI application for real-time ECG monitoring, ML analysis, and data manageme
 3. **Run the application:**
    ```bash
    # From the project root directory
-   python -m backend.main
+   python -m main
    ```
 
 ## API Documentation

@@ -24,9 +24,6 @@ export default function AIAnalysisCard() {
                     confidence: result.confidence || 0
                 });
             } else if (latest.classification === 'Recording...') {
-                // If we only have "Recording...", we can keep "Waiting..." or show "Recording..."
-                // Based on previous logic, we want to reset if no valid prediction.
-                // But usually we want to show the last one until it's really cleared.
                 if (liveData.length === 1) {
                     setPrediction(null);
                 }

@@ -6,23 +6,22 @@ Now uses repositories and separated feature extraction.
 import os
 import asyncio
 import joblib
-import tensorflow as tf
 import numpy as np
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
 
-from backend.services.analysis.feature_extractor import feature_extractor
-from backend.services.device.state import device_state_manager
-from backend.repositories.session import SessionRepository, RawDataRepository
-from backend.core.database import SessionLocal
-from backend.core.config import settings
-from backend.core.exceptions import (
+from services.analysis.feature_extractor import feature_extractor
+from services.device.state import device_state_manager
+from repositories.session import SessionRepository, RawDataRepository
+from core.database import SessionLocal
+from core.config import settings
+from core.exceptions import (
     InsufficientDataException,
     RecordingNotFoundException
 )
-from backend.utils.constants import (
+from utils.constants import (
     MIN_SAMPLES_FOR_ANALYSIS,
     CLASS_INDEX_MAP,
     ECGClassification,
@@ -31,8 +30,8 @@ from backend.utils.constants import (
     DEFAULT_SCALER_FILE,
     DEFAULT_MODEL_FILE
 )
-from backend.utils.helpers import resolve_path
-from backend.utils.logger import logger
+from utils.helpers import resolve_path
+from utils.logger import logger
 
 
 class MLEngineService:
@@ -57,6 +56,9 @@ class MLEngineService:
         Called during application startup.
         """
         try:
+            # Lazy import to speed up initial app startup
+            import tensorflow as tf
+            
             model_dir = resolve_path(settings.MODEL_PATH or DEFAULT_MODEL_DIR)
             
             scaler_path = os.path.join(model_dir, DEFAULT_SCALER_FILE)
@@ -109,7 +111,7 @@ class MLEngineService:
         
         Args:
             recording_id: Recording identifier
-            subject_id: Patient identifier
+            subject_id: Patient identifier (NIK)
             device_id: Device identifier
         """
         try:

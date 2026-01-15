@@ -109,7 +109,7 @@ export default function ECGChart({ visibleLeads, onToggleLead }: ECGChartProps) 
                 chartRef.current = null;
             }
         };
-    }, []); // Run once on mount
+    }, []);
 
     // Handle Visibility Changes
     useEffect(() => {

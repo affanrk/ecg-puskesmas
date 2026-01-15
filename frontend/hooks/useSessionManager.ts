@@ -2,7 +2,6 @@
 
 import { useStore } from '@/store/useStore';
 import { sendJson } from '@/services/socket';
-import { calculateAge } from '@/utils/helpers';
 
 import { useToast } from '@/hooks/useToast';
 

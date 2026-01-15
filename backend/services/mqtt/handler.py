@@ -10,14 +10,14 @@ import numpy as np
 from datetime import datetime, timezone
 from typing import List
 
-from backend.services.mqtt.protocol import ECGSample, mqtt_protocol
-from backend.services.device.state import device_state_manager, DeviceState
-from backend.services.analysis.signal_processor import signal_processor
-from backend.services.analysis.ml_engine import ml_engine_service
-from backend.repositories.patient import PatientRepository
-from backend.repositories.session import SessionRepository
-from backend.core.database import SessionLocal
-from backend.utils.constants import (
+from services.mqtt.protocol import ECGSample, mqtt_protocol
+from services.device.state import device_state_manager, DeviceState
+from services.analysis.signal_processor import signal_processor
+from services.analysis.ml_engine import ml_engine_service
+from repositories.patient import PatientRepository
+from repositories.session import SessionRepository
+from core.database import SessionLocal
+from utils.constants import (
     SAMPLING_RATE,
     BUFFER_SIZE,
     MAX_GAP_FILL_SAMPLES,
@@ -26,7 +26,7 @@ from backend.utils.constants import (
     PERFORMANCE_LOG_INTERVAL,
     WSMessageType
 )
-from backend.utils.logger import logger
+from utils.logger import logger
 
 
 class MQTTDataHandler:

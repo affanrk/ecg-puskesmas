@@ -19,11 +19,6 @@ export function useDeviceManager() {
 
     useEffect(() => {
         const handleDeviceList = (list: Device[]) => {
-            // setDevices is already called in handleMessage, but we can keep it here for safety or redundancy
-            // setDevices(list);
-            
-            // Detect Implicit Disconnection:
-            // If current selected device is NOT in the new list, it means it disconnected.
             if (currentDeviceId) {
                 const exists = list.some(d => d.id === currentDeviceId);
                 if (!exists) {
@@ -39,19 +34,15 @@ export function useDeviceManager() {
             const wasRecording = isRecording || data.was_recording;
             const hasPatient = !!patient;
 
-            // Scenario 1, 2, 3: Reset device first
             setDeviceId(null);
 
             if (wasRecording) {
-                // Scenario 3: Recording -> Alert, Stop, Reset
                 setRecording(false);
                 alert(`Recording Stopped! Connection lost with device ${disconnectedId}.`);
             } else {
-                // Scenario 2: Idle with patient -> Toast warning
                 toast(`Device ${disconnectedId} disconnected`, "warning");
             }
 
-            // Scenario 1: If no patient and wasn't recording -> Total reset
             if (!wasRecording && !hasPatient) {
                 setPatient(null);
             }
@@ -87,8 +78,6 @@ export function useDeviceManager() {
 
     const disconnectDevice = () => {
         if (!currentDeviceId) return;
-        
-        // selectDevice already handles stop_recording confirmation if recording
         selectDevice(""); 
     };
 

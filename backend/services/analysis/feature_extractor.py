@@ -8,9 +8,9 @@ import pandas as pd
 import math
 from typing import Dict, Tuple, Optional
 
-from backend.services.analysis.signal_processor import signal_processor
-from backend.utils.constants import SAMPLING_RATE
-from backend.utils.logger import logger
+from services.analysis.signal_processor import signal_processor
+from utils.constants import SAMPLING_RATE
+from utils.logger import logger
 
 
 class FeatureExtractor:

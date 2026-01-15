@@ -9,12 +9,12 @@ from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 
-from backend.repositories.session import SessionRepository, RawDataRepository
-from backend.services.export.plot_generator import plot_generator
-from backend.core.dependencies import get_session_repository
-from backend.core.database import SessionLocal
-from backend.core.exceptions import RecordingNotFoundException
-from backend.utils.logger import logger
+from repositories.session import SessionRepository, RawDataRepository
+from services.export.plot_generator import plot_generator
+from core.dependencies import get_session_repository
+from core.database import SessionLocal
+from core.exceptions import RecordingNotFoundException
+from utils.logger import logger
 
 
 router = APIRouter()
@@ -106,7 +106,7 @@ async def export_analysis_features(
     **Returns:**
     CSV file with columns:
     - `recording_id`: Recording ID
-    - `patient_id`: Patient identifier
+    - `patient_id`: Patient identifier (NIK)
     - `timestamp`: Recording timestamp
     - `classification`: AI classification result
     - `confidence`: Confidence score (0-1)

@@ -7,12 +7,12 @@ import asyncio
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 
-from backend.services.device.state import device_state_manager
-from backend.repositories.session import SessionRepository, RawDataRepository
-from backend.repositories.performance import PerformanceRepository
-from backend.core.database import SessionLocal
-from backend.utils.constants import DB_BATCH_INTERVAL, DB_BATCH_CHUNK_SIZE
-from backend.utils.logger import logger
+from services.device.state import device_state_manager
+from repositories.session import SessionRepository, RawDataRepository
+from repositories.performance import PerformanceRepository
+from core.database import SessionLocal
+from utils.constants import DB_BATCH_INTERVAL, DB_BATCH_CHUNK_SIZE
+from utils.logger import logger
 
 
 class RecordingStorageService:

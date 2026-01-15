@@ -4,7 +4,7 @@ Organizes all API routes with proper grouping and tags.
 """
 from fastapi import APIRouter
 
-from backend.api.v1.endpoints import websocket, history, export, health, auth
+from api.v1.endpoints import websocket, history, export, health, auth
 
 
 # Create main API router

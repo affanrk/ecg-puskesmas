@@ -163,7 +163,7 @@ class Gender(str, Enum):
 # VALIDATION RULES
 # ============================================================================
 
-# Patient ID validation
+# Patient ID (NIK) validation
 MIN_PATIENT_ID_LENGTH = 1
 MAX_PATIENT_ID_LENGTH = 50
 

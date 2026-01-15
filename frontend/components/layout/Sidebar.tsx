@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BarChart3, Download, Zap, LogOut } from 'lucide-react';
+import { BarChart3, Download, Zap, LogOut, LayoutDashboard, HeartPulse } from 'lucide-react';
 import clsx from 'clsx';
 
 import { useStore } from '@/store/useStore';
@@ -16,6 +16,7 @@ export default function Sidebar() {
     const { show: toast } = useToast();
 
     const navItems = [
+        { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
         { href: '/monitor', icon: BarChart3, label: 'Live Monitor' },
         { href: '/history', icon: Download, label: 'Data Export' },
         { href: '/performance', icon: Zap, label: 'Performance' },
@@ -23,8 +24,6 @@ export default function Sidebar() {
 
     const handleLogout = () => {
         toast("You have been signed out.", "success");
-        
-        // Brief buffer before redirecting
         setTimeout(() => {
             localStorage.removeItem('ecg_token');
             localStorage.removeItem('ecg_user');
@@ -34,41 +33,60 @@ export default function Sidebar() {
     };
 
     return (
-        <aside className="w-20 bg-white border-r border-slate-200 flex flex-col items-center py-6 z-20 shadow-sm relative hidden sm:flex h-screen shrink-0">
-            <div className="mb-8 w-10 h-10 bg-gradient-to-br from-brand-500 to-brand-600 rounded-xl shadow-lg shadow-brand-500/20 flex items-center justify-center text-white font-bold text-xl">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+        <aside className="w-60 bg-white border-r border-slate-200 flex flex-col py-6 z-20 shadow-sm relative hidden sm:flex h-screen shrink-0 transition-all duration-300">
+            {/* --- Logo & Brand --- */}
+            <div className="px-6 mb-8 flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center text-white shrink-0">
+                    <HeartPulse className="w-6 h-6" />
+                </div>
+                <div>
+                    <h1 className="font-bold text-slate-800 text-lg leading-tight tracking-tight">ECG Live</h1>
+                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Puskesmas Platform</p>
+                </div>
             </div>
 
-            <nav className="flex-1 w-full flex flex-col gap-4 px-2">
-                {navItems.map((item) => {
-                    const isActive = pathname.startsWith(item.href);
-                    return (
-                        <Link 
-                            key={item.href}
-                            href={item.href}
-                            title={item.label}
-                            className={clsx(
-                                "group w-full aspect-square rounded-xl flex items-center justify-center transition-all",
-                                isActive 
-                                    ? "text-brand-700 bg-brand-50 ring-1 ring-brand-200 shadow-sm" 
-                                    : "text-slate-400 hover:bg-slate-50 hover:text-brand-600"
-                            )}
-                        >
-                            <item.icon className="w-6 h-6" />
-                        </Link>
-                    );
-                })}
-            </nav>
+            {/* --- Navigation --- */}
+            <div className="flex-1 px-4 overflow-y-auto custom-scrollbar">
+                <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Main Menu</p>
+                <nav className="flex flex-col gap-1.5">
+                    {navItems.map((item) => {
+                        // Check active state strictly for dashboard vs others to avoid overlap if paths were nested
+                        const isActive = pathname.startsWith(item.href);
+                        
+                        return (
+                            <Link 
+                                key={item.href}
+                                href={item.href}
+                                className={clsx(
+                                    "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                                    isActive 
+                                        ? "bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100" 
+                                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                                )}
+                            >
+                                <item.icon className={clsx(
+                                    "w-5 h-5 transition-colors",
+                                    isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                                )} />
+                                <span>{item.label}</span>
+                                
+                                {isActive && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shadow-sm shadow-blue-400"></div>
+                                )}
+                            </Link>
+                        );
+                    })}
+                </nav>
+            </div>
             
-            <div className="mt-auto pb-6 w-full px-2">
+            {/* --- Footer / Logout --- */}
+            <div className="mt-auto px-4 pt-4 border-t border-slate-100">
                 <button 
                     onClick={handleLogout}
-                    className="w-full aspect-square rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all duration-300 cursor-pointer border border-transparent hover:border-rose-100" 
-                    title="Sign Out"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 group"
                 >
-                    <LogOut className="w-6 h-6" />
+                    <LogOut className="w-5 h-5 text-slate-400 group-hover:text-rose-500 transition-colors" />
+                    <span>Sign Out</span>
                 </button>
             </div>
         </aside>

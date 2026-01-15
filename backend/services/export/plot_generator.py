@@ -11,12 +11,12 @@ import pandas as pd
 from typing import Optional
 from sqlalchemy.orm import Session
 
-from backend.services.analysis.signal_processor import signal_processor
-from backend.repositories.session import RawDataRepository
-from backend.core.database import SessionLocal
-from backend.core.exceptions import RecordingNotFoundException
-from backend.utils.constants import SAMPLING_RATE, PLOT_DPI, PLOT_FIGURE_SIZE
-from backend.utils.logger import logger
+from services.analysis.signal_processor import signal_processor
+from repositories.session import RawDataRepository
+from core.database import SessionLocal
+from core.exceptions import RecordingNotFoundException
+from utils.constants import SAMPLING_RATE, PLOT_DPI, PLOT_FIGURE_SIZE
+from utils.logger import logger
 
 
 class PlotGeneratorService:

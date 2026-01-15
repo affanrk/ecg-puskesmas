@@ -17,11 +17,11 @@ class Settings(BaseSettings):
     MQTT_USE_TLS: bool = False
     
     # Application
-    FLASK_PORT: int = 5000  # Port aplikasi (Legacy naming kept)
+    FLASK_PORT: int = int(os.getenv("PORT", 5000))
     MODEL_PATH: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_models")
     
     # Security
-    SECRET_KEY: str # Must be set in .env or environment variable
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 Day
 

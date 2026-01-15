@@ -48,7 +48,7 @@ source backend/venv/bin/activate
 pip install -r backend/requirements.txt
 
 # Run module
-python -m backend.main
+python main.py
 ```
 
 ### 2. Frontend

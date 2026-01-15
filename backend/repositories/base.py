@@ -7,7 +7,7 @@ from typing import Generic, TypeVar, Type, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, and_, or_
 
-from backend.core.exceptions import DatabaseException
+from core.exceptions import DatabaseException
 
 # Generic type for SQLAlchemy models
 ModelType = TypeVar("ModelType")

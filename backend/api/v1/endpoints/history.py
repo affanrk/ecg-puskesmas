@@ -5,10 +5,10 @@ Now uses repositories and better query patterns.
 from fastapi import APIRouter, Depends, Query
 from typing import List, Optional
 
-from backend.repositories.session import SessionRepository
-from backend.core.dependencies import get_session_repository, DateRangeParams
-from backend.schemas.session import SessionResponse
-from backend.utils.constants import MAX_HISTORY_RESULTS
+from repositories.session import SessionRepository
+from core.dependencies import get_session_repository, DateRangeParams
+from schemas.session import SessionResponse
+from utils.constants import MAX_HISTORY_RESULTS
 
 
 router = APIRouter()
@@ -17,8 +17,8 @@ router = APIRouter()
 @router.get("", response_model=List[SessionResponse])
 async def get_recording_history(
     device_id: Optional[str] = Query(None, description="Filter by device ID"),
-    subject_id: Optional[str] = Query(None, description="Filter by patient ID"),
-    search: Optional[str] = Query(None, description="Search by name, device, or patient ID"),
+    subject_id: Optional[str] = Query(None, description="Filter by NIK"),
+    search: Optional[str] = Query(None, description="Search by name, device, or NIK"),
     classification: Optional[str] = Query(None, description="Filter by classification result"),
     date_range: DateRangeParams = Depends(),
     limit: int = Query(MAX_HISTORY_RESULTS, le=MAX_HISTORY_RESULTS, description="Maximum results"),
@@ -29,8 +29,8 @@ async def get_recording_history(
     
     **Query Parameters:**
     - `device_id`: Filter by specific device
-    - `subject_id`: Filter by patient ID (partial match)
-    - `search`: Search across patient name, device ID, and patient ID
+    - `subject_id`: Filter by NIK (partial match)
+    - `search`: Search across patient name, device ID, and NIK
     - `classification`: Filter by classification result (e.g., "Normal", "Abnormal")
     - `start_date`: Filter recordings from this date (YYYY-MM-DD)
     - `end_date`: Filter recordings up to this date (YYYY-MM-DD)
@@ -183,7 +183,7 @@ async def get_patient_history(
     Get all recording history for a specific patient.
     
     **Path Parameters:**
-    - `patient_id`: Patient identifier (NIK)
+    - `patient_id`: Patient Identifier (NIK)
     
     **Query Parameters:**
     - `limit`: Maximum results (default: 100)

@@ -8,13 +8,13 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 
-from backend.core.database import Base, engine
-from backend.services.mqtt.client import mqtt_service
-from backend.services.recording.storage import recording_storage_service
-from backend.services.device.watchdog import device_watchdog_service
-from backend.services.analysis.ml_engine import ml_engine_service
-from backend.services.device.state import device_state_manager
-from backend.utils.logger import logger
+from core.database import Base, engine
+from services.mqtt.client import mqtt_service
+from services.recording.storage import recording_storage_service
+from services.device.watchdog import device_watchdog_service
+from services.analysis.ml_engine import ml_engine_service
+from services.device.state import device_state_manager
+from utils.logger import logger
 
 
 class ApplicationState:
@@ -42,20 +42,28 @@ class ApplicationState:
             logger.warning("   Please run with 'python app/main.py' to ensure SelectorEventLoop is used.")
         
         # 1. Initialize Database
-        await self._init_database()
-        
+        try:
+            await self._init_database()
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize database: {e}")
+            logger.warning("   Application will start without database connection. Some features may fail.")
+
         # 2. Initialize ML Models
-        await self._init_ml_service()
+        try:
+            await self._init_ml_service()
+        except Exception as e:
+            logger.error(f"❌ Failed to load ML models: {e}")
         
         # 3. Start Background Workers
         await self._start_background_tasks()
         
         # 4. Connect to MQTT
-        await self._connect_mqtt()
+        try:
+            await self._connect_mqtt()
+        except Exception as e:
+            logger.error(f"❌ Failed to connect to MQTT: {e}")
         
         self.is_running = True
-        logger.info("✓ All services started successfully")
-        logger.info("=" * 60)
         
     async def stop(self):
         """Cleanup all application components"""

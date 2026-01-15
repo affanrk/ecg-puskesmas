@@ -7,7 +7,7 @@ import heapq
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 
-from backend.utils.logger import logger
+from utils.logger import logger
 
 
 @dataclass

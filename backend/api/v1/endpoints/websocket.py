@@ -7,14 +7,14 @@ import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from datetime import datetime
 
-from backend.services.device.state import device_state_manager
-from backend.services.device.watchdog import device_watchdog_service
-from backend.repositories.patient import PatientRepository
-from backend.repositories.session import SessionRepository
-from backend.core.dependencies import get_patient_repository, get_session_repository
-from backend.core.exceptions import DatabaseException
-from backend.utils.constants import WSMessageType
-from backend.utils.logger import logger
+from services.device.state import device_state_manager
+from services.device.watchdog import device_watchdog_service
+from repositories.patient import PatientRepository
+from repositories.session import SessionRepository
+from core.dependencies import get_patient_repository, get_session_repository
+from core.exceptions import DatabaseException
+from utils.constants import WSMessageType
+from utils.logger import logger
 import uuid
 
 

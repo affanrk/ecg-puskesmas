@@ -32,6 +32,7 @@ interface AppState {
         latencyHistory: number[];
         jitterHistory: number[];
     };
+    performanceTrackingEnabled: boolean;
 
     // Actions
     setDeviceId: (id: string | null) => void;
@@ -70,7 +71,6 @@ export const useStore = create<AppState>((set, get) => ({
     performanceTrackingEnabled: false,
 
     setDeviceId: (id) => set((state) => {
-        // Reset recording and performance history on device change
         return { 
             currentDeviceId: id,
             isRecording: false, 
@@ -87,11 +87,9 @@ export const useStore = create<AppState>((set, get) => ({
     }),
     setDevices: (devices) => set({ devices }),
     setRecording: (isRecording) => set((state) => {
-        // 1. Always remove any existing placeholders first to be clean
         const filteredData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
         let newLiveData = [...filteredData];
         
-        // 2. Add stable placeholder if starting recording
         if (isRecording) {
             newLiveData.unshift({
                 timestamp: new Date().toISOString(),
@@ -132,35 +130,27 @@ export const useStore = create<AppState>((set, get) => ({
         return { patient, recordingSeconds: 0 };
     }),
     setArchiveData: (data) => set((state) => {
-        // Filter out placeholders
         const cleanData = data.filter(r => r.recording_id !== 'placeholder-live' && r.classification !== 'Recording...');
         return { archiveData: cleanData };
     }),
     addLiveResult: (result) => set((state) => {
-        // Strict guard: ensure valid result and not a placeholder
         if (!result || !result.recording_id || result.classification === 'Recording...') {
             return state;
         }
 
-        // 1. Prepare clean Live Data (remove existing placeholders)
         const cleanLiveData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
         
-        // 2. Prevent Duplicates in Live Data
         if (cleanLiveData.some(item => item.recording_id === result.recording_id)) {
             return state;
         }
 
-        // 3. Prevent Duplicates in Archive Data
         const isDuplicateInArchive = state.archiveData.some(item => item.recording_id === result.recording_id);
-        
         const newArchiveData = isDuplicateInArchive 
             ? state.archiveData 
             : [result, ...state.archiveData];
 
-        // 4. Build new Live Data list
         let newLiveData = [result, ...cleanLiveData];
 
-        // 5. Restore placeholder ONLY if we are still actively recording
         if (state.isRecording) {
             newLiveData.unshift({
                 timestamp: new Date().toISOString(),
@@ -172,7 +162,6 @@ export const useStore = create<AppState>((set, get) => ({
             });
         }
 
-        // Limit memory for live display
         if (newLiveData.length > 200) newLiveData = newLiveData.slice(0, 200);
 
         return { 
@@ -183,7 +172,6 @@ export const useStore = create<AppState>((set, get) => ({
     setLivePage: (page) => set({ livePage: page }),
     setBpm: (bpm) => set({ bpm }),
     updatePerformance: (latency, jitter, loss) => set((state) => {
-        // Only update current values if not tracking
         if (!state.performanceTrackingEnabled) {
             return {
                 performance: {

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, BigInteger, Date, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship, declarative_mixin
-from backend.core.database import Base
+from core.database import Base
 
 @declarative_mixin
 class AuditMixin:

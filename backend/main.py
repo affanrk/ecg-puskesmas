@@ -29,18 +29,18 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.core.config import settings
-from backend.core.events import lifespan
-from backend.core.exceptions import (
+from core.config import settings
+from core.events import lifespan
+from core.exceptions import (
     AppException,
     DeviceException,
     RecordingException,
     PatientException,
     AnalysisException
 )
-from backend.api.v1.router import api_router
-from backend.api.v1.endpoints.websocket import router as ws_router
-from backend.utils.logger import logger
+from api.v1.router import api_router
+from api.v1.endpoints.websocket import router as ws_router
+from utils.logger import logger
 
 
 # ============================================================================

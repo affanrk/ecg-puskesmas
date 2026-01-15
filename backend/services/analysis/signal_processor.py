@@ -10,14 +10,14 @@ import pandas as pd
 import neurokit2 as nk
 from typing import Dict, Tuple, Optional
 
-from backend.utils.constants import (
+from utils.constants import (
     SAMPLING_RATE,
     BUTTER_ORDER,
     BUTTER_CUTOFF,
     FIR_FILTER_CUTOFF,
     FIR_RIPPLE_DB
 )
-from backend.utils.logger import logger
+from utils.logger import logger
 
 
 class SignalProcessor:
