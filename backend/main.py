@@ -9,7 +9,9 @@ import warnings
 import logging
 
 if sys.platform == 'win32':
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    policy = asyncio.WindowsSelectorEventLoopPolicy()
+    asyncio.set_event_loop_policy(policy)
+    # print(f"DEBUG: Event Loop Policy set to {type(policy).__name__}")
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
@@ -137,13 +139,10 @@ if __name__ == "__main__":
     import asyncio
     import uvicorn
     
-    logger.info("=" * 80)
-    logger.info("Starting ECG Live Platform v2.0")
-    logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    logger.info(f"API Port: {settings.FLASK_PORT}")
-    logger.info(f"Database: {settings.DATABASE_HOST}:{settings.DATABASE_PORT}")
-    logger.info(f"MQTT Broker: {settings.MQTT_BROKER}:{settings.MQTT_PORT}")
-    logger.info("=" * 80)
+    logger.info(f"[Config] Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    logger.info(f"[Config] API Port: {settings.FLASK_PORT}")
+    logger.info(f"[Config] Database: {settings.DATABASE_HOST}:{settings.DATABASE_PORT}")
+    logger.info(f"[Config] MQTT Broker: {settings.MQTT_BROKER}:{settings.MQTT_PORT}")
 
     config = uvicorn.Config(
         app=app,

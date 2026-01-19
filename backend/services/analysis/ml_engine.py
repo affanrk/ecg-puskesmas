@@ -115,7 +115,7 @@ class MLEngineService:
             device_id: Device identifier
         """
         try:
-            logger.info(f"[{device_id}] >>> START ANALYSIS {recording_id}")
+            logger.info(f"[ML Engine] Starting analysis for recording {recording_id} (Device: {device_id})")
             
             # Run analysis in thread pool
             loop = asyncio.get_running_loop()
@@ -165,7 +165,7 @@ class MLEngineService:
             )
             
             logger.info(
-                f"[{recording_id}] Result: {classification} "
+                f"[ML Engine] Analysis result for {recording_id}: {classification} "
                 f"(BPM: {int(features['bpm'])}, Confidence: {confidence:.2%})"
             )
             
@@ -177,10 +177,10 @@ class MLEngineService:
             }
             
         except InsufficientDataException as e:
-            logger.warning(f"[{recording_id}] {e.message}")
+            logger.warning(f"[ML Engine] Insufficient data for {recording_id}: {e.message}")
             return None
         except Exception as e:
-            logger.error(f"[{recording_id}] Analysis failed: {e}")
+            logger.error(f"[ML Engine] Analysis failed for {recording_id}: {e}")
             return None
         finally:
             db.close()

@@ -137,6 +137,11 @@ class SignalProcessor:
                 sampling_rate=self.sampling_rate
             )
             
+            # Skip delineation if no peaks found
+            if len(rpeaks_info.get("ECG_R_Peaks", [])) == 0:
+                # logger.debug("[SignalProcessor] No R-peaks detected, skipping delineation")
+                return rpeaks_info, {}
+            
             # Delineate waves (P, Q, S, T)
             signals, waves_info = nk.ecg_delineate(
                 clean_signal,
@@ -224,10 +229,20 @@ class SignalProcessor:
             return rpeaks, waves
             
     def _clean_array(self, arr) -> np.ndarray:
-        """Remove NaN values and convert to int array"""
-        return np.array([
-            int(x) for x in arr if not pd.isna(x)
-        ], dtype=int)
+        """Remove NaN/Inf values and convert to int array"""
+        cleaned = []
+        for x in arr:
+            try:
+                if pd.isna(x):
+                    continue
+                if isinstance(x, (int, float, np.number)):
+                    if not np.isfinite(x):
+                        continue
+                    cleaned.append(int(x))
+            except Exception:
+                continue
+                
+        return np.array(cleaned, dtype=int)
         
     def _correct_first_cycle(
         self,

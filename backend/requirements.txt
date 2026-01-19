@@ -5,7 +5,7 @@ python-jose[cryptography]
 python-multipart
 
 # Web Framework
-fastapi
+fastapi[standard]
 uvicorn[standard]
 websockets
 
@@ -18,8 +18,8 @@ sqlalchemy
 psycopg2-binary
 
 # Data Processing
-numpy
-pandas
+numpy<2.0
+pandas==2.2.2
 scipy
 
 # ML & Signal Processing

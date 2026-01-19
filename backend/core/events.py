@@ -30,29 +30,27 @@ class ApplicationState:
         
     async def start(self):
         """Initialize all application components"""
-        logger.info("=" * 60)
-        logger.info("STARTING ECG LIVE PLATFORM")
-        logger.info("=" * 60)
+        logger.info("[Lifecycle] Starting ECG Live Platform")
         
         # Check Event Loop Type
         loop = asyncio.get_running_loop()
         logger.info(f"Event Loop: {type(loop).__name__}")
         if "Proactor" in type(loop).__name__:
-            logger.warning("⚠️  WARNING: Running on ProactorEventLoop. MQTT may fail on Windows.")
-            logger.warning("   Please run with 'python app/main.py' to ensure SelectorEventLoop is used.")
+            logger.warning("[Lifecycle] Running on ProactorEventLoop. MQTT may fail on Windows.")
+            logger.warning("[Lifecycle] Please run with 'python app/main.py' to ensure SelectorEventLoop is used.")
         
         # 1. Initialize Database
         try:
             await self._init_database()
         except Exception as e:
-            logger.error(f"❌ Failed to initialize database: {e}")
-            logger.warning("   Application will start without database connection. Some features may fail.")
+            logger.error(f"[Lifecycle] Failed to initialize database: {e}")
+            logger.warning("[Lifecycle] Application will start without database connection. Some features may fail.")
 
         # 2. Initialize ML Models
         try:
             await self._init_ml_service()
         except Exception as e:
-            logger.error(f"❌ Failed to load ML models: {e}")
+            logger.error(f"[Lifecycle] Failed to load ML models: {e}")
         
         # 3. Start Background Workers
         await self._start_background_tasks()
@@ -61,50 +59,46 @@ class ApplicationState:
         try:
             await self._connect_mqtt()
         except Exception as e:
-            logger.error(f"❌ Failed to connect to MQTT: {e}")
+            logger.error(f"[Lifecycle] Failed to connect to MQTT: {e}")
         
         self.is_running = True
         
     async def stop(self):
         """Cleanup all application components"""
-        logger.info("=" * 60)
-        logger.info("SHUTTING DOWN ECG LIVE PLATFORM")
-        logger.info("=" * 60)
+        logger.info("[Lifecycle] Shutting down ECG Live Platform")
         
         self.is_running = False
         
         # 1. Cancel background tasks
-        logger.info("→ Cancelling background tasks...")
+        logger.info("[Lifecycle] Cancelling background tasks...")
         for task in self.background_tasks:
             task.cancel()
         
         # Wait for cancellation
         await asyncio.gather(*self.background_tasks, return_exceptions=True)
         self.background_tasks.clear()
-        logger.info("✓ Background tasks stopped")
+        logger.info("[Lifecycle] Background tasks stopped")
         
         # 2. Disconnect MQTT
-        logger.info("→ Disconnecting MQTT...")
+        logger.info("[Lifecycle] Disconnecting MQTT...")
         await mqtt_service.disconnect()
-        logger.info("✓ MQTT disconnected")
+        logger.info("[Lifecycle] MQTT disconnected")
         
         # 3. Shutdown ML service thread pool
-        logger.info("→ Shutting down ML service...")
+        logger.info("[Lifecycle] Shutting down ML service...")
         ml_engine_service.shutdown()
-        logger.info("✓ ML service stopped")
+        logger.info("[Lifecycle] ML service stopped")
         
         # 4. Close all WebSocket connections
-        logger.info("→ Closing WebSocket connections...")
+        logger.info("[Lifecycle] Closing WebSocket connections...")
         await self._close_websockets()
-        logger.info("✓ WebSocket connections closed")
+        logger.info("[Lifecycle] WebSocket connections closed")
         
-        logger.info("=" * 60)
-        logger.info("SHUTDOWN COMPLETE")
-        logger.info("=" * 60)
+        logger.info("[Lifecycle] Shutdown complete")
         
     async def _init_database(self):
         """Initialize database tables"""
-        logger.info("→ Initializing database...")
+        logger.info("[Lifecycle] Initializing database...")
         
         # Create tables if they don't exist
         Base.metadata.create_all(bind=engine)
@@ -112,17 +106,17 @@ class ApplicationState:
         # Run cleanup for zombie sessions
         await recording_storage_service.cleanup_zombie_sessions()
         
-        logger.info("✓ Database initialized")
+        logger.info("[Lifecycle] Database initialized")
         
     async def _init_ml_service(self):
         """Load ML models into memory"""
-        logger.info("→ Loading ML models...")
+        logger.info("[Lifecycle] Loading ML models...")
         ml_engine_service.load_model()
-        logger.info("✓ ML models loaded")
+        logger.info("[Lifecycle] ML models loaded")
         
     async def _start_background_tasks(self):
         """Start all background worker tasks"""
-        logger.info("→ Starting background workers...")
+        logger.info("[Lifecycle] Starting background workers...")
         
         tasks = [
             ("DB Batch Inserter", recording_storage_service.run_batch_inserter()),
@@ -133,11 +127,11 @@ class ApplicationState:
         for name, coro in tasks:
             task = asyncio.create_task(coro, name=name)
             self.background_tasks.append(task)
-            logger.info(f"  ✓ Started: {name}")
+            logger.info(f"[Lifecycle] Background task started: {name}")
             
     async def _connect_mqtt(self):
         """Connect to MQTT broker"""
-        logger.info("→ Connecting to MQTT broker...")
+        logger.info("[Lifecycle] Connecting to MQTT broker...")
         
         # Start MQTT listener task
         mqtt_task = asyncio.create_task(
@@ -149,7 +143,7 @@ class ApplicationState:
         # Wait a bit for connection
         await asyncio.sleep(1)
         
-        logger.info("✓ MQTT listener started")
+        logger.info("[Lifecycle] MQTT listener started")
         
     async def _heartbeat_worker(self):
         """Periodic heartbeat to keep connections alive"""

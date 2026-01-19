@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     MQTT_USE_TLS: bool = False
     
     # Application
-    FLASK_PORT: int = int(os.getenv("PORT", 5000))
+    FLASK_PORT: int = int(os.getenv("FLASK_PORT", 5000))
     MODEL_PATH: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ml_models")
+    ENVIRONMENT: str = "development"
     
     # Security
     SECRET_KEY: str

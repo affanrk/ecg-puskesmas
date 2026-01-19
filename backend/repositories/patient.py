@@ -113,8 +113,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
             gender=gender,
             age=age,
             pob=pob,
-            place_of_birth=pob,  # Legacy field
-            date_of_birth=dob,
+            dob=dob,
             medical_history=medical_history,
             created_by="SYSTEM"
         )
@@ -161,10 +160,8 @@ class PatientRepository(BaseRepository[TbMPatient]):
             update_data["gender"] = gender
         if pob is not None:
             update_data["pob"] = pob
-            update_data["place_of_birth"] = pob  # Update both fields
         if dob is not None:
             update_data["dob"] = dob
-            update_data["date_of_birth"] = dob
         if medical_history is not None:
             update_data["medical_history"] = medical_history
             
