@@ -1,67 +1,67 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
+import { api } from '@/services/api';
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
-    const [authorized, setAuthorized] = useState(false);
+export default function AuthGuard({ children }: { children: ReactNode }) {
+    // 1. Hooks & State
     const router = useRouter();
     const pathname = usePathname();
-    const { show: toast } = useToast();
+    const { setUser, user: storeUser } = useStore();
+    const [authorized, setAuthorized] = useState(false);
 
+    // 2. Effects
     useEffect(() => {
-        const checkAuth = () => {
+        const checkAuth = async () => {
             const token = localStorage.getItem('ecg_token');
-            const userStr = localStorage.getItem('ecg_user');
-            
-            if (!token || !userStr) {
+            const isAuthPage = pathname === '/login' || pathname === '/register';
+
+            if (!token) {
                 setAuthorized(false);
-                if (pathname !== '/login' && pathname !== '/register') {
-                    toast("Please login to continue", "warning");
+                if (!isAuthPage) {
                     router.push('/login');
                 }
                 return;
             }
 
             try {
-                const user = JSON.parse(userStr);
-                const role = user.role?.toLowerCase();
-
-                if (role === 'user') {
-                    setAuthorized(true);
-                } else if (['admin', 'doctor', 'operator'].includes(role)) {
-                    if (pathname !== '/coming-soon') {
-                        toast("Access restricted for your role", "warning");
-                        router.push('/coming-soon');
-                    } else {
-                        setAuthorized(true);
-                    }
-                } else {
-                    setAuthorized(true); 
+                // If we already have the user in store, we are good (client-side nav)
+                // But if it's a reload (storeUser is null), we MUST fetch from API
+                // to get the FULL profile (localStorage might only have partial data from login)
+                if (!storeUser) {
+                    const userData = await api.fetchUserProfile(token);
+                    setUser(userData);
+                    // Update LS to keep it somewhat fresh, though we rely on API for completeness
+                    localStorage.setItem('ecg_user', JSON.stringify(userData));
                 }
-            } catch (e) {
+
+                setAuthorized(true);
+            } catch (error) {
+                console.error("Session verification failed:", error);
+                // If fetch fails (e.g. 401), clear session and redirect
                 localStorage.removeItem('ecg_token');
                 localStorage.removeItem('ecg_user');
                 setAuthorized(false);
-                toast("Session expired", "error");
-                router.push('/login');
+                if (!isAuthPage) router.push('/login');
             }
         };
 
         checkAuth();
-    }, [pathname, router]);
+    }, [pathname, router, setUser, storeUser]);
 
+    // 3. Render
     if (pathname === '/login' || pathname === '/register') {
         return <>{children}</>;
     }
 
     if (!authorized) {
         return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 font-sans">
+            <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50">
                 <Loader2 className="w-10 h-10 text-brand-500 animate-spin mb-4" />
-                <p className="text-slate-500 font-medium animate-pulse">Verifying Session...</p>
+                <p className="text-slate-500 font-medium">Verifying Session...</p>
             </div>
         );
     }

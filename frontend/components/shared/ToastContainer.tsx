@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useToast } from '@/hooks/useToast';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import clsx from 'clsx';

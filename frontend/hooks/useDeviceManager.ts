@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { globalEventBus } from '@/services/events';
 import { EVENTS } from '@/config/constants';
 import { sendJson } from '@/services/socket';
-
 import { useToast } from '@/hooks/useToast';
 
 export interface Device {
@@ -14,9 +13,12 @@ export interface Device {
 }
 
 export function useDeviceManager() {
-    const { currentDeviceId, setDeviceId, isRecording, patient, setRecording, setPatient, devices, setDevices } = useStore();
+    // 1. Store & Hooks
+    const { currentDeviceId, setDeviceId, isRecording, setRecording, devices, setBpm } = useStore();
     const { show: toast } = useToast();
 
+    // 2. Effects
+    // Handle AUTOMATIC disconnection (network/power loss)
     useEffect(() => {
         const handleDeviceList = (list: Device[]) => {
             if (currentDeviceId) {
@@ -27,24 +29,22 @@ export function useDeviceManager() {
             }
         };
 
-        const handleDeviceDisconnect = (data: any) => {
-            const disconnectedId = data.device_id || data;
+        const handleDeviceDisconnect = (data: { device_id?: string; was_recording?: boolean } | string) => {
+            const disconnectedId = typeof data === 'string' ? data : data.device_id;
             if (disconnectedId !== currentDeviceId) return;
 
-            const wasRecording = isRecording || data.was_recording;
-            const hasPatient = !!patient;
+            const wasRecording = isRecording || (typeof data !== 'string' && data.was_recording);
 
-            setDeviceId(null);
+            // Clear Device ID (Keeps session active in store logic)
+            setDeviceId(null); 
+            setBpm('--');
 
+            // If it was recording, stop it and notify
             if (wasRecording) {
-                setRecording(false);
-                alert(`Recording Stopped! Connection lost with device ${disconnectedId}.`);
+                setRecording(false); 
+                toast(`Recording PAUSED! Device ${disconnectedId} lost connection. Select another device to continue.`, "error");
             } else {
-                toast(`Device ${disconnectedId} disconnected`, "warning");
-            }
-
-            if (!wasRecording && !hasPatient) {
-                setPatient(null);
+                toast(`Device ${disconnectedId} disconnected`);
             }
         };
 
@@ -55,20 +55,25 @@ export function useDeviceManager() {
             globalEventBus.off(EVENTS.DEVICE.LIST_UPDATED, handleDeviceList);
             globalEventBus.off(EVENTS.DEVICE.DISCONNECTED, handleDeviceDisconnect);
         };
-    }, [currentDeviceId, isRecording, patient, setDeviceId, setRecording, setPatient, toast]);
+    }, [currentDeviceId, isRecording, setDeviceId, setRecording, toast, setBpm]);
 
+    // 3. Actions
+    // Handle MANUAL selection (Switching devices)
     const selectDevice = (deviceId: string) => {
         if (deviceId === currentDeviceId) return;
 
+        // If recording, stop current (UI should confirm this first)
         if (isRecording) {
-            if (!confirm("Recording is in progress. Stop and switch?")) return;
             sendJson({ type: "stop_recording", device_id: currentDeviceId });
+            setRecording(false);
         }
 
+        // Unsubscribe old
         if (currentDeviceId) {
             sendJson({ type: "unsubscribe" });
         }
 
+        // Set new (Preserves session)
         setDeviceId(deviceId);
 
         if (deviceId) {
@@ -76,9 +81,24 @@ export function useDeviceManager() {
         }
     };
 
+    // Handle MANUAL Disconnect button
     const disconnectDevice = () => {
         if (!currentDeviceId) return;
-        selectDevice(""); 
+
+        // If recording, stop (UI should confirm this first)
+        if (isRecording) {
+            sendJson({ type: "stop_recording", device_id: currentDeviceId });
+            setRecording(false);
+        }
+        
+        // Send Unsubscribe
+        sendJson({ type: "unsubscribe" });
+        
+        // Clear Local State
+        setDeviceId(null); // Keeps session active
+        setBpm('--');
+        
+        toast("Disconnected from device");
     };
 
     return {

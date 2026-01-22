@@ -2,13 +2,14 @@
 
 import { useStore } from '@/store/useStore';
 import { sendJson } from '@/services/socket';
-
 import { useToast } from '@/hooks/useToast';
 
 export function useSessionManager() {
-    const { isRecording, currentDeviceId, patient, resetSession } = useStore();
+    // 1. Store & Hooks
+    const { isRecording, currentDeviceId, user } = useStore();
     const { show: toast } = useToast();
 
+    // 2. Actions
     const toggleRecording = () => {
         if (!currentDeviceId) {
             toast("No device selected", "error");
@@ -18,38 +19,23 @@ export function useSessionManager() {
         if (isRecording) {
             sendJson({ type: "stop_recording", device_id: currentDeviceId });
         } else {
-            if (!patient) {
-                toast("No active session. Please start a new session first.", "error");
+            if (!user) {
+                toast("Session error. Please login again.", "error");
                 return;
             }
 
             const payload = {
                 type: "start_recording",
                 device_id: currentDeviceId,
-                subject_id: patient.nik,
-                patient_name: patient.name,
-                umur: patient.age,
-                jenis_kelamin: patient.gender,
-                tanggal_lahir: patient.dob,
-                tempat_lahir: patient.pob,
-                riwayat_penyakit: patient.riwayat
+                user_id: user.id, // ID is int
+                username: user.username,
+                subject_id: String(user.id) // Fallback for components expecting subject_id
             };
             sendJson(payload);
         }
     };
 
-    const handleResetSession = () => {
-        if (isRecording) {
-            toast("Stop recording first.", "error");
-            return;
-        }
-        if (!confirm("End current session? All data will be reset.")) return;
-
-        resetSession();
-    };
-
     return {
-        toggleRecording,
-        handleResetSession
+        toggleRecording
     };
 }

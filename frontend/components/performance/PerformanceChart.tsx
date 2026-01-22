@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Chart } from 'chart.js';
 import '@/config/chartSetup';
 import { CONFIG } from '@/config/constants';
@@ -14,9 +14,13 @@ interface PerformanceChartProps {
 }
 
 export default function PerformanceChart({ data, color, label, maxPoints = 50, suggestedMax = 100 }: PerformanceChartProps) {
+    // 1. Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<Chart | null>(null);
 
+    // 2. Effects
+    
+    // Init Chart
     useEffect(() => {
         if (!canvasRef.current) return;
 
@@ -29,7 +33,7 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
                 labels: Array(maxPoints).fill(''),
                 datasets: [{
                     label,
-                    data: [...data],
+                    data: [], // Initialize empty, let second effect fill it
                     borderColor: color,
                     backgroundColor: color + '20',
                     fill: true,
@@ -62,8 +66,9 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
                 chartRef.current = null;
             }
         };
-    }, []);
+    }, [color, label, maxPoints, suggestedMax]);
 
+    // Update Data
     useEffect(() => {
         if (chartRef.current) {
             chartRef.current.data.datasets[0].data = [...data];
@@ -71,6 +76,7 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
         }
     }, [data]);
 
+    // 3. Render
     return (
         <div className="h-full w-full">
             <canvas ref={canvasRef}></canvas>

@@ -1,28 +1,63 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/services/api';
-import { formatDate, escapeHtml } from '@/utils/helpers';
+import { formatDate } from '@/utils/helpers';
 import { CONFIG } from '@/config/constants';
-import { Search, Calendar, Trash2, Download, ChevronLeft, ChevronRight, FileText, Image as ImageIcon, BarChart2, RefreshCcw } from 'lucide-react';
+import { Search, Calendar, Trash2, ChevronLeft, ChevronRight, RefreshCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
-import { useStore } from '@/store/useStore';
+import { useStore, AnalysisResult } from '@/store/useStore';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 
+interface FlatpickrInstance {
+    destroy: () => void;
+    clear: () => void;
+}
+
 export default function HistoryPage() {
+    // 1. Hooks & State
     const { archiveData, setArchiveData } = useStore();
+    const { show: toast } = useToast();
+    
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedRecord, setSelectedRecord] = useState<any>(null);
-    const rowsPerPage = CONFIG.ROWS_PER_PAGE_ARCHIVE || 10;
-    const { show: toast } = useToast();
+    const [selectedRecord, setSelectedRecord] = useState<AnalysisResult | null>(null);
     
     const dateInputRef = useRef<HTMLInputElement>(null);
-    const fpRef = useRef<any>(null);
+    const fpRef = useRef<FlatpickrInstance | null>(null);
+
+    const rowsPerPage = CONFIG.ROWS_PER_PAGE_ARCHIVE || 10;
+
+    // 2. Data Fetching
+    const loadHistory = useCallback(async (showToast = false) => {
+        setLoading(true);
+        try {
+            const data = await api.fetchHistory({
+                search,
+                start_date: dateRange.start,
+                end_date: dateRange.end
+            });
+            setArchiveData(data);
+            setCurrentPage(1);
+            if (showToast) toast("Synchronized", "success");
+        } catch (error) {
+            console.error(error);
+            toast("Sync failed", "error");
+        } finally {
+            setLoading(false);
+        }
+    }, [search, dateRange, setArchiveData, toast]);
+
+    // 3. Effects
+    
+    // Initial Load
+    useEffect(() => {
+        loadHistory();
+    }, [loadHistory]);
 
     // Initialize Flatpickr
     useEffect(() => {
@@ -54,33 +89,12 @@ export default function HistoryPage() {
         };
     }, []);
 
-    // Load Data
-    const loadHistory = async (showToast = false) => {
-        setLoading(true);
-        try {
-            const data = await api.fetchHistory({
-                search,
-                start_date: dateRange.start,
-                end_date: dateRange.end
-            });
-            setArchiveData(data);
-            setCurrentPage(1);
-            if (showToast) toast("Synchronized", "success");
-        } catch (error) {
-            console.error(error);
-            toast("Sync failed", "error");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadHistory();
-    }, [search, dateRange]);
-
+    // 4. Computed & Helpers
     const totalPages = Math.ceil(archiveData.length / rowsPerPage) || 1;
     const paginatedData = archiveData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+    const isFilterActive = search.length > 0 || dateRange.start.length > 0;
 
+    // 5. Handlers
     const handleDownload = (type: 'raw' | 'feature' | 'plot') => {
         if (!selectedRecord) {
             toast("Select a record first", "warning");
@@ -97,8 +111,7 @@ export default function HistoryPage() {
         if (fpRef.current) fpRef.current.clear();
     };
 
-    const isFilterActive = search.length > 0 || dateRange.start.length > 0;
-
+    // 6. Render
     return (
         <div className="flex flex-col h-full max-w-[1600px] mx-auto gap-4 overflow-hidden">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col h-fit overflow-hidden">

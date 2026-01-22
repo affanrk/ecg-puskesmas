@@ -1,7 +1,7 @@
-import React from 'react';
+import { ReactNode } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
         <AppLayout>
             {children}

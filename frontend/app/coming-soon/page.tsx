@@ -1,45 +1,69 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, ElementType } from 'react';
 import { useRouter } from 'next/navigation';
-import { Clock, LogOut, Shield, Stethoscope, User } from 'lucide-react';
+import { Clock, Shield, Stethoscope, User } from 'lucide-react';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
 
-export default function ComingSoonPage() {
-    const router = useRouter();
-    const [user, setUser] = useState<any>(null);
+interface UserData {
+    name: string;
+    role: string;
+}
 
+interface RoleConfig {
+    title: string;
+    sub: string;
+    message: string;
+    icon: ElementType;
+    color: string;
+    bg: string;
+    shadow: string;
+}
+
+export default function ComingSoonPage() {
+    // 1. Hooks & State
+    const router = useRouter();
+    const [user, setUser] = useState<UserData | null>(null);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+    // 2. Effects
     useEffect(() => {
         const userStr = localStorage.getItem('ecg_user');
         if (userStr) {
-            setUser(JSON.parse(userStr));
+            try {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setUser(JSON.parse(userStr));
+            } catch (e) {
+                console.error("Failed to parse user", e);
+            }
         }
     }, []);
 
+    // 3. Handlers
     const handleLogout = () => {
-        setTimeout(() => {
-            localStorage.removeItem('ecg_token');
-            localStorage.removeItem('ecg_user');
-            router.push('/login');
-        }, 1000);
+        localStorage.removeItem('ecg_token');
+        localStorage.removeItem('ecg_user');
+        router.push('/login');
     };
 
+    // 4. Computed
     const role = user?.role?.toLowerCase() || 'user';
 
-    const config: any = {
+    const config: Record<string, RoleConfig> = {
         admin: {
-            title: "Admin Dashboard",
+            title: "Administrator",
             sub: "System Control Panel",
-            message: "User management and system configuration.",
+            message: "User management and facility configuration.",
             icon: Shield,
             color: "text-rose-500",
             bg: "bg-rose-50",
             shadow: "shadow-rose-100"
         },
         doctor: {
-            title: "Doctor Dashboard",
+            title: "Heart Specialist",
             sub: `Welcome, Dr. ${user?.name || 'Doctor'}!`,
-            message: "Medical analysis tools are under development.",
+            message: "Advanced cardiac analysis tools are under development.",
             icon: Stethoscope,
             color: "text-emerald-500",
             bg: "bg-emerald-50",
@@ -48,16 +72,16 @@ export default function ComingSoonPage() {
         user: {
             title: "Patient Dashboard",
             sub: `Welcome, ${user?.name || 'User'}!`,
-            message: "This panel is currently under development.",
+            message: "Real-time monitoring and history access.",
             icon: User,
             color: "text-brand-500",
             bg: "bg-brand-50",
             shadow: "shadow-brand-100"
         },
         operator: {
-            title: "Operator Panel",
-            sub: "Device Management",
-            message: "Specialized operator tools are coming soon.",
+            title: "Medical Staff",
+            sub: "Nurse / General Practitioner",
+            message: "Device management and session control for patients.",
             icon: Clock,
             color: "text-amber-500",
             bg: "bg-amber-50",
@@ -68,6 +92,7 @@ export default function ComingSoonPage() {
     const current = config[role] || config.user;
     const Icon = current.icon;
 
+    // 5. Render
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">
@@ -91,13 +116,23 @@ export default function ComingSoonPage() {
 
                 <div className="relative z-10 pt-4">
                     <button 
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutConfirm(true)}
                         className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-6 rounded-xl transition-colors active:scale-[0.98] uppercase tracking-widest text-xs"
                     >
                         Sign Out
                     </button>
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={showLogoutConfirm}
+                onClose={() => setShowLogoutConfirm(false)}
+                onConfirm={handleLogout}
+                title="Confirm Logout"
+                message="Are you sure you want to end your session and logout from the system?"
+                confirmText="Logout"
+                isDestructive={true}
+            />
         </div>
     );
 }

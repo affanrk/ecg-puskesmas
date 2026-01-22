@@ -1,51 +1,45 @@
-'use client'
+'use client';
 
-import React, { useEffect, useRef } from 'react';
+import { useEffect, ReactNode } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import { connectWebSocket } from '@/services/socket';
 import { useStore } from '@/store/useStore';
+import { connectWebSocket } from '@/services/socket';
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-    const { isRecording, incrementTimer } = useStore();
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+export default function AppLayout({ children }: { children: ReactNode }) {
+    // 1. Hooks & State
+    const { isRecording, updateTimer } = useStore();
 
+    // 2. Effects
+    // Initialize WebSocket
     useEffect(() => {
         connectWebSocket();
     }, []);
 
+    // Global Timer Interval
     useEffect(() => {
+        let interval: NodeJS.Timeout;
         if (isRecording) {
-            if (!timerRef.current) {
-                timerRef.current = setInterval(() => {
-                    incrementTimer();
-                }, 1000);
-            }
-        } else {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
+            interval = setInterval(() => {
+                updateTimer();
+            }, 1000);
         }
+        return () => clearInterval(interval);
+    }, [isRecording, updateTimer]);
 
-        return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
-        };
-    }, [isRecording, incrementTimer]);
-
+    // 3. Render
     return (
-        <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-800 selection:bg-brand-100 selection:text-brand-900 font-sans">
+        <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
+            {/* Sidebar */}
             <Sidebar />
 
-            <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-w-0 bg-white lg:rounded-l-3xl shadow-2xl relative z-10 overflow-hidden">
                 <Header />
-                <div className="flex-1 overflow-auto bg-slate-50/50 p-4 custom-scrollbar relative z-0">
+                <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden p-6 relative custom-scrollbar bg-white">
                     {children}
-                </div>
-            </main>
+                </main>
+            </div>
         </div>
     );
 }

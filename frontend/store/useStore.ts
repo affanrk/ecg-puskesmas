@@ -1,66 +1,120 @@
 'use client';
 
 import { create } from 'zustand';
+import { CONFIG } from '@/config/constants';
 
-export interface Patient {
-    nik: string;
-    name: string;
-    age: number;
-    gender: string;
-    riwayat: string;
-    dob: string;
-    pob: string;
+// --- Interfaces ---
+
+export interface User {
+    id?: number;
+    username: string;
+    email?: string;
+    role: string;
+    is_patient: boolean;
+    full_name?: string;
+    nik?: string;
+    pob?: string;
+    dob?: string;
+    gender?: string;
+    medical_history?: string;
+    address?: string;
+    contact_number?: string;
+    [key: string]: unknown;
+}
+
+export interface Device {
+    id: string;
+    is_locked: boolean;
+    [key: string]: unknown;
+}
+
+export interface AnalysisResult {
+    recording_id: string;
+    classification: string;
+    confidence?: number;
+    timestamp: string;
+    changed_dt?: string;
+    device_id: string;
+    subject_id: string;
+    patient_name: string;
+    [key: string]: unknown;
+}
+
+export interface EcgSample {
+    leadI: number;
+    leadII: number;
+    v1: number;
+}
+
+export interface PerformanceMetrics {
+    latency: number;
+    jitter: number;
+    loss: number;
+    latencyHistory: number[];
+    jitterHistory: number[];
 }
 
 interface AppState {
+    // --- State Variables ---
+    // Primitives
     currentDeviceId: string | null;
-    devices: any[];
     isRecording: boolean;
+    isSessionActive: boolean;
     isConnected: boolean;
     recordingSeconds: number;
-    patient: Patient | null;
-    liveData: any[];
-    archiveData: any[];
+    recordingStartTime: number | null;
+    accumulatedTime: number;
     livePage: number;
-    
-    // Metrics
     bpm: number | string;
-    performance: {
-        latency: number;
-        jitter: number;
-        loss: number;
-        latencyHistory: number[];
-        jitterHistory: number[];
-    };
     performanceTrackingEnabled: boolean;
 
-    // Actions
+    // Objects / Arrays
+    user: User | null;
+    devices: Device[];
+    liveData: AnalysisResult[];
+    archiveData: AnalysisResult[];
+    ecgBuffer: EcgSample[];
+    performance: PerformanceMetrics;
+    visibleLeads: { leadI: boolean; leadII: boolean; v1: boolean };
+
+    // --- Actions ---
     setDeviceId: (id: string | null) => void;
-    setDevices: (devices: any[]) => void;
+    setDevices: (devices: Device[]) => void;
     setRecording: (isRecording: boolean) => void;
     setIsConnected: (connected: boolean) => void;
-    incrementTimer: () => number;
-    setPatient: (patient: Patient | null) => void;
-    setArchiveData: (data: any[]) => void;
-    addLiveResult: (result: any) => void;
+    updateTimer: () => void;
+    setUser: (user: User | null) => void;
+    setArchiveData: (data: AnalysisResult[]) => void;
+    addLiveResult: (result: AnalysisResult) => void;
+    pushEcgData: (data: EcgSample[]) => void;
     setLivePage: (page: number) => void;
     setBpm: (bpm: number | string) => void;
     updatePerformance: (l: number, j: number, p: number) => void;
     setPerformanceTrackingEnabled: (enabled: boolean) => void;
+    setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; v1: boolean }>) => void;
     resetSession: () => void;
 }
 
+// --- Store Implementation ---
+
 export const useStore = create<AppState>((set, get) => ({
+    // Initial State
     currentDeviceId: null,
-    devices: [],
     isRecording: false,
+    isSessionActive: false,
     isConnected: false,
     recordingSeconds: 0,
-    patient: null,
-    liveData: [],
-    archiveData: [],
+    recordingStartTime: null,
+    accumulatedTime: 0,
     livePage: 1,
     bpm: '--',
+    performanceTrackingEnabled: false,
+
+    user: null,
+    devices: [],
+    liveData: [],
+    archiveData: [],
+    ecgBuffer: [],
     performance: {
         latency: 0,
         jitter: 0,
@@ -68,148 +122,144 @@ export const useStore = create<AppState>((set, get) => ({
         latencyHistory: [],
         jitterHistory: []
     },
-    performanceTrackingEnabled: false,
+    visibleLeads: {
+        leadI: true,
+        leadII: true,
+        v1: true
+    },
 
-    setDeviceId: (id) => set((state) => {
-        return { 
-            currentDeviceId: id,
-            isRecording: false, 
-            bpm: '--',
-            performance: { 
-                latency: 0, 
-                jitter: 0, 
-                loss: 0,
-                latencyHistory: [],
-                jitterHistory: []
-            },
-            liveData: state.liveData.filter(r => r.recording_id !== 'placeholder-live')
-        };
-    }),
+    // Actions
+    setDeviceId: (id) => set((state) => ({ 
+        currentDeviceId: id, 
+        isRecording: false, 
+        bpm: '--', 
+        performance: { latency: 0, jitter: 0, loss: 0, latencyHistory: [], jitterHistory: [] },
+        isSessionActive: state.isSessionActive,
+        liveData: state.liveData,
+        archiveData: state.archiveData,
+        recordingSeconds: state.recordingSeconds,
+        recordingStartTime: state.recordingStartTime,
+        accumulatedTime: state.accumulatedTime,
+        ecgBuffer: [] // Always clear buffer on device change/disconnect
+    })),
+
     setDevices: (devices) => set({ devices }),
+    
     setRecording: (isRecording) => set((state) => {
-        const filteredData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
-        let newLiveData = [...filteredData];
-        
-        if (isRecording) {
-            newLiveData.unshift({
-                timestamp: new Date().toISOString(),
-                device_id: state.currentDeviceId,
-                subject_id: state.patient?.nik || "-",
-                patient_name: state.patient?.name || "-",
-                classification: "Recording...",
-                recording_id: 'placeholder-live'
-            });
+        if (!isRecording) {
+            const cleanLiveData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
+            const segmentDuration = state.recordingStartTime ? (Date.now() - state.recordingStartTime) / 1000 : 0;
+            const finalAccumulated = state.accumulatedTime + segmentDuration;
+            
+            return { 
+                isRecording, 
+                liveData: cleanLiveData, 
+                recordingStartTime: null,
+                accumulatedTime: finalAccumulated,
+                recordingSeconds: Math.floor(finalAccumulated)
+            };
         }
+        
+        const newLiveData = [...state.liveData.filter(r => r.recording_id !== 'placeholder-live')];
+        newLiveData.unshift({
+            timestamp: new Date().toISOString(),
+            device_id: state.currentDeviceId || 'unknown',
+            subject_id: state.user?.nik || (state.user?.id ? String(state.user.id) : "-"),
+            patient_name: state.user?.full_name || state.user?.username || "-",
+            classification: "Recording...",
+            recording_id: 'placeholder-live'
+        });
+        
+        // Only set start time if not already recording to prevent timer reset on segment updates
+        const startTime = state.isRecording ? state.recordingStartTime : Date.now();
         
         return { 
             isRecording, 
-            liveData: newLiveData 
+            isSessionActive: true, 
+            liveData: newLiveData,
+            recordingStartTime: startTime
         };
     }),
+    
     setIsConnected: (connected) => set({ isConnected: connected }),
-    incrementTimer: () => {
+    
+    updateTimer: () => {
         const state = get();
-        if (state.isRecording) {
-            const next = state.recordingSeconds + 1;
-            set({ recordingSeconds: next });
-            return next;
-        }
-        return state.recordingSeconds;
-    },
-    setPatient: (patient) => set((state) => {
-        if (!patient) {
-            return {
-                patient: null,
-                liveData: [],
-                archiveData: [],
-                recordingSeconds: 0,
-                isRecording: false,
-                bpm: '--'
-            };
-        }
-        return { patient, recordingSeconds: 0 };
-    }),
-    setArchiveData: (data) => set((state) => {
-        const cleanData = data.filter(r => r.recording_id !== 'placeholder-live' && r.classification !== 'Recording...');
-        return { archiveData: cleanData };
-    }),
-    addLiveResult: (result) => set((state) => {
-        if (!result || !result.recording_id || result.classification === 'Recording...') {
-            return state;
-        }
-
-        const cleanLiveData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
+        if (!state.isRecording || !state.recordingStartTime) return;
         
-        if (cleanLiveData.some(item => item.recording_id === result.recording_id)) {
-            return state;
+        const currentSegment = (Date.now() - state.recordingStartTime) / 1000;
+        const total = state.accumulatedTime + currentSegment;
+        const totalRounded = Math.floor(total);
+        
+        if (totalRounded !== state.recordingSeconds) {
+            set({ recordingSeconds: totalRounded });
         }
+    },
+    
+    setUser: (user) => set(() => user ? { user, recordingSeconds: 0, accumulatedTime: 0 } : { user: null, liveData: [], archiveData: [], recordingSeconds: 0, isRecording: false, bpm: '--' }),
+    
+    setArchiveData: (data) => set(() => ({ archiveData: data.filter(r => r.classification !== 'Recording...') })),
+    
+    addLiveResult: (result) => set((state) => {
+        if (!result || !result.recording_id || result.classification === 'Recording...') return state;
+        const clean = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
+        if (clean.some(item => item.recording_id === result.recording_id)) return state;
+        
+        // Ensure result has a timestamp or changed_dt
+        const resultWithTime = {
+            ...result,
+            timestamp: result.changed_dt || result.timestamp || new Date().toISOString()
+        };
 
-        const isDuplicateInArchive = state.archiveData.some(item => item.recording_id === result.recording_id);
-        const newArchiveData = isDuplicateInArchive 
-            ? state.archiveData 
-            : [result, ...state.archiveData];
-
-        let newLiveData = [result, ...cleanLiveData];
-
+        const newLive = [resultWithTime, ...clean].slice(0, 200);
+        
         if (state.isRecording) {
-            newLiveData.unshift({
-                timestamp: new Date().toISOString(),
-                device_id: state.currentDeviceId,
-                subject_id: state.patient?.nik || "-",
-                patient_name: state.patient?.name || "-",
-                classification: "Recording...",
-                recording_id: 'placeholder-live'
+            newLive.unshift({ 
+                timestamp: new Date().toISOString(), 
+                device_id: state.currentDeviceId || 'unknown', 
+                subject_id: state.user?.nik || (state.user?.id ? String(state.user.id) : "-"), 
+                patient_name: state.user?.full_name || state.user?.username || "-", 
+                classification: "Recording...", 
+                recording_id: 'placeholder-live' 
             });
         }
-
-        if (newLiveData.length > 200) newLiveData = newLiveData.slice(0, 200);
-
-        return { 
-            liveData: newLiveData,
-            archiveData: newArchiveData
-        };
+        return { liveData: newLive, archiveData: [resultWithTime, ...state.archiveData] };
     }),
+    
+    pushEcgData: (data) => set((state) => {
+        const limit = CONFIG.MAX_DATA_POINTS * 2; 
+        const newBuffer = [...state.ecgBuffer, ...data].slice(-limit);
+        return { ecgBuffer: newBuffer };
+    }),
+    
     setLivePage: (page) => set({ livePage: page }),
+    
     setBpm: (bpm) => set({ bpm }),
-    updatePerformance: (latency, jitter, loss) => set((state) => {
-        if (!state.performanceTrackingEnabled) {
-            return {
-                performance: {
-                    ...state.performance,
-                    latency,
-                    jitter,
-                    loss
-                }
-            };
+    
+    updatePerformance: (latency, jitter, loss) => set((state) => ({
+        performance: {
+            latency, jitter, loss,
+            latencyHistory: state.performanceTrackingEnabled ? [...state.performance.latencyHistory, latency].slice(-50) : state.performance.latencyHistory,
+            jitterHistory: state.performanceTrackingEnabled ? [...state.performance.jitterHistory, jitter].slice(-50) : state.performance.jitterHistory
         }
-
-        const newLatencyHistory = [...state.performance.latencyHistory, latency].slice(-50);
-        const newJitterHistory = [...state.performance.jitterHistory, jitter].slice(-50);
-        return {
-            performance: {
-                latency,
-                jitter,
-                loss,
-                latencyHistory: newLatencyHistory,
-                jitterHistory: newJitterHistory
-            }
-        };
-    }),
+    })),
+    
     setPerformanceTrackingEnabled: (enabled) => set({ performanceTrackingEnabled: enabled }),
-    resetSession: () => set({ 
-        patient: null, 
+    
+    setVisibleLeads: (leads) => set((state) => ({ 
+        visibleLeads: { ...state.visibleLeads, ...leads } 
+    })),
+
+    resetSession: () => set({  
         liveData: [], 
-        archiveData: [],
+        archiveData: [], 
+        ecgBuffer: [], 
         livePage: 1, 
-        isRecording: false,
+        isRecording: false, 
+        isSessionActive: false, 
         recordingSeconds: 0,
-        bpm: '--',
-        performance: { 
-            latency: 0, 
-            jitter: 0, 
-            loss: 0,
-            latencyHistory: [],
-            jitterHistory: []
-        }
+        recordingStartTime: null,
+        accumulatedTime: 0,
+        bpm: '--' 
     }),
 }));

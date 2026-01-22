@@ -1,76 +1,86 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
 import clsx from 'clsx';
+import { Sparkles, AlertTriangle, CheckCircle2, Brain } from 'lucide-react';
 
 export default function AIAnalysisCard() {
+    // 1. Hooks & State
     const liveData = useStore((state) => state.liveData);
-    const [prediction, setPrediction] = useState<{
-        classification: string;
-        confidence: number;
-    } | null>(null);
 
-    useEffect(() => {
-        if (liveData && liveData.length > 0) {
-            const latest = liveData[0];
-            const result = (latest.classification === 'Recording...' && liveData[1]) ? liveData[1] : latest;
+    // 2. Logic
+    let prediction: { classification: string; confidence: number } | null = null;
 
-            if (result && result.classification !== 'Recording...') {
-                setPrediction({
-                    classification: result.classification,
-                    confidence: result.confidence || 0
-                });
-            } else if (latest.classification === 'Recording...') {
-                if (liveData.length === 1) {
-                    setPrediction(null);
-                }
-            }
-        } else {
-            setPrediction(null);
+    if (liveData && liveData.length > 0) {
+        const latest = liveData[0];
+        const result = (latest.classification === 'Recording...' && liveData[1]) ? liveData[1] : latest;
+
+        if (result && result.classification !== 'Recording...') {
+            prediction = {
+                classification: result.classification,
+                confidence: result.confidence || 0
+            };
         }
-    }, [liveData]);
+    }
 
-    // Determine state for styling
     const isAbnormal = prediction && ['Abnormal', 'Aritmia', 'Berpotensi'].some(x => prediction.classification.includes(x));
     const confidencePct = prediction ? Math.round(prediction.confidence * 100) : 0;
+    const isWaiting = !prediction;
 
+    // 3. Render
     return (
-        <div 
-            className={clsx(
-                "h-full rounded-xl shadow-lg p-4 text-white flex flex-col justify-between relative overflow-hidden transition-colors duration-500",
-                isAbnormal 
-                    ? "bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-500/20" 
-                    : "bg-gradient-to-br from-brand-500 to-brand-600 shadow-brand-500/20"
-            )}
-        >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-            
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-[10px] font-bold text-brand-100 uppercase tracking-wider">AI Insight</h3>
-                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-[0_0_5px_white]"></span>
+        <div className={clsx(
+            "h-full bg-white rounded-xl shadow-sm border p-5 flex flex-col justify-between transition-colors group ring-1 ring-blue-50/50",
+            isWaiting ? "border-slate-200" :
+            isAbnormal ? "border-slate-200 hover:border-rose-300" : "border-slate-200 hover:border-emerald-300"
+        )}>
+            <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0 mr-3">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">AI Analysis</p>
+                    <h3 className={clsx(
+                        "text-xl font-black tracking-tight leading-tight",
+                        isWaiting ? "text-slate-300" :
+                        isAbnormal ? "text-rose-600" : "text-emerald-600"
+                    )} title={prediction ? prediction.classification : ""}>
+                        {prediction ? prediction.classification : "Waiting data..."}
+                    </h3>
                 </div>
-                <div className="text-xl font-bold leading-tight tracking-tight truncate uppercase">
-                    {prediction ? prediction.classification : "Waiting..."}
+                <div className={clsx(
+                    "p-3 rounded-xl transition-all group-hover:text-white shrink-0",
+                    isWaiting ? "bg-slate-50 text-slate-400" :
+                    isAbnormal ? "bg-rose-50 text-rose-600 group-hover:bg-rose-600" :
+                    "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600"
+                )}>
+                    {isWaiting ? <Sparkles size={20} /> : 
+                     isAbnormal ? <AlertTriangle size={20} className={isAbnormal ? "animate-pulse" : ""} /> : 
+                     <CheckCircle2 size={20} />}
                 </div>
             </div>
 
-            <div className="relative z-10 mt-2">
-                <div className="flex justify-between items-end mb-1">
-                    <p className="text-brand-50 text-[10px] font-medium opacity-90">
-                        Conf: {confidencePct}%
-                    </p>
+            {!isWaiting && (
+                <div className="mt-4">
+                    <div className="flex justify-between items-end mb-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Confidence</p>
+                        <p className="text-xs font-bold text-slate-700">{confidencePct}%</p>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                            className={clsx(
+                                "h-full rounded-full transition-all duration-1000 ease-out",
+                                isAbnormal ? "bg-rose-500" : "bg-emerald-500"
+                            )}
+                            style={{ width: `${confidencePct}%` }}
+                        ></div>
+                    </div>
                 </div>
-                <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden backdrop-blur-sm shadow-inner">
-                    <div 
-                        className="bg-white h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_white]" 
-                        style={{ width: `${confidencePct}%` }}
-                    ></div>
+            )}
+            
+            {isWaiting && (
+                <div className="mt-4 flex items-center gap-2 text-slate-300 text-xs font-bold uppercase tracking-wider">
+                    <Brain size={14} />
+                    <span>Model Ready</span>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

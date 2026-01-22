@@ -8,7 +8,8 @@ export const EVENTS = {
         DISCONNECTED: 'device:disconnected',
     },
     CHART: {
-        ECG_DATA: 'chart:ecg_data',
+        ECG_DATA: 'chart:ecg_data',    
+        ECG_BATCH: 'chart:ecg_batch',   
         METRICS: 'chart:metrics',
     },
     STATE: {
@@ -17,18 +18,18 @@ export const EVENTS = {
         PATIENT_CHANGED: 'state:patient_changed',
         PERFORMANCE_UPDATED: 'state:performance_updated',
     }
-};
+} as const;
 
 export const CONFIG = {
     ROWS_PER_PAGE_LIVE: 5,
     ROWS_PER_PAGE_ARCHIVE: 10,
-    MAX_DATA_POINTS: 100,
+    MAX_DATA_POINTS: 500,
     ERASE_GAP: 20,
     COLORS: {
-        leadI: '#3b82f6',  // Blue-500
-        leadII: '#10b981', // Emerald-500
-        v1: '#f59e0b',     // Amber-500
-        grid: '#e2e8f0',   // Slate-200
-        text: '#64748b'    // Slate-500
+        leadI: '#3b82f6',
+        leadII: '#10b981',
+        v1: '#f59e0b',
+        grid: '#e2e8f0', 
+        text: '#64748b'
     }
-};
+} as const;

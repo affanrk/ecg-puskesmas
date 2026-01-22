@@ -1,37 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { globalEventBus } from '@/services/events';
-import { EVENTS, CONFIG } from '@/config/constants';
+import { CONFIG } from '@/config/constants';
 import PerformanceChart from '@/components/performance/PerformanceChart';
-import { Activity, Zap, ShieldAlert } from 'lucide-react';
-import clsx from 'clsx';
 
 export default function PerformancePage() {
+    // 1. Hooks & State
     const { performance, setPerformanceTrackingEnabled } = useStore();
 
+    // 2. Effects
     useEffect(() => {
         setPerformanceTrackingEnabled(true);
         return () => setPerformanceTrackingEnabled(false);
     }, [setPerformanceTrackingEnabled]);
 
-    const StatCard = ({ label, value, unit, icon: Icon, colorClass, subText }: any) => (
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 relative overflow-hidden group">
-            <div className={clsx("absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity", colorClass)}>
-                <Icon className="w-16 h-16" />
-            </div>
-            <div className="relative z-10">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</h4>
-                <div className="flex items-baseline gap-1">
-                    <span className={clsx("text-3xl font-mono font-bold", colorClass)}>{value}</span>
-                    <span className="text-xs font-medium text-slate-400">{unit}</span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-2 font-medium">{subText}</p>
-            </div>
-        </div>
-    );
-
+    // 3. Render
     return (
         <div className="flex flex-col gap-4 max-w-[1600px] mx-auto">
             {/* Real-time Stats */}
