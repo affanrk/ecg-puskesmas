@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')  # Non-GUI backend for server environments
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -98,7 +99,7 @@ class PlotGeneratorService:
         Fetch raw ECG data from database.
         """
         raw_repo = RawDataRepository(db)
-        rows = raw_repo.get_raw_data_for_recording(recording_id)
+        rows = raw_repo.find_by_recording_id(recording_id)
         
         if not rows:
             return pd.DataFrame()
@@ -144,9 +145,9 @@ class PlotGeneratorService:
         
     def _apply_filters_safe(
         self,
-        raw_i: list,
-        raw_ii: list,
-        raw_v1: list
+        raw_i: np.ndarray,
+        raw_ii: np.ndarray,
+        raw_v1: np.ndarray
     ) -> tuple:
         """
         Apply DSP filters with fallback to raw data on failure.

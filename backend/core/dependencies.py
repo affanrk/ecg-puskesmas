@@ -1,233 +1,92 @@
 """
-FastAPI dependency injection functions.
-Centralizes all dependency management for better testability.
+Core dependencies for FastAPI application.
+Manages database sessions, authentication, and other common dependencies.
 """
-from typing import AsyncGenerator, Generator
-from fastapi import Depends, WebSocket
+from typing import Optional
+from fastapi import Depends, HTTPException, Query, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from jose import jwt, JWTError
 
-from core.database import SessionLocal
-from core.exceptions import DeviceBusyException, DeviceNotFoundException
+from core.database import get_db
+from core.config import settings
+from core.exceptions import DeviceNotFoundException
 from services.device.state import device_state_manager
-from repositories.patient import PatientRepository
 from repositories.session import SessionRepository
 from repositories.performance import PerformanceRepository
+from repositories.user import UserRepository
+from schemas.auth import TokenData
+from models.database import TbMUser
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
-# ============================================================================
-# DATABASE DEPENDENCIES
-# ============================================================================
-
-def get_db() -> Generator[Session, None, None]:
-    """
-    Provides database session with automatic cleanup.
-    Use this for synchronous endpoints.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-async def get_async_db() -> AsyncGenerator[Session, None]:
-    """
-    Provides database session for async contexts.
-    Note: Still uses sync SQLAlchemy but wrapped for async endpoints.
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-# ============================================================================
-# REPOSITORY DEPENDENCIES
-# ============================================================================
-
-def get_patient_repository(
-    db: Session = Depends(get_db)
-) -> PatientRepository:
-    """Provides patient repository instance"""
-    return PatientRepository(db)
-
-
-def get_session_repository(
-    db: Session = Depends(get_db)
-) -> SessionRepository:
-    """Provides session repository instance"""
+def get_session_repository(db: Session = Depends(get_db)):
+    """Dependency that provides a SessionRepository instance."""
     return SessionRepository(db)
 
-
-def get_performance_repository(
-    db: Session = Depends(get_db)
-) -> PerformanceRepository:
-    """Provides performance repository instance"""
+def get_performance_repository(db: Session = Depends(get_db)):
+    """Dependency that provides a PerformanceRepository instance."""
     return PerformanceRepository(db)
 
-
-# ============================================================================
-# DEVICE STATE DEPENDENCIES
-# ============================================================================
+def get_user_repository(db: Session = Depends(get_db)):
+    """Dependency that provides a UserRepository instance."""
+    return UserRepository(db)
 
 def get_device_state_manager():
-    """
-    Provides global device state manager singleton.
-    This is safe as state_manager is thread-safe internally.
-    """
+    """Dependency that provides the global DeviceStateManager instance."""
     return device_state_manager
-
 
 def validate_device_exists(device_id: str):
     """
-    Dependency that validates device exists in system.
-    Raises DeviceNotFoundException if not found.
-    
-    Usage:
-        @router.get("/device/{device_id}")
-        def get_device(device_id: str = Depends(validate_device_exists)):
-            ...
+    Dependency that validates if a device exists and raises an exception if not.
     """
-    if device_id not in device_state_manager.device_states:
-        raise DeviceNotFoundException(device_id)
+    device_state_manager.get_state_or_fail(device_id)
     return device_id
 
-
-def validate_device_available(device_id: str):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), 
+    user_repo: UserRepository = Depends(get_user_repository)
+) -> TbMUser:
     """
-    Dependency that validates device is not locked by another user.
-    Raises DeviceBusyException if locked.
+    Dependency that retrieves and authenticates the current user from the access token.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(email=username) 
+    except JWTError:
+        raise credentials_exception
     
-    Usage:
-        @router.post("/device/{device_id}/start")
-        def start_recording(device_id: str = Depends(validate_device_available)):
-            ...
-    """
-    if device_id not in device_state_manager.device_states:
-        raise DeviceNotFoundException(device_id)
-    
-    state = device_state_manager.get_state(device_id)
-    if state.locked_by is not None:
-        raise DeviceBusyException(device_id)
-    
-    return device_id
-
-
-# ============================================================================
-# WEBSOCKET DEPENDENCIES
-# ============================================================================
-
-class WebSocketConnectionManager:
-    """
-    Manages WebSocket lifecycle and provides utilities.
-    Can be used as a dependency for WebSocket endpoints.
-    """
-    
-    def __init__(self, websocket: WebSocket):
-        self.websocket = websocket
-        self.device_id: str | None = None
+    user = user_repo.find_by_identifier(identifier=token_data.email)
+            
+    if not user:
+        raise credentials_exception
+            
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
         
-    async def accept(self):
-        """Accept WebSocket connection"""
-        await self.websocket.accept()
-        
-    async def send_json(self, data: dict):
-        """Send JSON message"""
-        await self.websocket.send_json(data)
-        
-    async def send_error(self, message: str, code: str = "ERROR"):
-        """Send error message in standard format"""
-        await self.send_json({
-            "type": "error",
-            "code": code,
-            "message": message
-        })
-        
-    async def receive_json(self) -> dict:
-        """Receive and parse JSON message"""
-        return await self.websocket.receive_json()
-        
-    def subscribe_to_device(self, device_id: str):
-        """Mark this connection as subscribed to a device"""
-        self.device_id = device_id
-        device_state_manager.websocket_connections[device_id].add(self.websocket)
-        device_state_manager.ws_device_map[self.websocket] = device_id
-        
-    def unsubscribe(self):
-        """Cleanup subscription"""
-        if self.device_id:
-            device_state_manager.websocket_connections[self.device_id].discard(
-                self.websocket
-            )
-            if self.websocket in device_state_manager.ws_device_map:
-                del device_state_manager.ws_device_map[self.websocket]
+    return user
 
-
-def get_websocket_manager(websocket: WebSocket) -> WebSocketConnectionManager:
+async def get_current_active_user(current_user: TbMUser = Depends(get_current_user)) -> TbMUser:
     """
-    Provides WebSocket connection manager.
-    
-    Usage:
-        @router.websocket("/ws")
-        async def websocket_endpoint(
-            manager: WebSocketConnectionManager = Depends(get_websocket_manager)
-        ):
-            await manager.accept()
-            ...
+    Dependency that returns the current active user.
     """
-    return WebSocketConnectionManager(websocket)
-
-
-# ============================================================================
-# COMMON QUERY PARAMETERS
-# ============================================================================
-
-class PaginationParams:
-    """
-    Reusable pagination parameters.
-    
-    Usage:
-        def get_items(pagination: PaginationParams = Depends()):
-            return db.query(...).offset(pagination.skip).limit(pagination.limit)
-    """
-    def __init__(
-        self,
-        skip: int = 0,
-        limit: int = 100
-    ):
-        self.skip = max(0, skip)
-        self.limit = min(limit, 500)  # Max 500 items
-
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
 
 class DateRangeParams:
-    """
-    Reusable date range filter parameters.
-    
-    Usage:
-        def get_sessions(
-            date_range: DateRangeParams = Depends()
-        ):
-            query = db.query(Session)
-            if date_range.start_date:
-                query = query.filter(Session.created_dt >= date_range.start_date)
-            ...
-    """
     def __init__(
         self,
-        start_date: str | None = None,
-        end_date: str | None = None
+        start_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+        end_date: str | None = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     ):
         self.start_date = start_date
         self.end_date = end_date
-
-
-# ============================================================================
-# SERVICE DEPENDENCIES (Will be implemented in next steps)
-# ============================================================================
-
-# These will be added once we refactor services:
-# - get_recording_service()
-# - get_analysis_service()
-# - get_mqtt_service()
-# - get_export_service()

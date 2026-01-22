@@ -18,9 +18,9 @@ class BaseRepository(Generic[ModelType]):
     Base repository implementing common database operations.
     
     Usage:
-        class PatientRepository(BaseRepository[TbMPatient]):
+        class UserRepository(BaseRepository[TbMUser]):
             def __init__(self, db: Session):
-                super().__init__(TbMPatient, db)
+                super().__init__(TbMUser, db)
     """
     
     def __init__(self, model: Type[ModelType], db: Session):
@@ -364,12 +364,6 @@ class BaseRepository(Generic[ModelType]):
         """
         Bulk insert from list of dictionaries.
         Most efficient for large datasets.
-        
-        Args:
-            data_list: List of dictionaries with field-value pairs
-            
-        Returns:
-            Number of inserted records
         """
         try:
             if not data_list:
@@ -381,6 +375,6 @@ class BaseRepository(Generic[ModelType]):
         except Exception as e:
             self.db.rollback()
             raise DatabaseException(
-                f"Failed to bulk insert {self.model.__name__}",
+                f"Failed to bulk insert {self.model.__name__}: {str(e)}",
                 details={"error": str(e), "count": len(data_list)}
             )

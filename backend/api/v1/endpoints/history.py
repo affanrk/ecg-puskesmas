@@ -2,118 +2,51 @@
 History endpoint - refactored from original history.py
 Now uses repositories and better query patterns.
 """
-from fastapi import APIRouter, Depends, Query
-from typing import List, Optional
+from fastapi import APIRouter, Depends, Query, HTTPException
+from typing import List, Optional, Tuple, Union
 
 from repositories.session import SessionRepository
 from core.dependencies import get_session_repository, DateRangeParams
-from schemas.session import SessionResponse
+from schemas.session import SessionResponse, ClassificationStatsResponse
 from utils.constants import MAX_HISTORY_RESULTS
-
+from models.database import TbREcgSession, TbMUser # Import TbREcgSession for type hinting
 
 router = APIRouter()
 
-
-@router.get("", response_model=List[SessionResponse])
-async def get_recording_history(
-    device_id: Optional[str] = Query(None, description="Filter by device ID"),
-    subject_id: Optional[str] = Query(None, description="Filter by NIK"),
-    search: Optional[str] = Query(None, description="Search by name, device, or NIK"),
-    classification: Optional[str] = Query(None, description="Filter by classification result"),
-    date_range: DateRangeParams = Depends(),
-    limit: int = Query(MAX_HISTORY_RESULTS, le=MAX_HISTORY_RESULTS, description="Maximum results"),
-    session_repo: SessionRepository = Depends(get_session_repository)
-):
+def _map_session_to_response(
+    session: TbREcgSession, 
+    user_details: Optional[Union[Tuple[str, str, str], TbMUser]] = None
+) -> SessionResponse:
     """
-    Get recording history with advanced filtering.
+    Maps a database session object to a SessionResponse schema.
     
-    **Query Parameters:**
-    - `device_id`: Filter by specific device
-    - `subject_id`: Filter by NIK (partial match)
-    - `search`: Search across patient name, device ID, and NIK
-    - `classification`: Filter by classification result (e.g., "Normal", "Abnormal")
-    - `start_date`: Filter recordings from this date (YYYY-MM-DD)
-    - `end_date`: Filter recordings up to this date (YYYY-MM-DD)
-    - `limit`: Maximum number of results (default: 200)
+    Args:
+        session: The database session object.
+        user_details: A tuple (full_name, username, nik) or a TbMUser object
+                      containing user information to populate patient_name and subject_id.
     
-    **Returns:**
-    List of recording sessions with patient information and analysis results.
-    
-    **Example:**
-    ```
-    GET /api/history?device_id=ECG001&start_date=2024-01-01&limit=50
-    ```
+    Returns:
+        A populated SessionResponse object.
     """
-    # Use repository's advanced search
-    results = session_repo.search_sessions(
-        search_query=search,
-        device_id=device_id,
-        patient_id=subject_id,
-        classification=classification,
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
-        limit=limit
-    )
-    
-    # Transform to response schema
-    response_data = []
-    for session, patient_name in results:
-        response_data.append(
-            SessionResponse(
-                recording_id=session.recording_id,
-                device_id=session.device_id,
-                subject_id=session.patient_id,
-                patient_name=patient_name or "Unknown",
-                timestamp=session.created_dt,
-                classification=session.classification_result,
-                confidence=session.confidence_score,
-                bpm=session.avg_bpm,
-                avg_rr_ms=session.avg_rr_ms,
-                avg_pr_ms=session.avg_pr_ms,
-                avg_qs_ms=session.avg_qs_ms,
-                avg_qtc_ms=session.avg_qtc_ms
-            )
-        )
-        
-    return response_data
-
-
-@router.get("/{recording_id}", response_model=SessionResponse)
-async def get_recording_detail(
-    recording_id: str,
-    session_repo: SessionRepository = Depends(get_session_repository)
-):
-    """
-    Get detailed information for a specific recording.
-    
-    **Path Parameters:**
-    - `recording_id`: Recording identifier (UUID)
-    
-    **Returns:**
-    Detailed recording session information.
-    
-    **Raises:**
-    - `404`: Recording not found
-    
-    **Example:**
-    ```
-    GET /api/history/123e4567-e89b-12d3-a456-426614174000
-    ```
-    """
-    # This will raise RecordingNotFoundException if not found
-    session = session_repo.get_by_recording_id_or_fail(recording_id)
-    
-    # Get patient name
     patient_name = "Unknown"
-    if session.patient:
-        patient_name = session.patient.name
-        
+    subject_id = str(session.user_id)
+
+    if user_details:
+        if isinstance(user_details, tuple):
+            full_name, username, nik = user_details
+            patient_name = full_name or username or "Unknown"
+            subject_id = nik or str(session.user_id)
+        elif isinstance(user_details, TbMUser):
+            patient_name = user_details.full_name or user_details.username or "Unknown"
+            subject_id = user_details.nik or str(user_details.id)
+
     return SessionResponse(
         recording_id=session.recording_id,
         device_id=session.device_id,
-        subject_id=session.patient_id,
+        subject_id=subject_id,
         patient_name=patient_name,
         timestamp=session.created_dt,
+        changed_dt=session.changed_dt,
         classification=session.classification_result,
         confidence=session.confidence_score,
         bpm=session.avg_bpm,
@@ -124,6 +57,72 @@ async def get_recording_detail(
     )
 
 
+@router.get("/stats", response_model=ClassificationStatsResponse)
+async def get_history_stats(
+    user_id: Optional[int] = Query(None, description="Filter by User ID"),
+    session_repo: SessionRepository = Depends(get_session_repository)
+):
+    """
+    Get aggregated classification statistics.
+    """
+    return session_repo.get_classification_stats(user_id)
+
+
+@router.get("", response_model=List[SessionResponse])
+async def get_recording_history(
+    device_id: Optional[str] = Query(None, description="Filter by device ID", max_length=50),
+    user_id: Optional[int] = Query(None, description="Filter by User ID"),
+    search: Optional[str] = Query(None, description="Search by name, username, or device", max_length=100),
+    classification: Optional[str] = Query(None, description="Filter by classification result", max_length=50),
+    date_range: DateRangeParams = Depends(),
+    limit: int = Query(MAX_HISTORY_RESULTS, le=MAX_HISTORY_RESULTS, description="Maximum results"),
+    session_repo: SessionRepository = Depends(get_session_repository)
+):
+    """
+    Get recording history with advanced filtering.
+    """
+    # Use repository's advanced search
+    results = session_repo.search_sessions(
+        search_query=search,
+        device_id=device_id,
+        user_id=user_id,
+        classification=classification,
+        start_date=date_range.start_date,
+        end_date=date_range.end_date,
+        limit=limit
+    )
+    
+    return [_map_session_to_response(session, (full_name, username, nik)) for session, full_name, username, nik in results]
+
+
+@router.get("/recent", response_model=List[SessionResponse])
+async def get_recent_history(
+    user_id: int = Query(..., description="User ID is required"),
+    limit: int = Query(10, le=20, description="Maximum results"),
+    session_repo: SessionRepository = Depends(get_session_repository)
+):
+    """
+    Get recent completed recording history for a specific user (excludes 'Recording...' status).
+    """
+    sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
+    
+    return [_map_session_to_response(session, session.user) for session in sessions]
+
+
+@router.get("/{recording_id}", response_model=SessionResponse)
+async def get_recording_detail(
+    recording_id: str,
+    session_repo: SessionRepository = Depends(get_session_repository)
+):
+    """
+    Get detailed information for a specific recording.
+    """
+    # This will raise RecordingNotFoundException if not found
+    session = session_repo.find_by_recording_id_or_fail(recording_id)
+    
+    return _map_session_to_response(session, session.user)
+
+
 @router.get("/device/{device_id}", response_model=List[SessionResponse])
 async def get_device_history(
     device_id: str,
@@ -132,91 +131,21 @@ async def get_device_history(
 ):
     """
     Get all recording history for a specific device.
-    
-    **Path Parameters:**
-    - `device_id`: Device identifier
-    
-    **Query Parameters:**
-    - `limit`: Maximum results (default: 100)
-    
-    **Returns:**
-    List of recordings from this device, ordered by most recent first.
-    
-    **Example:**
-    ```
-    GET /api/history/device/ECG001?limit=50
-    ```
     """
-    sessions = session_repo.get_sessions_by_device(device_id, limit=limit)
+    sessions = session_repo.list_by_device(device_id, limit=limit)
     
-    response_data = []
-    for session in sessions:
-        patient_name = session.patient.name if session.patient else "Unknown"
-        
-        response_data.append(
-            SessionResponse(
-                recording_id=session.recording_id,
-                device_id=session.device_id,
-                subject_id=session.patient_id,
-                patient_name=patient_name,
-                timestamp=session.created_dt,
-                classification=session.classification_result,
-                confidence=session.confidence_score,
-                bpm=session.avg_bpm,
-                avg_rr_ms=session.avg_rr_ms,
-                avg_pr_ms=session.avg_pr_ms,
-                avg_qs_ms=session.avg_qs_ms,
-                avg_qtc_ms=session.avg_qtc_ms
-            )
-        )
-        
-    return response_data
+    return [_map_session_to_response(session, session.user) for session in sessions]
 
 
-@router.get("/patient/{patient_id}", response_model=List[SessionResponse])
-async def get_patient_history(
-    patient_id: str,
+@router.get("/user/{user_id}", response_model=List[SessionResponse])
+async def get_user_history(
+    user_id: int,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository)
 ):
     """
-    Get all recording history for a specific patient.
-    
-    **Path Parameters:**
-    - `patient_id`: Patient Identifier (NIK)
-    
-    **Query Parameters:**
-    - `limit`: Maximum results (default: 100)
-    
-    **Returns:**
-    List of patient's recordings, ordered by most recent first.
-    
-    **Example:**
-    ```
-    GET /api/history/patient/1234567890123456?limit=50
-    ```
+    Get all recording history for a specific user.
     """
-    sessions = session_repo.get_sessions_by_patient(patient_id, limit=limit)
+    sessions = session_repo.list_by_user(user_id, limit=limit)
     
-    response_data = []
-    for session in sessions:
-        patient_name = session.patient.name if session.patient else "Unknown"
-        
-        response_data.append(
-            SessionResponse(
-                recording_id=session.recording_id,
-                device_id=session.device_id,
-                subject_id=session.patient_id,
-                patient_name=patient_name,
-                timestamp=session.created_dt,
-                classification=session.classification_result,
-                confidence=session.confidence_score,
-                bpm=session.avg_bpm,
-                avg_rr_ms=session.avg_rr_ms,
-                avg_pr_ms=session.avg_pr_ms,
-                avg_qs_ms=session.avg_qs_ms,
-                avg_qtc_ms=session.avg_qtc_ms
-            )
-        )
-        
-    return response_data
+    return [_map_session_to_response(session, session.user) for session in sessions]

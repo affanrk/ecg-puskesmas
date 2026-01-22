@@ -8,6 +8,7 @@ import asyncio
 import joblib
 import numpy as np
 import pandas as pd
+from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict
 from sqlalchemy.orm import Session
@@ -203,7 +204,7 @@ class MLEngineService:
         """
         raw_repo = RawDataRepository(db)
         
-        rows = raw_repo.get_raw_data_for_recording(recording_id)
+        rows = raw_repo.find_by_recording_id(recording_id)
         
         if not rows:
             raise RecordingNotFoundException(recording_id)
@@ -339,7 +340,8 @@ class MLEngineService:
                 "device_id": device_id,
                 "recording_id": result["recording_id"],
                 "classification": result["classification"],
-                "confidence": result["confidence"]
+                "confidence": result["confidence"],
+                "changed_dt": datetime.now(timezone.utc).isoformat()
             }
         )
         

@@ -7,6 +7,7 @@ import sys
 import asyncio
 import warnings
 import logging
+import uvicorn
 
 if sys.platform == 'win32':
     policy = asyncio.WindowsSelectorEventLoopPolicy()
@@ -136,9 +137,6 @@ async def chrome_devtools_json():
 # ============================================================================
 
 if __name__ == "__main__":
-    import asyncio
-    import uvicorn
-    
     logger.info(f"[Config] Environment: {os.getenv('ENVIRONMENT', 'development')}")
     logger.info(f"[Config] API Port: {settings.FLASK_PORT}")
     logger.info(f"[Config] Database: {settings.DATABASE_HOST}:{settings.DATABASE_PORT}")
@@ -148,7 +146,7 @@ if __name__ == "__main__":
         app=app,
         host="0.0.0.0",
         port=settings.FLASK_PORT,
-        log_level="info",
+        log_level="debug",
         loop="asyncio",
         reload=True
     )

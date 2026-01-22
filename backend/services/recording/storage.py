@@ -100,7 +100,7 @@ class RecordingStorageService:
                 self._insert_performance_batch(db, perf_items)
                 
         except Exception as e:
-            logger.error(f"[Storage] Batch insert failed: {e}")
+            logger.error(f"[Storage] Batch insert failed: {str(e)}")
             db.rollback()
         finally:
             db.close()
@@ -131,7 +131,7 @@ class RecordingStorageService:
             chunk = valid_items[i:i + DB_BATCH_CHUNK_SIZE]
             
             try:
-                inserted = raw_repo.bulk_insert_raw_data(chunk)
+                inserted = raw_repo.bulk_create(chunk)
                 logger.debug(
                     f"[Storage] Inserted {inserted} ECG samples "
                     f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"

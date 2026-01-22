@@ -6,7 +6,7 @@ Now uses services and repositories for better separation.
 import asyncio
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
 
 from repositories.session import SessionRepository, RawDataRepository
@@ -25,7 +25,7 @@ plot_executor = ThreadPoolExecutor(max_workers=2)
 
 @router.get("/raw/{recording_id}")
 async def export_raw_ecg_data(
-    recording_id: str,
+    recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository)
 ):
     """
@@ -55,13 +55,13 @@ async def export_raw_ecg_data(
     Downloads: `ecg_raw_123e4567-e89b-12d3-a456-426614174000.csv`
     """
     # Verify recording exists
-    session_repo.get_by_recording_id_or_fail(recording_id)
+    session_repo.find_by_recording_id_or_fail(recording_id)
     
     # Fetch raw data
     db = SessionLocal()
     try:
         raw_repo = RawDataRepository(db)
-        rows = raw_repo.get_raw_data_for_recording(recording_id)
+        rows = raw_repo.find_by_recording_id(recording_id)
         
         if not rows:
             raise RecordingNotFoundException(recording_id)
@@ -94,7 +94,7 @@ async def export_raw_ecg_data(
 
 @router.get("/features/{recording_id}")
 async def export_analysis_features(
-    recording_id: str,
+    recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository)
 ):
     """
@@ -129,7 +129,7 @@ async def export_analysis_features(
     Downloads: `ecg_features_123e4567-e89b-12d3-a456-426614174000.csv`
     """
     # Fetch session
-    session = session_repo.get_by_recording_id_or_fail(recording_id)
+    session = session_repo.find_by_recording_id_or_fail(recording_id)
     
     # Build feature data
     feature_data = {
@@ -162,7 +162,7 @@ async def export_analysis_features(
 
 @router.get("/plot/{recording_id}")
 async def export_ecg_chart(
-    recording_id: str,
+    recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository)
 ):
     """
@@ -188,7 +188,7 @@ async def export_ecg_chart(
     Downloads: `ecg_chart_123e4567-e89b-12d3-a456-426614174000.png`
     """
     # Verify recording exists
-    session_repo.get_by_recording_id_or_fail(recording_id)
+    session_repo.find_by_recording_id_or_fail(recording_id)
     
     # Generate plot in thread pool (CPU-intensive)
     loop = asyncio.get_running_loop()

@@ -17,6 +17,7 @@ class SessionResponse(BaseModel):
     subject_id: str = Field(..., description="Patient identifier (NIK)")
     patient_name: str = Field(..., description="Patient full name")
     timestamp: Optional[datetime] = Field(None, description="Recording timestamp")
+    changed_dt: Optional[datetime] = Field(None, description="Last update timestamp")
     
     # Analysis Results
     classification: str = Field("Pending", description="AI classification result")
@@ -70,3 +71,11 @@ class DeviceStatusResponse(BaseModel):
             }
         }
     )
+
+class ClassificationCount(BaseModel):
+    classification: str
+    count: int
+
+class ClassificationStatsResponse(BaseModel):
+    total_sessions: int
+    classification_counts: list[ClassificationCount]

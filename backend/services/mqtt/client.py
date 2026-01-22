@@ -9,7 +9,7 @@ import orjson
 import ssl
 from typing import Optional
 
-from services.mqtt.protocol import mqtt_protocol, ECGSample
+from services.mqtt.protocol import mqtt_protocol
 from services.mqtt.handler import mqtt_data_handler
 from services.device.state import device_state_manager
 from core.config import settings
@@ -58,10 +58,12 @@ class MQTTClientService:
         
         async with aiomqtt.Client(**config) as client:
             self.client = client
+            logger.debug(f"[MQTT] Successfully connected to broker: {config['hostname']}:{config['port']}")
             
             # Subscribe to topic
             await client.subscribe(MQTT_TOPIC_PATTERN, qos=MQTT_QOS)
             logger.info(f"[MQTT] Connected & subscribed to {MQTT_TOPIC_PATTERN}")
+            logger.debug(f"[MQTT] Subscribed to topic pattern: {MQTT_TOPIC_PATTERN} with QoS {MQTT_QOS}")
             
             # Message loop
             async for message in client.messages:
@@ -107,6 +109,7 @@ class MQTTClientService:
             message: MQTT message object
         """
         try:
+            logger.debug(f"[MQTT] Received message on topic: {message.topic}, payload size: {len(message.payload)} bytes")
             # Skip retained messages
             if message.retain:
                 return
@@ -116,6 +119,7 @@ class MQTTClientService:
             
             # Extract device ID
             device_id = payload.get('id')
+            logger.debug(f"[MQTT] Extracted device_id: {device_id} from message payload.")
             if not device_id:
                 logger.warning("[MQTT] Received packet without device ID")
                 return
@@ -134,10 +138,11 @@ class MQTTClientService:
                 state = device_state_manager.get_state(device_id)
                 if not state.is_connected:
                     should_update_list = True
-                    logger.info(f"[MQTT] Device re-connected: {device_id}")
+                    logger.debug(f"[MQTT] Device re-connected: {device_id}")
 
             # Notify clients if status changed
             if should_update_list:
+                logger.debug(f"[MQTT] Triggering device list update for {device_id}")
                 await device_state_manager.notify_device_list_update()
                 
             # Parse packet

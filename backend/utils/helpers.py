@@ -1,19 +1,71 @@
+"""
+Helper utilities for the backend application.
+Includes path resolution, formatting, and mathematical helpers.
+"""
 import os
+import re
 from pathlib import Path
+from datetime import datetime, date
+from typing import Optional
+
 
 def get_project_root() -> Path:
-    """Mengembalikan path absolut ke root project"""
-    # Asumsi file ini ada di app/utils/helpers.py, jadi root adalah naik 2 level
+    """
+    Retrieve the absolute path to the project root directory.
+    """
     return Path(__file__).parent.parent.parent
 
+
 def resolve_path(relative_path: str) -> str:
-    """Mengubah relative path menjadi absolute path yang aman"""
+    """
+    Convert a relative project path into a safe absolute path.
+    
+    Args:
+        relative_path: Path relative to project root
+        
+    Returns:
+        Absolute path string
+    """
     root = get_project_root()
-    # Gabungkan dan normalkan path (handle slash vs backslash otomatis)
-    full_path = (root / relative_path).resolve()
-    return str(full_path)
+    return str((root / relative_path).resolve())
+
 
 def format_duration(seconds: float) -> str:
-    """Mengubah detik menjadi format MM:SS (untuk log durasi rekaman)"""
+    """
+    Format a duration in seconds into MM:SS string.
+    
+    Args:
+        seconds: Duration in seconds
+        
+    Returns:
+        Formatted string (e.g., "02:30")
+    """
     m, s = divmod(seconds, 60)
     return f"{int(m):02d}:{int(s):02d}"
+
+
+def calculate_age(dob: date) -> int:
+    """
+    Calculate current age based on date of birth.
+    
+    Args:
+        dob: Date of birth
+        
+    Returns:
+        Age in years
+    """
+    today = datetime.now().date()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Remove potentially dangerous characters from a filename.
+    
+    Args:
+        filename: Original filename
+        
+    Returns:
+        Sanitized filename
+    """
+    return re.sub(r'(?u)[^-\w.]', '_', filename)

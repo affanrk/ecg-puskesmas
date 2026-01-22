@@ -5,6 +5,7 @@ Provides structured logging with context, formatting, and file support.
 import logging
 import sys
 import os
+import time # Moved from log_performance decorator
 from typing import Optional
 from pathlib import Path
 

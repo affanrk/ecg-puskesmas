@@ -133,6 +133,15 @@ class DeviceStateManager:
             logger.debug(f"Created new state for device: {device_id}")
         return self.device_states[device_id]
         
+    def get_state_or_fail(self, device_id: str) -> DeviceState:
+        """
+        Get device state, raising DeviceNotFoundException if it does not exist.
+        """
+        if device_id not in self.device_states:
+            from core.exceptions import DeviceNotFoundException # Deferred import
+            raise DeviceNotFoundException(device_id)
+        return self.device_states[device_id]
+        
     def has_device(self, device_id: str) -> bool:
         """Check if device exists in system"""
         return device_id in self.device_states
@@ -210,20 +219,27 @@ class DeviceStateManager:
         
         return True
         
-    def unsubscribe_from_device(self, websocket: WebSocket):
-        """Unsubscribe WebSocket from device updates"""
+    def unsubscribe_from_device(self, websocket: WebSocket) -> bool:
+        """
+        Unsubscribe WebSocket from device updates.
+        Returns True if device was unlocked.
+        """
         if websocket not in self.ws_device_map:
-            return
+            return False
             
         device_id = self.ws_device_map.pop(websocket)
         state = self.get_state(device_id)
         
+        unlocked = False
         # Unlock device if this WebSocket owns the lock
         if state.locked_by == websocket:
             state.locked_by = None
+            unlocked = True
             
         # Remove from subscriptions
         self.websocket_connections[device_id].discard(websocket)
+        
+        return unlocked
         
     def get_device_for_websocket(
         self, 
@@ -277,6 +293,7 @@ class DeviceStateManager:
         Notify all connected clients about device list changes.
         """
         device_list = self.get_all_device_summaries()
+        logger.debug(f"[DeviceStateManager] Broadcasting device list update to {len(self.broadcast_connections)} clients. Devices: {len(device_list)}")
         await self.broadcast_to_all({
             "type": WSMessageType.DEVICE_LIST_UPDATE.value,
             "devices": device_list

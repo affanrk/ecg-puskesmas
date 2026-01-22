@@ -11,8 +11,8 @@ graph TD
         IOT[ECG Devices<br/>IoT/MQTT]
     end
 
-    subgraph "Core Backend (NestJS)"
-        API[API Gateway<br/>Auth, Users, Patients]
+    subgraph "Core Backend (FastAPI)"
+        API[API Gateway<br/>Auth, Users, History]
         WS[WebSocket Gateway<br/>Real-time Streaming]
         INGEST[Data Ingestion Service]
     end
@@ -56,14 +56,10 @@ Using `TB_M_` (Master), `TB_R_` (Transaction), and `TB_T_` (Temporary/Queue) con
 erDiagram
     %% Master Tables
     TB_M_FACILITIES ||--|{ TB_M_DEVICES : owns
-    TB_M_FACILITIES ||--|{ TB_M_STAFF : employs
     TB_M_FACILITIES ||--|{ TB_R_SESSIONS : location
     
-    TB_M_USERS ||--o| TB_M_STAFF : account_for
-    TB_M_USERS ||--o| TB_M_PATIENTS : account_for
+    TB_M_USERS ||--|{ TB_R_SESSIONS : records_own_data
     
-    TB_M_PATIENTS ||--|{ TB_R_SESSIONS : undergoes
-    TB_M_STAFF ||--|{ TB_R_SESSIONS : conducts
     TB_M_DEVICES ||--|{ TB_R_SESSIONS : used_in
     
     %% Transaction Tables
@@ -96,54 +92,27 @@ CREATE TABLE tb_m_facilities (
     changed_dt      TIMESTAMP
 );
 
--- Users (Central Identity)
-CREATE TABLE tb_m_users (
-    id              CHAR(26) PRIMARY KEY,       -- TSID
+-- Users (Central Identity & Patient Data)
+CREATE TABLE tb_m_user (
+    id              SERIAL PRIMARY KEY,
     username        VARCHAR(50) UNIQUE NOT NULL,
-    email           VARCHAR(100) UNIQUE,
-    password_hash   VARCHAR(255) NOT NULL,
-    role            VARCHAR(20) NOT NULL,       -- ADMIN, DOCTOR, NURSE, PATIENT
-    is_active       BOOLEAN DEFAULT TRUE,
+    email           VARCHAR(100) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    role            VARCHAR(20) DEFAULT 'user', -- user, operator, doctor, admin
+    is_active       INTEGER DEFAULT 1,
+    full_name       VARCHAR(100),
     
-    created_by      CHAR(26) NOT NULL,
+    -- Patient Profile Fields
+    is_patient      BOOLEAN DEFAULT FALSE,      -- Profile Completed Flag
+    dob             DATE,
+    gender          VARCHAR(10),
+    address         VARCHAR(255),
+    contact_number  VARCHAR(20),
+    medical_history TEXT,
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
-    changed_dt      TIMESTAMP
-);
-
--- Staff (Medical Personnel)
-CREATE TABLE tb_m_staff (
-    id              CHAR(26) PRIMARY KEY,
-    user_id         CHAR(26) UNIQUE NOT NULL REFERENCES tb_m_users(id),
-    facility_id     CHAR(26) NOT NULL REFERENCES tb_m_facilities(id),
-    
-    employee_no     VARCHAR(50) UNIQUE,         -- NIP/SIP (Business Key)
-    full_name       VARCHAR(100) NOT NULL,
-    specialization  VARCHAR(50),
-    
-    created_by      CHAR(26) NOT NULL,
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
-    changed_dt      TIMESTAMP
-);
-
--- Patients (Medical Data)
-CREATE TABLE tb_m_patients (
-    id              CHAR(26) PRIMARY KEY,
-    user_id         CHAR(26) UNIQUE REFERENCES tb_m_users(id), -- Nullable
-    
-    -- Format: [FASKES]-[YYYYMM]-[SEQ]
-    medical_record_no VARCHAR(50) UNIQUE NOT NULL, 
-    nik               VARCHAR(16) UNIQUE,
-    
-    full_name         VARCHAR(100) NOT NULL,
-    date_of_birth     DATE NOT NULL,
-    gender            CHAR(1),
-    address           TEXT,
-    
-    created_by      CHAR(26) NOT NULL,
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
+    changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
 
@@ -166,57 +135,45 @@ CREATE TABLE tb_m_devices (
 
 ```sql
 -- Sessions (Recording Sessions)
-CREATE TABLE tb_r_sessions (
-    id              CHAR(26) PRIMARY KEY,
+CREATE TABLE tb_r_ecg_session (
+    recording_id    VARCHAR(50) PRIMARY KEY,
+    device_id       VARCHAR(50) NOT NULL,
+    user_id         INTEGER NOT NULL REFERENCES tb_m_user(id),
     
-    -- Format: [SN]-[YYYYMMDD]-[SEQ]
-    session_no      VARCHAR(50) UNIQUE NOT NULL,
+    classification_result VARCHAR(50) DEFAULT 'Pending',
+    confidence_score FLOAT,
     
-    facility_id     CHAR(26) NOT NULL REFERENCES tb_m_facilities(id),
-    patient_id      CHAR(26) NOT NULL REFERENCES tb_m_patients(id),
-    device_id       CHAR(26) NOT NULL REFERENCES tb_m_devices(id),
-    staff_id        CHAR(26) NOT NULL REFERENCES tb_m_staff(id),
+    avg_bpm         FLOAT,
+    avg_rr_ms       FLOAT,
+    avg_pr_ms       FLOAT,
+    avg_qs_ms       FLOAT,
+    avg_qtc_ms      FLOAT,
+    avg_st_ms       FLOAT,
+    rs_ratio_v1     FLOAT,
     
-    start_time      TIMESTAMP NOT NULL,
-    end_time        TIMESTAMP,
-    
-    ai_summary      VARCHAR(100), -- Quick snapshot of AI result
-    doctor_notes    TEXT,
-    
-    created_by      CHAR(26) NOT NULL,
+    -- Audit Trail
+    created_by      VARCHAR(50) NOT NULL,
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
+    changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
 
--- AI Analysis Results (Detail)
-CREATE TABLE tb_r_ai_results (
-    id              CHAR(26) PRIMARY KEY,
-    session_id      CHAR(26) NOT NULL REFERENCES tb_r_sessions(id),
+-- Signal Data
+CREATE TABLE tb_r_ecg_raw (
+    id              BIGSERIAL PRIMARY KEY,
+    recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
     
-    segment_index   INT,
-    classification  VARCHAR(50),
-    confidence      DECIMAL(5, 4),
+    mv_lead_I       FLOAT,
+    mv_lead_II      FLOAT,
+    mv_v1           FLOAT,
     
-    features_json   JSONB, -- Store calculated features (RR, PR, QTc) here
+    raw_lead_I      INTEGER,
+    raw_lead_II     INTEGER,
+    raw_v1          INTEGER,
     
-    created_by      CHAR(26) NOT NULL,
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
-    changed_dt      TIMESTAMP
-);
-
--- Signal Data (High Volume - TimescaleDB)
-CREATE TABLE tb_r_signal_data (
-    time            TIMESTAMPTZ NOT NULL,
-    session_id      CHAR(26) NOT NULL,
-    lead_i          FLOAT,
-    lead_ii         FLOAT,
-    lead_v1         FLOAT, -- Assuming 3 leads based on current codebase
-    
+    created_by      VARCHAR(50),
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
--- SELECT create_hypertable('tb_r_signal_data', 'time');
 ```
 
 ### 3.3. Temporary Tables (`TB_T_`)
@@ -230,20 +187,11 @@ CREATE TABLE tb_t_raw_buffer (
     received_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_processed    BOOLEAN DEFAULT FALSE
 );
-
--- AI Job Queue
-CREATE TABLE tb_t_ai_jobs (
-    id              CHAR(26) PRIMARY KEY,
-    session_id      CHAR(26) NOT NULL,
-    status          VARCHAR(20) DEFAULT 'PENDING',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 ```
 
 ## 4. Key Naming Conventions
 
-*   **Primary Keys**: `id` (TSID/ULID, 26 chars)
-*   **Foreign Keys**: `[singular_table_name]_id`
+*   **Primary Keys**: `id` or `[entity]_id`
 *   **Audit Fields**: `created_by`, `created_dt`, `changed_by`, `changed_dt`
-*   **Business Keys**: `_no` or `_code` suffix (e.g., `medical_record_no`, `facility_code`)
-
+*   **Business Keys**: `_no` or `_code` suffix
+*   **Table Prefixes**: `TB_M_` (Master), `TB_R_` (Transaction), `TB_T_` (Temporary)

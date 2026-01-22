@@ -4,9 +4,13 @@ NEW - Provides system status and diagnostics.
 """
 from fastapi import APIRouter, Depends
 from typing import Dict, Any
+from schemas.health import (
+    HealthCheckResponse, DetailedHealthCheckResponse, DeviceMonitoringResponse,
+    PerformanceMonitoringResponse, MlMonitoringResponse, CleanupResponse,
+    SystemPerformanceSummary, MlModelInfo, DeviceStatus, WorstPerformer
+)
 import time
-
-from services.device.state import device_state_manager
+import numpy as np
 from services.analysis.ml_engine import ml_engine_service
 from services.recording.storage import recording_storage_service
 from services.mqtt.client import mqtt_service
@@ -19,7 +23,7 @@ from utils.logger import logger
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=HealthCheckResponse)
 async def health_check():
     """
     Basic health check endpoint.
@@ -47,7 +51,7 @@ async def health_check():
     }
 
 
-@router.get("/detailed")
+@router.get("/detailed", response_model=DetailedHealthCheckResponse)
 async def detailed_health_check(
     perf_repo: PerformanceRepository = Depends(get_performance_repository)
 ):
@@ -153,7 +157,7 @@ async def detailed_health_check(
     }
 
 
-@router.get("/monitoring/devices")
+@router.get("/monitoring/devices", response_model=DeviceMonitoringResponse)
 async def get_device_monitoring():
     """
     Get current status of all devices.
@@ -226,7 +230,7 @@ async def get_device_monitoring():
     }
 
 
-@router.get("/monitoring/performance")
+@router.get("/monitoring/performance", response_model=PerformanceMonitoringResponse)
 async def get_performance_monitoring(
     hours: int = 24,
     perf_repo: PerformanceRepository = Depends(get_performance_repository)
@@ -293,7 +297,7 @@ async def get_performance_monitoring(
     }
 
 
-@router.get("/monitoring/ml")
+@router.get("/monitoring/ml", response_model=MlMonitoringResponse)
 async def get_ml_monitoring():
     """
     Get ML model status and information.
@@ -330,7 +334,7 @@ async def get_ml_monitoring():
     }
 
 
-@router.post("/admin/cleanup/old-logs")
+@router.post("/admin/cleanup/old-logs", response_model=CleanupResponse)
 async def cleanup_old_performance_logs(
     days: int = 30,
     perf_repo: PerformanceRepository = Depends(get_performance_repository)

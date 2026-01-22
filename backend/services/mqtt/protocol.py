@@ -4,11 +4,10 @@ Handles message parsing and packet unpacking.
 Separates protocol logic from business logic.
 """
 import heapq
-from typing import Dict, List, Any, Tuple
+from typing import List, Tuple
 from dataclasses import dataclass
 
-from utils.logger import logger
-
+from utils.constants import SAMPLING_RATE # Import SAMPLING_RATE
 
 @dataclass
 class ECGSample:
@@ -51,18 +50,16 @@ class MQTTProtocolHandler:
         is_batch = 'r1' in payload and isinstance(payload['r1'], list)
         
         if is_batch:
-            samples, end_counter = self._parse_batch_packet(payload)
-            packet_format = "JSON Batch"
+            samples, end_counter, packet_format = self._parse_batch_packet(payload)
         else:
-            samples, end_counter = self._parse_single_packet(payload)
-            packet_format = "JSON Single"
+            samples, end_counter, packet_format = self._parse_single_packet(payload)
             
         return device_id, samples, end_counter, packet_format
         
     def _parse_batch_packet(
         self,
         payload: dict
-    ) -> Tuple[List[ECGSample], int]:
+    ) -> Tuple[List[ECGSample], int, str]:
         """
         Parse batch format packet.
         
@@ -90,8 +87,8 @@ class MQTTProtocolHandler:
         
         batch_size = len(list_r1)
         
-        # Sampling interval: 10ms = 10000 microseconds
-        interval_us = 10000
+        # Sampling interval: in microseconds, derived from SAMPLING_RATE
+        interval_us = int((1 / SAMPLING_RATE) * 1_000_000)
         
         # Reconstruct samples with interpolated timestamps
         samples = []
@@ -112,12 +109,12 @@ class MQTTProtocolHandler:
             )
             samples.append(sample)
             
-        return samples, end_counter
+        return samples, end_counter, "JSON Batch" # Added packet format to return
         
     def _parse_single_packet(
         self,
         payload: dict
-    ) -> Tuple[List[ECGSample], int]:
+    ) -> Tuple[List[ECGSample], int, str]:
         """
         Parse single sample format packet.
         
@@ -145,7 +142,8 @@ class MQTTProtocolHandler:
         
         counter = payload['counter']
         
-        return [sample], counter
+        return [sample], counter, "JSON Single" # Added packet format to return
+        
         
     # ========================================================================
     # JITTER BUFFER MANAGEMENT
