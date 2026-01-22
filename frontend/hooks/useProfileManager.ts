@@ -89,7 +89,7 @@ export function useProfileManager() {
 
     // 3. Validation Logic
 
-    const validateField = (field: string, value: string) => {
+    const validateField = useCallback((field: string, value: string) => {
         let error = "";
         switch(field) {
             case 'nik':
@@ -125,7 +125,7 @@ export function useProfileManager() {
                 break;
         }
         return error;
-    };
+    }, [securityForm.new_password]);
 
     const runFullMedicalValidation = () => {
         const newErrors: Record<string, string> = {};
@@ -153,19 +153,19 @@ export function useProfileManager() {
         setMedicalForm(prev => ({ ...prev, [field]: value }));
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
-    }, []);
+    }, [validateField]);
 
     const handleSecurityChange = useCallback((field: string, value: string) => {
         setSecurityForm(prev => ({ ...prev, [field]: value }));
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
-    }, [securityForm.new_password]);
+    }, [validateField]);
 
     // 5. API Logic
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleApiError = (err: any, defaultField?: string) => {
-        let fieldErrors: Record<string, string> = {};
+        const fieldErrors: Record<string, string> = {};
         if (err.response?.status === 400 || err.response?.status === 422) {
             const detail = err.response.data.detail;
             if (typeof detail === 'string') {

@@ -115,10 +115,6 @@ export default function RegisterPage() {
     const isFormValid = Object.values(checks).every(Boolean);
 
     // 5. Handlers
-    const handleBlur = (field: keyof typeof touched) => {
-        setTouched(prev => ({ ...prev, [field]: true }));
-    };
-
     const handleRegister = async (e: FormEvent) => {
         e.preventDefault();
         setServerError('');
