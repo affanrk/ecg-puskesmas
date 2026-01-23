@@ -3,17 +3,16 @@ Health check and monitoring endpoints.
 NEW - Provides system status and diagnostics.
 """
 from fastapi import APIRouter, Depends
-from typing import Dict, Any
 from schemas.health import (
     HealthCheckResponse, DetailedHealthCheckResponse, DeviceMonitoringResponse,
     PerformanceMonitoringResponse, MlMonitoringResponse, CleanupResponse,
-    SystemPerformanceSummary, MlModelInfo, DeviceStatus, WorstPerformer
 )
 import time
 import numpy as np
 from services.analysis.ml_engine import ml_engine_service
 from services.recording.storage import recording_storage_service
 from services.mqtt.client import mqtt_service
+from services.device.state import device_state_manager
 from repositories.performance import PerformanceRepository
 from core.dependencies import get_performance_repository
 from core.database import engine
