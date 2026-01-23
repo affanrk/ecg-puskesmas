@@ -16,6 +16,7 @@ from services.device.state import device_state_manager
 from repositories.performance import PerformanceRepository
 from core.dependencies import get_performance_repository
 from core.database import engine
+from sqlalchemy import text
 from utils.logger import logger
 
 
@@ -100,7 +101,7 @@ async def detailed_health_check(
     try:
         start = time.time()
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         latency = (time.time() - start) * 1000
         components["database"] = {
             "status": "healthy",
