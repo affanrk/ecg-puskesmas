@@ -15,10 +15,21 @@ export interface HistoryFilters {
 // --- Environment Helpers ---
 
 export const getApiUrl = (): string => {
+    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+
     if (typeof window !== 'undefined' && (window as any).__ENV__) {
-        return (window as any).__ENV__.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+        url = (window as any).__ENV__.NEXT_PUBLIC_API_URL || url;
     }
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+
+    // Sanitize: Remove trailing slash
+    url = url.replace(/\/$/, '');
+
+    // Auto-fix: Ensure it ends with /api/v1
+    if (!url.endsWith('/api/v1')) {
+        url = `${url}/api/v1`;
+    }
+
+    return url;
 };
 
 // --- API Functions ---

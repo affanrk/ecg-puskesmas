@@ -28,9 +28,11 @@ try:
 except ImportError:
     pass
 
+import traceback
 from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from core.config import settings
 from core.events import lifespan
@@ -86,14 +88,39 @@ async def app_exception_handler(request: Request, exc: AppException):
         extra={"details": exc.details}
     )
     
-    return {
-        "error": {
-            "type": exc.__class__.__name__,
-            "message": exc.message,
-            "status_code": exc.status_code,
-            "details": exc.details
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "type": exc.__class__.__name__,
+                "message": exc.message,
+                "status_code": exc.status_code,
+                "details": exc.details
+            }
         }
-    }
+    )
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """
+    Handle all unhandled exceptions.
+    Returns 500 with stack trace for debugging (staging/dev only).
+    """
+    error_msg = str(exc)
+    tb = traceback.format_exc()
+    logger.error(f"[Unhandled Exception] {error_msg}\n{tb}")
+    
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "type": "InternalServerError",
+                "message": "An unexpected error occurred",
+                "debug_message": error_msg,
+                "traceback": tb.split("\n")  # Split for better JSON readability
+            }
+        }
+    )
 
 
 @app.exception_handler(DeviceException)
