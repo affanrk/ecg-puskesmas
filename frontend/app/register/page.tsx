@@ -6,6 +6,7 @@ import axios from 'axios';
 import { UserPlus, User, Mail, Check, AlertCircle, Eye, EyeOff, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/useToast';
+import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
 
 export default function RegisterPage() {
@@ -19,7 +20,7 @@ export default function RegisterPage() {
         password: '',
         confirmPassword: ''
     });
-    
+
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const [checks, setChecks] = useState({
@@ -42,7 +43,7 @@ export default function RegisterPage() {
     // 2. Helpers
     const validateField = (field: string, value: string) => {
         let error = "";
-        switch(field) {
+        switch (field) {
             case 'username':
                 if (value.length > 0 && value.length < 3) error = "Min 3 characters";
                 else if (value.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(value)) error = "Alpha-numeric and _ - only";
@@ -67,7 +68,7 @@ export default function RegisterPage() {
     const handleFieldChange = (field: string, value: string) => {
         const newFormData = { ...formData, [field]: value };
         setFormData(newFormData);
-        
+
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
 
@@ -76,16 +77,6 @@ export default function RegisterPage() {
             const confirmErr = validateField('confirmPassword', formData.confirmPassword);
             setErrors(prev => ({ ...prev, confirmPassword: confirmErr }));
         }
-    };
-
-    const getApiUrl = () => {
-        if (typeof window !== 'undefined') {
-            const win = window as unknown as { __ENV__?: Record<string, string> };
-            if (win.__ENV__) {
-                return win.__ENV__.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-            }
-        }
-        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     };
 
     const triggerShake = () => {
@@ -98,7 +89,7 @@ export default function RegisterPage() {
         const pwd = formData.password;
         const usernameRegex = /^[a-zA-Z0-9_-]{3,}$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        
+
         setChecks({
             length: pwd.length >= 8,
             upper: /[A-Z]/.test(pwd),
@@ -127,10 +118,10 @@ export default function RegisterPage() {
         };
 
         if (Object.values(newErrors).some(e => e) || !isFormValid) {
-             setErrors(newErrors);
-             setServerError("Please fulfill all requirements.");
-             triggerShake();
-             return;
+            setErrors(newErrors);
+            setServerError("Please fulfill all requirements.");
+            triggerShake();
+            return;
         }
 
         setLoading(true);
@@ -169,7 +160,7 @@ export default function RegisterPage() {
                 "w-full max-w-[420px] bg-white p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col relative overflow-hidden",
                 isShaking && "animate-light-shake"
             )}>
-                
+
                 <div className="text-center mb-8 relative">
                     <div className="w-20 h-20 bg-gradient-to-br from-brand-500 to-brand-600 rounded-3xl flex items-center justify-center mx-auto mb-5 shadow-xl shadow-brand-500/20 group hover:rotate-3 transition-transform duration-500 cursor-default">
                         <UserPlus className="w-10 h-10 text-white" />
@@ -184,7 +175,7 @@ export default function RegisterPage() {
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-5">
-                    
+
                     <div className={clsx("transition-all duration-300 overflow-hidden", serverError ? "h-12 opacity-100 mb-2" : "h-0 opacity-0")}>
                         <div className="w-full h-full px-4 bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold rounded-2xl text-center flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -196,8 +187,8 @@ export default function RegisterPage() {
                         <div className="group">
                             <div className="relative">
                                 <User className={clsx("absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10", errors.username ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     value={formData.username}
                                     onChange={(e) => handleFieldChange('username', e.target.value)}
                                     className={clsx(
@@ -216,8 +207,8 @@ export default function RegisterPage() {
                         <div className="group">
                             <div className="relative">
                                 <Mail className={clsx("absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors z-10", errors.email ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
-                                <input 
-                                    type="email" 
+                                <input
+                                    type="email"
                                     value={formData.email}
                                     onChange={(e) => handleFieldChange('email', e.target.value)}
                                     className={clsx(
@@ -235,7 +226,7 @@ export default function RegisterPage() {
                         <div className="grid grid-cols-2 gap-2 relative">
                             <div className="group">
                                 <div className="relative">
-                                    <input 
+                                    <input
                                         type={showPassword ? "text" : "password"}
                                         value={formData.password}
                                         onChange={(e) => handleFieldChange('password', e.target.value)}
@@ -251,7 +242,7 @@ export default function RegisterPage() {
 
                             <div className="group">
                                 <div className="relative">
-                                    <input 
+                                    <input
                                         type={showPassword ? "text" : "password"}
                                         value={formData.confirmPassword}
                                         onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
@@ -261,8 +252,8 @@ export default function RegisterPage() {
                                         )}
                                         placeholder="Confirm"
                                     />
-                                    
-                                    <button 
+
+                                    <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
                                         className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors p-1 z-10"
@@ -275,14 +266,14 @@ export default function RegisterPage() {
                             </div>
                         </div>
                     </div>
-                    
-                    <button 
-                        type="submit" 
+
+                    <button
+                        type="submit"
                         disabled={loading || success}
                         className={clsx(
                             "w-full font-black py-4 rounded-2xl transition-all shadow-xl text-[11px] uppercase tracking-[0.2em] active:scale-[0.98] flex items-center justify-center gap-3",
                             isFormValid && !loading
-                                ? "bg-brand-600 hover:bg-brand-700 text-white shadow-brand-500/25 hover:shadow-brand-500/40" 
+                                ? "bg-brand-600 hover:bg-brand-700 text-white shadow-brand-500/25 hover:shadow-brand-500/40"
                                 : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         )}
                     >
@@ -306,7 +297,7 @@ export default function RegisterPage() {
                     </p>
                 </div>
             </div>
-            
+
             <style jsx global>{`
                 @keyframes light-shake {
                     0%, 100% { transform: translateX(0); }

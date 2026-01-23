@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import AuthGuard from "@/components/shared/AuthGuard";
 import ToastContainer from "@/components/shared/ToastContainer";
@@ -29,6 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased bg-slate-50 text-slate-900 h-screen overflow-hidden selection:bg-sky-100 selection:text-sky-900 font-sans">
+        <Script src="/env-config.js" strategy="beforeInteractive" />
         <AuthGuard>
           {children}
         </AuthGuard>

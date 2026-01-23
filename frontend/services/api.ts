@@ -14,19 +14,11 @@ export interface HistoryFilters {
 
 // --- Environment Helpers ---
 
-const getEnv = (key: string): string | undefined => {
-    if (typeof window !== 'undefined' && window.__ENV__) {
-        return window.__ENV__[key];
+export const getApiUrl = (): string => {
+    if (typeof window !== 'undefined' && (window as any).__ENV__) {
+        return (window as any).__ENV__.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     }
-    return undefined;
-};
-
-const getApiBaseUrl = (): string => {
-    const envVar = getEnv('NEXT_PUBLIC_API_URL');
-    const processVar = process.env.NEXT_PUBLIC_API_URL;
-    const defaultVar = 'http://localhost:8080/api/v1';
-
-    return envVar || processVar || defaultVar;
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 };
 
 // --- API Functions ---
@@ -42,7 +34,7 @@ export async function fetchHistory(filters: HistoryFilters = {}) {
     params.append('t', Date.now().toString());
 
     try {
-        const response = await axios.get(`${getApiBaseUrl()}/history`, { params });
+        const response = await axios.get(`${getApiUrl()}/history`, { params });
         return response.data;
     } catch (error) {
         console.error("Fetch History Error:", error);
@@ -52,21 +44,21 @@ export async function fetchHistory(filters: HistoryFilters = {}) {
 
 export function downloadRecording(type: 'raw' | 'feature' | 'plot', recordingId: string) {
     if (!recordingId) return;
-    
+
     const endpointMap: { [key: string]: string } = {
         'raw': 'raw',
         'feature': 'features',
         'plot': 'plot'
     };
-    
+
     const endpoint = endpointMap[type] || type;
-    const url = `${getApiBaseUrl()}/export/${endpoint}/${recordingId}`;
+    const url = `${getApiUrl()}/export/${endpoint}/${recordingId}`;
     window.open(url, '_blank');
 }
 
 export async function fetchUserProfile(token: string) {
     try {
-        const response = await axios.get(`${getApiBaseUrl()}/auth/me`, {
+        const response = await axios.get(`${getApiUrl()}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         return response.data;
@@ -79,7 +71,7 @@ export async function fetchUserProfile(token: string) {
 export async function fetchStats(userId?: number) {
     try {
         const params = userId ? { user_id: userId } : {};
-        const response = await axios.get(`${getApiBaseUrl()}/history/stats`, { params });
+        const response = await axios.get(`${getApiUrl()}/history/stats`, { params });
         return response.data;
     } catch (error) {
         console.error("Fetch Stats Error:", error);
@@ -90,7 +82,7 @@ export async function fetchStats(userId?: number) {
 export async function fetchRecentHistory(userId: number, limit: number = 10) {
     try {
         const params = { user_id: userId, limit };
-        const response = await axios.get(`${getApiBaseUrl()}/history/recent`, { params });
+        const response = await axios.get(`${getApiUrl()}/history/recent`, { params });
         return response.data;
     } catch (error) {
         console.error("Fetch Recent History Error:", error);

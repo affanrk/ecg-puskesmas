@@ -5,6 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
 
 export default function LoginPage() {
@@ -16,7 +17,7 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
     const [isShaking, setIsShaking] = useState(false);
-    
+
     // 2. Hooks
     const { show: toast } = useToast();
 
@@ -34,19 +35,9 @@ export default function LoginPage() {
     const handleFieldChange = (field: string, value: string) => {
         if (field === 'usernameOrEmail') setUsernameOrEmail(value);
         else if (field === 'password') setPassword(value);
-        
+
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
-    };
-
-    const getApiUrl = () => {
-        if (typeof window !== 'undefined') {
-            const win = window as unknown as { __ENV__?: Record<string, string> };
-            if (win.__ENV__) {
-                return win.__ENV__.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-            }
-        }
-        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     };
 
     const triggerShake = () => {
@@ -58,7 +49,7 @@ export default function LoginPage() {
     const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
         setServerError('');
-        
+
         const userErr = !usernameOrEmail ? "Required" : validateField('usernameOrEmail', usernameOrEmail);
         const passErr = !password ? "Required" : validateField('password', password);
 
@@ -70,7 +61,7 @@ export default function LoginPage() {
         }
 
         setLoading(true);
-        
+
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
 
@@ -83,7 +74,7 @@ export default function LoginPage() {
             });
 
             const data = response.data;
-            
+
             const userData = {
                 id: data.user_id,
                 username: data.user_name,
@@ -93,7 +84,7 @@ export default function LoginPage() {
 
             localStorage.setItem('ecg_token', data.access_token);
             localStorage.setItem('ecg_user', JSON.stringify(userData));
-            
+
             toast("Welcome back!", "success");
 
             setTimeout(() => {
@@ -120,7 +111,7 @@ export default function LoginPage() {
                 "w-full max-w-[400px] bg-white p-10 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col relative overflow-hidden",
                 isShaking && "animate-light-shake"
             )}>
-                
+
                 <div className="absolute -top-12 -right-12 w-48 h-48 bg-brand-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
                 <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
@@ -133,7 +124,7 @@ export default function LoginPage() {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-5 relative z-10">
-                    
+
                     <div className={clsx("transition-all duration-300 overflow-hidden", serverError ? "h-12 opacity-100 mb-2" : "h-0 opacity-0")}>
                         <div className="w-full h-full px-4 bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold rounded-2xl text-center flex items-center justify-center gap-2">
                             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -164,7 +155,7 @@ export default function LoginPage() {
                             </div>
                             {errors.usernameOrEmail && <span className="text-[9px] font-bold text-rose-500 mt-1 block ml-1 animate-in fade-in slide-in-from-top-1">{errors.usernameOrEmail}</span>}
                         </div>
-                        
+
                         <div className="group">
                             <div className="relative">
                                 <Lock className={clsx(
@@ -183,7 +174,7 @@ export default function LoginPage() {
                                     )}
                                     placeholder="Password"
                                 />
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors p-1 z-10"

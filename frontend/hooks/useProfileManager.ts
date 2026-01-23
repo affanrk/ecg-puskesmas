@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
+import { getApiUrl } from '@/services/api';
 
 export function useProfileManager() {
     // 1. State Variables
@@ -51,19 +52,11 @@ export function useProfileManager() {
         type: null,
         title: '',
         message: '',
-        action: async () => {},
+        action: async () => { },
         isDestructive: false
     });
 
     // 2. Helpers
-
-    const getApiUrl = () => {
-         if (typeof window !== 'undefined') {
-             const win = window as unknown as { __ENV__?: Record<string, string> };
-             if (win.__ENV__) return win.__ENV__.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-         }
-         return 'http://localhost:8080/api/v1';
-    };
 
     const resetForms = useCallback(() => {
         if (user) {
@@ -91,9 +84,9 @@ export function useProfileManager() {
 
     const validateField = useCallback((field: string, value: string) => {
         let error = "";
-        switch(field) {
+        switch (field) {
             case 'nik':
-                if (value.length > 0 && !/^\d*$/.test(value)) return "Numbers only"; 
+                if (value.length > 0 && !/^\d*$/.test(value)) return "Numbers only";
                 if (value.length > 0 && value.length < 16) return "Must be 16 digits";
                 if (value.length > 16) return "Max 16 digits";
                 break;
@@ -232,7 +225,7 @@ export function useProfileManager() {
         const token = localStorage.getItem('ecg_token');
 
         try {
-            await axios.put(`${API_URL}/auth/change-password`, { 
+            await axios.put(`${API_URL}/auth/change-password`, {
                 current_password: securityForm.current_password,
                 new_password: securityForm.new_password
             }, {
@@ -253,7 +246,7 @@ export function useProfileManager() {
 
     const handleCancelMedical = () => {
         setIsEditingMedical(false);
-        if (user?.is_patient) resetForms(); 
+        if (user?.is_patient) resetForms();
     };
 
     const handleCancelUsername = () => {
@@ -269,7 +262,7 @@ export function useProfileManager() {
     };
 
     const onSaveProfileClick = () => {
-        if (!runFullMedicalValidation()) return; 
+        if (!runFullMedicalValidation()) return;
 
         if (!user?.is_patient) {
             setConfirmState({
@@ -305,7 +298,7 @@ export function useProfileManager() {
     const onUpdatePasswordClick = () => {
         const pwdError = validateField('new_password', securityForm.new_password);
         const confirmError = validateField('confirm_password', securityForm.confirm_password);
-        
+
         if (pwdError || confirmError) {
             setErrors({ new_password: pwdError, confirm_password: confirmError });
             return;

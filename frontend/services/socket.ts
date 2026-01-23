@@ -14,7 +14,7 @@ declare global {
 }
 
 // Define types for incoming WebSocket messages
-type SocketMessage = 
+type SocketMessage =
     | { type: 'ping' }
     | { type: 'device_list_update'; devices: any[] }
     | { type: 'live_data'; device_id?: string; cal_lead_I: number; cal_lead_II: number; cal_v1: number }
@@ -34,28 +34,23 @@ let watchdogTimer: NodeJS.Timeout | null = null;
 
 // --- Helpers ---
 
-const getEnv = (key: string): string | undefined => {
-    if (typeof window !== 'undefined' && window.__ENV__) {
-        return window.__ENV__[key];
-    }
-    return undefined;
-};
-
 const getWsUrl = (): string => {
-    const envUrl = getEnv('NEXT_PUBLIC_WS_URL');
-    const processUrl = process.env.NEXT_PUBLIC_WS_URL;
-    
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const port = '8080';
     const defaultUrl = `${protocol}//${host}:${port}/ws`;
 
-    let finalUrl = envUrl || processUrl || defaultUrl;
+    let finalUrl;
+    if (typeof window !== 'undefined' && (window as any).__ENV__) {
+        finalUrl = (window as any).__ENV__.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+    } else {
+        finalUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+    }
 
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
         finalUrl = finalUrl.replace('ws://', 'wss://');
     }
-    
+
     return finalUrl;
 };
 
@@ -91,7 +86,7 @@ const handleMessage = (msg: SocketMessage) => {
         // Exception: Allow 'device_disconnected' to pass even if we are in transition, 
         // but strictly block data types if no device is selected.
         const isDataMessage = ['live_data', 'live_batch', 'live_result', 'live_metrics_update'].includes(msg.type);
-        
+
         if (isDataMessage) {
             if (!store.currentDeviceId || msg.device_id !== store.currentDeviceId) {
                 return;
@@ -122,10 +117,10 @@ const handleMessage = (msg: SocketMessage) => {
                     leadII: s.ii,
                     v1: s.v1
                 }));
-                
+
                 // Store in global buffer for persistence
                 store.pushEcgData(batchData);
-                
+
                 // Emit for chart animation
                 globalEventBus.emit(EVENTS.CHART.ECG_BATCH, batchData);
                 resetWatchdog();
