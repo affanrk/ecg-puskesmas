@@ -15,18 +15,25 @@ import {
     LogOut, 
     Menu, 
     X,
-    Lock
+    Lock,
+    HeartPulse,
+    Pin,
+    PinOff,
+    ChevronsRight
 } from 'lucide-react';
 
 export default function Sidebar() {
     // 1. Hooks & State
     const pathname = usePathname();
-    const { user } = useStore();
+    const { user, isSidebarPinned, setIsSidebarPinned } = useStore();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
     // 2. Computed
     const isProfileComplete = user?.is_patient;
+    
+    // Desktop: Expanded if pinned OR hovered. Mobile: Controlled by isMobileOpen
 
     const navItems = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
@@ -47,29 +54,50 @@ export default function Sidebar() {
         <>
             {/* Mobile Toggle */}
             <button 
-                className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md border border-slate-200 text-slate-600"
+                className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-md border border-slate-200 text-slate-600 hover:text-teal-600 transition-colors"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
             {/* Sidebar Container */}
-            <aside className={clsx(
-                "fixed lg:static top-0 left-0 h-full w-64 bg-white border-r border-slate-200 z-40 transition-transform duration-300 ease-in-out flex flex-col overflow-hidden",
-                "lg:translate-x-0",
-                isMobileOpen ? "translate-x-0" : "-translate-x-full"
-            )}>
-                {/* Logo Area */}
-                <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-100 bg-slate-50/50 shrink-0">
-                    <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/30">
-                        <Activity className="text-white w-5 h-5" />
+            <aside 
+                className={clsx(
+                    "fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 z-[60] transition-all duration-300 ease-in-out flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]",
+                    // Mobile: Slide in from left
+                    isMobileOpen ? "translate-x-0" : "-translate-x-full",
+                    
+                    // Desktop Logic
+                    (isSidebarPinned || isHovered) 
+                        ? "lg:translate-x-0 lg:shadow-xl" 
+                        : "lg:-translate-x-[92%] lg:opacity-90 hover:opacity-100 lg:shadow-none"
+                )}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+                {/* Auto-hide Trigger Handle (Visible when hidden) */}
+                {!isSidebarPinned && !isHovered && (
+                    <div className="absolute right-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-pointer group">
+                        <div className="w-1 h-12 bg-slate-300 rounded-full group-hover:bg-teal-400 transition-colors" />
+                        <ChevronsRight size={16} className="text-slate-400 absolute opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
                     </div>
-                    <span className="font-extrabold text-lg text-slate-800 tracking-tight">ECG Live</span>
+                )}
+
+                {/* Logo Area */}
+                <div className="h-[72px] flex items-center gap-3 px-6 border-b border-slate-100/50 bg-white shrink-0 relative overflow-hidden group-hover:bg-slate-50/30 transition-colors">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-50/50 to-transparent pointer-events-none" />
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 ring-4 ring-teal-50 shrink-0">
+                        <HeartPulse className="text-white w-6 h-6" strokeWidth={2.5} />
+                    </div>
+                    <div className={clsx("relative flex flex-col transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>
+                        <span className="font-black text-xl text-slate-800 tracking-tight leading-none whitespace-nowrap">ECG Live</span>
+                        <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest leading-none mt-1 whitespace-nowrap">Medical Platform</span>
+                    </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                    <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2">Menu</p>
+                <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Main Menu</p>
                     
                     {navItems.map((item) => (
                         <div key={item.href} className="relative group">
@@ -77,57 +105,84 @@ export default function Sidebar() {
                                 <Link 
                                     href={item.href}
                                     className={clsx(
-                                        "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm group w-full",
+                                        "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-bold text-sm w-full group relative overflow-hidden",
                                         pathname === item.href 
-                                            ? "bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-200" 
-                                            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                            ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100" 
+                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                     )}
                                     onClick={() => setIsMobileOpen(false)}
                                 >
-                                    <item.icon size={18} className={clsx("transition-colors shrink-0", pathname === item.href ? "text-brand-600" : "text-slate-400 group-hover:text-slate-600")} />
-                                    <span className="truncate">{item.name}</span>
+                                    {pathname === item.href && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r-full" />}
+                                    <item.icon size={20} strokeWidth={2} className={clsx("transition-colors shrink-0", pathname === item.href ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600")} />
+                                    <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>{item.name}</span>
                                 </Link>
                             ) : (
-                                <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 cursor-not-allowed relative w-full">
-                                    <item.icon size={18} className="shrink-0" />
-                                    <span className="truncate">{item.name}</span>
-                                    <Lock size={12} className="absolute right-4 text-slate-300 shrink-0" />
+                                <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 cursor-not-allowed relative w-full opacity-60 hover:opacity-80 transition-opacity">
+                                    <item.icon size={20} className="shrink-0" />
+                                    <span className={clsx("truncate font-medium transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>{item.name}</span>
+                                    <Lock size={14} className={clsx("absolute right-4 text-slate-300 shrink-0 transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")} />
                                     
-                                    {/* Tooltip - Fixed positioning to avoid overflow */}
-                                    <div className="hidden lg:group-hover:block absolute left-full ml-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-xl">
-                                        Complete profile to access
+                                    <div className="hidden lg:group-hover:block absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 pointer-events-none shadow-xl border border-slate-700">
+                                        Complete profile to unlock
+                                        <div className="absolute top-1/2 -left-1 w-2 h-2 bg-slate-800 transform -translate-y-1/2 rotate-45 border-l border-b border-slate-700"></div>
                                     </div>
                                 </div>
                             )}
                         </div>
                     ))}
 
-                    <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-6">System</p>
+                    <div className="my-6 border-t border-slate-100/80 mx-2" />
+
+                    <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Settings</p>
                     
                     <Link 
                         href="/profile" 
                         className={clsx(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm w-full",
+                            "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-bold text-sm w-full relative group",
                             pathname === '/profile' 
-                                ? "bg-brand-50 text-brand-700 shadow-sm ring-1 ring-brand-200" 
-                                : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100" 
+                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                         )}
                         onClick={() => setIsMobileOpen(false)}
                     >
-                        <Settings size={18} className={clsx("transition-colors shrink-0", pathname === '/profile' ? "text-brand-600" : "text-slate-400")} />
-                        <span className="truncate">Profile & Settings</span>
-                        {user && !user.is_patient && <span className="w-2 h-2 bg-amber-500 rounded-full ml-auto animate-pulse shrink-0"></span>}
+                        {pathname === '/profile' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r-full" />}
+                        <Settings size={20} strokeWidth={2} className={clsx("transition-colors shrink-0", pathname === '/profile' ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600")} />
+                        <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>Profile & Settings</span>
+                        {user && !user.is_patient && (
+                            <span className={clsx("w-2 h-2 bg-amber-500 rounded-full ml-auto animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)] shrink-0 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}></span>
+                        )}
                     </Link>
                 </nav>
 
-                {/* Footer / User */}
-                <div className="p-4 border-t border-slate-100 bg-slate-50/30 shrink-0">
+                {/* Footer: Logout & Pin Toggle */}
+                <div className="p-4 border-t border-slate-100 bg-white shrink-0 flex flex-col gap-2">
                     <button 
                         onClick={() => setShowLogoutConfirm(true)}
-                        className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-medium text-sm group"
+                        className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-bold text-sm group border border-transparent hover:border-rose-100"
                     >
-                        <LogOut size={18} className="group-hover:translate-x-[-2px] transition-transform shrink-0" />
-                        <span>Logout</span>
+                        <div className="p-1.5 bg-rose-50 text-rose-500 rounded-lg group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors shrink-0">
+                            <LogOut size={16} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                        </div>
+                        <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>Sign Out</span>
+                    </button>
+
+                    {/* Pin Toggle Button */}
+                    <button 
+                        onClick={() => setIsSidebarPinned(!isSidebarPinned)}
+                        className={clsx(
+                            "hidden lg:flex items-center gap-3 w-full px-4 py-2 rounded-xl transition-all font-bold text-xs group border border-transparent",
+                            isSidebarPinned 
+                                ? "text-slate-400 hover:text-slate-600 hover:bg-slate-50" 
+                                : "text-teal-600 bg-teal-50 border-teal-100"
+                        )}
+                        title={isSidebarPinned ? "Unpin Sidebar (Auto-hide)" : "Pin Sidebar"}
+                    >
+                        <div className="shrink-0">
+                            {isSidebarPinned ? <PinOff size={14} /> : <Pin size={14} />}
+                        </div>
+                        <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>
+                            {isSidebarPinned ? "Auto-hide Sidebar" : "Pin Sidebar"}
+                        </span>
                     </button>
                 </div>
             </aside>
@@ -135,7 +190,7 @@ export default function Sidebar() {
             {/* Overlay */}
             {isMobileOpen && (
                 <div 
-                    className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden"
+                    className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden animate-in fade-in"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, X, Check } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import clsx from 'clsx';
 
 interface ConfirmationModalProps {

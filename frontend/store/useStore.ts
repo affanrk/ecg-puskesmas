@@ -67,6 +67,7 @@ interface AppState {
     livePage: number;
     bpm: number | string;
     performanceTrackingEnabled: boolean;
+    isSidebarPinned: boolean;
 
     // Objects / Arrays
     user: User | null;
@@ -91,6 +92,7 @@ interface AppState {
     setBpm: (bpm: number | string) => void;
     updatePerformance: (l: number, j: number, p: number) => void;
     setPerformanceTrackingEnabled: (enabled: boolean) => void;
+    setIsSidebarPinned: (pinned: boolean) => void;
     setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; v1: boolean }>) => void;
     resetSession: () => void;
 }
@@ -109,6 +111,7 @@ export const useStore = create<AppState>((set, get) => ({
     livePage: 1,
     bpm: '--',
     performanceTrackingEnabled: false,
+    isSidebarPinned: true, // Default to pinned
 
     user: null,
     devices: [],
@@ -245,6 +248,8 @@ export const useStore = create<AppState>((set, get) => ({
     })),
     
     setPerformanceTrackingEnabled: (enabled) => set({ performanceTrackingEnabled: enabled }),
+    
+    setIsSidebarPinned: (pinned) => set({ isSidebarPinned: pinned }),
     
     setVisibleLeads: (leads) => set((state) => ({ 
         visibleLeads: { ...state.visibleLeads, ...leads } 

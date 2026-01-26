@@ -1,4 +1,5 @@
 import mitt from 'mitt';
+import { Device } from '@/store/useStore';
 
 // --- Types ---
 
@@ -8,19 +9,23 @@ export type EcgPoint = {
     v1: number;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 type Events = {
     'ws:connected': void;
     'ws:disconnected': void;
-    'device:list_updated': any;
-    'device:disconnected': any;
+    'device:list_updated': Device[];
+    'device:disconnected': { device_id: string };
     'chart:ecg_data': EcgPoint;
     'chart:ecg_batch': EcgPoint[];
-    'chart:metrics': any;
-    'state:live_data_updated': any;
-    'state:recording_changed': any;
-    'state:patient_changed': any;
-    'state:performance_updated': any;
+    'chart:metrics': { bpm: number };
+    'state:live_data_updated': unknown;
+    'state:recording_changed': boolean;
+    'state:patient_changed': unknown;
+    'state:performance_updated': {
+        latency_ms: number;
+        jitter_ms: number;
+        loss_pct: number;
+    };
 };
 
 // --- Bus Instance ---

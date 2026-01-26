@@ -1,15 +1,22 @@
 'use client';
 
-import { Shield, Edit2, CheckCircle2 } from 'lucide-react';
+import { ChangeEvent } from 'react';
+import { Shield, Edit2, CheckCircle2, UserCircle2 } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
+import { User } from '@/store/useStore';
+
+interface SecurityForm {
+    new_username: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+}
 
 interface UsernameCardProps {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    user: any;
+    user: User;
     isEditingUsername: boolean;
     setIsEditingUsername: (val: boolean) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    securityForm: any;
+    securityForm: SecurityForm;
     handleSecurityChange: (field: string, value: string) => void;
     errors: Record<string, string>;
     handleCancelUsername: () => void;
@@ -29,29 +36,38 @@ export default function UsernameCard({
     loading
 }: UsernameCardProps) {
     return (
-        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] flex flex-col h-[480px] w-full overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6 shrink-0">
-                <h2 className="text-base font-bold text-slate-800 flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                        <Shield size={18} />
+        <div className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative group">
+            
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <UserCircle2 size={120} strokeWidth={1} />
+            </div>
+
+            <div className="flex items-center justify-between border-b border-slate-50 pb-6 mb-8 relative z-10 shrink-0">
+                <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm border border-blue-100/50">
+                        <Shield size={24} strokeWidth={2} />
                     </div>
-                    <span>Username Identity</span>
-                </h2>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Username</h2>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">System Identifier</p>
+                    </div>
+                </div>
+
                 {!isEditingUsername && (
                     <button
                         onClick={() => setIsEditingUsername(true)}
-                        className="text-xs font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 border border-slate-100 hover:border-blue-200"
                     >
-                        <Edit2 size={14} />
-                        <span>Change</span>
+                        <Edit2 size={12} strokeWidth={3} /> Change
                     </button>
                 )}
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0 w-full">
+            <div className="flex-1 flex flex-col min-h-0 w-full relative z-10">
                 {isEditingUsername ? (
-                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-200">
-                        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-300">
+                        <div className="space-y-6 flex-1 overflow-y-auto pr-1">
                             <StandardInput
                                 label="Current Username"
                                 value={user.username}
@@ -59,50 +75,53 @@ export default function UsernameCard({
                                 disabled={true}
                             />
 
-                            <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 text-[11px] text-blue-700">
-                                <p className="font-semibold mb-0.5">Note:</p>
-                                Changing your username will affect your login credentials.
+                            <div className="p-5 bg-blue-50/50 rounded-[1.25rem] border border-blue-100 text-[11px] text-blue-700 flex gap-4 leading-relaxed">
+                                <div className="shrink-0 mt-1 w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                                <div>
+                                    <p className="font-black uppercase tracking-wider mb-1">Attention:</p>
+                                    Modifying your username will update your login credentials immediately. Ensure your new username is memorable.
+                                </div>
                             </div>
 
                             <StandardInput
                                 label="New Username"
                                 value={securityForm.new_username}
-                                onChange={(e: any) => handleSecurityChange('new_username', e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => handleSecurityChange('new_username', e.target.value)}
                                 placeholder="Enter new username"
                                 errorMessage={errors.new_username}
                             />
                         </div>
 
-                        <div className="flex gap-3 pt-4 border-t border-slate-50 mt-4 shrink-0">
+                        <div className="flex gap-4 pt-8 border-t border-slate-50 mt-8 shrink-0">
                             <button
                                 onClick={handleCancelUsername}
-                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+                                className="flex-1 px-4 py-4 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98]"
                             >
-                                Cancel
+                                Discard
                             </button>
                             <button
                                 onClick={onUpdateUsernameClick}
                                 disabled={loading || securityForm.new_username === user.username}
-                                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm shadow-blue-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="flex-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-200 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
                             >
-                                <CheckCircle2 size={14} /> Update Username
+                                <CheckCircle2 size={18} strokeWidth={2.5} /> Update Username
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-200">
-                        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full">
-                            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 text-blue-500 ring-1 ring-blue-100">
-                                <Shield size={32} strokeWidth={1.5} />
+                    <div className="flex-1 flex items-center justify-center animate-in fade-in duration-500">
+                        <div className="w-full flex flex-col items-center justify-center p-10 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200 min-h-[240px] group/box hover:bg-white hover:border-blue-200 transition-all duration-500">
+                            <div className="w-20 h-20 bg-white rounded-3xl shadow-md flex items-center justify-center mb-6 text-blue-500 ring-1 ring-blue-100 group-hover/box:scale-110 transition-transform duration-500">
+                                <Shield size={36} strokeWidth={1.5} />
                             </div>
-                            <p className="text-slate-900 text-sm font-bold mb-1">Username Identity</p>
-                            <p className="text-slate-500 text-xs text-center max-w-[240px]">
-                                Your current username is <span className="font-bold text-slate-700">@{user.username}</span>. You can change it at any time.
+                            <p className="text-slate-900 text-base font-black tracking-tight mb-2 uppercase tracking-widest text-xs">Primary Identifier</p>
+                            <div className="bg-white px-6 py-2.5 rounded-full border border-slate-100 shadow-sm mb-4">
+                                <span className="font-black text-blue-600 text-lg">@{user.username}</span>
+                            </div>
+                            <p className="text-slate-400 text-[11px] font-bold uppercase tracking-widest text-center max-w-[200px] leading-relaxed">
+                                Standard Security Verified
                             </p>
                         </div>
-
-                        {/* Invisible spacer to match button height */}
-                        <div className="h-[52px] shrink-0"></div>
                     </div>
                 )}
             </div>

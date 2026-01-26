@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { Chart } from 'chart.js';
 import '@/config/chartSetup';
-import { CONFIG } from '@/config/constants';
 
 interface PerformanceChartProps {
     data: number[];
@@ -27,6 +26,11 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
+        // Create Gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, color + '40'); // 25% opacity
+        gradient.addColorStop(1, color + '00'); // 0% opacity
+
         chartRef.current = new Chart(ctx, {
             type: 'line',
             data: {
@@ -35,11 +39,12 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
                     label,
                     data: [], // Initialize empty, let second effect fill it
                     borderColor: color,
-                    backgroundColor: color + '20',
+                    backgroundColor: gradient,
                     fill: true,
                     borderWidth: 2,
                     pointRadius: 0,
-                    tension: 0.4
+                    pointHoverRadius: 4,
+                    tension: 0.35 // Slightly sharper
                 }]
             },
             options: {
@@ -52,9 +57,17 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
                     y: {
                         beginAtZero: true,
                         suggestedMax: suggestedMax,
-                        grid: { color: CONFIG.COLORS.grid },
+                        grid: { 
+                            color: '#f1f5f9', // slate-100
+                            tickLength: 0
+                        },
                         border: { display: false },
-                        ticks: { color: CONFIG.COLORS.text, font: { size: 10 } }
+                        ticks: { 
+                            color: '#94a3b8', // slate-400
+                            font: { size: 9, family: 'var(--font-inter)', weight: 600 },
+                            padding: 6,
+                            maxTicksLimit: 5
+                        }
                     }
                 }
             }
@@ -78,8 +91,15 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
 
     // 3. Render
     return (
-        <div className="h-full w-full">
-            <canvas ref={canvasRef}></canvas>
+        <div className="h-full w-full relative">
+            {/* Subtle grid background */}
+            <div className="absolute inset-0 opacity-30 pointer-events-none" 
+                style={{
+                    backgroundImage: `linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)`,
+                    backgroundSize: '20px 20px'
+                }}
+            />
+            <canvas ref={canvasRef} className="relative z-10"></canvas>
         </div>
     );
 }

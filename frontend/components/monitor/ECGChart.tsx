@@ -1,86 +1,59 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Chart, ChartOptions } from 'chart.js';
 import '@/config/chartSetup';
 import { globalEventBus } from '@/services/events';
 import { CONFIG, EVENTS } from '@/config/constants';
 import { useStore } from '@/store/useStore';
+import { useSessionManager } from '@/hooks/useSessionManager';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
+import { Settings2, Activity, Square, XCircle } from 'lucide-react';
+import DeviceDropdown from './DeviceDropdown';
 
 // --- Interfaces ---
 
 interface ECGChartProps {
-    visibleLeads: {
-        leadI: boolean;
-        leadII: boolean;
-        v1: boolean;
-    };
     onToggleLead?: (key: 'leadI' | 'leadII' | 'v1') => void;
+    visibleLeads?: Record<string, boolean>;
 }
 
 // --- Helpers ---
 
 const medicalGridStyle = {
-    backgroundColor: '#fff',
+    backgroundColor: '#fffcfc', // Very slight red tint to white
     backgroundImage: `
-        linear-gradient(rgba(255, 50, 50, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 50, 50, 0.1) 1px, transparent 1px),
-        linear-gradient(rgba(255, 0, 0, 0.2) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 0, 0, 0.2) 1px, transparent 1px)
+        linear-gradient(rgba(220, 38, 38, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(220, 38, 38, 0.1) 1px, transparent 1px),
+        linear-gradient(rgba(220, 38, 38, 0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(220, 38, 38, 0.25) 1px, transparent 1px)
     `,
     backgroundSize: '10px 10px, 10px 10px, 50px 50px, 50px 50px',
     backgroundPosition: '-1px -1px, -1px -1px, -1px -1px, -1px -1px'
 };
 
-const adjustScale = (chart: Chart) => {
-    let maxVal = 0;
-    chart.data.datasets.forEach((ds, i) => {
-        if (chart.isDatasetVisible(i)) {
-            for (let j = 0; j < ds.data.length; j++) {
-                const v = ds.data[j] as number;
-                if (v !== null && v !== undefined) {
-                    const abs = Math.abs(v);
-                    if (abs > maxVal) maxVal = abs;
-                }
-            }
-        }
-    });
-
-    if (maxVal < 1.0) maxVal = 1.0;
-    
-    // Round limit up to nearest 0.1 to prevent double decimals (e.g. 1.11 -> 1.2)
-    const limit = Math.ceil(maxVal * 1.1 * 10) / 10;
-    
-    const currentMax = chart.options.scales?.y?.max as number;
-
-    if (chart.options.scales?.y && Math.abs(currentMax - limit) > 0.1) {
-        chart.options.scales.y.min = -limit;
-        chart.options.scales.y.max = limit;
-    }
-};
-
-const createChartConfig = (totalPoints: number, initialData: (number | null)[], visibleLeads: ECGChartProps['visibleLeads']): ChartOptions => {
+const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number = 2): ChartOptions => {
     return {
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
         layout: {
             padding: {
-                left: 10,
-                right: 10,
-                top: 15,
+                left: 0,
+                right: 0,
+                top: 10,
                 bottom: 10
             }
         },
-        plugins: { 
-            legend: { display: false }, 
-            tooltip: { enabled: false } 
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
         },
         scales: {
             x: {
                 type: 'linear',
-                display: true, 
+                display: false,
                 min: 0,
                 max: totalPoints,
                 grid: { display: false },
@@ -94,148 +67,210 @@ const createChartConfig = (totalPoints: number, initialData: (number | null)[], 
                 border: { display: false },
                 ticks: {
                     display: true,
-                    color: '#475569', // Slate-600
+                    color: '#475569',
                     font: {
-                        size: 10,
-                        family: 'var(--font-geist-mono)',
+                        size: 9,
+                        family: 'var(--font-inter)',
                         weight: 700
                     },
-                    padding: 4,
-                    stepSize: 0.5, // Force 0.5 increments
+                    padding: 8,
+                    stepSize: 0.5,
                     callback: (value) => `${Number(value).toFixed(1)}mV`
                 },
-                min: -2,
-                max: 2
+                min: minY,
+                max: maxY
             }
         },
-        elements: { 
-            point: { radius: 0 }, 
-            line: { 
-                borderWidth: 1.5, 
-                tension: 0.4
-            } 
+        elements: {
+            point: { radius: 0 },
+            line: {
+                borderWidth: 2,
+                tension: 0.35, // Slightly sharper for "ink" feel
+                borderColor: '#000000' // Pure Black Ink
+            }
         }
     };
 };
 
+const adjustScaleSingle = (chart: Chart) => {
+    let maxVal = 0;
+    const ds = chart.data.datasets[0];
+
+    for (let j = 0; j < ds.data.length; j++) {
+        const v = ds.data[j] as number;
+        if (v !== null && v !== undefined) {
+            const abs = Math.abs(v);
+            if (abs > maxVal) maxVal = abs;
+        }
+    }
+
+    if (maxVal < 1.0) maxVal = 1.0;
+    const limit = Math.ceil(maxVal * 1.1 * 10) / 10;
+
+    if (chart.options.scales?.y && Math.abs((chart.options.scales.y.max as number) - limit) > 0.1) {
+        chart.options.scales.y.min = -limit;
+        chart.options.scales.y.max = limit;
+    }
+};
+
 // --- Component ---
 
-export default function ECGChart({ visibleLeads, onToggleLead }: ECGChartProps) {
-    // 1. Refs
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const chartRef = useRef<Chart | null>(null);
+export default function ECGChart({ }: ECGChartProps) {
+    // 1. Refs for 3 Canvases
+    const canvasRefI = useRef<HTMLCanvasElement>(null);
+    const canvasRefII = useRef<HTMLCanvasElement>(null);
+    const canvasRefV1 = useRef<HTMLCanvasElement>(null);
+
+    const chartRefI = useRef<Chart | null>(null);
+    const chartRefII = useRef<Chart | null>(null);
+    const chartRefV1 = useRef<Chart | null>(null);
+
     const cursorRef = useRef(0);
     const bufferRef = useRef<{ leadI: number | null, leadII: number | null, v1: number | null }[]>([]);
 
     // 2. Store Hooks
-    const { currentDeviceId, isRecording, ecgBuffer } = useStore();
+    const { currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
+    const { toggleRecording } = useSessionManager();
+    const [showConfirmReset, setShowConfirmReset] = useState(false);
 
-    // 3. Effects
+    // 3. Handlers
+    const handleReset = () => {
+        if (isRecording) return;
+        setShowConfirmReset(true);
+    };
 
-    // Init Chart & Render Loop
+    const confirmReset = () => {
+        resetSession();
+        setShowConfirmReset(false);
+    };
+
+    // 4. Effects
+
+    // Init Charts
     useEffect(() => {
-        if (!canvasRef.current) return;
-
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-
         const totalPoints = CONFIG.MAX_DATA_POINTS;
         const initialData = new Array(totalPoints).fill(null);
-        const options = createChartConfig(totalPoints, initialData, visibleLeads);
 
-        // Create Chart Instance
-        chartRef.current = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array.from({ length: totalPoints }, (_, i) => i),
-                datasets: [
-                    { 
-                        label: 'Lead I', 
-                        data: [...initialData], 
-                        borderColor: '#0f172a', // Standard Dark (Medical Ink)
-                        borderWidth: 1.5, 
-                        hidden: !visibleLeads.leadI 
+        // --- Lead I Setup ---
+        if (canvasRefI.current) {
+            const ctxI = canvasRefI.current.getContext('2d');
+            if (ctxI) {
+                chartRefI.current = new Chart(ctxI, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: totalPoints }, (_, i) => i),
+                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
                     },
-                    { 
-                        label: 'Lead II', 
-                        data: [...initialData], 
-                        borderColor: '#0f172a', // Standard Dark (Medical Ink)
-                        borderWidth: 1.5, 
-                        hidden: !visibleLeads.leadII 
-                    },
-                    { 
-                        label: 'V1', 
-                        data: [...initialData], 
-                        borderColor: '#0f172a', // Standard Dark (Medical Ink)
-                        borderWidth: 1.5, 
-                        hidden: !visibleLeads.v1 
-                    }
-                ]
-            },
-            options: options
-        });
-
-        // Restore Persistent Data
-        if (ecgBuffer.length > 0 && chartRef.current) {
-            const chart = chartRef.current;
-            const ds0 = chart.data.datasets[0].data;
-            const ds1 = chart.data.datasets[1].data;
-            const ds2 = chart.data.datasets[2].data;
-            
-            const pointsToRestore = ecgBuffer.slice(-totalPoints);
-            
-            pointsToRestore.forEach((pt, i) => {
-                ds0[i] = pt.leadI;
-                ds1[i] = pt.leadII;
-                ds2[i] = pt.v1;
-            });
-            
-            // Set cursor to the end of the restored data so the sweep continues from there
-            cursorRef.current = pointsToRestore.length % totalPoints;
-            
-            adjustScale(chart);
-            chart.update('none');
+                    options: createChartConfig(totalPoints)
+                });
+            }
         }
 
-        // Render Logic
+        // --- Lead II Setup ---
+        if (canvasRefII.current) {
+            const ctxII = canvasRefII.current.getContext('2d');
+            if (ctxII) {
+                chartRefII.current = new Chart(ctxII, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: totalPoints }, (_, i) => i),
+                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
+                    },
+                    options: createChartConfig(totalPoints)
+                });
+            }
+        }
+
+        // --- V1 Setup ---
+        if (canvasRefV1.current) {
+            const ctxV1 = canvasRefV1.current.getContext('2d');
+            if (ctxV1) {
+                chartRefV1.current = new Chart(ctxV1, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({ length: totalPoints }, (_, i) => i),
+                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
+                    },
+                    options: createChartConfig(totalPoints)
+                });
+            }
+        }
+
+        // Restore Persistent Data
+        if (ecgBuffer.length > 0) {
+            const pointsToRestore = ecgBuffer.slice(-totalPoints);
+
+            if (chartRefI.current) {
+                const ds = chartRefI.current.data.datasets[0].data;
+                pointsToRestore.forEach((pt, i) => ds[i] = pt.leadI);
+                adjustScaleSingle(chartRefI.current);
+                chartRefI.current.update('none');
+            }
+            if (chartRefII.current) {
+                const ds = chartRefII.current.data.datasets[0].data;
+                pointsToRestore.forEach((pt, i) => ds[i] = pt.leadII);
+                adjustScaleSingle(chartRefII.current);
+                chartRefII.current.update('none');
+            }
+            if (chartRefV1.current) {
+                const ds = chartRefV1.current.data.datasets[0].data;
+                pointsToRestore.forEach((pt, i) => ds[i] = pt.v1);
+                adjustScaleSingle(chartRefV1.current);
+                chartRefV1.current.update('none');
+            }
+
+            cursorRef.current = pointsToRestore.length % totalPoints;
+        }
+
+        // Render Loop
         const processBuffer = () => {
-            if (!chartRef.current || bufferRef.current.length === 0) return;
-            
-            const chart = chartRef.current;
+            if (bufferRef.current.length === 0) return;
+
             const eraseGap = CONFIG.ERASE_GAP;
-            const processLimit = 200; 
+            const processLimit = 200;
             const pointsToProcess = bufferRef.current.splice(0, processLimit);
 
-            const ds0 = chart.data.datasets[0].data;
-            const ds1 = chart.data.datasets[1].data;
-            const ds2 = chart.data.datasets[2].data;
+            const cI = chartRefI.current;
+            const cII = chartRefII.current;
+            const cV1 = chartRefV1.current;
 
             let lastCursor = cursorRef.current;
 
             for (let i = 0; i < pointsToProcess.length; i++) {
                 const data = pointsToProcess[i];
-                
-                ds0[lastCursor] = data.leadI;
-                ds1[lastCursor] = data.leadII;
-                ds2[lastCursor] = data.v1;
 
-                for (let j = 1; j <= eraseGap; j++) {
-                    const eraseIdx = (lastCursor + j) % totalPoints;
-                    ds0[eraseIdx] = null;
-                    ds1[eraseIdx] = null;
-                    ds2[eraseIdx] = null;
+                if (cI) {
+                    const dsI = cI.data.datasets[0].data;
+                    dsI[lastCursor] = data.leadI ?? 0;
+                    for (let j = 1; j <= eraseGap; j++) dsI[(lastCursor + j) % totalPoints] = null;
+                }
+
+                if (cII) {
+                    const dsII = cII.data.datasets[0].data;
+                    dsII[lastCursor] = data.leadII ?? 0;
+                    for (let j = 1; j <= eraseGap; j++) dsII[(lastCursor + j) % totalPoints] = null;
+                }
+
+                if (cV1) {
+                    const dsV1 = cV1.data.datasets[0].data;
+                    dsV1[lastCursor] = data.v1 ?? 0;
+                    for (let j = 1; j <= eraseGap; j++) dsV1[(lastCursor + j) % totalPoints] = null;
                 }
 
                 lastCursor = (lastCursor + 1) % totalPoints;
             }
-            
+
             cursorRef.current = lastCursor;
 
             if (lastCursor % 50 === 0) {
-                 adjustScale(chart);
+                if (cI) adjustScaleSingle(cI);
+                if (cII) adjustScaleSingle(cII);
+                if (cV1) adjustScaleSingle(cV1);
             }
 
-            chart.update('none');
+            if (cI) cI.update('none');
+            if (cII) cII.update('none');
+            if (cV1) cV1.update('none');
         };
 
         let animationFrameId: number;
@@ -247,37 +282,28 @@ export default function ECGChart({ visibleLeads, onToggleLead }: ECGChartProps) 
 
         return () => {
             cancelAnimationFrame(animationFrameId);
-            if (chartRef.current) {
-                chartRef.current.destroy();
-                chartRef.current = null;
-            }
+            chartRefI.current?.destroy();
+            chartRefII.current?.destroy();
+            chartRefV1.current?.destroy();
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Handle Visibility Changes
-    useEffect(() => {
-        if (!chartRef.current) return;
-        const chart = chartRef.current;
-        
-        chart.setDatasetVisibility(0, visibleLeads.leadI);
-        chart.setDatasetVisibility(1, visibleLeads.leadII);
-        chart.setDatasetVisibility(2, visibleLeads.v1);
-        chart.update('none');
-    }, [visibleLeads.leadI, visibleLeads.leadII, visibleLeads.v1]);
 
     // Handle Reset/Clear
     useEffect(() => {
-        if (!chartRef.current) return;
         if (ecgBuffer.length === 0) {
-            const chart = chartRef.current;
             cursorRef.current = 0;
             bufferRef.current = [];
-            chart.data.datasets.forEach(ds => ds.data.fill(null));
-            if (chart.options.scales?.y) {
-                chart.options.scales.y.min = -2;
-                chart.options.scales.y.max = 2;
-            }
-            chart.update('none');
+            [chartRefI, chartRefII, chartRefV1].forEach(ref => {
+                if (ref.current) {
+                    ref.current.data.datasets[0].data.fill(null);
+                    if (ref.current.options.scales?.y) {
+                        ref.current.options.scales.y.min = -2;
+                        ref.current.options.scales.y.max = 2;
+                    }
+                    ref.current.update('none');
+                }
+            });
         }
     }, [currentDeviceId, isRecording, ecgBuffer.length]);
 
@@ -286,7 +312,6 @@ export default function ECGChart({ visibleLeads, onToggleLead }: ECGChartProps) 
         const handleData = (data: { leadI: number, leadII: number, v1: number }) => {
             bufferRef.current.push(data);
         };
-
         const handleBatch = (batch: { leadI: number, leadII: number, v1: number }[]) => {
             bufferRef.current.push(...batch);
         };
@@ -301,82 +326,133 @@ export default function ECGChart({ visibleLeads, onToggleLead }: ECGChartProps) 
     }, []);
 
     return (
-        <div className="flex flex-col w-full h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="flex flex-col w-full bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
             {/* Header Controls */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-white relative z-20">
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
-                    <h3 className="font-black text-rose-600 text-xs uppercase tracking-widest">Live ECG Signal</h3>
+            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-white relative z-20">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-rose-50 rounded-xl text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
+                        <Activity size={18} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">Live ECG Monitor</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Real-time Signal Acquisition</p>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    {onToggleLead && (
-                        <>
-                            <LeadToggle 
-                                label="Lead I" 
-                                active={visibleLeads.leadI} 
-                                activeClass="bg-slate-900 text-white border-slate-900 shadow-md" 
-                                onClick={() => onToggleLead('leadI')}
-                            />
-                            <LeadToggle 
-                                label="Lead II" 
-                                active={visibleLeads.leadII} 
-                                activeClass="bg-slate-900 text-white border-slate-900 shadow-md" 
-                                onClick={() => onToggleLead('leadII')}
-                            />
-                            <LeadToggle 
-                                label="V1" 
-                                active={visibleLeads.v1} 
-                                activeClass="bg-slate-900 text-white border-slate-900 shadow-md" 
-                                onClick={() => onToggleLead('v1')}
-                            />
-                        </>
+
+                <div className="flex items-center gap-4">
+                    <DeviceDropdown />
+
+                    {/* Recording Controls */}
+                    {currentDeviceId && (
+                        <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
+                            {!isSessionActive ? (
+                                <button
+                                    onClick={toggleRecording}
+                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 justify-center uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700"
+                                >
+                                    <Activity size={16} /> Start Recording
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={toggleRecording}
+                                        className={clsx(
+                                            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                            isRecording ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                                        )}
+                                    >
+                                        {isRecording ? <><Square size={14} fill="currentColor" /> Stop</> : <><Activity size={14} /> Resume</>}
+                                    </button>
+
+                                    <button
+                                        onClick={handleReset}
+                                        disabled={isRecording}
+                                        className={clsx(
+                                            "px-3 py-2.5 rounded-xl text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
+                                            isRecording
+                                                ? "bg-slate-50 text-slate-300 cursor-not-allowed border-slate-100"
+                                                : "bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm active:scale-95"
+                                        )}
+                                        title="End Session"
+                                    >
+                                        <XCircle size={18} />
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>
 
-            {/* Chart Canvas Area */}
-            <div className="h-[300px] w-full relative min-h-0" style={medicalGridStyle}>
-                <canvas ref={canvasRef} id="ecgChart" className="relative z-10 w-full h-full"></canvas>
+            {/* Charts Area - Split into 3 Rows with Gap */}
+            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-4 py-4 border-b                ││     border-slate-100 min-h-0 overflow-y-auto">
+                {/* Row 1: Lead I */}
+                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
+                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
+                            Speed: 25mm/s | Gain: 10mm/mV
+                        </div>
+                    </div>
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead I</span>
+                    </div>
+                    <canvas ref={canvasRefI} className="w-full h-full relative z-0 block"></canvas>
+                </div>
+
+                {/* Row 2: Lead II */}
+                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
+                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
+                            Speed: 25mm/s | Gain: 10mm/mV
+                        </div>
+                    </div>
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead II</span>
+                    </div>
+                    <canvas ref={canvasRefII} className="w-full h-full relative z-0 block"></canvas>
+                </div>
+
+                {/* Row 3: V1 */}
+                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
+                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
+                            Speed: 25mm/s | Gain: 10mm/mV
+                        </div>
+                    </div>
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">V1</span>
+                    </div>
+                    <canvas ref={canvasRefV1} className="w-full h-full relative z-0 block"></canvas>
+                </div>
             </div>
 
             {/* Bottom Info Bar */}
-            <div className="h-[50px] bg-white border-t border-slate-100 flex items-center px-5 justify-between shrink-0 relative z-20">
-                <div className="flex items-center gap-6">
-                    <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Standard Scale</span>
-                        <span className="text-xs font-extrabold text-slate-900 uppercase">10mm/mV</span>
+            <div className="bg-slate-50 border-t border-slate-100 flex items-center px-6 py-3 justify-between shrink-0 relative z-20">
+                <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-black"></span>
+                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-wide">Signal: High Precision</span>
                     </div>
-                    <div className="w-px h-6 bg-slate-100"></div>
-                    <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Sweep Speed</span>
-                        <span className="text-xs font-extrabold text-slate-900 uppercase">25mm/s</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-px h-4 bg-slate-200" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Diagnostic Grade visualization</span>
                     </div>
                 </div>
-                <div className="text-[9px] font-mono font-bold text-slate-300 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded">
-                    Real-time Diagnostic Visualization
+                <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    <Settings2 size={10} />
+                    Auto-scaling Enabled
                 </div>
             </div>
+
+            <ConfirmationModal
+                isOpen={showConfirmReset}
+                onClose={() => setShowConfirmReset(false)}
+                onConfirm={confirmReset}
+                title="End Session?"
+                message="Are you sure you want to end this session? All unsaved data will be cleared and the device will be disconnected from the current patient context."
+                confirmText="End Session"
+                isDestructive={true}
+            />
         </div>
     );
 }
-
-// --- Sub-components ---
-
-const LeadToggle = ({ label, active, activeClass, onClick }: { label: string, active: boolean, activeClass: string, onClick: () => void }) => (
-    <button
-        type="button"
-        className={clsx(
-            "flex items-center justify-center px-4 h-8 rounded-lg cursor-pointer select-none transition-all text-[11px] font-bold active:scale-95 border",
-            active 
-                ? activeClass 
-                : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 hover:border-slate-300 shadow-sm"
-        )}
-        onMouseDown={(e) => {
-            e.preventDefault();
-            onClick();
-        }}
-        onClick={(e) => e.stopPropagation()}
-    >
-        {label}
-    </button>
-);

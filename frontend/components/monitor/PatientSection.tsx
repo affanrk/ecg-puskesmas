@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { useSessionManager } from '@/hooks/useSessionManager';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
-import { Square, Activity, WifiOff, XCircle } from 'lucide-react';
+import { User, Activity, History } from 'lucide-react';
+import { calculateAge } from '@/utils/helpers';
 
 interface PatientSectionProps {
     variant?: 'default' | 'minimal';
@@ -13,135 +11,70 @@ interface PatientSectionProps {
 
 export default function PatientSection({ variant = 'default' }: PatientSectionProps) {
     // 1. Hooks & State
-    const { user, isRecording, isSessionActive, currentDeviceId, resetSession } = useStore();
-    const { toggleRecording } = useSessionManager();
-    const [showConfirmReset, setShowConfirmReset] = useState(false);
+    const { user } = useStore();
 
     // 2. Conditional Render: Loading
     if (!user) {
         return (
             <div className={clsx(
                 "h-full flex items-center justify-center",
-                variant === 'default' && "bg-white rounded-xl shadow-sm border border-slate-200 p-4"
+                variant === 'default' && "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-8"
             )}>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Patient Data...</p>
+                <div className="flex flex-col items-center gap-3">
+                    <Activity className="w-8 h-8 text-slate-200 animate-pulse" />
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Synchronizing Profile...</p>
+                </div>
             </div>
         );
     }
 
-    // 3. Handlers
-    const handleReset = () => {
-        if (isRecording) return; 
-        setShowConfirmReset(true);
-    };
-
-    const confirmReset = () => {
-        resetSession();
-        setShowConfirmReset(false);
-    };
-
     const containerClass = variant === 'minimal' 
         ? "flex items-center justify-between h-full px-1" 
-        : "bg-white rounded-xl shadow-sm border border-slate-200 p-5 h-full flex items-center justify-between group hover:border-blue-300 transition-colors";
+        : "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full flex flex-col justify-center group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
 
-    // 4. Main Render
+    // 3. Main Render
     return (
         <div className={containerClass}>
-            <div className="flex-1 min-w-0 pr-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Active Patient</p>
-                <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-xl font-black text-slate-900 truncate tracking-tight">{user.full_name || user.username}</h3>
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <User size={120} strokeWidth={1} />
+            </div>
+            
+            <div className="relative z-10 flex flex-col justify-between h-full">
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shadow-sm border border-teal-100/50">
+                            <User size={18} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Active Session</p>
+                            <p className="text-[9px] font-bold text-teal-500 uppercase tracking-widest mt-0.5 flex items-center gap-1">
+                                <span className="w-1 h-1 bg-teal-500 rounded-full"></span>
+                                Clinical Profile
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-none truncate group-hover:text-brand-600 transition-colors duration-300">
+                        {user.full_name || user.username}
+                    </h3>
                 </div>
-                <div className="flex items-center gap-4 min-w-0">
-                    <div className="min-w-0 flex-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-0.5">Medical History</span>
-                        <span className="text-sm font-semibold text-slate-600 truncate block" title={user.medical_history || ''}>{user.medical_history || '-'}</span>
+                
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
+                        <History size={10} className="text-slate-400" strokeWidth={3} />
+                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider truncate max-w-[180px]">
+                            {user.medical_history || 'No History'}
+                        </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
+                        <User size={10} className="text-slate-400" strokeWidth={3} />
+                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
+                            {user.dob ? calculateAge(user.dob) + ' Years Old' : '-'}
+                        </span>
                     </div>
                 </div>
             </div>
-            
-            <div className={clsx("flex flex-col items-center justify-center gap-2 pl-6 border-l shrink-0 min-w-[160px]", variant === 'minimal' ? "border-slate-200" : "border-slate-100")}>
-                {currentDeviceId ? (
-                    <>
-                        <div className="flex flex-col items-center">
-                            <div className="flex items-center gap-1.5">
-                                <span className={clsx("w-2 h-2 rounded-full", isRecording ? "bg-rose-500 animate-pulse" : "bg-emerald-500")}></span>
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{currentDeviceId}</span>
-                            </div>
-                        </div>
-                        
-                        {!isSessionActive ? (
-                            <button 
-                                onClick={toggleRecording}
-                                className="flex items-center gap-2 px-6 h-9 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 justify-center uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/20 w-full"
-                            >
-                                <Activity size={14} /> Record
-                            </button>
-                        ) : (
-                            <div className="flex gap-2 w-full">
-                                {isRecording ? (
-                                    <button 
-                                        onClick={toggleRecording}
-                                        className="flex-1 flex items-center gap-2 px-4 h-9 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 justify-center uppercase tracking-wider bg-rose-600 text-white hover:bg-rose-700 hover:shadow-lg hover:shadow-rose-600/20"
-                                    >
-                                        <Square size={12} fill="currentColor" /> Stop
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={toggleRecording}
-                                        className="flex-1 flex items-center gap-2 px-4 h-9 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 justify-center uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-600/20"
-                                    >
-                                        <Activity size={12} /> Rec
-                                    </button>
-                                )}
-                                
-                                <button 
-                                    onClick={handleReset}
-                                    disabled={isRecording}
-                                    className={clsx(
-                                        "flex-1 flex items-center justify-center px-4 h-9 rounded-lg text-xs font-bold border transition-all uppercase tracking-wider",
-                                        isRecording 
-                                            ? "bg-slate-50 text-slate-300 cursor-not-allowed border-slate-100" 
-                                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 shadow-sm active:scale-95"
-                                    )}
-                                >
-                                    <XCircle size={14} /> End
-                                </button>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    // DEVICE DISCONNECTED SCENARIOS
-                    isSessionActive ? (
-                        <>
-                            <div className="flex flex-col items-center text-slate-400">
-                                <span className="text-[10px] font-bold uppercase tracking-wider">Paused</span>
-                            </div>
-                            <button 
-                                onClick={handleReset}
-                                className="flex items-center gap-2 px-6 h-9 rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 justify-center uppercase tracking-wider bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 w-full"
-                            >
-                                <XCircle size={14} /> End Session
-                            </button>
-                        </>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-slate-300 gap-2 px-4">
-                            <WifiOff size={18} />
-                            <span className="text-xs font-bold uppercase tracking-wider">No Device</span>
-                        </div>
-                    )
-                )}
-            </div>
-
-            <ConfirmationModal
-                isOpen={showConfirmReset}
-                onClose={() => setShowConfirmReset(false)}
-                onConfirm={confirmReset}
-                title="End Session?"
-                message="Are you sure you want to end this session? All unsaved data will be cleared and the device will be disconnected from the current patient context."
-                confirmText="End Session"
-                isDestructive={true}
-            />
         </div>
     );
 }

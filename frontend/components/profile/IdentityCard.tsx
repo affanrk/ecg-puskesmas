@@ -1,14 +1,24 @@
 'use client';
 
-import { User, Lock, Info, Save, CheckCircle2 } from 'lucide-react';
+import { User, Info, Save, BadgeCheck, Fingerprint } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 
+interface MedicalForm {
+    full_name: string;
+    nik: string;
+    pob: string;
+    dob: string;
+    gender: string;
+    contact_number: string;
+    address: string;
+    medical_history: string;
+}
+
 interface IdentityCardProps {
     isLocked: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    medicalForm: any;
+    medicalForm: MedicalForm;
     handleMedicalChange: (field: string, value: string) => void;
     errors: Record<string, string>;
     onSaveProfileClick: () => void;
@@ -24,36 +34,84 @@ export default function IdentityCard({
     loading
 }: IdentityCardProps) {
     return (
-        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] flex flex-col h-[480px] w-full transition-all">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                <h2 className="text-base font-bold text-slate-800 flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                        <User size={18} />
+        <div className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
+            
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <Fingerprint size={120} strokeWidth={1} />
+            </div>
+
+            <div className="flex items-center justify-between border-b border-slate-50 pb-6 mb-8 relative z-10">
+                <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm border border-blue-100/50">
+                        <User size={24} strokeWidth={2} />
                     </div>
-                    <span>Patient Identity</span>
-                </h2>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Patient Identity</h2>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Demographics & Verification</p>
+                    </div>
+                </div>
+                
                 {isLocked ? (
-                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-100 shadow-sm">
-                        <Lock size={10} /> VERIFIED
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-100 shadow-sm uppercase tracking-wider">
+                            <BadgeCheck size={14} strokeWidth={3} /> Verified
+                        </span>
+                    </div>
                 ) : (
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 flex items-center gap-1.5 shadow-sm">
-                        <Info size={10} /> NOT VERIFIED
+                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 flex items-center gap-1.5 shadow-sm uppercase tracking-wider animate-pulse">
+                        <Info size={14} strokeWidth={3} /> Pending Activation
                     </span>
                 )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                <StandardInput label="Full Legal Name" value={medicalForm.full_name} onChange={(e: any) => handleMedicalChange('full_name', e.target.value)} disabled={isLocked} placeholder="e.g. John Doe" errorMessage={errors.full_name} />
-                <StandardInput label="NIK (16 Digits)" value={medicalForm.nik} onChange={(e: any) => handleMedicalChange('nik', e.target.value.replace(/\D/g,''))} disabled={isLocked} placeholder="16-digit ID" errorMessage={errors.nik} />
-                <StandardInput label="Place of Birth" value={medicalForm.pob} onChange={(e: any) => handleMedicalChange('pob', e.target.value)} disabled={isLocked} placeholder="City Name" errorMessage={errors.pob} />
-                <FlatpickrInput label="Date of Birth" value={medicalForm.dob} onChange={(date) => handleMedicalChange('dob', date)} disabled={isLocked} placeholder="Select Date" errorMessage={errors.dob} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 flex-1 content-start relative z-10">
+                <div className="space-y-1.5">
+                    <StandardInput 
+                        label="Full Legal Name" 
+                        value={medicalForm.full_name} 
+                        onChange={(e) => handleMedicalChange('full_name', e.target.value)} 
+                        disabled={isLocked} 
+                        placeholder="e.g. John Doe" 
+                        errorMessage={errors.full_name} 
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <StandardInput 
+                        label="NIK (16 Digits)" 
+                        value={medicalForm.nik} 
+                        onChange={(e) => handleMedicalChange('nik', e.target.value.replace(/\D/g,''))} 
+                        disabled={isLocked} 
+                        placeholder="16-digit ID number" 
+                        errorMessage={errors.nik} 
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <StandardInput 
+                        label="Place of Birth" 
+                        value={medicalForm.pob} 
+                        onChange={(e) => handleMedicalChange('pob', e.target.value)} 
+                        disabled={isLocked} 
+                        placeholder="City" 
+                        errorMessage={errors.pob} 
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <FlatpickrInput 
+                        label="Date of Birth" 
+                        value={medicalForm.dob} 
+                        onChange={(date) => handleMedicalChange('dob', date)} 
+                        disabled={isLocked} 
+                        placeholder="Select Date" 
+                        errorMessage={errors.dob} 
+                    />
+                </div>
                 
-                <div className="md:col-span-2">
+                <div className="md:col-span-2 space-y-1.5">
                      <SelectInput 
                         label="Gender" 
                         value={medicalForm.gender} 
-                        onChange={(e: any) => handleMedicalChange('gender', e.target.value)} 
+                        onChange={(e) => handleMedicalChange('gender', e.target.value)} 
                         disabled={isLocked}
                         options={[{ value: 'L', label: 'Male' }, { value: 'P', label: 'Female' }]}
                     />
@@ -61,13 +119,15 @@ export default function IdentityCard({
             </div>
 
             {!isLocked && (
-                <div className="pt-4 mt-2 flex justify-end border-t border-slate-50">
+                <div className="pt-8 mt-8 flex justify-end border-t border-slate-50 relative z-10">
                     <button 
                         onClick={onSaveProfileClick} 
                         disabled={loading} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-6 py-2.5 rounded-lg transition-all shadow-md shadow-blue-500/20 active:scale-[0.98] flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-[0.15em] px-10 py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center gap-3 group/btn overflow-hidden relative"
                     >
-                        <Save size={14} /> Save Identity
+                        <Save size={18} strokeWidth={2.5} className="relative z-10" />
+                        <span className="relative z-10">Activate Profile</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
                     </button>
                 </div>
             )}

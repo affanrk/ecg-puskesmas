@@ -2,7 +2,7 @@
 
 import { globalEventBus } from './events';
 import { EVENTS } from '@/config/constants';
-import { useStore } from '@/store/useStore';
+import { useStore, Device } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 
 // --- Types ---
@@ -16,7 +16,7 @@ declare global {
 // Define types for incoming WebSocket messages
 type SocketMessage =
     | { type: 'ping' }
-    | { type: 'device_list_update'; devices: any[] }
+    | { type: 'device_list_update'; devices: Device[] }
     | { type: 'live_data'; device_id?: string; cal_lead_I: number; cal_lead_II: number; cal_v1: number }
     | { type: 'live_batch'; device_id?: string; samples: Array<{ i: number; ii: number; v1: number }> }
     | { type: 'live_result'; device_id: string; classification: string; confidence?: number; recording_id?: string }
@@ -41,8 +41,8 @@ const getWsUrl = (): string => {
     const defaultUrl = `${protocol}//${host}:${port}/ws`;
 
     let finalUrl;
-    if (typeof window !== 'undefined' && (window as any).__ENV__) {
-        finalUrl = (window as any).__ENV__.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+    if (typeof window !== 'undefined' && window.__ENV__) {
+        finalUrl = window.__ENV__.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
     } else {
         finalUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
     }
@@ -85,7 +85,7 @@ const handleMessage = (msg: SocketMessage) => {
     if ('device_id' in msg && msg.device_id) {
         // Exception: Allow 'device_disconnected' to pass even if we are in transition, 
         // but strictly block data types if no device is selected.
-        const isDataMessage = ['live_data', 'live_batch', 'live_result', 'live_metrics_update'].includes(msg.type);
+        const isDataMessage = ['live_data', 'live_batch', 'live_result', 'live_metrics_update', 'performance_update'].includes(msg.type);
 
         if (isDataMessage) {
             if (!store.currentDeviceId || msg.device_id !== store.currentDeviceId) {

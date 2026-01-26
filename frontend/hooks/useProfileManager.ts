@@ -184,8 +184,20 @@ export function useProfileManager() {
         const API_URL = getApiUrl();
         const token = localStorage.getItem('ecg_token');
 
+        // Clean payload: Convert empty strings to null to ensure compatibility with backend Optional types
+        const payload = {
+            ...medicalForm,
+            full_name: medicalForm.full_name || null,
+            nik: medicalForm.nik || null,
+            pob: medicalForm.pob || null,
+            dob: medicalForm.dob || null, // Critical: Empty string fails Pydantic Date parsing
+            address: medicalForm.address || null,
+            contact_number: medicalForm.contact_number || null,
+            medical_history: medicalForm.medical_history || null
+        };
+
         try {
-            const res = await axios.put(`${API_URL}/auth/profile`, medicalForm, {
+            const res = await axios.put(`${API_URL}/auth/profile`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUser(res.data);

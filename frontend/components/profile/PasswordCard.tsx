@@ -1,16 +1,21 @@
 'use client';
 
-import { FormEvent } from 'react';
-import { Key, Shield, Edit2, Lock } from 'lucide-react';
+import { FormEvent, ChangeEvent } from 'react';
+import { Key, Edit2, Lock, KeyRound, ShieldCheck } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
+
+interface SecurityForm {
+    new_username: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+}
 
 interface PasswordCardProps {
     isChangingPassword: boolean;
     setIsChangingPassword: (val: boolean) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    securityForm: any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setSecurityForm: (val: any) => void;
+    securityForm: SecurityForm;
+    setSecurityForm: React.Dispatch<React.SetStateAction<SecurityForm>>;
     handleSecurityChange: (field: string, value: string) => void;
     errors: Record<string, string>;
     handleCancelPassword: () => void;
@@ -27,63 +32,73 @@ export default function PasswordCard({
     handleSecurityChange,
     errors,
     handleCancelPassword,
-    handleChangePassword,
     onUpdatePasswordClick,
     loading
 }: PasswordCardProps) {
     return (
-        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] flex flex-col h-[480px] w-full overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-6 shrink-0">
-                <h2 className="text-base font-bold text-slate-800 flex items-center gap-3">
-                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
-                        <Key size={18} />
+        <div className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative group">
+            
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <KeyRound size={120} strokeWidth={1} />
+            </div>
+
+            <div className="flex items-center justify-between border-b border-slate-50 pb-6 mb-8 relative z-10 shrink-0">
+                <div className="flex items-center gap-5">
+                    <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-sm border border-rose-100/50">
+                        <Lock size={24} strokeWidth={2} />
                     </div>
-                    <span>Password Security</span>
-                </h2>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Security Access</h2>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Password Protection</p>
+                    </div>
+                </div>
+
                 {!isChangingPassword && (
                     <button
                         onClick={() => setIsChangingPassword(true)}
-                        className="text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
+                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-600 hover:bg-rose-50 px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 border border-slate-100 hover:border-rose-200"
                     >
-                        <Edit2 size={14} />
-                        <span>Change</span>
+                        <Edit2 size={12} strokeWidth={3} /> Change
                     </button>
                 )}
             </div>
 
-            <div className="flex-1 flex flex-col min-h-0 w-full">
+            <div className="flex-1 flex flex-col min-h-0 w-full relative z-10">
                 {!isChangingPassword ? (
-                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-200">
-                        <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 w-full">
-                            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 text-emerald-500 ring-1 ring-emerald-100">
-                                <Shield size={32} strokeWidth={1.5} />
+                    <div className="flex-1 flex items-center justify-center animate-in fade-in duration-500">
+                        <div className="w-full flex flex-col items-center justify-center p-10 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200 min-h-[240px] group/box hover:bg-white hover:border-rose-200 transition-all duration-500">
+                            <div className="w-20 h-20 bg-white rounded-3xl shadow-md flex items-center justify-center mb-6 text-emerald-500 ring-1 ring-emerald-100 group-hover/box:scale-110 transition-transform duration-500">
+                                <ShieldCheck size={36} strokeWidth={1.5} />
                             </div>
-                            <p className="text-slate-900 text-sm font-bold mb-1">Password Protected</p>
-                            <p className="text-slate-500 text-xs text-center max-w-[240px]">
-                                Your account is secured with a strong password. No actions required.
+                            <p className="text-slate-900 text-base font-black tracking-tight mb-2 uppercase tracking-widest text-xs">Encryption Active</p>
+                            <p className="text-slate-500 text-[11px] font-bold text-center max-w-[220px] leading-relaxed mb-4">
+                                Your account is secured with 256-bit hash encryption.
                             </p>
+                            <div className="flex gap-1.5">
+                                {[1,2,3,4,5,6].map(i => (
+                                    <div key={i} className="w-2 h-2 rounded-full bg-slate-200" />
+                                ))}
+                            </div>
                         </div>
-
-                        {/* Invisible spacer to match button height */}
-                        <div className="h-[52px] shrink-0"></div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-200">
-                        <div className="space-y-5 flex-1 overflow-y-auto pr-1">
+                    <div className="flex-1 flex flex-col w-full animate-in fade-in duration-300">
+                        <div className="space-y-6 flex-1 overflow-y-auto pr-1">
                             <StandardInput
                                 label="Current Password"
                                 type="password"
                                 value={securityForm.current_password}
-                                onChange={(e: any) => setSecurityForm((p: any) => ({ ...p, current_password: e.target.value }))}
-                                placeholder="Enter current password"
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSecurityForm((p) => ({ ...p, current_password: e.target.value }))}
+                                placeholder="Verify current password"
                                 errorMessage={errors.current_password}
                             />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 pt-2">
                                 <StandardInput
                                     label="New Password"
                                     type="password"
                                     value={securityForm.new_password}
-                                    onChange={(e: any) => handleSecurityChange('new_password', e.target.value)}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleSecurityChange('new_password', e.target.value)}
                                     placeholder="Min. 8 chars"
                                     errorMessage={errors.new_password}
                                 />
@@ -91,28 +106,28 @@ export default function PasswordCard({
                                     label="Confirm Password"
                                     type="password"
                                     value={securityForm.confirm_password}
-                                    onChange={(e: any) => handleSecurityChange('confirm_password', e.target.value)}
-                                    placeholder="Re-enter new password"
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => handleSecurityChange('confirm_password', e.target.value)}
+                                    placeholder="Repeat new password"
                                     errorMessage={errors.confirm_password}
                                 />
                             </div>
                         </div>
 
-                        <div className="flex gap-3 pt-4 border-t border-slate-50 mt-4 shrink-0">
+                        <div className="flex gap-4 pt-8 border-t border-slate-50 mt-8 shrink-0">
                             <button
                                 type="button"
                                 onClick={handleCancelPassword}
-                                className="flex-1 px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+                                className="flex-1 px-4 py-4 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-black uppercase tracking-widest rounded-2xl transition-all active:scale-[0.98]"
                             >
-                                Cancel
+                                Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={onUpdatePasswordClick}
                                 disabled={loading}
-                                className="flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-200 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg shadow-sm shadow-rose-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="flex-2 px-8 py-4 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-rose-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
                             >
-                                <Lock size={14} /> Update Password
+                                <Key size={18} strokeWidth={2.5} /> Update Password
                             </button>
                         </div>
                     </div>

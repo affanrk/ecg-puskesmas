@@ -7,7 +7,6 @@ import ContactCard from '@/components/profile/ContactCard';
 import UsernameCard from '@/components/profile/UsernameCard';
 import PasswordCard from '@/components/profile/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
-import { AlertTriangle, X } from 'lucide-react';
 
 export default function ProfilePage() {
     // 1. Hooks & State
@@ -21,7 +20,6 @@ export default function ProfilePage() {
         securityForm,
         setSecurityForm,
         errors,
-        setErrors,
         isEditingMedical,
         setIsEditingMedical,
         isEditingUsername,
@@ -47,7 +45,10 @@ export default function ProfilePage() {
 
     // 3. Render
     return (
-        <div className="max-w-[1600px] mx-auto space-y-6 pb-12 h-full flex flex-col">
+        <div className="w-full min-h-full space-y-6 pb-20 relative">
+            
+            {/* Subtle Medical Background Pattern for the Page Area */}
+            <div className="absolute inset-0 medical-grid-pattern opacity-20 pointer-events-none -z-10"></div>
 
             <ConfirmationModal
                 isOpen={confirmState.isOpen}
@@ -67,10 +68,10 @@ export default function ProfilePage() {
             />
 
             {/* CONTENT AREA */}
-            <div className="flex-1 w-full">
-                {/* TAB: MEDICAL */}
+            <div className="w-full">
+                {/* ... existing tab logic ... */}
                 {activeTab === 'medical' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
                         <IdentityCard
                             isLocked={isLocked}
                             medicalForm={medicalForm}
@@ -96,7 +97,7 @@ export default function ProfilePage() {
 
                 {/* TAB: SECURITY */}
                 {activeTab === 'security' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full h-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
                         <UsernameCard
                             user={user}
                             isEditingUsername={isEditingUsername}
