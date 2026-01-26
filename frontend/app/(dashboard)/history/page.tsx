@@ -305,13 +305,13 @@ export default function HistoryPage() {
                                             <td className="px-8 py-3 text-right">
                                                 <span className={clsx(
                                                     "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.12em] transition-all border shadow-sm",
-                                                    status === 'Normal' 
+                                                    !isAbnormal 
                                                         ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                                         : "bg-rose-50 text-rose-700 border-rose-100"
                                                 )}>
-                                                    <span className={clsx("w-1.5 h-1.5 rounded-full", status === 'Normal' ? "bg-emerald-500" : "bg-rose-500")}></span>
+                                                    <span className={clsx("w-1.5 h-1.5 rounded-full", !isAbnormal ? "bg-emerald-500" : "bg-rose-500")}></span>
                                                     {status}
-                                                    {status !== 'Normal' && <HeartPulse size={12} className="animate-pulse" />}
+                                                    {isAbnormal && <HeartPulse size={12} className="animate-pulse" />}
                                                 </span>
                                             </td>
                                         </tr>
