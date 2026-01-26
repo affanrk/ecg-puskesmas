@@ -72,6 +72,11 @@ def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
     """Get profile of the currently authenticated user."""
     return current_user
 
+from sqlalchemy.exc import IntegrityError, DataError
+import traceback
+
+# ... imports ...
+
 @router.put("/profile", response_model=UserResponse)
 def update_user_profile(
     profile_in: UserProfileUpdate,
@@ -84,15 +89,17 @@ def update_user_profile(
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")
         return updated_user
+    except DataError as e:
+        error_msg = str(e.orig).lower() if hasattr(e, 'orig') else str(e)
+        raise HTTPException(status_code=400, detail=f"Data format error: {error_msg}")
     except IntegrityError as e:
-        # db.rollback() # No need to rollback here as the transaction is managed by the dependency
-        error_msg = str(e.orig).lower()
+        error_msg = str(e.orig).lower() if hasattr(e, 'orig') else str(e)
         if "nik" in error_msg:
             raise HTTPException(status_code=400, detail="NIK already registered to another user")
         raise HTTPException(status_code=400, detail="Database integrity error")
     except Exception as e:
-        # db.rollback() # No need to rollback here
-        raise HTTPException(status_code=500, detail=str(e))
+        traceback.print_exc() # Print to server console for debugging
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 @router.put("/change-username", response_model=UserResponse)
 def update_user_username(

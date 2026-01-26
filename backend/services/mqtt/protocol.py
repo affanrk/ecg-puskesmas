@@ -4,6 +4,7 @@ Handles message parsing and packet unpacking.
 Separates protocol logic from business logic.
 """
 import heapq
+import time
 from typing import List, Tuple
 from dataclasses import dataclass
 
@@ -62,18 +63,6 @@ class MQTTProtocolHandler:
     ) -> Tuple[List[ECGSample], int, str]:
         """
         Parse batch format packet.
-        
-        Format:
-        {
-            "r1": [raw_lead_i_values],
-            "r2": [raw_lead_ii_values],
-            "r3": [raw_v1_values],
-            "c1": [cal_lead_i_values],
-            "c2": [cal_lead_ii_values],
-            "c3": [cal_v1_values],
-            "ts_us": ending_timestamp_us,
-            "cnt": ending_counter
-        }
         """
         list_r1 = payload['r1']
         list_r2 = payload['r2']
@@ -82,8 +71,9 @@ class MQTTProtocolHandler:
         list_c2 = payload['c2']
         list_c3 = payload['c3']
         
-        end_ts_us = payload['ts_us']
-        end_counter = payload['cnt']
+        # Fallback to server time if device time is missing
+        end_ts_us = payload.get('ts_us') or int(time.time() * 1_000_000)
+        end_counter = payload.get('cnt', 0)
         
         batch_size = len(list_r1)
         
@@ -109,7 +99,7 @@ class MQTTProtocolHandler:
             )
             samples.append(sample)
             
-        return samples, end_counter, "JSON Batch" # Added packet format to return
+        return samples, end_counter, "JSON Batch"
         
     def _parse_single_packet(
         self,
@@ -117,32 +107,26 @@ class MQTTProtocolHandler:
     ) -> Tuple[List[ECGSample], int, str]:
         """
         Parse single sample format packet.
-        
-        Format:
-        {
-            "raw_c1": raw_lead_i,
-            "raw_c2": raw_lead_ii,
-            "raw_c3": raw_v1,
-            "cal_mv_c1": cal_lead_i,
-            "cal_mv_c2": cal_lead_ii,
-            "cal_mv_c3": cal_v1,
-            "ts_us": timestamp_us,
-            "counter": counter
-        }
+        Supports multiple naming conventions for maximum compatibility.
         """
+        # Fallback to server time if device time is missing
+        ts_us = payload.get('ts_us') or payload.get('timestamp') or int(time.time() * 1_000_000)
+        
         sample = ECGSample(
-            timestamp_us=payload['ts_us'],
-            raw_lead_i=payload['raw_c1'],
-            raw_lead_ii=payload['raw_c2'],
-            raw_v1=payload['raw_c3'],
-            cal_lead_i=payload['cal_mv_c1'],
-            cal_lead_ii=payload['cal_mv_c2'],
-            cal_v1=payload['cal_mv_c3']
+            timestamp_us=ts_us,
+            # Support raw_c1 or r1
+            raw_lead_i=payload.get('raw_c1', payload.get('r1', 0)),
+            raw_lead_ii=payload.get('raw_c2', payload.get('r2', 0)),
+            raw_v1=payload.get('raw_c3', payload.get('r3', 0)),
+            # Support cal_mv_c1 or c1
+            cal_lead_i=payload.get('cal_mv_c1', payload.get('c1', 0.0)),
+            cal_lead_ii=payload.get('cal_mv_c2', payload.get('c2', 0.0)),
+            cal_v1=payload.get('cal_mv_c3', payload.get('c3', 0.0))
         )
         
-        counter = payload['counter']
+        counter = payload.get('counter', payload.get('cnt', 0))
         
-        return [sample], counter, "JSON Single" # Added packet format to return
+        return [sample], counter, "JSON Single"
         
         
     # ========================================================================

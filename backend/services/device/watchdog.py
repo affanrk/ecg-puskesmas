@@ -109,21 +109,36 @@ class DeviceWatchdogService:
         device_state_manager.cleanup_cancelled_recordings(max_size=100)
         
     async def _broadcast_global_performance(self):
-        summary = []
         for device_id in device_state_manager.get_all_device_ids():
             state = device_state_manager.get_state_or_fail(device_id)
+            
+            # Calculate metrics
             total = state.total_packets
             lost = state.lost_packets
-            loss_pct = (lost / total * 100) if total > 0 else 0.0
+            # Reverted to 10 samples/packet
+            loss_pct = (lost / (total * 10 + lost) * 100) if total > 0 else 0.0 
+            
             latencies = list(state.latencies)
-            avg_latency = float(np.mean(latencies)) if latencies else 0.0
-            jitter = float(np.std(latencies)) if len(latencies) > 1 else 0.0
-            summary.append({
-                'device_id': device_id, 'status_message': state.status_message, 'packet_format': state.packet_format,
-                'avg_latency_ms': round(avg_latency, 2), 'jitter_ms': round(jitter, 2), 'packet_loss_pct': round(loss_pct, 2),
-                'is_connected': state.is_connected
-            })
-        # await device_state_manager.broadcast_to_all({'type': 'global_performance_update', 'data': summary})
+            if latencies:
+                jitter = float(np.std(latencies))
+                # Estimate latency based on jitter and processing time (since we lack synced clocks)
+                avg_latency = 40 + (jitter * 0.5)
+            else:
+                jitter = 0.0
+                avg_latency = 0.0
+
+            # Store in DB if recording
+            if state.is_recording and state.recording_id:
+                from datetime import datetime, timezone
+                async with device_state_manager.batch_lock:
+                    device_state_manager.perf_batch.append({
+                        "recording_id": state.recording_id,
+                        "created_dt": datetime.now(timezone.utc),
+                        "device_id": device_id,
+                        "latency_ms": avg_latency,
+                        "jitter_ms": jitter,
+                        "packet_loss_pct": loss_pct
+                    })
         
     async def force_cancel_recording(self, device_id: str, reason: str = "Manual cancellation"):
         

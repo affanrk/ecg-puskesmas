@@ -1,12 +1,8 @@
-"""
-MQTT client service - refactored from mqtt_service.py
-Handles MQTT connection, message routing, and data processing.
-Now properly separated into client, handler, and protocol layers.
-"""
 import asyncio
 import aiomqtt
 import orjson
 import ssl
+import heapq
 from typing import Optional
 
 from services.mqtt.protocol import mqtt_protocol
@@ -119,7 +115,7 @@ class MQTTClientService:
             
             # Extract device ID
             device_id = payload.get('id')
-            logger.debug(f"[MQTT] Extracted device_id: {device_id} from message payload.")
+            # logger.debug(f"[MQTT] Extracted device_id: {device_id} from message payload.")
             if not device_id:
                 logger.warning("[MQTT] Received packet without device ID")
                 return
@@ -148,14 +144,65 @@ class MQTTClientService:
             # Parse packet
             device_id, samples, end_counter, packet_format = \
                 mqtt_protocol.parse_packet(payload)
+            
+            # Get device state to check sequence
+            state = device_state_manager.get_state(device_id)
+            
+            # Update heartbeat immediately (Device is alive)
+            # This prevents watchdog timeout while packets are waiting in jitter buffer
+            state.update_connection_status(True)
+            
+            # 1. Check for Reset (Device restart or massive gap)
+            if mqtt_protocol.should_reset_buffer(end_counter, state.last_packet_num):
+                logger.warning(f"[MQTT] Packet counter reset detected for {device_id}. Clearing buffer.")
+                state.reset_network_metrics()
+                # Treat as new stream
+                await mqtt_data_handler.process_samples(device_id, samples, end_counter, packet_format)
+                return
+
+            # 2. Check for Duplicate
+            if mqtt_protocol.is_duplicate_packet(end_counter, state.last_packet_num):
+                return
+
+            # 3. Jitter Buffer Logic
+            start_counter = end_counter - len(samples) + 1
+            buffer_limit = 20 # 20 packets @ 100ms = 2.0s (Matches Device Timeout)
+            
+            # Should we buffer?
+            if mqtt_protocol.should_buffer_packet(start_counter, state.last_packet_num, len(state.packet_buffer), buffer_limit=buffer_limit):
+                mqtt_protocol.add_to_jitter_buffer(state.packet_buffer, start_counter, end_counter, payload)
+            else:
+                # Add current packet to buffer too, so we can pop strictly in order from the heap
+                mqtt_protocol.add_to_jitter_buffer(state.packet_buffer, start_counter, end_counter, payload)
+
+            # 4. Process Loop: Drain buffer
+            while state.packet_buffer:
+                # Peek at head
+                p_start, p_end, p_payload = state.packet_buffer[0]
                 
-            # Process samples
-            await mqtt_data_handler.process_samples(
-                device_id,
-                samples,
-                end_counter,
-                packet_format
-            )
+                # Logic: Process if (Next in Seq) OR (Buffer Full -> Force Flush)
+                is_next = (state.last_packet_num == 0) or (p_start == state.last_packet_num + 1)
+                is_full = len(state.packet_buffer) > buffer_limit
+                
+                if is_next or is_full:
+                    # Pop from buffer
+                    heapq.heappop(state.packet_buffer)
+                    
+                    if not is_next and is_full:
+                        logger.warning(f"[MQTT] Buffer overflow. Forcing process of {p_start} (Expected {state.last_packet_num + 1}). Gap will be recorded.")
+
+                    # Reparse samples from buffered payload
+                    _, p_samples, _, p_format = mqtt_protocol.parse_packet(p_payload)
+                    
+                    await mqtt_data_handler.process_samples(
+                        device_id,
+                        p_samples,
+                        p_end,
+                        p_format
+                    )
+                else:
+                    # Not ready yet, and buffer has space
+                    break
             
         except orjson.JSONDecodeError:
             logger.warning("[MQTT] Invalid JSON in message")

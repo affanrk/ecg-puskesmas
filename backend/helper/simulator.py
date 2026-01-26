@@ -12,18 +12,22 @@ MQTT_BROKER = "103.183.75.251"
 MQTT_PORT = 1883
 MQTT_USERNAME = "admin"
 MQTT_PASSWORD = "ecgctai"
-# MQTT_BROKER = "test.mosquitto.org"
-# MQTT_PORT = 1883
-# MQTT_USERNAME = ""
-# MQTT_PASSWORD = ""
-SPS = 100 
+# MQTT_BROKER = "localhost"
+# MQTT_USERNAME = "ecg_user" 
+# MQTT_PASSWORD = "ecg_pass"
 
-# Konfigurasi Batching (Sesuai ESP32)
-BATCH_SIZE = 10 
+SPS = 100 # Reverted to 100Hz
+BATCH_SIZE = 10 # Reverted to 10 samples per packet
+
+# Network Simulation
+SIMULATE_JITTER = False
+JITTER_MAX_MS = 50 
+SIMULATE_LOSS = False
+LOSS_PROBABILITY = 0.02
 
 # Berapa banyak device palsu yang mau dinyalakan?
-JUMLAH_DEVICE = 2
-PREFIX_ID = "SIMULATOR" # Nanti jadi SIMULATOR-001, SIMULATOR-002, dst.
+JUMLAH_DEVICE = 1
+PREFIX_ID = "SIM-TEST" 
 
 # ==========================================
 # GENERATOR SINYAL
@@ -47,11 +51,12 @@ def device_thread(device_index):
     
     # Client MQTT
     client = mqtt.Client(client_id=f"sim_client_{device_id}")
-    client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
     
     try:
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        print(f"[START] {device_id} menyala dan mengirim data (Batching Mode)...")
+        print(f"[START] {device_id} running @ {SPS}Hz (Batch {BATCH_SIZE})...")
         
         counter = 0
         step = random.randint(0, 100) 
@@ -61,8 +66,6 @@ def device_thread(device_index):
         buf_c1, buf_c2, buf_c3 = [], [], []
 
         while True:
-            loop_start = time.time()
-
             # 1. Generate 1 Titik Data
             ecg_mv = generate_ecg_point(step)
             
@@ -76,7 +79,7 @@ def device_thread(device_index):
             buf_r2.append(int(lead_II * 1000) + 2000)
             buf_r3.append(int(v1 * 1000) + 2000)
             
-            # Pembulatan 3 desimal agar hemat bandwidth (sama seperti ESP)
+            # Pembulatan 3 desimal
             buf_c1.append(round(lead_I, 3))
             buf_c2.append(round(lead_II, 3))
             buf_c3.append(round(v1, 3))
@@ -84,35 +87,52 @@ def device_thread(device_index):
             counter += 1
             step += 1
 
-            # 3. Cek apakah Buffer sudah penuh (10 data)
+            # 3. Cek apakah Buffer penuh
             if len(buf_r1) >= BATCH_SIZE:
                 # Siapkan Payload Batch
                 payload = {
                     "id": device_id,
-                    "ts_us": int(time.time() * 1_000_000), # Waktu kirim (akhir batch)
+                    "ts_us": int(time.time() * 1_000_000), 
                     "cnt": counter,
-                    "r1": buf_r1,
-                    "r2": buf_r2,
-                    "r3": buf_r3,
-                    "c1": buf_c1,
-                    "c2": buf_c2,
-                    "c3": buf_c3
+                    "r1": buf_r1, "r2": buf_r2, "r3": buf_r3,
+                    "c1": buf_c1, "c2": buf_c2, "c3": buf_c3
                 }
                 
-                # Kirim ke MQTT
-                client.publish(topic, json.dumps(payload))
+                # Simulasi Packet Loss
+                should_drop = SIMULATE_LOSS and (random.random() < LOSS_PROBABILITY)
+                
+                # Simulasi Network Hiccup (Freeze/Lag)
+                # 1% chance to freeze for 1.5s (Buffer test - Should survive)
+                if random.random() < 0.01:
+                    print(f"[{device_id}] NETWORK FREEZE (1.5s)...")
+                    time.sleep(1.5)
+                # 1% chance to freeze for 2.5s (Timeout test - Should disconnect)
+                elif random.random() < 0.01:
+                    print(f"[{device_id}] NETWORK FREEZE (2.5s) - EXPECT DISCONNECT...")
+                    time.sleep(2.5)
+                
+                if not should_drop:
+                    # Simulasi Jitter (Random Network Delay)
+                    if SIMULATE_JITTER:
+                        delay = random.uniform(0, JITTER_MAX_MS) / 1000.0
+                        time.sleep(delay)
+
+                    client.publish(topic, json.dumps(payload))
+                    print(f"[{device_id}] Sent #{counter} {'(Delayed)' if SIMULATE_JITTER else ''}")
+                else:
+                    print(f"[{device_id}] SIMULATED LOSS #{counter}")
                 
                 # Reset Buffer
                 buf_r1, buf_r2, buf_r3 = [], [], []
                 buf_c1, buf_c2, buf_c3 = [], [], []
 
-            # 4. Timing Control (Tetap berjalan di 100Hz untuk simulasi sampling)
-            # Kita mengirim setiap 10 loop (100ms), tapi loop tetap jalan per 10ms
-            elapsed = time.time() - loop_start
-            time.sleep(max(0, (1.0/SPS) - elapsed))
+            # 4. Timing Control
+            # 25 samples @ 250Hz = 100ms per batch
+            # We sleep 4ms per sample loop
+            time.sleep(1.0/SPS)
             
     except Exception as e:
-        print(f"[ERROR] {device_id} mati: {e}")
+        print(f"[ERROR] {device_id} died: {e}")
     finally:
         client.disconnect()
 

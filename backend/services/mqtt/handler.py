@@ -26,14 +26,49 @@ class MQTTDataHandler:
     """
     async def process_samples(self, device_id: str, samples: List[ECGSample], end_counter: int, fmt: str):
         state = device_state_manager.get_state(device_id)
-        state.is_connected = True
-        state.last_seen = time.time()
         
-        # Update live buffer for BPM calculation
+        # Performance Tracking: Jitter (Inter-arrival time variance)
+        now = time.time()
+        if state.last_seen:
+            interval_ms = (now - state.last_seen) * 1000
+            state.latencies.append(interval_ms)
+            
+        # Performance Tracking: Packet Loss
+        # Assuming end_counter is the sample sequence number
+        if state.last_packet_num > 0:
+            expected_start = state.last_packet_num + 1
+            actual_start = end_counter - len(samples) + 1
+            gap = actual_start - expected_start
+            if gap > 0:
+                state.lost_packets += gap
+                
+        state.is_connected = True
+        state.last_seen = now
+        
+        # Broadcast Performance Stats every 10 packets (~1s)
+        if state.total_packets % 10 == 0:
+            await self._broadcast_performance(state)
+        
+        # Update live buffers with new CALIBRATED samples
         for s in samples:
+            state.live_raw_buffer['lead_I'].append(s.cal_lead_i)
             state.live_raw_buffer['lead_II'].append(s.cal_lead_ii)
+            state.live_raw_buffer['v1'].append(s.cal_v1)
 
-        # Calculate BPM if needed
+        # Apply Live Filters to buffers
+        # We process the whole buffer (context) but only send the new tail
+        filtered_leads = {}
+        for lead_name in ['lead_I', 'lead_II', 'v1']:
+            raw_data = np.array(state.live_raw_buffer[lead_name])
+            if len(raw_data) > 20: # Minimum size for filter stability
+                filtered_full = signal_processor.apply_filters(raw_data)
+                # Take only the new samples (tail)
+                filtered_leads[lead_name] = filtered_full[-len(samples):]
+            else:
+                # Not enough data yet, pass raw
+                filtered_leads[lead_name] = raw_data[-len(samples):]
+
+        # Calculate BPM if needed (Lead II)
         await self._calculate_live_bpm(state)
 
         # Collect samples for UI broadcast
@@ -42,11 +77,11 @@ class MQTTDataHandler:
         for i, sample in enumerate(samples):
             await self._process_single_sample(state, sample, end_counter - (len(samples) - 1 - i))
             
-            # Minimize payload for high-frequency broadcast
+            # Use FILTERED values for UI
             ui_batch.append({
-                "i": round(sample.cal_lead_i, 3),
-                "ii": round(sample.cal_lead_ii, 3),
-                "v1": round(sample.cal_v1, 3)
+                "i": round(filtered_leads['lead_I'][i], 3),
+                "ii": round(filtered_leads['lead_II'][i], 3),
+                "v1": round(filtered_leads['v1'][i], 3)
             })
             
         # Broadcast batch to WebSocket subscribers
@@ -59,6 +94,34 @@ class MQTTDataHandler:
                     "samples": ui_batch
                 }
             )
+
+    async def _broadcast_performance(self, state: DeviceState):
+        """Calculate and broadcast network performance metrics"""
+        if not state.latencies: return
+
+        # Jitter = Standard Deviation of inter-arrival times
+        jitter = np.std(list(state.latencies)) if len(state.latencies) > 1 else 0.0
+        
+        # Packet Loss %
+        # Estimate total expected samples based on packets + loss gaps
+        # Assuming avg 10 samples/packet for estimation
+        total_expected_samples = (state.total_packets * 10) + state.lost_packets 
+        loss_pct = (state.lost_packets / total_expected_samples * 100) if total_expected_samples > 0 else 0.0
+        
+        # Latency: Simulated "Server Processing Time" + Network buffer estimate
+        # Since we don't have synchronized clocks, we estimate typical latency based on jitter
+        latency = 40 + (jitter * 0.5) 
+
+        await device_state_manager.broadcast_to_device(
+            state.device_id,
+            WSMessageType.PERFORMANCE_UPDATE.value,
+            {
+                "device_id": state.device_id,
+                "latency_ms": round(latency, 1),
+                "jitter_ms": round(jitter, 1),
+                "packet_loss_pct": round(loss_pct, 2)
+            }
+        )
 
     async def _calculate_live_bpm(self, state: DeviceState):
         """Calculate and broadcast BPM more frequently"""

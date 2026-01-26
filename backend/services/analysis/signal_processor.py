@@ -68,7 +68,7 @@ class SignalProcessor:
         except Exception as e:
             logger.error(f"[SignalProcessor] Filter application failed: {e}")
             return signal  # Return original if filtering fails
-            
+
     def _apply_butterworth_filter(self, signal: np.ndarray) -> np.ndarray:
         """
         Apply Butterworth lowpass filter.
