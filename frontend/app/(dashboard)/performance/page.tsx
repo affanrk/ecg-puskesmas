@@ -17,7 +17,7 @@ export default function PerformancePage() {
     }, [setPerformanceTrackingEnabled]);
 
     // Common Card Styles
-    const cardClass = "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
+    const cardClass = "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
 
     // 3. Render
     return (
@@ -37,11 +37,11 @@ export default function PerformancePage() {
             </div>
 
             {/* Real-time Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-32">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-28">
                 {/* Latency Card */}
                 <div className={cardClass}>
                     <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                        <Wifi size={90} strokeWidth={1} />
+                        <Wifi size={80} strokeWidth={1} />
                     </div>
                     
                     <div className="relative z-10 flex items-center justify-between h-full">

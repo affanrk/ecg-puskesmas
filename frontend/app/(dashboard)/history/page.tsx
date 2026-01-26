@@ -29,6 +29,7 @@ export default function HistoryPage() {
     
     const dateInputRef = useRef<HTMLInputElement>(null);
     const fpRef = useRef<FlatpickrInstance | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // 2. Data Fetching
     const loadHistory = useCallback(async (showToast = false) => {
@@ -60,23 +61,54 @@ export default function HistoryPage() {
         loadHistory();
     }, [loadHistory]);
 
+    // Initialize Flatpickr for Date Range
+    useEffect(() => {
+        if (dateInputRef.current) {
+            fpRef.current = flatpickr(dateInputRef.current, {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'j F Y',
+                // Replicate the styling classes from the original input
+                altInputClass: "pl-10 pr-4 py-2.5 text-xs font-bold w-full rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-teal-300 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all text-slate-700 cursor-pointer placeholder:text-slate-400",
+                onChange: (selectedDates, dateStr) => {
+                    const [start, end] = dateStr.split(' to ');
+                    if (start && end) {
+                        setDateRange({ start, end });
+                    } else if (start) {
+                         // Handle single date selection (e.g., just clicking "Today")
+                        setDateRange({ start, end: start });
+                    } else {
+                        setDateRange({ start: '', end: '' });
+                    }
+                }
+            });
+        }
+
+        return () => {
+            if (fpRef.current) {
+                fpRef.current.destroy();
+                fpRef.current = null;
+            }
+        };
+    }, []);
+
     // Responsive Table Height Logic
     useEffect(() => {
-        const calculateRows = () => {
-            const vh = window.innerHeight;
-            // 1080p ~900-950px usable height.
-            // 10 rows * 52px = 520px.
-            // Overhead ~250px. Total ~770px.
-            // Safe target for 10 rows: > 800px.
-            if (vh < 750) setRowsPerPage(7);
-            else if (vh < 820) setRowsPerPage(8);
-            else if (vh < 980) setRowsPerPage(10); // Solid fit for 1080p
-            else setRowsPerPage(12);
-        };
+        if (!containerRef.current) return;
 
-        calculateRows();
-        window.addEventListener('resize', calculateRows);
-        return () => window.removeEventListener('resize', calculateRows);
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const height = entry.contentRect.height;
+                // Row height is 52px, Table header is approx 48px (matching DashboardSummary logic)
+                const availableHeight = height - 48; 
+                const calculatedRows = Math.max(1, Math.floor(availableHeight / 52));
+                setRowsPerPage(calculatedRows);
+            }
+        });
+
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
     }, []);
 
     // ... (rest of imports/setup)
@@ -146,7 +178,7 @@ export default function HistoryPage() {
                                 type="text"
                                 ref={dateInputRef}
                                 placeholder="Select Date Range"
-                                className="pl-10 pr-4 py-2.5 text-xs font-bold w-full rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-teal-300 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all text-slate-700 cursor-pointer placeholder:text-slate-400"
+                                className="hidden"
                             />
                         </div>
 
@@ -204,7 +236,7 @@ export default function HistoryPage() {
                 </div>
 
                 {/* Table Area */}
-                <div className="flex-1 overflow-auto custom-scrollbar relative z-10">
+                <div ref={containerRef} className="flex-1 overflow-hidden relative z-10">
                     <table className="w-full text-left border-collapse h-full">
                         <thead className="bg-slate-50/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[50px]">
                             <tr>

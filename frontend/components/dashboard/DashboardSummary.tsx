@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
 import { User, Activity, Clock, AlertCircle, RefreshCcw, ChevronLeft, ChevronRight, HeartPulse, History, PieChart } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function DashboardSummary() {
     const [highlight, setHighlight] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     // 2. Data Fetching
     const loadDashboardData = useCallback(async () => {
@@ -76,22 +77,20 @@ export default function DashboardSummary() {
 
     // Responsive Table Height Logic
     useEffect(() => {
-        const calculateRows = () => {
-            // Base calculation on typical 1080p height constraints
-            const vh = window.innerHeight;
-            // 1080p Fullscreen ~900-950px usable height.
-            // 5 rows * 64px = 320px + headers/footers (~120px) = ~440px needed for table panel.
-            // Top cards + headers ~ 250px.
-            // Total ~700px. 
-            // So for > 800px height, we should be safe with 5 rows.
-            if (vh < 750) setRowsPerPage(3);
-            else if (vh < 850) setRowsPerPage(4);
-            else setRowsPerPage(5);
-        };
+        if (!containerRef.current) return;
 
-        calculateRows();
-        window.addEventListener('resize', calculateRows);
-        return () => window.removeEventListener('resize', calculateRows);
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const height = entry.contentRect.height;
+                // Row height is 52px, Table header is approx 48px
+                const availableHeight = height - 48; 
+                const calculatedRows = Math.max(1, Math.floor(availableHeight / 52));
+                setRowsPerPage(calculatedRows);
+            }
+        });
+
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
     }, []);
 
     // 4. Computed Values
@@ -106,18 +105,27 @@ export default function DashboardSummary() {
 
     const totalPages = Math.ceil(recentRecords.length / rowsPerPage);
 
+    const getColorForLabel = (label: string) => {
+        const l = label.toLowerCase();
+        if (l === 'normal') return '#10b981'; // emerald-500
+        if (l === 'abnormal') return '#94a3b8'; // slate-400 (neutral gray)
+        if (l === 'berpotensi aritmia') return '#f97316'; // orange-500
+        if (l === 'sangat berpotensi aritmia') return '#ef4444'; // red-500
+        
+        // Fallbacks for other variations
+        if (l.includes('sangat')) return '#ef4444';
+        if (l.includes('berpotensi')) return '#f97316';
+        if (l.includes('aritmia')) return '#f43f5e';
+        
+        return '#94a3b8'; // default gray
+    };
+
     const chartData = {
         labels: Object.keys(stats),
         datasets: [
             {
                 data: Object.values(stats),
-                backgroundColor: [
-                    '#14b8a6', // teal-500
-                    '#f43f5e', // rose-500
-                    '#fbbf24', // amber-400
-                    '#10b981', // emerald-500
-                    '#6366f1', // indigo-500
-                ],
+                backgroundColor: Object.keys(stats).map(getColorForLabel),
                 borderColor: '#ffffff',
                 borderWidth: 4,
                 hoverOffset: 10
@@ -126,16 +134,16 @@ export default function DashboardSummary() {
     };
 
     const chartOptions = {
-        cutout: '75%', 
-        layout: { padding: 10 },
+        cutout: '65%', 
+        layout: { padding: { top: 15, bottom: 15, left: 15, right: 15 } },
         plugins: {
             legend: {
                 position: 'bottom' as const,
                 labels: {
                     usePointStyle: true,
-                    boxWidth: 6,
-                    padding: 20,
-                    font: { size: 10, family: 'var(--font-inter)', weight: 700 },
+                    boxWidth: 8,
+                    padding: 15,
+                    font: { size: 10, family: 'var(--font-inter)', weight: 600 },
                     color: '#64748b',
                     generateLabels: (chart: ChartJS): LegendItem[] => {
                         const data = chart.data;
@@ -162,7 +170,8 @@ export default function DashboardSummary() {
                 displayColors: false
             }
         },
-        maintainAspectRatio: false
+        maintainAspectRatio: false,
+        responsive: true
     };
 
     // 5. Helpers
@@ -323,7 +332,7 @@ export default function DashboardSummary() {
                         </button>
                     </div>
                     
-                    <div className="flex-1 overflow-auto custom-scrollbar">
+                    <div ref={containerRef} className="flex-1 overflow-hidden relative z-10">
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-slate-50/30 text-slate-400 sticky top-0 z-10 backdrop-blur-md">
                                 <tr>
@@ -422,7 +431,7 @@ export default function DashboardSummary() {
                     </div>
                     <div className="flex-1 p-8 flex items-center justify-center relative min-h-0">
                         {totalProcessed > 0 ? (
-                            <div className="w-full h-full max-h-[280px] animate-in fade-in zoom-in-95 duration-700">
+                            <div className="w-full h-full min-h-[220px] max-h-[280px] animate-in fade-in zoom-in-95 duration-700">
                                 <Doughnut data={chartData} options={chartOptions} />
                             </div>
                         ) : (

@@ -49,7 +49,8 @@ export default function Header() {
 
     // 5. Render
     return (
-        <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-40 sticky top-0">
+        <>
+            <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-40 sticky top-0">
             {/* Left: Title */}
             <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
                 <h2 className="text-lg font-black text-slate-800 tracking-tight hidden md:block">
@@ -125,15 +126,17 @@ export default function Header() {
                 </div>
             </div>
 
-            <ConfirmationModal
-                isOpen={showLogoutConfirm}
-                onClose={() => setShowLogoutConfirm(false)}
-                onConfirm={handleLogout}
-                title="Confirm Logout"
-                message="Are you sure you want to end your session and logout from the system?"
-                confirmText="Logout"
-                isDestructive={true}
-            />
         </header>
-    );
+
+        <ConfirmationModal
+            isOpen={showLogoutConfirm}
+            onClose={() => setShowLogoutConfirm(false)}
+            onConfirm={handleLogout}
+            title="Confirm Logout"
+            message="Are you sure you want to end your session and logout from the system?"
+            confirmText="Logout"
+            isDestructive={true}
+        />
+    </>
+);
 }

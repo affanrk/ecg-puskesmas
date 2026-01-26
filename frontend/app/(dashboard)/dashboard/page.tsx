@@ -25,7 +25,6 @@ export default function DashboardPage() {
                     <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-500 group">
                         
                         {/* Decorative Background Elements */}
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-400 via-amber-400 to-teal-400"></div>
                         <div className="absolute -top-24 -right-24 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-60"></div>
                         <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none"></div>
 
@@ -54,7 +53,7 @@ export default function DashboardPage() {
                                     </div>
                                     
                                     <p className="text-slate-500 text-sm md:text-base leading-relaxed font-medium">
-                                        To access real-time telemetry and AI analysis, we need to verify your medical identity. This ensures full HIPAA compliance and data security.
+                                        To access real-time telemetry and AI analysis, we need to verify your medical identity. This ensures full standard compliance and data security.
                                     </p>
 
                                     <div className="pt-4 flex flex-col md:flex-row items-center gap-4">
