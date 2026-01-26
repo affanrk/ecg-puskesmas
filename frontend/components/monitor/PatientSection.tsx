@@ -3,7 +3,6 @@
 import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import { User, Activity, History } from 'lucide-react';
-import { calculateAge } from '@/utils/helpers';
 
 interface PatientSectionProps {
     variant?: 'default' | 'minimal';
@@ -65,12 +64,6 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
                         <History size={10} className="text-slate-400" strokeWidth={3} />
                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider truncate max-w-[180px]">
                             {user.medical_history || 'No History'}
-                        </span>
-                    </div>
-                    <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
-                        <User size={10} className="text-slate-400" strokeWidth={3} />
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider whitespace-nowrap">
-                            {user.dob ? calculateAge(user.dob) + ' Years Old' : '-'}
                         </span>
                     </div>
                 </div>
