@@ -92,6 +92,7 @@ export function useProfileManager() {
                 break;
             case 'full_name':
                 if (value.length > 0 && value.length < 2) error = "Name too short";
+                else if (value.length > 0 && !/^[a-zA-Z\s\.\']+$/.test(value)) error = "Invalid characters";
                 break;
             case 'pob':
                 if (value.length > 0 && value.length < 2) error = "Place of birth too short";

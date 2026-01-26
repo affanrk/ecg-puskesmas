@@ -1,15 +1,7 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-
-from models.database import TbMUser
-from schemas.auth import UserCreate, UserProfileUpdate
-from core.security import get_password_hash
-
-
-from typing import Optional, List
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError, DataError
 
 from models.database import TbMUser
 from schemas.auth import UserCreate, UserProfileUpdate
@@ -98,6 +90,9 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
+        except (IntegrityError, DataError):
+            self.db.rollback()
+            raise
         except Exception as e:
             self.db.rollback()
             raise DatabaseException(f"Failed to update user profile for ID {user_id}", details={"error": str(e)})
@@ -113,6 +108,9 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
+        except (IntegrityError, DataError):
+            self.db.rollback()
+            raise
         except Exception as e:
             self.db.rollback()
             raise DatabaseException(f"Failed to update username for ID {user_id}", details={"error": str(e)})
