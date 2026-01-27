@@ -5,7 +5,7 @@ Uses Generic types for type safety.
 """
 from typing import Generic, TypeVar, Type, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_, or_
+from sqlalchemy import desc
 
 from core.exceptions import DatabaseException
 
@@ -45,9 +45,7 @@ class BaseRepository(Generic[ModelType]):
             Model instance or None if not found
         """
         try:
-            return self.db.query(self.model).filter(
-                self.model.id == id
-            ).first()
+            return self.db.get(self.model, id)
         except Exception as e:
             raise DatabaseException(
                 f"Failed to get {self.model.__name__} with id {id}",

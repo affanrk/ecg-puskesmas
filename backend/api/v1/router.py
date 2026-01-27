@@ -4,7 +4,12 @@ Organizes all API routes with proper grouping and tags.
 """
 from fastapi import APIRouter
 
-from api.v1.endpoints import websocket, history, export, health, auth
+from api.v1.endpoints import (
+    history_router as history,
+    export_router as export,
+    health_router as health,
+    auth_router as auth
+)
 
 
 # Create main API router
@@ -16,7 +21,7 @@ api_router = APIRouter(prefix="/api/v1")
 # ============================================================================
 
 api_router.include_router(
-    auth.router,
+    auth,
     prefix="/auth",
     tags=["Authentication"]
 )
@@ -27,7 +32,7 @@ api_router.include_router(
 # ============================================================================
 
 api_router.include_router(
-    history.router,
+    history,
     prefix="/history",
     tags=["History & Data"]
 )
@@ -38,7 +43,7 @@ api_router.include_router(
 # ============================================================================
 
 api_router.include_router(
-    export.router,
+    export,
     prefix="/export",
     tags=["Export"]
 )
@@ -49,7 +54,7 @@ api_router.include_router(
 # ============================================================================
 
 api_router.include_router(
-    health.router,
+    health,
     prefix="/health",
     tags=["Health & Monitoring"]
 )

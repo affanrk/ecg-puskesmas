@@ -7,7 +7,24 @@ import sys
 import asyncio
 import warnings
 import logging
+import traceback
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import uvicorn
+
+from core import settings
+from core.events import lifespan
+from core import (
+    AppException,
+    DeviceException,
+    RecordingException,
+    PatientException,
+    AnalysisException
+)
+from api.v1.router import api_router
+from api.v1.endpoints import websocket_router as ws_router
+from utils import logger
 
 if sys.platform == 'win32':
     policy = asyncio.WindowsSelectorEventLoopPolicy()
@@ -27,25 +44,6 @@ try:
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
     pass
-
-import traceback
-from pathlib import Path
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
-from core.config import settings
-from core.events import lifespan
-from core.exceptions import (
-    AppException,
-    DeviceException,
-    RecordingException,
-    PatientException,
-    AnalysisException
-)
-from api.v1.router import api_router
-from api.v1.endpoints.websocket import router as ws_router
-from utils.logger import logger
 
 
 # ============================================================================
@@ -173,7 +171,7 @@ if __name__ == "__main__":
         app=app,
         host="0.0.0.0",
         port=settings.FLASK_PORT,
-        log_level="debug",
+        log_level="info",
         loop="asyncio",
         reload=True
     )

@@ -13,7 +13,7 @@ if backend_dir not in sys.path:
     sys.path.append(backend_dir)
 
 try:
-    from core.config import settings
+    from core import settings
 except ImportError:
     print("Warning: Could not import settings from core.config. Using fallback configuration.")
     class Settings:

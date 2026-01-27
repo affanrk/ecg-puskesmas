@@ -2,8 +2,8 @@ import paho.mqtt.client as mqtt
 import json
 import time
 import math
-import random
 import threading
+import os
 
 # ==========================================
 # KONFIGURASI
@@ -30,23 +30,32 @@ JUMLAH_DEVICE = 1
 PREFIX_ID = "SIM-TEST" 
 
 # ==========================================
-# GENERATOR SINYAL
+# GENERATOR SINYAL (IDEAL 60 BPM)
 # ==========================================
 def generate_ecg_point(step, offset_noise=0.0):
+    # SPS = 100, so step % 100 creates 1 beat per second (60 BPM)
     t = (step % SPS) / SPS
-    val = random.uniform(-0.02, 0.02) + offset_noise
-    val += 0.15 * math.exp(-((t - 0.2)**2) / (2 * 0.015**2))
-    val -= 0.15 * math.exp(-((t - 0.35)**2) / (2 * 0.005**2))
+    
+    # Ideal Waveform (No random noise)
+    val = 0.0 
+    
+    # P Wave (Reduced amplitude to prevent false peak detection)
+    val += 0.05 * math.exp(-((t - 0.2)**2) / (2 * 0.015**2))
+    # QRS Complex
+    val -= 0.05 * math.exp(-((t - 0.35)**2) / (2 * 0.005**2))
     val += 1.0 * math.exp(-((t - 0.38)**2) / (2 * 0.005**2))
-    val -= 0.25 * math.exp(-((t - 0.42)**2) / (2 * 0.005**2))
-    val += 0.3 * math.exp(-((t - 0.6)**2) / (2 * 0.03**2))
+    val -= 0.1 * math.exp(-((t - 0.42)**2) / (2 * 0.005**2))
+    # T Wave (Reduced amplitude)
+    val += 0.1 * math.exp(-((t - 0.6)**2) / (2 * 0.03**2))
+    
     return val
 
 # ==========================================
 # FUNGSI UNTUK SATU DEVICE (THREAD)
 # ==========================================
 def device_thread(device_index):
-    device_id = f"{PREFIX_ID}-{device_index+1:03d}" 
+    # Add PID to avoid collision if multiple scripts run
+    device_id = f"{PREFIX_ID}-{device_index+1:03d}-{os.getpid()}" 
     topic = f"raw/ecg/{device_id}"
     
     # Client MQTT
@@ -56,10 +65,10 @@ def device_thread(device_index):
     
     try:
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        print(f"[START] {device_id} running @ {SPS}Hz (Batch {BATCH_SIZE})...")
+        print(f"[START] {device_id} running ideally @ 60 BPM...")
         
         counter = 0
-        step = random.randint(0, 100) 
+        step = 0 
         
         # Buffer untuk Batching
         buf_r1, buf_r2, buf_r3 = [], [], []
@@ -74,12 +83,11 @@ def device_thread(device_index):
             lead_II = ecg_mv * 1.0
             v1 = ecg_mv * 0.5
             
-            # 2. Masukkan ke Buffer (Array)
+            # 2. Masukkan ke Buffer
             buf_r1.append(int(lead_I * 1000) + 2000)
             buf_r2.append(int(lead_II * 1000) + 2000)
             buf_r3.append(int(v1 * 1000) + 2000)
             
-            # Pembulatan 3 desimal
             buf_c1.append(round(lead_I, 3))
             buf_c2.append(round(lead_II, 3))
             buf_c3.append(round(v1, 3))
@@ -89,7 +97,6 @@ def device_thread(device_index):
 
             # 3. Cek apakah Buffer penuh
             if len(buf_r1) >= BATCH_SIZE:
-                # Siapkan Payload Batch
                 payload = {
                     "id": device_id,
                     "ts_us": int(time.time() * 1_000_000), 
@@ -98,37 +105,14 @@ def device_thread(device_index):
                     "c1": buf_c1, "c2": buf_c2, "c3": buf_c3
                 }
                 
-                # Simulasi Packet Loss
-                should_drop = SIMULATE_LOSS and (random.random() < LOSS_PROBABILITY)
-                
-                # Simulasi Network Hiccup (Freeze/Lag)
-                # 1% chance to freeze for 1.5s (Buffer test - Should survive)
-                if random.random() < 0.01:
-                    print(f"[{device_id}] NETWORK FREEZE (1.5s)...")
-                    time.sleep(1.5)
-                # 1% chance to freeze for 2.5s (Timeout test - Should disconnect)
-                elif random.random() < 0.01:
-                    print(f"[{device_id}] NETWORK FREEZE (2.5s) - EXPECT DISCONNECT...")
-                    time.sleep(2.5)
-                
-                if not should_drop:
-                    # Simulasi Jitter (Random Network Delay)
-                    if SIMULATE_JITTER:
-                        delay = random.uniform(0, JITTER_MAX_MS) / 1000.0
-                        time.sleep(delay)
-
-                    client.publish(topic, json.dumps(payload))
-                    print(f"[{device_id}] Sent #{counter} {'(Delayed)' if SIMULATE_JITTER else ''}")
-                else:
-                    print(f"[{device_id}] SIMULATED LOSS #{counter}")
+                # Publish without logging
+                client.publish(topic, json.dumps(payload))
                 
                 # Reset Buffer
                 buf_r1, buf_r2, buf_r3 = [], [], []
                 buf_c1, buf_c2, buf_c3 = [], [], []
 
             # 4. Timing Control
-            # 25 samples @ 250Hz = 100ms per batch
-            # We sleep 4ms per sample loop
             time.sleep(1.0/SPS)
             
     except Exception as e:
