@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import declarative_mixin
+from core.database import Base
 
 @declarative_mixin
 class AuditMixin:
