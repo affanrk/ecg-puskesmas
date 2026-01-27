@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
-import { User, Activity, Clock, AlertCircle, RefreshCcw, ChevronLeft, ChevronRight, HeartPulse, History, PieChart } from 'lucide-react';
+import { User, Activity, Clock, RefreshCcw, ChevronLeft, ChevronRight, HeartPulse, History, PieChart } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, LegendItem } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import clsx from 'clsx';
@@ -23,11 +23,13 @@ export default function DashboardSummary() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const containerRef = useRef<HTMLDivElement>(null);
+    const isFetching = useRef(false);
 
     // 2. Data Fetching
     const loadDashboardData = useCallback(async () => {
-        if (!user?.id) return; 
+        if (!user?.id || isFetching.current) return; 
 
+        isFetching.current = true;
         setLoading(true);
         try {
             const [historyData, statsData] = await Promise.all([
@@ -67,6 +69,7 @@ export default function DashboardSummary() {
             console.error("Failed to load dashboard data:", error);
         } finally {
             setLoading(false);
+            isFetching.current = false;
         }
     }, [user?.id]);
 
@@ -82,8 +85,8 @@ export default function DashboardSummary() {
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
-                // Row height is 52px, Table header is approx 48px
-                const availableHeight = height - 48; 
+                // Header is exactly 50px (h-[50px]). Row is exactly 52px (h-[52px]).
+                const availableHeight = height - 50; 
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / 52));
                 setRowsPerPage(calculatedRows);
             }
@@ -332,62 +335,65 @@ export default function DashboardSummary() {
                         </button>
                     </div>
                     
-                    <div ref={containerRef} className="flex-1 overflow-hidden relative z-10">
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-slate-50/30 text-slate-400 sticky top-0 z-10 backdrop-blur-md">
-                                <tr>
-                                    <th className="px-8 py-4 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50">Time & Date</th>
-                                    <th className="px-8 py-4 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50">Classification</th>
-                                    <th className="px-8 py-4 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50 text-right">Confidence</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {paginatedData.length > 0 ? (
-                                    paginatedData.map((row, idx) => (
-                                        <tr key={idx} className={clsx(
-                                            "hover:bg-slate-50/50 transition-colors group h-[52px]",
-                                            highlight && idx === 0 && currentPage === 1 && "bg-emerald-50/20"
-                                        )}>
-                                            <td className="px-8 py-4">
-                                                <div className="font-mono text-sm font-bold text-slate-700">
-                                                    {formatDateTime(row.changed_dt || row.timestamp).time}
-                                                </div>
-                                                <div className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                                                    {formatDateTime(row.changed_dt || row.timestamp).date}
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-4">
-                                                <span className={clsx(
-                                                    "inline-flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-all border shadow-sm",
-                                                    row.classification === 'Normal' 
-                                                        ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                                        : "bg-rose-50 text-rose-700 border-rose-100"
-                                                )}>
-                                                    <span className={clsx("w-2 h-2 rounded-full", row.classification === 'Normal' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]")}></span>
-                                                    {row.classification}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-4 text-right">
-                                                <span className="font-mono text-sm font-black text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 shadow-inner">
-                                                    {row.confidence ? (row.confidence * 100).toFixed(0) + '%' : '-'}
-                                                </span>
-                                            </td>
+                    <div ref={containerRef} className="flex-1 overflow-hidden relative z-10 no-scrollbar">
+                        {loading ? (
+                            <div className="h-full w-full flex flex-col items-center justify-center gap-4 opacity-40 py-20">
+                                <div className="animate-spin text-teal-500">
+                                    <Clock size={48} />
+                                </div>
+                                <span className="font-black text-xs uppercase tracking-[0.2em] text-slate-400">Syncing Analysis...</span>
+                            </div>
+                        ) : recentRecords.length === 0 ? (
+                            <div className="h-full w-full flex flex-col items-center justify-center gap-4 opacity-30 py-20">
+                                <History size={64} className="text-slate-300" />
+                                <span className="font-black text-xs uppercase tracking-[0.2em] text-slate-400">No Records Found</span>
+                            </div>
+                        ) : (
+                            <div className="h-full w-full overflow-x-auto no-scrollbar">
+                                <table className="w-full h-full text-left border-collapse table-fixed lg:table-auto">
+                                    <thead className="bg-slate-50/30 text-slate-400 sticky top-0 z-10 backdrop-blur-md h-[50px]">
+                                        <tr>
+                                            <th className="px-6 sm:px-8 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50">Time & Date</th>
+                                            <th className="px-6 sm:px-8 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50">Classification</th>
+                                            <th className="px-6 sm:px-8 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-50 text-right">Confidence</th>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="px-8 py-16 text-center">
-                                            <div className="flex flex-col items-center justify-center text-slate-300 gap-3">
-                                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center border border-dashed border-slate-200">
-                                                    <AlertCircle size={32} strokeWidth={1.5} className="opacity-40" />
-                                                </div>
-                                                <span className="font-black text-xs uppercase tracking-[0.2em] opacity-60">No Analysis Found</span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {paginatedData.map((row, idx) => (
+                                            <tr key={idx} className={clsx(
+                                                "hover:bg-slate-50/50 transition-colors group h-[52px]",
+                                                highlight && idx === 0 && currentPage === 1 && "bg-emerald-50/20"
+                                            )}>
+                                                <td className="px-6 sm:px-8 py-4">
+                                                    <div className="font-mono text-sm font-bold text-slate-700">
+                                                        {formatDateTime(row.changed_dt || row.timestamp).time}
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                                        {formatDateTime(row.changed_dt || row.timestamp).date}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 sm:px-8 py-4">
+                                                    <span className={clsx(
+                                                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-[0.12em] transition-all border shadow-sm whitespace-nowrap",
+                                                        row.classification === 'Normal' 
+                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                            : "bg-rose-50 text-rose-700 border-rose-100"
+                                                    )}>
+                                                        <span className={clsx("w-1.5 h-1.5 rounded-full", row.classification === 'Normal' ? "bg-emerald-500" : "bg-rose-500")}></span>
+                                                        {row.classification}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 sm:px-8 py-4 text-right">
+                                                    <span className="font-mono text-xs font-black text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 shadow-inner">
+                                                        {row.confidence ? (row.confidence * 100).toFixed(0) + '%' : '-'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
 
                     {/* Pagination Footer */}

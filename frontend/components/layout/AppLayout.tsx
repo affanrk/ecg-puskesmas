@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, useRef } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useStore } from '@/store/useStore';
@@ -10,11 +10,15 @@ import clsx from 'clsx';
 export default function AppLayout({ children }: { children: ReactNode }) {
     // 1. Hooks & State
     const { isRecording, updateTimer, isSidebarPinned } = useStore();
+    const isMounted = useRef(false);
 
     // 2. Effects
     // Initialize WebSocket
     useEffect(() => {
-        connectWebSocket();
+        if (!isMounted.current) {
+            isMounted.current = true;
+            connectWebSocket();
+        }
     }, []);
 
     // Global Timer Interval

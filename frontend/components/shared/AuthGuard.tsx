@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useRef, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -12,10 +12,14 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const { setUser, user: storeUser } = useStore();
     const [authorized, setAuthorized] = useState(false);
+    const isMounted = useRef(false);
 
     // 2. Effects
     useEffect(() => {
         const checkAuth = async () => {
+            if (isMounted.current) return;
+            isMounted.current = true;
+
             const token = localStorage.getItem('ecg_token');
             const isAuthPage = pathname === '/login' || pathname === '/register';
 

@@ -220,9 +220,9 @@ export default function RegisterPage() {
             </div>
 
             {/* Right Side: Register Form */}
-            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-12 bg-slate-50 lg:bg-white">
+            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-12 bg-slate-50 lg:bg-white custom-scrollbar">
                 <div className={clsx(
-                    "w-full max-w-[450px] m-auto bg-white lg:bg-transparent p-8 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
+                    "w-full max-w-[450px] mx-auto my-auto bg-white lg:bg-transparent p-8 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
                     // Removed 'isShaking' from container
                 )}>
                     

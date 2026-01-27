@@ -77,8 +77,10 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
                     stepSize: 0.5,
                     callback: (value) => `${Number(value).toFixed(1)}mV`
                 },
-                min: minY,
-                max: maxY
+                min: undefined,
+                max: undefined,
+                suggestedMin: minY,
+                suggestedMax: maxY
             }
         },
         elements: {
@@ -93,23 +95,36 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
 };
 
 const adjustScaleSingle = (chart: Chart) => {
-    let maxVal = 0;
     const ds = chart.data.datasets[0];
+    let minVal = Infinity;
+    let maxVal = -Infinity;
+    let hasData = false;
 
     for (let j = 0; j < ds.data.length; j++) {
         const v = ds.data[j] as number;
         if (v !== null && v !== undefined) {
-            const abs = Math.abs(v);
-            if (abs > maxVal) maxVal = abs;
+            if (v < minVal) minVal = v;
+            if (v > maxVal) maxVal = v;
+            hasData = true;
         }
     }
 
-    if (maxVal < 1.0) maxVal = 1.0;
-    const limit = Math.ceil(maxVal * 1.1 * 10) / 10;
+    if (!hasData) {
+        // Default range if no data
+        minVal = -2;
+        maxVal = 2;
+    } else {
+        // Add 10% padding
+        const range = maxVal - minVal;
+        const padding = range * 0.1 || 0.5; // Default padding if range is 0
+        minVal -= padding;
+        maxVal += padding;
+    }
 
-    if (chart.options.scales?.y && Math.abs((chart.options.scales.y.max as number) - limit) > 0.1) {
-        chart.options.scales.y.min = -limit;
-        chart.options.scales.y.max = limit;
+    // Ensure chart options scales object exists
+    if (chart.options.scales?.y) {
+        chart.options.scales.y.min = minVal;
+        chart.options.scales.y.max = maxVal;
     }
 };
 
@@ -343,12 +358,16 @@ export default function ECGChart({ }: ECGChartProps) {
                     <DeviceDropdown />
 
                     {/* Recording Controls */}
-                    {currentDeviceId && (
+                    {(currentDeviceId || isSessionActive) && (
                         <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
                             {!isSessionActive ? (
                                 <button
                                     onClick={toggleRecording}
-                                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 justify-center uppercase tracking-wider bg-emerald-600 text-white hover:bg-emerald-700"
+                                    disabled={!currentDeviceId}
+                                    className={clsx(
+                                        "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                        !currentDeviceId ? "bg-slate-300 shadow-none cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                                    )}
                                 >
                                     <Activity size={16} /> Start Recording
                                 </button>
@@ -356,9 +375,14 @@ export default function ECGChart({ }: ECGChartProps) {
                                 <>
                                     <button
                                         onClick={toggleRecording}
+                                        disabled={!isRecording && !currentDeviceId}
                                         className={clsx(
                                             "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
-                                            isRecording ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                                            isRecording 
+                                                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" 
+                                                : (!currentDeviceId 
+                                                    ? "bg-slate-300 shadow-none cursor-not-allowed" 
+                                                    : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20")
                                         )}
                                     >
                                         {isRecording ? <><Square size={14} fill="currentColor" /> Stop</> : <><Activity size={14} /> Resume</>}

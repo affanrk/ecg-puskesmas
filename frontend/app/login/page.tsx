@@ -160,9 +160,9 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side: Login Form */}
-            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-8 bg-slate-50 lg:bg-white relative">
+            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-8 lg:p-12 bg-slate-50 lg:bg-white relative custom-scrollbar">
                 <div className={clsx(
-                    "w-full max-w-[420px] m-auto bg-white lg:bg-transparent p-10 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform",
+                    "w-full max-w-[420px] mx-auto my-auto bg-white lg:bg-transparent p-10 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform",
                     // Removed 'isShaking' from container
                 )}>
                     

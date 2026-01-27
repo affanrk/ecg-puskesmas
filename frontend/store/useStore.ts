@@ -37,6 +37,8 @@ export interface AnalysisResult {
     device_id: string;
     subject_id: string;
     patient_name: string;
+    bpm?: number | string;
+    avg_bpm?: number | string;
     [key: string]: unknown;
 }
 
@@ -68,6 +70,17 @@ interface AppState {
     bpm: number | string;
     performanceTrackingEnabled: boolean;
     isSidebarPinned: boolean;
+    calendarSelection: {
+        year: number | null;
+        month: number | null;
+        day: number | null;
+        hour: number | null;
+        minute: number | null;
+    };
+    selectedResult: {
+        second: number | null;
+        data: AnalysisResult | null;
+    };
 
     // Objects / Arrays
     user: User | null;
@@ -93,6 +106,8 @@ interface AppState {
     updatePerformance: (l: number, j: number, p: number) => void;
     setPerformanceTrackingEnabled: (enabled: boolean) => void;
     setIsSidebarPinned: (pinned: boolean) => void;
+    setCalendarSelection: (selection: Partial<AppState['calendarSelection']>) => void;
+    setSelectedResult: (result: Partial<AppState['selectedResult']>) => void;
     setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; v1: boolean }>) => void;
     resetSession: () => void;
 }
@@ -112,6 +127,17 @@ export const useStore = create<AppState>((set, get) => ({
     bpm: '--',
     performanceTrackingEnabled: false,
     isSidebarPinned: true, // Default to pinned
+    calendarSelection: {
+        year: null,
+        month: null,
+        day: null,
+        hour: null,
+        minute: null
+    },
+    selectedResult: {
+        second: null,
+        data: null
+    },
 
     user: null,
     devices: [],
@@ -132,7 +158,7 @@ export const useStore = create<AppState>((set, get) => ({
     },
 
     // Actions
-    setDeviceId: (id) => set((state) => ({ 
+    setDeviceId: (id) => set((state) => ({
         currentDeviceId: id, 
         isRecording: false, 
         bpm: '--', 
@@ -250,6 +276,14 @@ export const useStore = create<AppState>((set, get) => ({
     setPerformanceTrackingEnabled: (enabled) => set({ performanceTrackingEnabled: enabled }),
     
     setIsSidebarPinned: (pinned) => set({ isSidebarPinned: pinned }),
+    
+    setCalendarSelection: (selection) => set((state) => ({
+        calendarSelection: { ...state.calendarSelection, ...selection }
+    })),
+
+    setSelectedResult: (result) => set((state) => ({
+        selectedResult: { ...state.selectedResult, ...result }
+    })),
     
     setVisibleLeads: (leads) => set((state) => ({ 
         visibleLeads: { ...state.visibleLeads, ...leads } 

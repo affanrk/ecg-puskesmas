@@ -161,6 +161,7 @@ const handleMessage = (msg: SocketMessage) => {
                 jitter_ms: msg.jitter_ms,
                 loss_pct: msg.packet_loss_pct
             });
+            // resetWatchdog();
             break;
         }
 
@@ -168,6 +169,7 @@ const handleMessage = (msg: SocketMessage) => {
             globalEventBus.emit(EVENTS.DEVICE.DISCONNECTED, {
                 device_id: msg.device_id
             });
+            // resetWatchdog();
             break;
         }
 

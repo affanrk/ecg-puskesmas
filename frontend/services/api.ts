@@ -101,6 +101,30 @@ export async function fetchRecentHistory(userId: number, limit: number = 10) {
     }
 }
 
+export async function fetchCalendar(filters: {
+    year?: number;
+    month?: number;
+    day?: number;
+    hour?: number;
+    minute?: number;
+    user_id?: number;
+}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+        if (val !== undefined && val !== null) {
+            params.append(key, String(val));
+        }
+    });
+
+    try {
+        const response = await axios.get(`${getApiUrl()}/history/calendar`, { params });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Calendar Error:", error);
+        throw error;
+    }
+}
+
 // --- Exports ---
 
 export const api = {
@@ -108,5 +132,6 @@ export const api = {
     downloadRecording,
     fetchUserProfile,
     fetchStats,
-    fetchRecentHistory
+    fetchRecentHistory,
+    fetchCalendar
 };

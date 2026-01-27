@@ -19,7 +19,8 @@ import {
     HeartPulse,
     Pin,
     PinOff,
-    ChevronsRight
+    ChevronsRight,
+    BrainCircuit
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -37,9 +38,10 @@ export default function Sidebar() {
 
     const navItems = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
-        { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isProfileComplete },
+        { name: 'Classifier', href: '/classifier', icon: BrainCircuit, allowed: isProfileComplete },
         { name: 'History', href: '/history', icon: History, allowed: isProfileComplete },
         { name: 'Performance', href: '/performance', icon: BarChart2, allowed: isProfileComplete },
+        { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isProfileComplete },
     ];
 
     // 3. Handlers
