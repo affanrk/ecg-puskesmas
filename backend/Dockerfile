@@ -18,4 +18,4 @@ COPY . /app
 ENV PYTHONPATH=/app
 
 # Run from /app so it finds the backend package
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${FLASK_PORT:-8080}"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
