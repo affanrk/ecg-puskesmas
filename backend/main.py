@@ -2,6 +2,7 @@
 Main application entry point - refactored
 Now uses new architecture with services, repositories, and clean separation.
 """
+
 import os
 import sys
 import asyncio
@@ -20,60 +21,48 @@ from core import (
     DeviceException,
     RecordingException,
     PatientException,
-    AnalysisException
+    AnalysisException,
 )
 from api.v1.router import api_router
 from api.v1.endpoints import websocket_router as ws_router
 from utils import logger
 
-if sys.platform == 'win32':
+if sys.platform == "win32":
     policy = asyncio.WindowsSelectorEventLoopPolicy()
     asyncio.set_event_loop_policy(policy)
-    # print(f"DEBUG: Event Loop Policy set to {type(policy).__name__}")
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-warnings.filterwarnings("ignore", category=UserWarning, module='sklearn')
-warnings.filterwarnings("ignore", category=UserWarning, module='keras')
-warnings.filterwarnings("ignore", category=FutureWarning, module='keras')
-warnings.filterwarnings("ignore", module='tensorflow')
-logging.getLogger('absl').setLevel(logging.ERROR)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
+warnings.filterwarnings("ignore", category=UserWarning, module="keras")
+warnings.filterwarnings("ignore", category=FutureWarning, module="keras")
+warnings.filterwarnings("ignore", module="tensorflow")
+logging.getLogger("absl").setLevel(logging.ERROR)
 
 try:
     from sklearn.exceptions import InconsistentVersionWarning
+
     warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 except ImportError:
     pass
-
-
-# ============================================================================
-# APPLICATION SETUP
-# ============================================================================
 
 app = FastAPI(
     title="ECG Live Platform",
     description="Real-time ECG monitoring and analysis system with ML classification",
     version="2.0.0",
-    lifespan=lifespan,  # Use new lifespan context manager
+    lifespan=lifespan,
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
-
-# ============================================================================
-# MIDDLEWARE
-# ============================================================================
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ============================================================================
-# EXCEPTION HANDLERS
-# ============================================================================
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
@@ -83,9 +72,9 @@ async def app_exception_handler(request: Request, exc: AppException):
     """
     logger.error(
         f"[Exception] {exc.__class__.__name__}: {exc.message}",
-        extra={"details": exc.details}
+        extra={"details": exc.details},
     )
-    
+
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -93,10 +82,11 @@ async def app_exception_handler(request: Request, exc: AppException):
                 "type": exc.__class__.__name__,
                 "message": exc.message,
                 "status_code": exc.status_code,
-                "details": exc.details
+                "details": exc.details,
             }
-        }
+        },
     )
+
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
@@ -107,7 +97,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     error_msg = str(exc)
     tb = traceback.format_exc()
     logger.error(f"[Unhandled Exception] {error_msg}\n{tb}")
-    
+
     return JSONResponse(
         status_code=500,
         content={
@@ -115,9 +105,9 @@ async def generic_exception_handler(request: Request, exc: Exception):
                 "type": "InternalServerError",
                 "message": "An unexpected error occurred",
                 "debug_message": error_msg,
-                "traceback": tb.split("\n")  # Split for better JSON readability
+                "traceback": tb.split("\n"),
             }
-        }
+        },
     )
 
 
@@ -145,21 +135,14 @@ async def analysis_exception_handler(request: Request, exc: AnalysisException):
     return await app_exception_handler(request, exc)
 
 
-# ============================================================================
-# ROUTES
-# ============================================================================
-
 app.include_router(api_router)
 app.include_router(ws_router)
 
-# Silence Chrome DevTools noise
+
 @app.get("/.well-known/appspecific/com.chrome.devtools.json")
 async def chrome_devtools_json():
     return {}
 
-# ============================================================================
-# APPLICATION ENTRY POINT
-# ============================================================================
 
 if __name__ == "__main__":
     logger.info(f"[Config] Environment: {os.getenv('ENVIRONMENT', 'development')}")
@@ -173,10 +156,10 @@ if __name__ == "__main__":
         port=settings.FLASK_PORT,
         log_level="info",
         loop="asyncio",
-        reload=True
+        reload=True,
     )
     server = uvicorn.Server(config)
-    
+
     try:
         server.run()
     except KeyboardInterrupt:

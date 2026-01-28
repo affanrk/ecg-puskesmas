@@ -14,5 +14,5 @@ __all__ = [
     "mqtt_service",
     "mqtt_data_handler",
     "recording_storage_service",
-    "plot_generator"
+    "plot_generator",
 ]

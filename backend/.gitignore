@@ -43,3 +43,6 @@ coverage.xml
 
 # Local logs
 *.log
+scripts/
+.github/
+.ruff_cache/

@@ -7,5 +7,5 @@ __all__ = [
     "MQTTClientService",
     "mqtt_data_handler",
     "mqtt_protocol",
-    "ECGSample"
+    "ECGSample",
 ]

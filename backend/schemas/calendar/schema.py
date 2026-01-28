@@ -1,12 +1,14 @@
 from pydantic import BaseModel
 from typing import List
 
+
 class CalendarNode(BaseModel):
     label: str
     value: int
-    level: str  # year, month, day, hour, minute, second
-    status: str # normal, abnormal, potential, high_potential
-    count: int = 0 # Number of recordings/events in this node
+    level: str
+    status: str
+    count: int = 0
+
 
 class CalendarResponse(BaseModel):
     level: str

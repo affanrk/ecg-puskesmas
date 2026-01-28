@@ -1,6 +1,7 @@
 from .base import Base, AuditMixin
 from .user import TbMUser
-from .session import TbREcgSession, TbREcgRaw
+from .session import TbREcgSession
+from .raw_data import TbREcgRaw
 from .performance import TbRPerformanceLog
 
 __all__ = [
@@ -9,5 +10,5 @@ __all__ = [
     "TbMUser",
     "TbREcgSession",
     "TbREcgRaw",
-    "TbRPerformanceLog"
+    "TbRPerformanceLog",
 ]

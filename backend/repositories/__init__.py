@@ -9,5 +9,5 @@ __all__ = [
     "UserRepository",
     "PerformanceRepository",
     "CalendarRepository",
-    "RawDataRepository"
+    "RawDataRepository",
 ]

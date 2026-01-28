@@ -2,6 +2,7 @@
 Helper utilities for the backend application.
 Includes path resolution, formatting, and mathematical helpers.
 """
+
 import re
 from pathlib import Path
 from datetime import datetime, date
@@ -17,10 +18,10 @@ def get_project_root() -> Path:
 def resolve_path(relative_path: str) -> str:
     """
     Convert a relative project path into a safe absolute path.
-    
+
     Args:
         relative_path: Path relative to project root
-        
+
     Returns:
         Absolute path string
     """
@@ -31,10 +32,10 @@ def resolve_path(relative_path: str) -> str:
 def format_duration(seconds: float) -> str:
     """
     Format a duration in seconds into MM:SS string.
-    
+
     Args:
         seconds: Duration in seconds
-        
+
     Returns:
         Formatted string (e.g., "02:30")
     """
@@ -45,10 +46,10 @@ def format_duration(seconds: float) -> str:
 def calculate_age(dob: date) -> int:
     """
     Calculate current age based on date of birth.
-    
+
     Args:
         dob: Date of birth
-        
+
     Returns:
         Age in years
     """
@@ -59,11 +60,11 @@ def calculate_age(dob: date) -> int:
 def sanitize_filename(filename: str) -> str:
     """
     Remove potentially dangerous characters from a filename.
-    
+
     Args:
         filename: Original filename
-        
+
     Returns:
         Sanitized filename
     """
-    return re.sub(r'(?u)[^-\w.]', '_', filename)
+    return re.sub(r"(?u)[^-\w.]", "_", filename)

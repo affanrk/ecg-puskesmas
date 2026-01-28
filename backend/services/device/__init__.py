@@ -6,5 +6,5 @@ __all__ = [
     "device_state_manager",
     "DeviceStateManager",
     "device_watchdog_service",
-    "DeviceState"
+    "DeviceState",
 ]

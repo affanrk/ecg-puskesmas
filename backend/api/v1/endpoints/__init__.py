@@ -9,5 +9,5 @@ __all__ = [
     "export_router",
     "health_router",
     "history_router",
-    "websocket_router"
+    "websocket_router",
 ]

@@ -1,6 +1,6 @@
 from .definitions import (
-    SAMPLING_RATE, 
-    BUFFER_SIZE, 
+    SAMPLING_RATE,
+    BUFFER_SIZE,
     LIVE_BUFFER_SIZE,
     MIN_SAMPLES_FOR_ANALYSIS,
     BUTTER_ORDER,
@@ -46,12 +46,12 @@ from .definitions import (
     NUM_FEATURES,
     LOG_FORMAT,
     LOG_DATE_FORMAT,
-    LOG_LEVEL
+    LOG_LEVEL,
 )
 
 __all__ = [
-    "SAMPLING_RATE", 
-    "BUFFER_SIZE", 
+    "SAMPLING_RATE",
+    "BUFFER_SIZE",
     "LIVE_BUFFER_SIZE",
     "MIN_SAMPLES_FOR_ANALYSIS",
     "BUTTER_ORDER",
@@ -97,5 +97,5 @@ __all__ = [
     "NUM_FEATURES",
     "LOG_FORMAT",
     "LOG_DATE_FORMAT",
-    "LOG_LEVEL"
+    "LOG_LEVEL",
 ]

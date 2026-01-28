@@ -8,5 +8,5 @@ __all__ = [
     "ml_engine_service",
     "MLEngineService",
     "signal_processor",
-    "SignalProcessor"
+    "SignalProcessor",
 ]

@@ -2,6 +2,7 @@
 Session/Recording response schemas - refactored from ecg.py
 Better organized with clearer naming.
 """
+
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
@@ -12,24 +13,27 @@ class SessionResponse(BaseModel):
     Response schema for recording session data.
     Used in history endpoints and session details.
     """
+
     recording_id: str = Field(..., description="Unique recording identifier")
     device_id: str = Field(..., description="Device that performed the recording")
     subject_id: str = Field(..., description="Patient identifier (NIK)")
     patient_name: str = Field(..., description="Patient full name")
     timestamp: Optional[datetime] = Field(None, description="Recording timestamp")
     changed_dt: Optional[datetime] = Field(None, description="Last update timestamp")
-    
-    # Analysis Results
+
     classification: str = Field("Pending", description="AI classification result")
     confidence: Optional[float] = Field(None, description="Confidence score (0-1)")
-    bpm: Optional[float] = Field(None, description="Average heart rate (BPM)", alias="avg_bpm")
-    
-    # ECG Feature Details
+    bpm: Optional[float] = Field(
+        None, description="Average heart rate (BPM)", alias="avg_bpm"
+    )
+
     avg_rr_ms: Optional[float] = Field(None, description="Average RR interval (ms)")
     avg_pr_ms: Optional[float] = Field(None, description="Average PR interval (ms)")
     avg_qs_ms: Optional[float] = Field(None, description="Average QS interval (ms)")
-    avg_qtc_ms: Optional[float] = Field(None, description="Average corrected QT interval (ms)")
-    
+    avg_qtc_ms: Optional[float] = Field(
+        None, description="Average corrected QT interval (ms)"
+    )
+
     model_config = ConfigDict(
         from_attributes=True,
         populate_by_name=True,
@@ -46,20 +50,21 @@ class SessionResponse(BaseModel):
                 "avg_rr_ms": 828.0,
                 "avg_pr_ms": 160.0,
                 "avg_qs_ms": 80.0,
-                "avg_qtc_ms": 420.0
+                "avg_qtc_ms": 420.0,
             }
-        }
+        },
     )
 
 
 class DeviceStatusResponse(BaseModel):
     """Response schema for device status"""
+
     device_id: str = Field(..., description="Device identifier")
     is_connected: bool = Field(..., description="Device connection status")
     is_locked: bool = Field(..., description="Device is locked by a user")
     is_recording: bool = Field(False, description="Device is currently recording")
     status_message: str = Field("Idle", description="Current status message")
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -67,14 +72,16 @@ class DeviceStatusResponse(BaseModel):
                 "is_connected": True,
                 "is_locked": True,
                 "is_recording": True,
-                "status_message": "Recording (Seg 2)..."
+                "status_message": "Recording (Seg 2)...",
             }
         }
     )
 
+
 class ClassificationCount(BaseModel):
     classification: str
     count: int
+
 
 class ClassificationStatsResponse(BaseModel):
     total_sessions: int
