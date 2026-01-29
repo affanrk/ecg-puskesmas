@@ -5,12 +5,16 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { useStore } from '@/store/useStore';
 import { connectWebSocket } from '@/services/socket';
+import { useDeviceManager } from '@/hooks/useDeviceManager';
 import clsx from 'clsx';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
     // 1. Hooks & State
     const { isRecording, updateTimer, isSidebarPinned } = useStore();
     const isMounted = useRef(false);
+
+    // Initialize global device listeners (Disconnection/Timeout handling)
+    useDeviceManager();
 
     // 2. Effects
     // Initialize WebSocket

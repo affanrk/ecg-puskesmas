@@ -12,6 +12,118 @@ This document maps the architectural flows using standard flowchart notation org
 
 ---
 
+## 0. Master System Flow (Dual-Stream Convergence & Handling)
+*Comprehensive view: Normal Flow (User/Hardware) + Abnormal Conditions (Watchdog/Errors/Network).*
+*(Source file: `System Flow - ECG Platform.drawio.xml`)*
+
+```mermaid
+flowchart LR
+    %% --- SWIMLANE 1: USER INTERACTIONS ---
+    subgraph User_Lane [User Interaction]
+        direction TB
+        Start_User([User Opens App])
+        SelectDev[Select Device\n(Dropdown)]
+        ClickRec[Click 'Start Recording']
+        Watch[Watch Live Graph]
+        SeeResult[View Diagnosis]
+        HandleErr[See Error/Offline Alert]
+    end
+
+    %% --- SWIMLANE 2: FRONTEND SYSTEM ---
+    subgraph Frontend_Lane [Frontend UI]
+        direction TB
+        WS_Conn[Global WS Connection\nFile: AppLayout.tsx]
+        WS_Sub[WS Send: 'subscribe_to_device'\nEndpoint: /api/v1/ws]
+        WS_Start[WS Send: 'start_recording'\nPayload: {type: 'start_recording'}]
+        Render[Render Live Batch\nComp: ECGChart.tsx]
+        ShowAlert[Show Result Popup\nComp: AIAnalysisCard.tsx]
+        ShowPerf[Show Network/Jitter\nComp: ConnectionStatus.tsx]
+        ResetUI[Reset UI (Global)\nStore: useStore.ts]
+    end
+
+    %% --- SWIMLANE 3: BACKEND CONTROL ---
+    subgraph Backend_Control [Backend API & State]
+        direction TB
+        Hdl_Sub[Handle Subscription]
+        Reg_Conn[Register Connection]
+        Rec_Cmd[Handle Start Command]
+        Set_State[Set State: Recording=True]
+        
+        WS_Live[WS: 'live_batch']
+        WS_Res[WS: 'live_result']
+        WS_Perf[WS: 'performance_update'\n(Latency, Jitter, Loss)]
+        WS_Disc[WS: 'device_disconnected']
+        WS_Err[WS: 'error']
+    end
+
+    %% --- SWIMLANE 4: HARDWARE SOURCE ---
+    subgraph Hardware_Lane [Hardware Source]
+        Start_HW([Device Hardware])
+        Stop_HW([Device Stop/Crash])
+    end
+
+    %% --- SWIMLANE 5: BACKEND DATA PROCESSING ---
+    subgraph Backend_Data [Backend Data Processing]
+        direction TB
+        Ingest[MQTT Ingest\nTopic: raw/ecg/+]
+        Watchdog[Watchdog Timer\nCheck: LastSeen > 2s]
+        Calc_Perf[Calc Performance\n(Timestamp Diff)]
+        
+        Dec_Rec{Is Recording?}
+        Buffer[Buffer Data]
+        Flush[Flush to DB]
+        Trigger[Trigger AI]
+        AI_Process[AI Inference]
+        
+        Err_Hdl{Any Error?}
+    end
+
+    %% --- SWIMLANE 6: DATABASE ---
+    subgraph DB_Lane [Database]
+        direction TB
+        DB_Sess[(INSERT Session)]
+        DB_Raw[(INSERT Raw)]
+        DB_Read[(SELECT Raw)]
+        DB_Save[(UPDATE Result)]
+    end
+
+    %% ==========================================
+    %% NORMAL FLOW
+    %% ==========================================
+    Start_User --> SelectDev --> WS_Sub --> Hdl_Sub --> Reg_Conn
+    Start_HW --> Ingest
+
+    %% Monitoring & Convergence
+    Ingest --> Dec_Rec
+    Dec_Rec -- "False" --> WS_Live
+    Reg_Conn -.-> WS_Live
+    WS_Live --> Render --> Watch
+
+    %% Performance Monitoring (Side Flow)
+    Ingest --> Calc_Perf --> WS_Perf --> ShowPerf --> Watch
+
+    %% Recording Flow
+    Watch --> ClickRec --> WS_Start --> Rec_Cmd --> DB_Sess --> Set_State
+    Set_State -.-> Dec_Rec
+    Dec_Rec -- "True" --> Buffer --> Flush --> DB_Raw --> Trigger
+    Trigger --> DB_Read --> AI_Process --> DB_Save --> WS_Res --> ShowAlert --> SeeResult
+
+    %% ==========================================
+    %% ABNORMAL / UNIDEAL FLOWS
+    %% ==========================================
+
+    %% 1. DEVICE DISCONNECTION (Watchdog)
+    Start_HW -.-> Stop_HW
+    Ingest -.->|No Data| Watchdog
+    Watchdog -- "Timeout" --> WS_Disc
+    WS_Disc --> ResetUI --> HandleErr
+
+    %% 2. ERROR HANDLING (System-wide)
+    Rec_Cmd -.->|DB Fail| Err_Hdl
+    Flush -.->|DB Fail| Err_Hdl
+    AI_Process -.->|Model Fail| Err_Hdl
+    Err_Hdl --> WS_Err --> ResetUI
+```
 ## 1. Live Data Ingestion Pipeline
 *Flow: From hardware MQTT publication to Frontend Visualization.*
 
