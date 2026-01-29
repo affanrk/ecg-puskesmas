@@ -23,39 +23,57 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 ### Subscribe to Device
 Locks a device to your connection and starts receiving its live stream.
-```json
-{
-  "type": "subscribe_to_device",
-  "device_id": "string"
-}
-```
+*   **Request:**
+    ```json
+    {
+      "type": "subscribe_to_device",
+      "device_id": "string"
+    }
+    ```
+*   **Expected Server Response (Success):**
+    1.  `device_status_update` (status: "Connected")
+    2.  `state_update` (Current recording state)
+*   **Expected Server Response (Fail):**
+    *   `error` (message: "Device is busy or locked")
 
 ### Unsubscribe
 Unlocks the current device and stops the live stream.
-```json
-{
-  "type": "unsubscribe"
-}
-```
+*   **Request:**
+    ```json
+    {
+      "type": "unsubscribe"
+    }
+    ```
+*   **Expected Server Response:**
+    1.  `device_list_update` (showing device is now available)
 
 ### Start Recording
 Starts a new recording session. Requires the device to be subscribed first.
-```json
-{
-  "type": "start_recording",
-  "device_id": "string",
-  "user_id": "number"
-}
-```
+*   **Request:**
+    ```json
+    {
+      "type": "start_recording",
+      "device_id": "string",
+      "user_id": "number"
+    }
+    ```
+*   **Expected Server Response:**
+    1.  `state_update` (is_recording: true)
+*   **Expected Server Response (Fail):**
+    *   `error` (message: "Failed to create recording session")
 
 ### Stop Recording
 Completes the current recording session and triggers AI analysis.
-```json
-{
-  "type": "stop_recording",
-  "device_id": "string"
-}
-```
+*   **Request:**
+    ```json
+    {
+      "type": "stop_recording",
+      "device_id": "string"
+    }
+    ```
+*   **Expected Server Response:**
+    1.  `state_update` (is_recording: false)
+    2.  (Eventually) `live_result` after AI analysis is complete.
 
 ### Pong (Heartbeat)
 Required response to server-initiated pings.
