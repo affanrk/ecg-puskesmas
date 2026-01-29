@@ -48,12 +48,22 @@ export function useDeviceManager() {
             }
         };
 
+        // Handle Reconnection: Re-subscribe if we had a device selected
+        const handleReconnection = () => {
+            if (currentDeviceId) {
+                console.log("[DeviceManager] Socket reconnected, re-subscribing to:", currentDeviceId);
+                sendJson({ type: "subscribe_to_device", device_id: currentDeviceId });
+            }
+        };
+
         globalEventBus.on(EVENTS.DEVICE.LIST_UPDATED, handleDeviceList);
         globalEventBus.on(EVENTS.DEVICE.DISCONNECTED, handleDeviceDisconnect);
+        globalEventBus.on(EVENTS.WS.CONNECTED, handleReconnection);
 
         return () => {
             globalEventBus.off(EVENTS.DEVICE.LIST_UPDATED, handleDeviceList);
             globalEventBus.off(EVENTS.DEVICE.DISCONNECTED, handleDeviceDisconnect);
+            globalEventBus.off(EVENTS.WS.CONNECTED, handleReconnection);
         };
     }, [currentDeviceId, isRecording, setDeviceId, setRecording, toast, setBpm]);
 
