@@ -13,8 +13,9 @@ interface GridProps {
 const getStatusIcon = (status: string) => {
     switch (status) {
         case 'high_potential': return <HeartPulse className="animate-pulse" />;
-        case 'potential': return <Activity />;
-        case 'abnormal': return <AlertTriangle />;
+        case 'potential': return <AlertTriangle />;
+        case 'abnormal': return <Activity />;
+        case 'normal': return <CheckCircle />;
         default: return <CheckCircle className="opacity-50" />;
     }
 };
@@ -24,14 +25,14 @@ const getColorClass = (status: string, count: number) => {
 
     switch (status) {
         case 'high_potential':
-            return "bg-rose-500 border-rose-600 text-white shadow-lg shadow-rose-500/30 hover:bg-rose-600 hover:scale-105";
+            return "bg-red-500 border-red-600 text-white shadow-lg shadow-red-500/30 hover:bg-red-600 hover:scale-105";
         case 'potential':
-            return "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 hover:border-rose-300 shadow-sm hover:shadow-md";
+            return "bg-orange-500 border-orange-600 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 hover:scale-105";
         case 'abnormal':
-            return "bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100 hover:border-orange-300 shadow-sm hover:shadow-md";
+            return "bg-slate-500 border-slate-600 text-white shadow-lg shadow-slate-500/30 hover:bg-slate-600 hover:scale-105";
         case 'normal':
         default:
-            return "bg-white border-slate-200 text-slate-600 hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50 shadow-sm hover:shadow-md";
+            return "bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 hover:scale-105";
     }
 };
 
@@ -53,7 +54,7 @@ export default function BaseGrid({ nodes, onNodeClick, centered = false }: GridP
                         getColorClass(node.status, node.count)
                     )}
                 >
-                    <span className={clsx("text-sm xs:text-base sm:text-lg lg:text-xl font-black tracking-tight truncate w-full px-1 text-center", node.status === 'high_potential' ? "text-white" : "text-slate-700 group-hover:text-current")}>
+                    <span className={clsx("text-sm xs:text-base sm:text-lg lg:text-xl font-black tracking-tight truncate w-full px-1 text-center", node.count > 0 ? "text-white" : "text-slate-700 group-hover:text-current")}>
                         {node.label}
                     </span>
                     
@@ -64,9 +65,7 @@ export default function BaseGrid({ nodes, onNodeClick, centered = false }: GridP
                     {node.count > 0 && (
                         <span className={clsx(
                             "text-[7px] xs:text-[8px] lg:text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full",
-                            node.status === 'high_potential' 
-                                ? "bg-white/20 text-white" 
-                                : "bg-slate-100 text-slate-400 group-hover:bg-white/50 group-hover:text-current"
+                            "bg-white/20 text-white"
                         )}>
                             {node.count}
                         </span>

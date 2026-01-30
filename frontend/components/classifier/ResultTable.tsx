@@ -87,7 +87,7 @@ export default function ResultTable() {
 
     // 6. Render
     return (
-        <div className="flex flex-col h-full w-full gap-5 overflow-hidden pb-4">
+        <div className="flex flex-col h-full w-full gap-3 sm:gap-4 overflow-hidden pb-1 sm:pb-2">
             {/* Main Content Card */}
             <div className="bg-white rounded-md sm:rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col flex-1 min-h-0 overflow-hidden relative group">
                 

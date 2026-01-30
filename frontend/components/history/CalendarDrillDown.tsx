@@ -267,29 +267,32 @@ export default function CalendarDrillDown() {
                                     {(() => {
                                         const cls = resultData.classification?.toLowerCase() || '';
                                         const isHighRisk = cls.includes('sangat berpotensi') || cls.includes('high risk');
-                                        const isPotential = cls.includes('berpotensi') || cls.includes('potential') || cls.includes('abnormal');
+                                        const isPotential = cls.includes('berpotensi') || cls.includes('potential');
+                                        const isAbnormal = cls.includes('abnormal');
                                         const isNormal = cls.includes('normal');
 
                                         return (
                                             <div className={clsx(
-                                                "p-4 sm:p-5 rounded-xl border-2 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 transition-all duration-500",
-                                                isHighRisk && "bg-rose-50 border-rose-200 text-rose-700 shadow-lg shadow-rose-500/10",
-                                                isPotential && !isHighRisk && "bg-amber-50 border-amber-200 text-amber-700 shadow-lg shadow-amber-500/10",
-                                                isNormal && "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-lg shadow-emerald-500/10",
-                                                !isHighRisk && !isPotential && !isNormal && "bg-slate-50 border-slate-200 text-slate-700"
+                                                "p-4 sm:p-5 rounded-xl border-2 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 transition-all duration-500 text-white",
+                                                isHighRisk && "bg-red-500 border-red-600 shadow-lg shadow-red-500/20",
+                                                isPotential && !isHighRisk && "bg-orange-500 border-orange-600 shadow-lg shadow-orange-500/20",
+                                                isAbnormal && !isHighRisk && !isPotential && "bg-slate-500 border-slate-600 shadow-lg shadow-slate-500/20",
+                                                isNormal && "bg-emerald-500 border-emerald-600 shadow-lg shadow-emerald-500/20",
+                                                !isHighRisk && !isPotential && !isAbnormal && !isNormal && "bg-slate-50 border-slate-200 text-slate-700"
                                             )}>
                                                 {isHighRisk ? <HeartPulse size={40} strokeWidth={2.5} className="animate-pulse shrink-0" /> :
                                                  isPotential ? <AlertTriangle size={40} strokeWidth={2.5} className="shrink-0" /> :
+                                                 isAbnormal ? <Activity size={40} strokeWidth={2.5} className="shrink-0" /> :
                                                  <CheckCircle size={40} strokeWidth={2.5} className="shrink-0" />
                                                 }
                                                 <div className="flex-1 w-full">
                                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-2">
                                                         <h4 className="text-lg sm:text-xl lg:text-2xl font-black tracking-tight leading-tight">{resultData.classification || "Unknown"}</h4>
-                                                        <span className="text-[10px] font-black uppercase bg-white/50 px-2 py-0.5 rounded-full border border-current/20 w-fit">
+                                                        <span className="text-[10px] font-black uppercase bg-white/20 px-2 py-0.5 rounded-full border border-white/20 w-fit">
                                                             {((resultData.confidence || 0) * 100).toFixed(0)}% Match
                                                         </span>
                                                     </div>
-                                                    <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Automated Clinical Classification</p>
+                                                    <p className="text-xs font-bold opacity-80 uppercase tracking-wider">Automated Clinical Classification</p>
                                                 </div>
                                             </div>
                                         );

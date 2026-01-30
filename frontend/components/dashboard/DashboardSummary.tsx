@@ -84,7 +84,7 @@ export default function DashboardSummary() {
 
     // 6. Render
     return (
-        <div className="flex flex-col gap-5 h-full min-h-0">
+        <div className="flex flex-col gap-3 sm:gap-4 h-full min-h-0">
             
             {/* --- TOP ROW: 3 CARDS --- */}
             <SummaryCards 
@@ -93,7 +93,7 @@ export default function DashboardSummary() {
             />
 
             {/* --- BOTTOM ROW --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-1 min-h-0 pb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 flex-1 min-h-0 pb-2 sm:pb-4">
                 
                 {/* PANEL 4: RECENT HISTORY */}
                 <RecentAnalysisTable 

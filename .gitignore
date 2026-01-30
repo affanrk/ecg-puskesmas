@@ -28,3 +28,4 @@ mosquitto/log/
 
 # Local logs
 *.log
+*.csv
