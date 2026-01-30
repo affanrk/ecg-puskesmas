@@ -45,7 +45,7 @@ export default function ProfilePage() {
 
     // 3. Render
     return (
-        <div className="w-full min-h-full space-y-6 pb-20 relative">
+        <div className="w-full min-h-full space-y-4 relative">
             
             {/* Subtle Medical Background Pattern for the Page Area */}
             <div className="absolute inset-0 medical-grid-pattern opacity-20 pointer-events-none -z-10"></div>
@@ -124,6 +124,9 @@ export default function ProfilePage() {
                     </div>
                 )}
             </div>
+
+            {/* Bottom Spacer */}
+            <div className="h-6 shrink-0" />
         </div>
     );
 }

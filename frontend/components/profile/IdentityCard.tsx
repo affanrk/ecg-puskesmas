@@ -34,32 +34,32 @@ export default function IdentityCard({
     loading
 }: IdentityCardProps) {
     return (
-        <div className="bg-white p-8 lg:p-10 rounded-[2rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
+        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
             
             {/* Background Decoration */}
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                 <Fingerprint size={120} strokeWidth={1} />
             </div>
 
-            <div className="flex items-center justify-between border-b border-slate-50 pb-6 mb-8 relative z-10">
+            <div className="flex items-center justify-between border-b border-slate-50 pb-4 mb-6 relative z-10">
                 <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm border border-blue-100/50">
-                        <User size={24} strokeWidth={2} />
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shadow-sm border border-blue-100/50">
+                        <User size={20} strokeWidth={2} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-black text-slate-800 tracking-tight">Patient Identity</h2>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-0.5">Demographics & Verification</p>
+                        <h2 className="text-lg font-black text-slate-800 tracking-tight">Patient Identity</h2>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">Demographics & Verification</p>
                     </div>
                 </div>
                 
                 {isLocked ? (
                     <div className="flex flex-col items-end gap-1">
-                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-emerald-100 shadow-sm uppercase tracking-wider">
+                        <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-md flex items-center gap-1.5 border border-emerald-100 shadow-sm uppercase tracking-wider">
                             <BadgeCheck size={14} strokeWidth={3} /> Verified
                         </span>
                     </div>
                 ) : (
-                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 flex items-center gap-1.5 shadow-sm uppercase tracking-wider animate-pulse">
+                    <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-100 flex items-center gap-1.5 shadow-sm uppercase tracking-wider animate-pulse">
                         <Info size={14} strokeWidth={3} /> Pending Activation
                     </span>
                 )}
@@ -123,7 +123,7 @@ export default function IdentityCard({
                     <button 
                         onClick={onSaveProfileClick} 
                         disabled={loading} 
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-[0.15em] px-10 py-4 rounded-2xl transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center gap-3 group/btn overflow-hidden relative"
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-[0.15em] px-10 py-4 rounded-md transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center gap-3 group/btn overflow-hidden relative"
                     >
                         <Save size={18} strokeWidth={2.5} className="relative z-10" />
                         <span className="relative z-10">Activate Profile</span>

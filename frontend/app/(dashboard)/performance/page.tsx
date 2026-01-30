@@ -17,11 +17,11 @@ export default function PerformancePage() {
     }, [setPerformanceTrackingEnabled]);
 
     // Common Card Styles
-    const cardClass = "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
+    const cardClass = "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
 
     // 3. Render
     return (
-        <div className="flex flex-col gap-6 w-full h-full min-h-0 overflow-hidden">
+        <div className="flex flex-col gap-6 w-full min-h-full">
             {/* Header / Title */}
             <div className="flex items-center gap-4 shrink-0">
                 <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
@@ -37,7 +37,7 @@ export default function PerformancePage() {
             </div>
 
             {/* Real-time Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-28">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-40">
                 {/* Latency Card */}
                 <div className={cardClass}>
                     <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
@@ -60,7 +60,7 @@ export default function PerformancePage() {
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ms</span>
                             </div>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50 shadow-sm">
+                        <div className="w-11 h-11 rounded-md bg-teal-50 flex items-center justify-center text-teal-600 border border-teal-100/50 shadow-sm">
                             <Wifi size={22} strokeWidth={2.5} />
                         </div>
                     </div>
@@ -85,7 +85,7 @@ export default function PerformancePage() {
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">ms</span>
                             </div>
                         </div>
-                        <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm">
+                        <div className="w-11 h-11 rounded-md bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50 shadow-sm">
                             <Activity size={22} strokeWidth={2.5} />
                         </div>
                     </div>
@@ -114,7 +114,7 @@ export default function PerformancePage() {
                             </div>
                         </div>
                         <div className={clsx(
-                            "w-11 h-11 rounded-2xl flex items-center justify-center border shadow-sm transition-colors",
+                            "w-11 h-11 rounded-md flex items-center justify-center border shadow-sm transition-colors",
                             performance.loss > 0 ? "bg-rose-100 text-rose-600 border-rose-200" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                         )}>
                             <AlertTriangle size={22} strokeWidth={2.5} />
@@ -124,12 +124,12 @@ export default function PerformancePage() {
             </div>
 
             {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[320px] shrink-0">
                 {/* Latency Chart */}
-                <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
+                <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
                     <div className="flex justify-between items-center mb-4 relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-teal-50 rounded-lg text-teal-600">
+                            <div className="p-2 bg-teal-50 rounded-md text-teal-600">
                                 <Server size={18} strokeWidth={2.5} />
                             </div>
                             <div>
@@ -143,7 +143,7 @@ export default function PerformancePage() {
                                 </div>
                             </div>
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">50 PTS</span>
+                        <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100">50 PTS</span>
                     </div>
                     <div className="flex-1 w-full min-h-0 relative z-10">
                         <PerformanceChart 
@@ -156,10 +156,10 @@ export default function PerformancePage() {
                 </div>
 
                 {/* Jitter Chart */}
-                <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
+                <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
                     <div className="flex justify-between items-center mb-4 relative z-10">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                            <div className="p-2 bg-blue-50 rounded-md text-blue-600">
                                 <Zap size={18} strokeWidth={2.5} />
                             </div>
                             <div>
@@ -173,7 +173,7 @@ export default function PerformancePage() {
                                 </div>
                             </div>
                         </div>
-                        <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">50 PTS</span>
+                        <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100">50 PTS</span>
                     </div>
                     <div className="flex-1 w-full min-h-0 relative z-10">
                         <PerformanceChart 
@@ -185,6 +185,9 @@ export default function PerformancePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Bottom Spacer */}
+            <div className="h-6 shrink-0" />
         </div>
     );
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Chart } from 'chart.js';
 import '@/config/chartSetup';
+import { usePerformanceChart } from '@/hooks/usePerformanceChart';
 
 interface PerformanceChartProps {
     data: number[];
@@ -15,7 +15,14 @@ interface PerformanceChartProps {
 export default function PerformanceChart({ data, color, label, maxPoints = 50, suggestedMax = 100 }: PerformanceChartProps) {
     // 1. Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const chartRef = useRef<Chart | null>(null);
+    
+    const { initChart, destroyChart } = usePerformanceChart({
+        data,
+        color,
+        label,
+        maxPoints,
+        suggestedMax
+    });
 
     // 2. Effects
     
@@ -26,68 +33,13 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
-        // Create Gradient
-        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, color + '40'); // 25% opacity
-        gradient.addColorStop(1, color + '00'); // 0% opacity
-
-        chartRef.current = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array(maxPoints).fill(''),
-                datasets: [{
-                    label,
-                    data: [], // Initialize empty, let second effect fill it
-                    borderColor: color,
-                    backgroundColor: gradient,
-                    fill: true,
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    tension: 0.35 // Slightly sharper
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: {
-                    x: { display: false },
-                    y: {
-                        beginAtZero: true,
-                        suggestedMax: suggestedMax,
-                        grid: { 
-                            color: '#f1f5f9', // slate-100
-                            tickLength: 0
-                        },
-                        border: { display: false },
-                        ticks: { 
-                            color: '#94a3b8', // slate-400
-                            font: { size: 9, family: 'var(--font-inter)', weight: 600 },
-                            padding: 6,
-                            maxTicksLimit: 5
-                        }
-                    }
-                }
-            }
-        });
+        initChart(ctx);
 
         return () => {
-            if (chartRef.current) {
-                chartRef.current.destroy();
-                chartRef.current = null;
-            }
+            destroyChart();
         };
-    }, [color, label, maxPoints, suggestedMax]);
-
-    // Update Data
-    useEffect(() => {
-        if (chartRef.current) {
-            chartRef.current.data.datasets[0].data = [...data];
-            chartRef.current.update('none');
-        }
-    }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [color, label, maxPoints, suggestedMax]); // Re-init if config changes
 
     // 3. Render
     return (

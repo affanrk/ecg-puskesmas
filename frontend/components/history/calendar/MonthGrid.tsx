@@ -9,5 +9,5 @@ interface MonthGridProps {
 }
 
 export default function MonthGrid({ nodes, onNodeClick }: MonthGridProps) {
-    return <BaseGrid nodes={nodes} onNodeClick={onNodeClick} />;
+    return <BaseGrid nodes={nodes} onNodeClick={onNodeClick} centered={true} />;
 }

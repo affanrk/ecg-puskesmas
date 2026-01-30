@@ -19,10 +19,10 @@ export default function DashboardPage() {
             
             {/* --- LOCKED OVERLAY (Visible only when restricted) --- */}
             {isRestricted && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center p-6">
+                <div className="absolute inset-0 z-30 flex items-center justify-center p-6">
                     
                     {/* Medical Card */}
-                    <div className="w-full max-w-2xl bg-white rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-500 group">
+                    <div className="w-full max-w-2xl bg-white rounded-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-500 group">
                         
                         {/* Decorative Background Elements */}
                         <div className="absolute -top-24 -right-24 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-60"></div>
@@ -33,10 +33,10 @@ export default function DashboardPage() {
                                 
                                 {/* Icon Box */}
                                 <div className="relative shrink-0">
-                                    <div className="w-20 h-20 bg-slate-50 rounded-[1.5rem] flex items-center justify-center border border-slate-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
+                                    <div className="w-20 h-20 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 shadow-inner group-hover:scale-105 transition-transform duration-500">
                                         <Lock size={32} className="text-slate-400" />
                                     </div>
-                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
+                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-100 rounded-md flex items-center justify-center border-2 border-white shadow-sm animate-bounce">
                                         <ShieldAlert size={14} className="text-amber-600" />
                                     </div>
                                 </div>
@@ -59,7 +59,7 @@ export default function DashboardPage() {
                                     <div className="pt-4 flex flex-col md:flex-row items-center gap-4">
                                         <Link 
                                             href="/profile"
-                                            className="relative overflow-hidden w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-bold text-sm transition-all shadow-xl shadow-slate-200 active:scale-[0.98] flex items-center justify-center gap-3 group/btn"
+                                            className="relative overflow-hidden w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-md font-bold text-sm transition-all shadow-xl shadow-slate-200 active:scale-[0.98] flex items-center justify-center gap-3 group/btn"
                                         >
                                             <span className="relative z-10 flex items-center gap-2">
                                                 Complete Profile
@@ -69,7 +69,7 @@ export default function DashboardPage() {
                                             <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                                         </Link>
 
-                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 px-4 py-2 bg-slate-50 rounded-xl cursor-help hover:bg-slate-100 transition-colors" title="Your data is encrypted end-to-end">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 px-4 py-2 bg-slate-50 rounded-md cursor-help hover:bg-slate-100 transition-colors" title="Your data is encrypted end-to-end">
                                             <FileCheck size={14} className="text-teal-500" />
                                             Identity Verification Pending
                                         </div>

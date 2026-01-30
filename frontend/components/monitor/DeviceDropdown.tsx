@@ -73,7 +73,7 @@ export default function DeviceDropdown() {
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className={clsx(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all duration-200 shadow-sm active:scale-95 min-w-[200px] justify-between",
+                    "flex items-center gap-3 px-4 py-2.5 rounded-md border transition-all duration-200 shadow-sm active:scale-95 min-w-[200px] justify-between",
                     currentDeviceId 
                         ? "bg-emerald-50 border-emerald-200 text-emerald-800 hover:border-emerald-300" 
                         : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
@@ -102,14 +102,14 @@ export default function DeviceDropdown() {
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-top-2 overflow-hidden ring-1 ring-black/5">
+                <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-top-2 overflow-hidden ring-1 ring-black/5">
                     
                     {/* Active Connection Section */}
                     {currentDeviceId && (
                         <div className="px-4 py-4 border-b border-slate-50 bg-emerald-50/30">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+                                    <div className="w-10 h-10 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
                                         <Wifi size={20} />
                                     </div>
                                     <div>
@@ -124,7 +124,7 @@ export default function DeviceDropdown() {
                             
                             <button 
                                 onClick={initiateDisconnect}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-rose-100 text-rose-600 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-rose-100 text-rose-600 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95"
                             >
                                 <Power size={14} /> Disconnect Device
                             </button>
@@ -156,7 +156,7 @@ export default function DeviceDropdown() {
                                         onClick={() => initiateSwitch(device.id)}
                                         disabled={device.is_locked}
                                         className={clsx(
-                                            "w-full flex items-center justify-between px-3 py-3 rounded-xl transition-all text-left group border border-transparent",
+                                            "w-full flex items-center justify-between px-3 py-3 rounded-md transition-all text-left group border border-transparent",
                                             device.is_locked 
                                                 ? "opacity-60 cursor-not-allowed bg-slate-50/50 grayscale" 
                                                 : "hover:bg-slate-50 hover:border-slate-100"
@@ -164,7 +164,7 @@ export default function DeviceDropdown() {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={clsx(
-                                                "w-9 h-9 rounded-xl flex items-center justify-center transition-colors shadow-sm",
+                                                "w-9 h-9 rounded-md flex items-center justify-center transition-colors shadow-sm",
                                                 "bg-white border border-slate-100 text-slate-400 group-hover:text-emerald-500 group-hover:border-emerald-100"
                                             )}>
                                                 {device.is_locked ? <XCircle size={16} /> : <Wifi size={16} />}

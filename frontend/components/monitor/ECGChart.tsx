@@ -341,11 +341,11 @@ export default function ECGChart({ }: ECGChartProps) {
     }, []);
 
     return (
-        <div className="flex flex-col w-full bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
+        <div className="flex flex-col w-full bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
             {/* Header Controls */}
             <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-white relative z-20">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-rose-50 rounded-xl text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
+                    <div className="w-10 h-10 bg-rose-50 rounded-md text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
                         <Activity size={18} strokeWidth={2.5} />
                     </div>
                     <div>
@@ -365,7 +365,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                     onClick={toggleRecording}
                                     disabled={!currentDeviceId}
                                     className={clsx(
-                                        "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                        "flex items-center gap-2 px-6 py-2.5 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                         !currentDeviceId ? "bg-slate-300 shadow-none cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                                     )}
                                 >
@@ -377,7 +377,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                         onClick={toggleRecording}
                                         disabled={!isRecording && !currentDeviceId}
                                         className={clsx(
-                                            "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                            "flex items-center gap-2 px-4 py-2.5 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                             isRecording 
                                                 ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" 
                                                 : (!currentDeviceId 
@@ -392,7 +392,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                         onClick={handleReset}
                                         disabled={isRecording}
                                         className={clsx(
-                                            "px-3 py-2.5 rounded-xl text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
+                                            "px-3 py-2.5 rounded-md text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
                                             isRecording
                                                 ? "bg-slate-50 text-slate-300 cursor-not-allowed border-slate-100"
                                                 : "bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm active:scale-95"
@@ -417,7 +417,7 @@ export default function ECGChart({ }: ECGChartProps) {
                             Speed: 25mm/s | Gain: 10mm/mV
                         </div>
                     </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
                         <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead I</span>
                     </div>
                     <canvas ref={canvasRefI} className="w-full h-full relative z-0 block"></canvas>
@@ -430,7 +430,7 @@ export default function ECGChart({ }: ECGChartProps) {
                             Speed: 25mm/s | Gain: 10mm/mV
                         </div>
                     </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
                         <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead II</span>
                     </div>
                     <canvas ref={canvasRefII} className="w-full h-full relative z-0 block"></canvas>
@@ -443,7 +443,7 @@ export default function ECGChart({ }: ECGChartProps) {
                             Speed: 25mm/s | Gain: 10mm/mV
                         </div>
                     </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded border border-slate-100 backdrop-blur-sm shadow-sm">
+                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
                         <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">V1</span>
                     </div>
                     <canvas ref={canvasRefV1} className="w-full h-full relative z-0 block"></canvas>

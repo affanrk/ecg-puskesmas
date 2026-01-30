@@ -17,7 +17,7 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
         return (
             <div className={clsx(
                 "h-full flex items-center justify-center",
-                variant === 'default' && "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-8"
+                variant === 'default' && "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-8"
             )}>
                 <div className="flex flex-col items-center gap-3">
                     <Activity className="w-8 h-8 text-slate-200 animate-pulse" />
@@ -29,7 +29,7 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
 
     const containerClass = variant === 'minimal' 
         ? "flex items-center justify-between h-full px-1" 
-        : "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full flex flex-col justify-center group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
+        : "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full flex flex-col justify-center group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
 
     // 3. Main Render
     return (
@@ -42,7 +42,7 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
             <div className="relative z-10 flex flex-col justify-between h-full">
                 <div>
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shadow-sm border border-teal-100/50">
+                        <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-md flex items-center justify-center shadow-sm border border-teal-100/50">
                             <User size={18} strokeWidth={2.5} />
                         </div>
                         <div>
@@ -60,7 +60,7 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
                 </div>
                 
                 <div className="mt-3 flex flex-wrap items-center gap-3">
-                    <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
+                    <div className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-md flex items-center gap-2 shadow-sm">
                         <History size={10} className="text-slate-400" strokeWidth={3} />
                         <span className="text-[9px] font-black text-slate-600 uppercase tracking-wider truncate max-w-[180px]">
                             {user.medical_history || 'No History'}

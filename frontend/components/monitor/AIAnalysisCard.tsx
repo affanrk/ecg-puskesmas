@@ -30,7 +30,7 @@ export default function AIAnalysisCard() {
     // 3. Render
     return (
         <div className={clsx(
-            "h-full bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border px-8 py-5 flex flex-col justify-between transition-all duration-500 group relative overflow-hidden",
+            "h-full bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border px-8 py-5 flex flex-col justify-between transition-all duration-500 group relative overflow-hidden",
             isWaiting ? "border-slate-200" :
             isAbnormal ? "border-rose-100 ring-8 ring-rose-50/30" : "border-emerald-100 ring-8 ring-emerald-50/30"
         )}>
@@ -42,7 +42,7 @@ export default function AIAnalysisCard() {
             <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-2">
                     <div className={clsx(
-                        "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border transition-colors",
+                        "w-10 h-10 rounded-md flex items-center justify-center shadow-sm border transition-colors",
                         isWaiting ? "bg-slate-50 text-slate-400 border-slate-100" :
                         isAbnormal ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                     )}>
@@ -74,10 +74,10 @@ export default function AIAnalysisCard() {
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Confidence</p>
                             <span className={clsx("text-xs font-black", isAbnormal ? "text-rose-600" : "text-emerald-600")}>{confidencePct}%</span>
                         </div>
-                        <div className="w-full bg-slate-50 rounded-full h-3 p-0.5 border border-slate-100 overflow-hidden">
+                        <div className="w-full bg-slate-50 rounded-md h-3 p-0.5 border border-slate-100 overflow-hidden">
                             <div 
                                 className={clsx(
-                                    "h-full rounded-full transition-all duration-1000 ease-out relative",
+                                    "h-full rounded-md transition-all duration-1000 ease-out relative",
                                     isAbnormal ? "bg-gradient-to-r from-rose-400 to-rose-600" : "bg-gradient-to-r from-emerald-400 to-emerald-600"
                                 )}
                                 style={{ width: `${confidencePct}%` }}

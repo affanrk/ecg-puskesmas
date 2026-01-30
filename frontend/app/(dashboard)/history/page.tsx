@@ -5,11 +5,11 @@ import { FileText } from 'lucide-react';
 
 export default function HistoryPage() {
     return (
-        <div className="flex flex-col h-full w-full gap-4 sm:gap-5 overflow-hidden pb-2 sm:pb-4">
+        <div className="flex flex-col h-full w-full gap-3 sm:gap-4 overflow-hidden pb-1 sm:pb-2">
             {/* Header Area */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-3">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-md sm:rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
                         <FileText size={20} className="text-teal-500 sm:hidden" strokeWidth={2.5} />
                         <FileText size={24} className="text-teal-500 hidden sm:block" strokeWidth={2.5} />
                     </div>

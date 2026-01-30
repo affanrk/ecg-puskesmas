@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
-import { ChevronLeft, Calendar, Clock, AlertTriangle, CheckCircle, Stethoscope, FileText, HeartPulse } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, AlertTriangle, CheckCircle, Stethoscope, FileText, HeartPulse, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
 
@@ -217,31 +217,53 @@ export default function CalendarDrillDown() {
         return (
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                 {resultLoading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4">
-                        <div className="animate-spin text-teal-500"><Clock size={48} /></div>
-                        <span className="font-bold text-xs uppercase tracking-widest text-slate-400">Retrieving Record...</span>
+                    <div className="flex flex-col items-center justify-center py-10 gap-4">
+                        <div className="animate-spin text-teal-500"><Clock size={40} /></div>
+                        <span className="font-bold text-[10px] uppercase tracking-widest text-slate-400">Retrieving Record...</span>
                     </div>
                 ) : resultData ? (
-                    <div className="max-w-3xl mx-auto space-y-6 sm:space-y-10">
-                        {/* Status Card */}
-                        <div className="bg-slate-50/50 rounded-3xl p-4 sm:p-8 border border-slate-100 shadow-sm">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
-                                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-600 shadow-sm border border-teal-100">
-                                    <FileText size={24} className="sm:hidden" strokeWidth={2.5} />
-                                    <FileText size={32} className="hidden sm:block" strokeWidth={2.5} />
+                    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+                        {/* Top Info Bar */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-50/80 rounded-lg p-3 sm:p-4 border border-slate-100 gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center text-teal-600 shadow-sm border border-slate-200 shrink-0">
+                                    <FileText size={20} strokeWidth={2.5} />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Analysis Result</h3>
-                                    <p className="text-xs sm:text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                        Recorded at {String(selection.hour).padStart(2,'0')}:{String(selection.minute).padStart(2,'0')}:{String(selectedSecond).padStart(2,'0')}
+                                    <h3 className="text-lg font-black text-slate-800 tracking-tight leading-none">Analysis Result</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                        Recorded: {String(selection.hour).padStart(2,'0')}:{String(selection.minute).padStart(2,'0')}:{String(selectedSecond).padStart(2,'0')}
                                     </p>
                                 </div>
                             </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Device:</span>
+                                    <span className="text-[10px] font-bold text-slate-600">{resultData.device_id || "--"}</span>
+                                </div>
+                                <button 
+                                    onClick={() => api.downloadRecording('plot', resultData.recording_id)}
+                                    className="p-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors shadow-sm"
+                                    title="Download Report"
+                                >
+                                    <FileText size={16} />
+                                </button>
+                                <button 
+                                    onClick={closeResultModal}
+                                    className="p-2 bg-white text-slate-400 border border-slate-200 rounded-md hover:text-rose-500 hover:border-rose-100 transition-colors"
+                                    title="Close"
+                                >
+                                    <ChevronLeft size={16} strokeWidth={3} />
+                                </button>
+                            </div>
+                        </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                                {/* Classification */}
-                                <div className="flex flex-col gap-3">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Classification</span>
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6">
+                            {/* Left: Classification & Metrics (7 cols) */}
+                            <div className="xl:col-span-7 space-y-3 sm:space-y-4">
+                                <div className="flex flex-col gap-2">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Condition Overview</span>
                                     {(() => {
                                         const cls = resultData.classification?.toLowerCase() || '';
                                         const isHighRisk = cls.includes('sangat berpotensi') || cls.includes('high risk');
@@ -250,111 +272,112 @@ export default function CalendarDrillDown() {
 
                                         return (
                                             <div className={clsx(
-                                                "p-4 sm:p-6 rounded-2xl border-2 flex items-center gap-4 h-full transition-colors duration-500",
-                                                isHighRisk && "bg-rose-50 border-rose-200 text-rose-700",
-                                                isPotential && !isHighRisk && "bg-amber-50 border-amber-200 text-amber-700",
-                                                isNormal && "bg-emerald-50 border-emerald-200 text-emerald-700",
+                                                "p-4 sm:p-5 rounded-xl border-2 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 transition-all duration-500",
+                                                isHighRisk && "bg-rose-50 border-rose-200 text-rose-700 shadow-lg shadow-rose-500/10",
+                                                isPotential && !isHighRisk && "bg-amber-50 border-amber-200 text-amber-700 shadow-lg shadow-amber-500/10",
+                                                isNormal && "bg-emerald-50 border-emerald-200 text-emerald-700 shadow-lg shadow-emerald-500/10",
                                                 !isHighRisk && !isPotential && !isNormal && "bg-slate-50 border-slate-200 text-slate-700"
                                             )}>
-                                                {isHighRisk ? <HeartPulse size={32} strokeWidth={2.5} className="animate-pulse" /> :
-                                                 isPotential ? <AlertTriangle size={32} strokeWidth={2.5} /> :
-                                                 <CheckCircle size={32} strokeWidth={2.5} />
+                                                {isHighRisk ? <HeartPulse size={40} strokeWidth={2.5} className="animate-pulse shrink-0" /> :
+                                                 isPotential ? <AlertTriangle size={40} strokeWidth={2.5} className="shrink-0" /> :
+                                                 <CheckCircle size={40} strokeWidth={2.5} className="shrink-0" />
                                                 }
-                                                <div>
-                                                    <h4 className="text-lg sm:text-2xl font-black tracking-tight leading-tight mb-1">{resultData.classification || "Unknown"}</h4>
-                                                    <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Confidence: {((resultData.confidence || 0) * 100).toFixed(1)}%</p>
+                                                <div className="flex-1 w-full">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1 gap-2">
+                                                        <h4 className="text-lg sm:text-xl lg:text-2xl font-black tracking-tight leading-tight">{resultData.classification || "Unknown"}</h4>
+                                                        <span className="text-[10px] font-black uppercase bg-white/50 px-2 py-0.5 rounded-full border border-current/20 w-fit">
+                                                            {((resultData.confidence || 0) * 100).toFixed(0)}% Match
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs font-bold opacity-70 uppercase tracking-wider">Automated Clinical Classification</p>
                                                 </div>
                                             </div>
                                         );
                                     })()}
                                 </div>
 
-                                {/* Quick Metrics */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Heart Rate</span>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-2xl sm:text-3xl font-black text-slate-700">{resultData.bpm || resultData.avg_bpm || "--"}</span>
-                                            <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase">BPM</span>
+                                <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+                                    <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 sm:gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                                            <HeartPulse size={20} />
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Heart Rate</span>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-xl font-black text-slate-700">{resultData.bpm ? Math.round(Number(resultData.bpm)) : (resultData.avg_bpm ? Math.round(Number(resultData.avg_bpm)) : "--")}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase">BPM</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Device ID</span>
-                                        <span className="text-xs sm:text-sm font-bold text-slate-500 truncate block">{resultData.device_id || "--"}</span>
+                                    <div className="bg-white p-3 sm:p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3 sm:gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                            <Activity size={20} />
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Signal</span>
+                                            <span className="text-xs font-black text-slate-600 uppercase">Stable</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* AI Advice */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between px-2">
-                                <h4 className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                    <Stethoscope size={18} className="text-blue-500" />
-                                    Doctor Recommendation
-                                </h4>
-                                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider border border-blue-100">
-                                    AI Generated Advice
-                                </span>
-                            </div>
-                            
-                            <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-100 rounded-3xl sm:rounded-[2.5rem] p-6 sm:p-10 relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-500">
-                                <div className="absolute top-0 right-0 p-10 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-700">
-                                    <Stethoscope size={180} />
+                            {/* Right: AI Advice (5 cols) */}
+                            <div className="xl:col-span-5 flex flex-col gap-2">
+                                <div className="flex items-center justify-between px-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical Insights</span>
+                                    <span className="text-[9px] font-black text-blue-600 uppercase">AI Clinical Engine</span>
                                 </div>
-                                
-                                <div className="relative z-10 space-y-6">
-                                    <p className="text-slate-700 text-base sm:text-lg font-medium leading-relaxed italic">
-                                        &quot;{(() => {
-                                            const cls = resultData.classification?.toLowerCase() || '';
-                                            const bpm = Number(resultData.bpm || resultData.avg_bpm || 0);
-                                            
-                                            if (cls.includes('normal')) {
-                                                if (bpm > 100) return "The ECG rhythm is normal, but your heart rate is slightly elevated (Tachycardia). This could be due to stress, caffeine, or recent physical activity. Focus on deep breathing and ensure you are well-hydrated.";
-                                                if (bpm < 60 && bpm > 0) return "Your heart rhythm appears normal, but the heart rate is lower than typical (Bradycardia). While often seen in fit individuals, if you experience dizziness, it's worth checking with your doctor.";
-                                                return "Excellent! The ECG rhythm appears perfectly normal. Continue maintaining your current healthy lifestyle with regular exercise and a balanced diet. No immediate medical action required.";
-                                            }
-                                            
-                                            if (cls.includes('sangat berpotensi') || cls.includes('high risk')) {
-                                                return "Significant irregularities have been detected in your cardiac rhythm. This pattern strongly suggests a high risk of arrhythmia. We strongly advise scheduling an appointment with a cardiologist for a thorough diagnostic evaluation.";
-                                            }
-                                            
-                                            return "Potential irregularities were detected during this recording segment. While it may not be urgent, these findings should be discussed with a healthcare professional to ensure complete cardiac health. Monitor for any unusual symptoms.";
-                                        })()}&quot;
-                                    </p>
+                                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-5 relative overflow-hidden group shadow-sm flex-1 flex flex-col justify-center">
+                                    <div className="absolute top-0 right-0 p-6 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                                        <Stethoscope size={100} />
+                                    </div>
                                     
-                                    <div className="flex items-center gap-4 text-[10px] sm:text-xs font-bold text-slate-400 bg-white/50 backdrop-blur-sm p-3 sm:p-4 rounded-2xl border border-slate-100 w-fit">
-                                        <div className="hidden xs:flex -space-x-2">
-                                            {[1,2,3].map(i => <div key={i} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-white bg-slate-200" />)}
+                                    <div className="relative z-10 space-y-4">
+                                        <p className="text-slate-700 text-sm font-medium leading-relaxed italic">
+                                            &quot;{(() => {
+                                                const cls = resultData.classification?.toLowerCase() || '';
+                                                const bpm = Number(resultData.bpm || resultData.avg_bpm || 0);
+                                                
+                                                if (cls.includes('normal')) {
+                                                    if (bpm > 100) return "Normal rhythm, but elevated heart rate. Could be stress or activity. Monitor and rest.";
+                                                    if (bpm < 60 && bpm > 0) return "Normal rhythm with lower heart rate. Normal for athletes, but check if dizzy.";
+                                                    return "Excellent! Rhythm appears normal. Maintain your healthy lifestyle and routine checkups.";
+                                                }
+                                                
+                                                if (cls.includes('sangat berpotensi') || cls.includes('high risk')) {
+                                                    return "Significant irregularities detected. Suggests high risk of arrhythmia. Consult a cardiologist soon.";
+                                                }
+                                                
+                                                return "Potential irregularities detected. Discuss these findings with a professional to ensure cardiac health.";
+                                            })()}&quot;
+                                        </p>
+                                        
+                                        <div className="pt-2 border-t border-slate-100 mt-2">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <CheckCircle size={10} className="text-teal-500" />
+                                                Verified Analysis Pattern
+                                            </span>
                                         </div>
-                                        <span>Verified analysis patterns based on clinical databases</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pb-10 px-4">
-                            <button 
-                                onClick={() => api.downloadRecording('plot', resultData.recording_id)}
-                                className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20 flex items-center justify-center gap-2"
-                            >
-                                <FileText size={18} />
-                                Download Report
-                            </button>
+                        {/* Actions (Floating-like at bottom or just centered) */}
+                        <div className="flex items-center justify-center gap-4 py-2">
                             <button 
                                 onClick={closeResultModal}
-                                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-50 transition-colors"
+                                className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-md font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-colors"
                             >
-                                Close Details
+                                Return to Selection
                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-50">
-                        <AlertTriangle size={64} className="text-slate-300" />
-                        <span className="font-bold text-xs uppercase tracking-widest text-slate-400">Record Not Found</span>
-                        <button onClick={closeResultModal} className="mt-4 text-teal-600 font-bold hover:underline">Return to Timeline</button>
+                    <div className="flex flex-col items-center justify-center py-10 gap-4 opacity-50">
+                        <AlertTriangle size={48} className="text-slate-300" />
+                        <span className="font-bold text-[10px] uppercase tracking-widest text-slate-400">Record Not Found</span>
+                        <button onClick={closeResultModal} className="mt-2 text-teal-600 font-bold hover:underline text-xs">Return to Timeline</button>
                     </div>
                 )}
             </div>
@@ -362,53 +385,46 @@ export default function CalendarDrillDown() {
     };
 
     return (
-        <div className="flex flex-col h-full gap-6 p-1 relative">
+        <div className="flex flex-col h-full gap-3 p-1 relative">
             
             {/* Navigation Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 gap-4">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 bg-white p-3 rounded-lg shadow-sm border border-slate-100 gap-2">
+                <div className="flex items-center gap-3">
                     {!isRoot && (
                         <button 
                             onClick={handleBack}
-                            className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors"
+                            className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors"
                         >
-                            <ChevronLeft size={20} strokeWidth={2.5} />
+                            <ChevronLeft size={18} strokeWidth={2.5} />
                         </button>
                     )}
                     <div>
-                        <h2 className="text-lg font-black text-slate-800 tracking-tight">
+                        <h2 className="text-base font-black text-slate-800 tracking-tight">
                             {isResultOpen ? "Analysis Result" : viewTitle}
                         </h2>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex flex-wrap items-center gap-2">
                             {isRoot ? "Timeline Overview" : getBreadcrumbs()}
                             {isResultOpen && ` > ${String(selectedSecond).padStart(2, '0')}s`}
                         </p>
                     </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-50 rounded-lg border border-rose-100">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
-                        <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">High Potential</span>
-                    </div>
-                </div>
             </div>
 
             {/* Grid Content */}
-            <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-3xl sm:rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-4 sm:p-8">
+            <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-md sm:rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-4 sm:p-6">
                 {loading ? (
-                    <div className="h-full w-full flex flex-col items-center justify-center py-20 gap-4 opacity-40">
-                        <div className="animate-spin text-teal-500"><Clock size={48} /></div>
-                        <span className="font-black text-xs uppercase tracking-[0.2em] text-slate-400 text-center">Loading Timeline...</span>
+                    <div className="h-full w-full flex flex-col items-center justify-center py-10 gap-3 opacity-40">
+                        <div className="animate-spin text-teal-500"><Clock size={40} /></div>
+                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 text-center">Loading...</span>
                     </div>
                 ) : (
                     <>
                         {renderGrid()}
                         
                         {!loading && data?.nodes.length === 0 && (
-                            <div className="h-full w-full flex flex-col items-center justify-center py-20 gap-4 opacity-30">
-                                <Calendar size={64} className="text-slate-300" />
-                                <span className="font-black text-xs uppercase tracking-[0.2em] text-slate-400 text-center">No Data Available</span>
+                            <div className="h-full w-full flex flex-col items-center justify-center py-10 gap-3 opacity-30">
+                                <Calendar size={48} className="text-slate-300" />
+                                <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400 text-center">No Data</span>
                             </div>
                         )}
                     </>

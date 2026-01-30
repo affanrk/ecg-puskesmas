@@ -260,7 +260,7 @@ export default function RegisterPage() {
                                             "w-full pl-12 pr-10 py-3 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
                                             errors.username ? "border-rose-100 focus:border-rose-500" : "border-slate-100 focus:border-brand-500"
                                         )}
-                                        placeholder="Choose a username"
+                                        placeholder="Enter a username"
                                     />
                                     {checks.username && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                                 </div>

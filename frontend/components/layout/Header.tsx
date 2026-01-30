@@ -50,7 +50,7 @@ export default function Header() {
     // 5. Render
     return (
         <>
-            <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-40 sticky top-0">
+            <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-50 sticky top-0">
             {/* Left: Title */}
             <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
                 <h2 className="text-lg font-black text-slate-800 tracking-tight hidden md:block">
@@ -62,14 +62,14 @@ export default function Header() {
             <div className="flex items-center gap-5">
                 {/* Recording Indicator */}
                 {isRecording && (
-                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-100 rounded-full animate-in fade-in slide-in-from-right-2 duration-500 shadow-sm shadow-rose-100">
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-100 rounded-md animate-in fade-in slide-in-from-right-2 duration-500 shadow-sm shadow-rose-100">
                         <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></span>
                         <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Recording Live</span>
                     </div>
                 )}
 
                 {/* Notification Bell */}
-                <button className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-50 hover:text-teal-600 hover:border-teal-100 transition-all relative shadow-sm group">
+                <button className="w-10 h-10 rounded-md bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-50 hover:text-teal-600 hover:border-teal-100 transition-all relative shadow-sm group">
                     <Bell size={20} strokeWidth={2} />
                     <span className="absolute top-2.5 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
                 </button>
@@ -80,14 +80,14 @@ export default function Header() {
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                        className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-xl hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100 group"
+                        className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100 group"
                     >
                         <div className="text-right hidden md:block">
                             <p className="text-xs font-bold text-slate-700 leading-tight group-hover:text-teal-700 transition-colors">{user ? (user.full_name || user.username) : 'Loading...'}</p>
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">{user?.role || 'Guest'}</p>
                         </div>
                         <div className={clsx(
-                            "w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold shadow-md shadow-slate-200 transition-transform active:scale-95 ring-2 ring-white",
+                            "w-10 h-10 rounded-md flex items-center justify-center text-white font-bold shadow-md shadow-slate-200 transition-transform active:scale-95 ring-2 ring-white",
                             !isProfileComplete ? "bg-amber-500" : "bg-gradient-to-br from-teal-500 to-emerald-500"
                         )}>
                             {user ? user.username.charAt(0).toUpperCase() : <User size={18} />}
@@ -97,7 +97,7 @@ export default function Header() {
 
                     {/* Dropdown */}
                     {isUserMenuOpen && (
-                        <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 z-50 ring-1 ring-black/5">
+                        <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-lg shadow-xl shadow-slate-200/50 border border-slate-100 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 z-[100] ring-1 ring-black/5">
                             <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/30">
                                 <p className="text-sm font-bold text-slate-800 truncate">{user?.username}</p>
                                 <p className="text-[10px] font-medium text-slate-500 truncate">{user?.email}</p>
@@ -106,7 +106,7 @@ export default function Header() {
                             <div className="p-1.5 space-y-0.5">
                                 <Link
                                     href="/profile"
-                                    className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-slate-600 hover:bg-teal-50 hover:text-teal-700 rounded-xl transition-colors group"
+                                    className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-slate-600 hover:bg-teal-50 hover:text-teal-700 rounded-md transition-colors group"
                                     onClick={() => setIsUserMenuOpen(false)}
                                 >
                                     <Settings size={16} className="text-slate-400 group-hover:text-teal-500 transition-colors" />
@@ -115,7 +115,7 @@ export default function Header() {
                                 </Link>
                                 <button
                                     onClick={() => setShowLogoutConfirm(true)}
-                                    className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl w-full text-left transition-colors group"
+                                    className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-md w-full text-left transition-colors group"
                                 >
                                     <LogOut size={16} className="text-rose-400 group-hover:text-rose-600 transition-colors" />
                                     Sign Out

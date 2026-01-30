@@ -15,8 +15,8 @@ export default function StatsPanel({ className, variant = 'default' }: StatsPane
     const { recordingSeconds, bpm } = useStore();
 
     const cardBase = variant === 'minimal'
-        ? "bg-slate-50/50 border border-slate-100/50 p-4 rounded-2xl"
-        : "bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500";
+        ? "bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl"
+        : "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500";
 
     // 2. Render
     return (
@@ -31,7 +31,7 @@ export default function StatsPanel({ className, variant = 'default' }: StatsPane
 
                 <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shadow-sm border border-rose-100/50">
+                        <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-md flex items-center justify-center shadow-sm border border-rose-100/50">
                             <Activity size={18} strokeWidth={2.5} />
                         </div>
                         <div>
@@ -59,7 +59,7 @@ export default function StatsPanel({ className, variant = 'default' }: StatsPane
 
                 <div className="flex items-start justify-between relative z-10">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center shadow-sm border border-teal-100/50">
+                        <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-md flex items-center justify-center shadow-sm border border-teal-100/50">
                             <Timer size={18} strokeWidth={2.5} />
                         </div>
                         <div>

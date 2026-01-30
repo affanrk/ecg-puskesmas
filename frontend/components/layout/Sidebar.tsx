@@ -56,7 +56,7 @@ export default function Sidebar() {
         <>
             {/* Mobile Toggle */}
             <button 
-                className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-xl shadow-md border border-slate-200 text-slate-600 hover:text-teal-600 transition-colors"
+                className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-md shadow-md border border-slate-200 text-slate-600 hover:text-teal-600 transition-colors"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
             >
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -88,7 +88,7 @@ export default function Sidebar() {
                 {/* Logo Area */}
                 <div className="h-[72px] flex items-center gap-3 px-6 border-b border-slate-100/50 bg-white shrink-0 relative overflow-hidden group-hover:bg-slate-50/30 transition-colors">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-50/50 to-transparent pointer-events-none" />
-                    <div className="relative w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20 ring-4 ring-teal-50 shrink-0">
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-md flex items-center justify-center shadow-lg shadow-teal-500/20 ring-4 ring-teal-50 shrink-0">
                         <HeartPulse className="text-white w-6 h-6" strokeWidth={2.5} />
                     </div>
                     <div className={clsx("relative flex flex-col transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>
@@ -107,7 +107,7 @@ export default function Sidebar() {
                                 <Link 
                                     href={item.href}
                                     className={clsx(
-                                        "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-bold text-sm w-full group relative overflow-hidden",
+                                        "flex items-center gap-3 px-4 py-3.5 rounded-md transition-all duration-200 font-bold text-sm w-full group relative overflow-hidden",
                                         pathname === item.href 
                                             ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100" 
                                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -119,12 +119,12 @@ export default function Sidebar() {
                                     <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>{item.name}</span>
                                 </Link>
                             ) : (
-                                <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-300 cursor-not-allowed relative w-full opacity-60 hover:opacity-80 transition-opacity">
+                                <div className="flex items-center gap-3 px-4 py-3.5 rounded-md text-slate-300 cursor-not-allowed relative w-full opacity-60 hover:opacity-80 transition-opacity">
                                     <item.icon size={20} className="shrink-0" />
                                     <span className={clsx("truncate font-medium transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>{item.name}</span>
                                     <Lock size={14} className={clsx("absolute right-4 text-slate-300 shrink-0 transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")} />
                                     
-                                    <div className="hidden lg:group-hover:block absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-[10px] font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 pointer-events-none shadow-xl border border-slate-700">
+                                    <div className="hidden lg:group-hover:block absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 pointer-events-none shadow-xl border border-slate-700">
                                         Complete profile to unlock
                                         <div className="absolute top-1/2 -left-1 w-2 h-2 bg-slate-800 transform -translate-y-1/2 rotate-45 border-l border-b border-slate-700"></div>
                                     </div>
@@ -140,7 +140,7 @@ export default function Sidebar() {
                     <Link 
                         href="/profile" 
                         className={clsx(
-                            "flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 font-bold text-sm w-full relative group",
+                            "flex items-center gap-3 px-4 py-3.5 rounded-md transition-all duration-200 font-bold text-sm w-full relative group",
                             pathname === '/profile' 
                                 ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100" 
                                 : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -160,9 +160,9 @@ export default function Sidebar() {
                 <div className="p-4 border-t border-slate-100 bg-white shrink-0 flex flex-col gap-2">
                     <button 
                         onClick={() => setShowLogoutConfirm(true)}
-                        className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-all font-bold text-sm group border border-transparent hover:border-rose-100"
+                        className="flex items-center gap-3 w-full px-4 py-3.5 rounded-md text-rose-600 hover:bg-rose-50 transition-all font-bold text-sm group border border-transparent hover:border-rose-100"
                     >
-                        <div className="p-1.5 bg-rose-50 text-rose-500 rounded-lg group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors shrink-0">
+                        <div className="p-1.5 bg-rose-50 text-rose-500 rounded-md group-hover:bg-rose-100 group-hover:text-rose-600 transition-colors shrink-0">
                             <LogOut size={16} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
                         </div>
                         <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>Sign Out</span>
@@ -172,7 +172,7 @@ export default function Sidebar() {
                     <button 
                         onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                         className={clsx(
-                            "hidden lg:flex items-center gap-3 w-full px-4 py-2 rounded-xl transition-all font-bold text-xs group border border-transparent",
+                            "hidden lg:flex items-center gap-3 w-full px-4 py-2 rounded-md transition-all font-bold text-xs group border border-transparent",
                             isSidebarPinned 
                                 ? "text-slate-400 hover:text-slate-600 hover:bg-slate-50" 
                                 : "text-teal-600 bg-teal-50 border-teal-100"
