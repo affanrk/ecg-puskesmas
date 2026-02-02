@@ -18,6 +18,7 @@ from ..features import feature_extractor
 from services.device import device_state_manager
 from repositories.session import SessionRepository
 from repositories.raw_data import RawDataRepository
+from repositories.raw_data.mobile_repository import RawDataMobileRepository
 from core.database import SessionLocal
 from core.config import settings
 from core.exceptions import InsufficientDataException, RecordingNotFoundException
@@ -168,7 +169,16 @@ class MLEngineService:
             RecordingNotFoundException: If recording not found
             InsufficientDataException: If not enough samples
         """
-        raw_repo = RawDataRepository(db)
+        session_repo = SessionRepository(db)
+        session = session_repo.get(recording_id)
+
+        if not session:
+            raise RecordingNotFoundException(recording_id)
+
+        if session.created_by == "MOBILE":
+            raw_repo = RawDataMobileRepository(db)
+        else:
+            raw_repo = RawDataRepository(db)
 
         rows = raw_repo.find_by_recording_id(recording_id)
 

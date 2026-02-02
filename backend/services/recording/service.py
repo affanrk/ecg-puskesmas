@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from services.device import device_state_manager
 from repositories.session import SessionRepository
 from repositories.raw_data import RawDataRepository
+from repositories.raw_data.mobile_repository import RawDataMobileRepository
 from repositories.performance import PerformanceRepository
 from core.database import SessionLocal
 from utils import logger
@@ -22,7 +23,6 @@ class RecordingStorageService:
     Manages batch insertion of recording data to database.
     Optimized for high-throughput time-series data.
     """
-
     def __init__(self):
         self.is_running = False
 
@@ -97,7 +97,7 @@ class RecordingStorageService:
     def _insert_recording_batch(self, db: Session, items: List[Dict[str, Any]]):
         """
         Insert ECG recording data in batches.
-        Filters out cancelled recordings.
+        Filters out cancelled recordings and routes to correct table (Web vs Mobile).
         """
 
         cancelled = device_state_manager.cancelled_recordings
@@ -106,20 +106,46 @@ class RecordingStorageService:
         if not valid_items:
             return
 
-        raw_repo = RawDataRepository(db)
+        web_items = []
+        mobile_items = []
 
-        for i in range(0, len(valid_items), DB_BATCH_CHUNK_SIZE):
-            chunk = valid_items[i : i + DB_BATCH_CHUNK_SIZE]
+        # Split items by source and clean dictionary for SQLAlchemy
+        for item in valid_items:
+            source = item.pop("source", "WEB")
+            if source == "MOBILE":
+                mobile_items.append(item)
+            else:
+                web_items.append(item)
 
-            try:
-                inserted = raw_repo.bulk_create(chunk)
-                logger.debug(
-                    f"[Storage] Inserted {inserted} ECG samples "
-                    f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
-                )
-            except Exception as e:
-                logger.error(f"[Storage] Failed to insert ECG chunk: {e}")
-                raise
+        # 1. Insert Web Items
+        if web_items:
+            raw_repo = RawDataRepository(db)
+            for i in range(0, len(web_items), DB_BATCH_CHUNK_SIZE):
+                chunk = web_items[i : i + DB_BATCH_CHUNK_SIZE]
+                try:
+                    inserted = raw_repo.bulk_create(chunk)
+                    logger.debug(
+                        f"[Storage] Inserted {inserted} WEB ECG samples "
+                        f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
+                    )
+                except Exception as e:
+                    logger.error(f"[Storage] Failed to insert WEB ECG chunk: {e}")
+                    raise
+
+        # 2. Insert Mobile Items
+        if mobile_items:
+            mobile_repo = RawDataMobileRepository(db)
+            for i in range(0, len(mobile_items), DB_BATCH_CHUNK_SIZE):
+                chunk = mobile_items[i : i + DB_BATCH_CHUNK_SIZE]
+                try:
+                    inserted = mobile_repo.bulk_create(chunk)
+                    logger.debug(
+                        f"[Storage] Inserted {inserted} MOBILE ECG samples "
+                        f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
+                    )
+                except Exception as e:
+                    logger.error(f"[Storage] Failed to insert MOBILE ECG chunk: {e}")
+                    raise
 
     def _insert_performance_batch(self, db: Session, items: List[Dict[str, Any]]):
         """Insert performance log data in batch"""

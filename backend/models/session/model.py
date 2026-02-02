@@ -59,3 +59,6 @@ class TbREcgSession(Base, AuditMixin):
     raw_data = relationship(
         "TbREcgRaw", back_populates="session", cascade="all, delete-orphan"
     )
+    raw_data_mobile = relationship(
+        "TbREcgRawMobile", back_populates="session", cascade="all, delete-orphan"
+    )

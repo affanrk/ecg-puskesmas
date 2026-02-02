@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 
 from repositories.session import SessionRepository
 from repositories.raw_data import RawDataRepository
+from repositories.raw_data.mobile_repository import RawDataMobileRepository
 from services import plot_generator
 from core.dependencies import get_session_repository
 from core import SessionLocal, RecordingNotFoundException
@@ -54,11 +55,15 @@ async def export_raw_ecg_data(
     Downloads: `ecg_raw_123e4567-e89b-12d3-a456-426614174000.csv`
     """
 
-    session_repo.find_by_recording_id_or_fail(recording_id)
+    session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     db = SessionLocal()
     try:
-        raw_repo = RawDataRepository(db)
+        if session.created_by == "MOBILE":
+            raw_repo = RawDataMobileRepository(db)
+        else:
+            raw_repo = RawDataRepository(db)
+
         rows = raw_repo.find_by_recording_id(recording_id)
 
         if not rows:

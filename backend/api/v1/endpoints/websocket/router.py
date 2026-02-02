@@ -36,16 +36,16 @@ class WebSocketHandler:
         """
         m_type = message.get("type")
         handlers = {
-            "subscribe_to_device": self._handle_subscribe,
-            "unsubscribe": self._handle_unsubscribe,
-            "start_recording": self._handle_start_recording,
-            "stop_recording": self._handle_stop_recording,
+            WSMessageType.SUBSCRIBE.value: self._handle_subscribe,
+            WSMessageType.UNSUBSCRIBE.value: self._handle_unsubscribe,
+            WSMessageType.START_RECORDING.value: self._handle_start_recording,
+            WSMessageType.STOP_RECORDING.value: self._handle_stop_recording,
         }
         handler = handlers.get(m_type)
         if handler:
             await handler(message)
-        elif m_type == "ping":
-            await self.websocket.send_json({"type": "pong"})
+        elif m_type == WSMessageType.PING.value:
+            await self.websocket.send_json({"type": WSMessageType.PONG.value})
 
     async def _handle_subscribe(self, message: dict):
         """
@@ -87,7 +87,7 @@ class WebSocketHandler:
         else:
 
             await self.websocket.send_json(
-                {"type": "error", "message": f"Device {device_id} is busy or locked."}
+                {"type": WSMessageType.ERROR.value, "message": f"Device {device_id} is busy or locked."}
             )
 
     async def _handle_unsubscribe(self, message: dict):
@@ -114,6 +114,7 @@ class WebSocketHandler:
         """
         device_id = message.get("device_id")
         user_id_raw = message.get("user_id") or message.get("subject_id")
+        source = message.get("source", "WEB")
 
         if not device_id or not user_id_raw:
             return
@@ -126,13 +127,16 @@ class WebSocketHandler:
 
         recording_id = str(uuid.uuid4())
         try:
-            self.session_repo.create_session(recording_id, device_id, user_id)
+            self.session_repo.create_session(
+                recording_id, device_id, user_id, created_by=source
+            )
 
             state = device_state_manager.get_state(device_id)
             state.is_recording = True
             state.recording_id = recording_id
             state.subject_id = str(user_id)
             state.segment_count = 1
+            state.recording_source = source  # Store source in state for MQTT handler
             state.status_message = "Recording..."
 
             await device_state_manager.notify_state_update(device_id)
@@ -140,7 +144,7 @@ class WebSocketHandler:
             logger.error(f"Failed to create session in DB: {e}", exc_info=True)
             await self.websocket.send_json(
                 {
-                    "type": "error",
+                    "type": WSMessageType.ERROR.value,
                     "message": "Failed to create recording session in database.",
                 }
             )
@@ -148,10 +152,11 @@ class WebSocketHandler:
             logger.error(f"Failed to start recording: {e}", exc_info=True)
             await self.websocket.send_json(
                 {
-                    "type": "error",
+                    "type": WSMessageType.ERROR.value,
                     "message": "Failed to start recording due to an unexpected error.",
                 }
             )
+
 
     async def _handle_stop_recording(self, message: dict):
         """

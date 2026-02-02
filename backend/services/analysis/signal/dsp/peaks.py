@@ -6,19 +6,40 @@ from utils import logger
 
 
 def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
+    rpeaks_info = {}
+    waves_info = {}
+
+    # 1. Detect R-Peaks
     try:
         signals, rpeaks_info = nk.ecg_peaks(signal, sampling_rate=sampling_rate)
 
         if len(rpeaks_info.get("ECG_R_Peaks", [])) == 0:
-            return rpeaks_info, {}
+            logger.warning("[DSP] No R-peaks detected.")
+            return {}, {}
 
+    except Exception as e:
+        logger.error(f"[DSP] R-Peak detection failed: {e}")
+        return {}, {}
+
+    # 2. Delineate Waves (P, Q, S, T)
+    try:
+        # Try DWT first (standard, most accurate)
         signals, waves_info = nk.ecg_delineate(
             signal, rpeaks_info, sampling_rate=sampling_rate, method="dwt"
         )
-        return rpeaks_info, waves_info
     except Exception as e:
-        logger.error(f"[DSP] Peak detection failed: {e}")
-        return {}, {}
+        logger.warning(f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}")
+        try:
+            # Fallback to 'peak' method (faster, uses local extrema)
+            signals, waves_info = nk.ecg_delineate(
+                signal, rpeaks_info, sampling_rate=sampling_rate, method="peak"
+            )
+        except Exception as e2:
+            logger.error(f"[DSP] Wave delineation failed (all methods): {e2}")
+            # Return at least R-peaks if waves fail, so BPM/RR can still be calculated
+            return rpeaks_info, {}
+
+    return rpeaks_info, waves_info
 
 
 def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, dict]:

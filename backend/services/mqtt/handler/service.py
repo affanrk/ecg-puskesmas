@@ -166,6 +166,7 @@ class MQTTDataHandler:
                     "raw_lead_I": sample.raw_lead_i,
                     "raw_lead_II": sample.raw_lead_ii,
                     "raw_v1": sample.raw_v1,
+                    "source": state.recording_source,
                 }
             )
 

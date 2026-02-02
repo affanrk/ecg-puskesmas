@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from ..analysis import signal_processor
 from repositories.raw_data import RawDataRepository
+from repositories.raw_data.mobile_repository import RawDataMobileRepository
+from repositories.session import SessionRepository
 from core.database import SessionLocal
 from core.exceptions import RecordingNotFoundException
 from utils import logger, SAMPLING_RATE, PLOT_DPI, PLOT_FIGURE_SIZE
@@ -83,7 +85,17 @@ class PlotGeneratorService:
         """
         Fetch raw ECG data from database.
         """
-        raw_repo = RawDataRepository(db)
+        session_repo = SessionRepository(db)
+        session = session_repo.get(recording_id)
+
+        if not session:
+            return pd.DataFrame()
+
+        if session.created_by == "MOBILE":
+            raw_repo = RawDataMobileRepository(db)
+        else:
+            raw_repo = RawDataRepository(db)
+
         rows = raw_repo.find_by_recording_id(recording_id)
 
         if not rows:
