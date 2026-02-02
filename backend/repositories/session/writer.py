@@ -15,7 +15,7 @@ class SessionWriter(BaseRepository[TbREcgSession]):
         recording_id: str,
         device_id: str,
         user_id: int,
-        created_by: str = "SYSTEM",
+        created_by: str = "WEB",
         classification: str = ECGClassification.RECORDING.value,
     ) -> TbREcgSession:
         session = TbREcgSession(

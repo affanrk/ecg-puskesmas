@@ -195,19 +195,23 @@ class MQTTDataHandler:
             )
         )
         new_id = str(uuid.uuid4())
-        self._create_session(new_id, state.device_id, state.subject_id)
+        self._create_session(
+            new_id, state.device_id, state.subject_id, state.recording_source
+        )
         state.recording_id = new_id
         state.samples_collected = 0
         state.segment_count += 1
         state.status_message = f"Recording (Seg {state.segment_count})..."
         await device_state_manager.notify_state_update(state.device_id)
 
-    def _create_session(self, rec_id: str, dev_id: str, pat_id: str):
+    def _create_session(self, rec_id: str, dev_id: str, pat_id: str, source: str):
         db = SessionLocal()
         try:
             try:
                 user_id = int(pat_id)
-                SessionRepository(db).create_session(rec_id, dev_id, user_id)
+                SessionRepository(db).create_session(
+                    rec_id, dev_id, user_id, created_by=source
+                )
             except ValueError:
                 logger.error(f"[MQTT] Invalid user_id format in state: {pat_id}")
         except Exception as e:

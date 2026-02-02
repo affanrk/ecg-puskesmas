@@ -30,6 +30,7 @@ class UserCreate(UserBase):
     full_name: Optional[str] = None
     password: str
     role: Optional[str] = "user"
+    source: Optional[str] = "WEB"
 
     @field_validator("password")
     @classmethod
@@ -58,6 +59,7 @@ class UserProfileUpdate(BaseModel):
     address: Optional[str] = None
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
+    source: Optional[str] = "WEB"
 
     @field_validator("full_name")
     @classmethod

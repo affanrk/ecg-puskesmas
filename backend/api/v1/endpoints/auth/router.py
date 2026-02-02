@@ -31,6 +31,7 @@ def register(
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user_in.role = "user"
+    user_in.source = "WEB"
     return user_repo.create(user_in)
 
 
@@ -82,6 +83,7 @@ def register_mobile(
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user_in.role = "user"
+    user_in.source = "MOBILE"
     return user_repo.create(user_in)
 
 

@@ -23,6 +23,7 @@ class UserWriter(BaseRepository[TbMUser]):
                 hashed_password=hashed_password,
                 role=user_in.role,
                 is_patient=False,
+                created_by=user_in.source,
             )
             self.db.add(db_user)
             self.db.commit()
@@ -54,12 +55,15 @@ class UserWriter(BaseRepository[TbMUser]):
                 return None
 
             update_data = profile_data.model_dump(exclude_unset=True)
+            source = update_data.pop("source", "WEB")
+
             for key, value in update_data.items():
                 setattr(db_user, key, value)
 
             if db_user.nik and db_user.full_name and db_user.dob and db_user.gender:
                 db_user.is_patient = True
 
+            db_user.changed_by = source
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
