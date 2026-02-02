@@ -87,7 +87,10 @@ class WebSocketHandler:
         else:
 
             await self.websocket.send_json(
-                {"type": WSMessageType.ERROR.value, "message": f"Device {device_id} is busy or locked."}
+                {
+                    "type": WSMessageType.ERROR.value,
+                    "message": f"Device {device_id} is busy or locked.",
+                }
             )
 
     async def _handle_unsubscribe(self, message: dict):
@@ -156,7 +159,6 @@ class WebSocketHandler:
                     "message": "Failed to start recording due to an unexpected error.",
                 }
             )
-
 
     async def _handle_stop_recording(self, message: dict):
         """

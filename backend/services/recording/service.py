@@ -23,6 +23,7 @@ class RecordingStorageService:
     Manages batch insertion of recording data to database.
     Optimized for high-throughput time-series data.
     """
+
     def __init__(self):
         self.is_running = False
 

@@ -28,7 +28,9 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
             signal, rpeaks_info, sampling_rate=sampling_rate, method="dwt"
         )
     except Exception as e:
-        logger.warning(f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}")
+        logger.warning(
+            f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}"
+        )
         try:
             # Fallback to 'peak' method (faster, uses local extrema)
             signals, waves_info = nk.ecg_delineate(

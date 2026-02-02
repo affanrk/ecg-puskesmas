@@ -20,4 +20,6 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
             return len(data_list)
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException("Failed bulk insert mobile", details={"error": str(e)})
+            raise DatabaseException(
+                "Failed bulk insert mobile", details={"error": str(e)}
+            )
