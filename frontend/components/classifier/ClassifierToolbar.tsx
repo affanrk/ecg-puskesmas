@@ -21,7 +21,8 @@ interface ClassifierToolbarProps {
 
 interface FlatpickrInstance {
     destroy: () => void;
-    clear: () => void;
+    clear: (triggerChange?: boolean) => void;
+    setDate: (date: string | Date | string[] | Date[], triggerChange?: boolean) => void;
 }
 
 export default function ClassifierToolbar({
@@ -62,7 +63,7 @@ export default function ClassifierToolbar({
                     // unless they explicitly close the calendar or logic requires it.
                     // However, standard flatpickr behavior for range is to wait for 2nd click.
                 }
-            });
+            }) as unknown as FlatpickrInstance;
         }
 
         return () => {
@@ -77,9 +78,6 @@ export default function ClassifierToolbar({
     // Sync Flatpickr with external state changes (e.g. clear filters, URL params)
     useEffect(() => {
         if (fpRef.current) {
-            const currentStr = fpRef.current.input.value;
-            const targetStr = dateRange.start ? (dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} to ${dateRange.end}`) : '';
-             
             // Only update if strictly necessary to avoid loops or interrupting user interaction
             if (dateRange.start && dateRange.end) {
                 fpRef.current.setDate([dateRange.start, dateRange.end], false); // false = no onChange trigger
