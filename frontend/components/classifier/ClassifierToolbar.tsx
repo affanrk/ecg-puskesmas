@@ -50,14 +50,17 @@ export default function ClassifierToolbar({
                 defaultDate: dateRange.start ? [dateRange.start, dateRange.end] : undefined,
                 altInputClass: "pl-10 pr-4 py-2.5 text-xs font-bold w-full rounded-md border border-slate-200 bg-slate-50/50 hover:bg-white hover:border-teal-300 focus:bg-white focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none transition-all text-slate-700 cursor-pointer placeholder:text-slate-400",
                 onChange: (selectedDates, dateStr) => {
-                    const [start, end] = dateStr.split(' to ');
-                    if (start && end) {
-                        setDateRange({ start, end });
-                    } else if (start) {
-                        setDateRange({ start, end: start });
-                    } else {
+                    // Only update state if we have a valid range or cleared
+                    if (selectedDates.length === 2) {
+                        const [start, end] = dateStr.split(' to ');
+                        setDateRange({ start, end: end || start });
+                    } else if (selectedDates.length === 0) {
                         setDateRange({ start: '', end: '' });
                     }
+                    // Note: We don't update on single date selection (length 1) 
+                    // to allow the user to pick the second date without premature state updates
+                    // unless they explicitly close the calendar or logic requires it.
+                    // However, standard flatpickr behavior for range is to wait for 2nd click.
                 }
             });
         }
@@ -68,14 +71,25 @@ export default function ClassifierToolbar({
                 fpRef.current = null;
             }
         };
-    }, [dateRange.start, dateRange.end, setDateRange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run once on mount
 
-    // Force clear flatpickr when filters are cleared
+    // Sync Flatpickr with external state changes (e.g. clear filters, URL params)
     useEffect(() => {
-        if (!isFilterActive && fpRef.current) {
-            fpRef.current.clear();
+        if (fpRef.current) {
+            const currentStr = fpRef.current.input.value;
+            const targetStr = dateRange.start ? (dateRange.start === dateRange.end ? dateRange.start : `${dateRange.start} to ${dateRange.end}`) : '';
+             
+            // Only update if strictly necessary to avoid loops or interrupting user interaction
+            if (dateRange.start && dateRange.end) {
+                fpRef.current.setDate([dateRange.start, dateRange.end], false); // false = no onChange trigger
+            } else if (!dateRange.start && !dateRange.end) {
+                fpRef.current.clear(false);
+            }
         }
-    }, [isFilterActive]);
+    }, [dateRange]);
+
+
 
     return (
         <div className="px-4 sm:px-6 py-4 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 backdrop-blur-sm relative z-20 shrink-0">
