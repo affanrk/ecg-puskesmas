@@ -1,11 +1,14 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 import uuid
+import asyncio
+import numpy as np
 
 from services.device import device_state_manager, device_watchdog_service
+from services.analysis import signal_processor
 from repositories.session import SessionRepository
 from core.dependencies import get_session_repository
 from core import DatabaseException
-from utils import logger, WSMessageType
+from utils import logger, WSMessageType, SAMPLING_RATE
 
 router = APIRouter()
 
@@ -40,12 +43,42 @@ class WebSocketHandler:
             WSMessageType.UNSUBSCRIBE.value: self._handle_unsubscribe,
             WSMessageType.START_RECORDING.value: self._handle_start_recording,
             WSMessageType.STOP_RECORDING.value: self._handle_stop_recording,
+            WSMessageType.CALCULATE_LIVE_BPM.value: self._handle_calculate_live_bpm,
         }
         handler = handlers.get(m_type)
         if handler:
             await handler(message)
         elif m_type == WSMessageType.PING.value:
             await self.websocket.send_json({"type": WSMessageType.PONG.value})
+
+    async def _handle_calculate_live_bpm(self, message: dict):
+        """
+        Handles 'live_calculate_bpm' messages.
+        Calculates BPM from provided Lead II data and broadcasts it back to the device.
+        """
+        device_id = message.get("device_id")
+        data = message.get("data")
+
+        if not device_id or not data or not isinstance(data, list):
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+            bpm = await loop.run_in_executor(
+                None,
+                signal_processor.calculate_bpm_fast,
+                np.array(data),
+                SAMPLING_RATE,
+            )
+
+            if bpm and bpm > 0:
+                await device_state_manager.broadcast_to_device(
+                    device_id,
+                    WSMessageType.LIVE_METRICS.value,
+                    {"device_id": device_id, "data": {"bpm": bpm}},
+                )
+        except Exception as e:
+            logger.error(f"Failed to calculate live BPM: {e}")
 
     async def _handle_subscribe(self, message: dict):
         """

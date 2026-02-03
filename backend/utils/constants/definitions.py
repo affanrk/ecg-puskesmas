@@ -69,6 +69,7 @@ class WSMessageType(str, Enum):
     START_RECORDING = "start_recording"
     STOP_RECORDING = "stop_recording"
     CANCEL_RECORDING = "cancel_recording"
+    CALCULATE_LIVE_BPM = "calculate_live_bpm"
 
     ERROR = "error"
     STATE_UPDATE = "state_update"
