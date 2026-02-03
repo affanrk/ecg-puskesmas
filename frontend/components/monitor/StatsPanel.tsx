@@ -11,20 +11,15 @@ interface StatsPanelProps {
 }
 
 export default function StatsPanel({ className, variant = 'default' }: StatsPanelProps) {
-    // 1. Hooks & State
     const { recordingSeconds, bpm } = useStore();
 
     const cardBase = variant === 'minimal'
         ? "bg-slate-50/50 border border-slate-100/50 p-4 rounded-xl"
         : "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500";
 
-    // 2. Render
     return (
         <div className={clsx("grid gap-6 h-full", className || "grid-cols-2")}>
-
-            {/* Heart Rate Card */}
             <div className={clsx("flex flex-col justify-between group relative overflow-hidden", cardBase)}>
-                {/* Background Animation */}
                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                     <Heart size={120} strokeWidth={1} />
                 </div>
@@ -50,9 +45,7 @@ export default function StatsPanel({ className, variant = 'default' }: StatsPane
                 </div>
             </div>
 
-            {/* Duration Card */}
             <div className={clsx("flex flex-col justify-between group relative overflow-hidden", cardBase)}>
-                {/* Background Decoration */}
                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                     <Timer size={120} strokeWidth={1} />
                 </div>

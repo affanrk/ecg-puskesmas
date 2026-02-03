@@ -9,15 +9,12 @@ import clsx from 'clsx';
 import Link from 'next/link';
 
 export default function Header() {
-    // 1. Hooks & State
     const pathname = usePathname();
     const { user, isRecording } = useStore();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // 2. Effects
-    // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -28,14 +25,12 @@ export default function Header() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // 3. Handlers
     const handleLogout = () => {
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         window.location.href = '/login';
     };
 
-    // 4. Helpers & Computed
     const getPageTitle = (path: string) => {
         if (path.includes('/dashboard')) return 'Dashboard Overview';
         if (path.includes('/monitor')) return 'Live Monitoring';
@@ -47,20 +42,16 @@ export default function Header() {
 
     const isProfileComplete = user?.is_patient;
 
-    // 5. Render
     return (
         <>
             <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-50 sticky top-0">
-            {/* Left: Title */}
             <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
                 <h2 className="text-lg font-black text-slate-800 tracking-tight hidden md:block">
                     {getPageTitle(pathname)}
                 </h2>
             </div>
 
-            {/* Right: Actions */}
             <div className="flex items-center gap-5">
-                {/* Recording Indicator */}
                 {isRecording && (
                     <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-100 rounded-md animate-in fade-in slide-in-from-right-2 duration-500 shadow-sm shadow-rose-100">
                         <span className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></span>
@@ -68,7 +59,6 @@ export default function Header() {
                     </div>
                 )}
 
-                {/* Notification Bell */}
                 <button className="w-10 h-10 rounded-md bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-50 hover:text-teal-600 hover:border-teal-100 transition-all relative shadow-sm group">
                     <Bell size={20} strokeWidth={2} />
                     <span className="absolute top-2.5 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
@@ -76,7 +66,6 @@ export default function Header() {
 
                 <div className="w-px h-8 bg-slate-200 hidden md:block" />
 
-                {/* User Menu */}
                 <div className="relative" ref={menuRef}>
                     <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -95,7 +84,6 @@ export default function Header() {
                         <ChevronDown size={16} className={clsx("text-slate-300 transition-transform duration-200", isUserMenuOpen && "rotate-180")} />
                     </button>
 
-                    {/* Dropdown */}
                     {isUserMenuOpen && (
                         <div className="absolute top-full right-0 mt-3 w-56 bg-white rounded-lg shadow-xl shadow-slate-200/50 border border-slate-100 py-2 overflow-hidden animate-in fade-in slide-in-from-top-2 z-[100] ring-1 ring-black/5">
                             <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/30">
@@ -126,17 +114,17 @@ export default function Header() {
                 </div>
             </div>
 
-        </header>
+            </header>
 
-        <ConfirmationModal
-            isOpen={showLogoutConfirm}
-            onClose={() => setShowLogoutConfirm(false)}
-            onConfirm={handleLogout}
-            title="Confirm Logout"
-            message="Are you sure you want to end your session and logout from the system?"
-            confirmText="Logout"
-            isDestructive={true}
-        />
-    </>
-);
+            <ConfirmationModal
+                isOpen={showLogoutConfirm}
+                onClose={() => setShowLogoutConfirm(false)}
+                onConfirm={handleLogout}
+                title="Confirm Logout"
+                message="Are you sure you want to end your session and logout from the system?"
+                confirmText="Logout"
+                isDestructive={true}
+            />
+        </>
+    );
 }

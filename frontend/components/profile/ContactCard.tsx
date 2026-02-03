@@ -41,14 +41,10 @@ export default function ContactCard({
     onSaveProfileClick,
     loading
 }: ContactCardProps) {
-    // 1. Computed
     const canEditMedical = !isLocked || isEditingMedical;
 
-    // 2. Render
     return (
         <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
-            
-            {/* Background Decoration */}
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                 <HeartPulse size={120} strokeWidth={1} />
             </div>
@@ -72,8 +68,6 @@ export default function ContactCard({
                         <Edit2 size={12} strokeWidth={3} /> Edit Info
                     </button>
                 )}
-                
-                {/* Removed 'Live Editing' badge to keep header clean during edit mode, matching UsernameCard behavior */}
             </div>
 
             <div className={clsx("space-y-6 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>

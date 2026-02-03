@@ -8,19 +8,15 @@ import { Wifi, WifiOff, ChevronDown, Info, Power, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function DeviceDropdown() {
-    // 1. Hooks, State & Refs
     const { user, isConnected, isRecording } = useStore();
     const { devices, currentDeviceId, selectDevice, disconnectDevice } = useDeviceManager();
     const [isOpen, setIsOpen] = useState(false);
     
-    // Confirmation State
     const [showConfirm, setShowConfirm] = useState(false);
     const [pendingAction, setPendingAction] = useState<{ type: 'switch' | 'disconnect', deviceId?: string } | null>(null);
     
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // 2. Effects
-    // Handle click outside to close
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -31,7 +27,6 @@ export default function DeviceDropdown() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // 3. Handlers
     const initiateSwitch = (deviceId: string) => {
         if (isRecording) {
             setPendingAction({ type: 'switch', deviceId });
@@ -64,8 +59,6 @@ export default function DeviceDropdown() {
         setPendingAction(null);
     };
 
-    // 4. Render
-    // Hide if profile is not complete
     if (!user || !user.is_patient) return null;
 
     return (
@@ -100,11 +93,9 @@ export default function DeviceDropdown() {
                 <ChevronDown size={16} className={clsx("transition-transform duration-200 text-slate-400", isOpen && "rotate-180")} />
             </button>
 
-            {/* Dropdown Menu */}
             {isOpen && (
                 <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-top-2 overflow-hidden ring-1 ring-black/5">
                     
-                    {/* Active Connection Section */}
                     {currentDeviceId && (
                         <div className="px-4 py-4 border-b border-slate-50 bg-emerald-50/30">
                             <div className="flex items-start justify-between mb-4">
@@ -148,7 +139,7 @@ export default function DeviceDropdown() {
                         ) : (
                             devices.map((device) => {
                                 const isSelected = currentDeviceId === device.id;
-                                if (isSelected) return null; // Skip active one (shown at top)
+                                if (isSelected) return null;
 
                                 return (
                                     <button

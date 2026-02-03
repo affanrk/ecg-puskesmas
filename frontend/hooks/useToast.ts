@@ -2,8 +2,6 @@
 
 import { create } from 'zustand';
 
-// --- Types ---
-
 export type ToastType = 'success' | 'error' | 'warning';
 
 export interface Toast {
@@ -18,13 +16,9 @@ interface ToastState {
     remove: (id: number) => void;
 }
 
-// --- Store ---
-
 export const useToast = create<ToastState>((set) => ({
-    // State
     toasts: [],
 
-    // Actions
     show: (message, type = 'success') => {
         const id = Date.now() + Math.random();
         set((state) => ({

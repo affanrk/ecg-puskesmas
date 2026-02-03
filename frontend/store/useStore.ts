@@ -3,8 +3,6 @@
 import { create } from 'zustand';
 import { CONFIG } from '@/config/constants';
 
-// --- Interfaces ---
-
 export interface User {
     id?: number;
     username: string;
@@ -57,8 +55,6 @@ export interface PerformanceMetrics {
 }
 
 interface AppState {
-    // --- State Variables ---
-    // Primitives
     currentDeviceId: string | null;
     isRecording: boolean;
     isSessionActive: boolean;
@@ -82,7 +78,6 @@ interface AppState {
         data: AnalysisResult | null;
     };
 
-    // Objects / Arrays
     user: User | null;
     devices: Device[];
     liveData: AnalysisResult[];
@@ -91,7 +86,6 @@ interface AppState {
     performance: PerformanceMetrics;
     visibleLeads: { leadI: boolean; leadII: boolean; v1: boolean };
 
-    // --- Actions ---
     setDeviceId: (id: string | null) => void;
     setDevices: (devices: Device[]) => void;
     setRecording: (isRecording: boolean) => void;
@@ -112,10 +106,7 @@ interface AppState {
     resetSession: () => void;
 }
 
-// --- Store Implementation ---
-
 export const useStore = create<AppState>((set, get) => ({
-    // Initial State
     currentDeviceId: null,
     isRecording: false,
     isSessionActive: false,
@@ -126,7 +117,7 @@ export const useStore = create<AppState>((set, get) => ({
     livePage: 1,
     bpm: '--',
     performanceTrackingEnabled: false,
-    isSidebarPinned: true, // Default to pinned
+    isSidebarPinned: true,
     calendarSelection: {
         year: null,
         month: null,
@@ -157,7 +148,6 @@ export const useStore = create<AppState>((set, get) => ({
         v1: true
     },
 
-    // Actions
     setDeviceId: (id) => set((state) => ({
         currentDeviceId: id, 
         isRecording: false, 
@@ -169,7 +159,7 @@ export const useStore = create<AppState>((set, get) => ({
         recordingSeconds: state.recordingSeconds,
         recordingStartTime: state.recordingStartTime,
         accumulatedTime: state.accumulatedTime,
-        ecgBuffer: [] // Always clear buffer on device change/disconnect
+        ecgBuffer: []
     })),
 
     setDevices: (devices) => set({ devices }),
@@ -199,7 +189,6 @@ export const useStore = create<AppState>((set, get) => ({
             recording_id: 'placeholder-live'
         });
         
-        // Only set start time if not already recording to prevent timer reset on segment updates
         const startTime = state.isRecording ? state.recordingStartTime : Date.now();
         
         return { 
@@ -234,7 +223,6 @@ export const useStore = create<AppState>((set, get) => ({
         const clean = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
         if (clean.some(item => item.recording_id === result.recording_id)) return state;
         
-        // Ensure result has a timestamp or changed_dt
         const resultWithTime = {
             ...result,
             timestamp: result.changed_dt || result.timestamp || new Date().toISOString()

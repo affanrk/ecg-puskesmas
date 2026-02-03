@@ -68,13 +68,11 @@ export default function FlatpickrInput({
              fpInstance.current.altInput.disabled = disabled;
              const altInput = fpInstance.current.altInput;
              
-             // Apply Tailwind classes dynamically to the Flatpickr-generated input
              const baseClasses = "w-full px-4 py-3 rounded-xl border-2 text-xs font-bold transition-all duration-300 outline-none";
              const activeClasses = "border-slate-100 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/5 bg-slate-50/50 focus:bg-white text-slate-800 placeholder:text-slate-400";
              const disabledClasses = "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none";
              const errorClasses = "border-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 bg-rose-50/20 text-rose-900 placeholder:text-rose-300";
 
-             // Reset class list first to avoid conflicts (naive approach but works for simple swaps)
              altInput.className = baseClasses;
 
              if (disabled) {
@@ -94,7 +92,6 @@ export default function FlatpickrInput({
                 <input
                     ref={inputRef}
                     data-fp-original="true" 
-                    // Base classes for the hidden input don't matter much, but keeping them for consistency
                     className="hidden"
                     placeholder={placeholder}
                     disabled={disabled}

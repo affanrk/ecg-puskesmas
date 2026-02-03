@@ -5,15 +5,12 @@ import { EVENTS } from '@/config/constants';
 import { useStore, Device } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 
-// --- Types ---
-
 declare global {
     interface Window {
         __ENV__?: Record<string, string>;
     }
 }
 
-// Define types for incoming WebSocket messages
 type SocketMessage =
     | { type: 'ping' }
     | { type: 'device_list_update'; devices: Device[] }
@@ -26,13 +23,9 @@ type SocketMessage =
     | { type: 'device_disconnected'; device_id: string }
     | { type: 'error'; message: string };
 
-// --- State ---
-
 let socket: WebSocket | null = null;
 let reconnectInterval = 2000;
 let watchdogTimer: NodeJS.Timeout | null = null;
-
-// --- Helpers ---
 
 const getWsUrl = (): string => {
     const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -57,19 +50,14 @@ const getWsUrl = (): string => {
 const resetWatchdog = () => {
     if (watchdogTimer) clearTimeout(watchdogTimer);
 
-    // Watchdog logic can be expanded here if needed to detect stalled streams
     watchdogTimer = setTimeout(() => {
-        // Placeholder for future watchdog logic
     }, 3000);
 };
-
-// --- Message Handler ---
 
 const handleMessage = (msg: SocketMessage) => {
     const store = useStore.getState();
     const { show: toast } = useToast.getState();
 
-    // 1. System Messages
     if (msg.type === "ping") {
         sendJson({ type: "pong", timestamp: Date.now() });
         return;
@@ -81,10 +69,7 @@ const handleMessage = (msg: SocketMessage) => {
         return;
     }
 
-    // Filter: Ensure data is for selected device (if applicable to the message type)
     if ('device_id' in msg && msg.device_id) {
-        // Exception: Allow 'device_disconnected' to pass even if we are in transition, 
-        // but strictly block data types if no device is selected.
         const isDataMessage = ['live_data', 'live_batch', 'live_result', 'live_metrics_update', 'performance_update'].includes(msg.type);
 
         if (isDataMessage) {
@@ -92,17 +77,14 @@ const handleMessage = (msg: SocketMessage) => {
                 return;
             }
         } else {
-            // For other messages (like status updates), just check mismatch if we have a device
             if (store.currentDeviceId && msg.device_id !== store.currentDeviceId) {
                 return;
             }
         }
     }
 
-    // 2. Data Messages
     switch (msg.type) {
         case "live_data": {
-            // Legacy single point - store in buffer AND emit
             const point = { leadI: msg.cal_lead_I, leadII: msg.cal_lead_II, v1: msg.cal_v1 };
             store.pushEcgData([point]);
             globalEventBus.emit(EVENTS.CHART.ECG_DATA, point);
@@ -118,10 +100,7 @@ const handleMessage = (msg: SocketMessage) => {
                     v1: s.v1
                 }));
 
-                // Store in global buffer for persistence
                 store.pushEcgData(batchData);
-
-                // Emit for chart animation
                 globalEventBus.emit(EVENTS.CHART.ECG_BATCH, batchData);
                 resetWatchdog();
             }
@@ -161,7 +140,6 @@ const handleMessage = (msg: SocketMessage) => {
                 jitter_ms: msg.jitter_ms,
                 loss_pct: msg.packet_loss_pct
             });
-            // resetWatchdog();
             break;
         }
 
@@ -169,7 +147,6 @@ const handleMessage = (msg: SocketMessage) => {
             globalEventBus.emit(EVENTS.DEVICE.DISCONNECTED, {
                 device_id: msg.device_id
             });
-            // resetWatchdog();
             break;
         }
 
@@ -180,8 +157,6 @@ const handleMessage = (msg: SocketMessage) => {
         }
     }
 };
-
-// --- Exports ---
 
 export const connectWebSocket = () => {
     const wsUrl = getWsUrl();

@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import { AnalysisResult } from '@/store/useStore';
 
 interface RecentAnalysisTableProps {
     loading: boolean;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recentRecords: any[];
+    recentRecords: AnalysisResult[];
     loadDashboardData: () => void;
     highlight: boolean;
 }
@@ -22,14 +22,13 @@ export default function RecentAnalysisTable({
     const [rowsPerPage, setRowsPerPage] = useState(5);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Responsive Table Height Logic
     useEffect(() => {
         if (!containerRef.current) return;
 
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
-                const availableHeight = height - 55; // 50 (header) + 5 (buffer) 
+                const availableHeight = height - 55;
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / 48));
                 setRowsPerPage(calculatedRows);
             }
@@ -38,12 +37,6 @@ export default function RecentAnalysisTable({
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
-
-    // Reset pagination when data changes significantly
-    useEffect(() => {
-        // eslint-disable-next-line
-        setCurrentPage(1);
-    }, [recentRecords]);
 
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * rowsPerPage;
@@ -160,7 +153,6 @@ export default function RecentAnalysisTable({
                 )}
             </div>
 
-            {/* Pagination Footer */}
             <div className="px-6 py-3 border-t border-slate-50 bg-slate-50/20 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Page {currentPage} of {totalPages}</span>

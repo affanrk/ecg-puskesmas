@@ -5,10 +5,8 @@ import clsx from 'clsx';
 import { Sparkles, Brain, ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function AIAnalysisCard() {
-    // 1. Hooks & State
     const liveData = useStore((state) => state.liveData);
 
-    // 2. Logic
     let prediction: { classification: string; confidence: number } | null = null;
 
     if (liveData && liveData.length > 0) {
@@ -27,14 +25,12 @@ export default function AIAnalysisCard() {
     const confidencePct = prediction ? Math.round(prediction.confidence * 100) : 0;
     const isWaiting = !prediction;
 
-    // 3. Render
     return (
         <div className={clsx(
             "h-full bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border px-8 py-5 flex flex-col justify-between transition-all duration-500 group relative overflow-hidden",
             isWaiting ? "border-slate-200" :
             isAbnormal ? "border-rose-100 ring-8 ring-rose-50/30" : "border-emerald-100 ring-8 ring-emerald-50/30"
         )}>
-             {/* Background Decoration */}
              <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                 <Brain size={120} strokeWidth={1} />
             </div>

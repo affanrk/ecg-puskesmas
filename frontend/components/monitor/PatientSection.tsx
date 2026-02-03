@@ -9,10 +9,8 @@ interface PatientSectionProps {
 }
 
 export default function PatientSection({ variant = 'default' }: PatientSectionProps) {
-    // 1. Hooks & State
     const { user } = useStore();
 
-    // 2. Conditional Render: Loading
     if (!user) {
         return (
             <div className={clsx(
@@ -31,10 +29,8 @@ export default function PatientSection({ variant = 'default' }: PatientSectionPr
         ? "flex items-center justify-between h-full px-1" 
         : "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 px-8 py-5 h-full flex flex-col justify-center group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
 
-    // 3. Main Render
     return (
         <div className={containerClass}>
-            {/* Background Decoration */}
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                 <User size={120} strokeWidth={1} />
             </div>

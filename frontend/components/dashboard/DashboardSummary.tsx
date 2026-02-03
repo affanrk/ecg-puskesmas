@@ -1,23 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useStore } from '@/store/useStore';
+import { useStore, AnalysisResult } from '@/store/useStore';
 import { api } from '@/services/api';
 import SummaryCards from './SummaryCards';
 import RecentAnalysisTable from './RecentAnalysisTable';
 import DistributionChart from './DistributionChart';
 
 export default function DashboardSummary() {
-    // 1. Hooks & State
     const { user } = useStore();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [recentRecords, setRecentRecords] = useState<any[]>([]);
+    const [recentRecords, setRecentRecords] = useState<AnalysisResult[]>([]);
     const [stats, setStats] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
     const [highlight, setHighlight] = useState(false);
     const isFetching = useRef(false);
 
-    // 2. Data Fetching
     const loadDashboardData = useCallback(async () => {
         if (!user?.id || isFetching.current) return; 
 
@@ -36,8 +33,7 @@ export default function DashboardSummary() {
                 const normalizedStats: Record<string, number> = {};
                 
                 if (statsData.classification_counts && Array.isArray(statsData.classification_counts)) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    statsData.classification_counts.forEach((item: any) => {
+                    statsData.classification_counts.forEach((item: { classification: string; count: number }) => {
                         if (item.classification && typeof item.count === 'number') {
                             normalizedStats[item.classification] = item.count;
                         }
@@ -64,12 +60,10 @@ export default function DashboardSummary() {
         }
     }, [user?.id]);
 
-    // 3. Effects
     useEffect(() => {
         loadDashboardData();
     }, [loadDashboardData]);
 
-    // 4. Helpers for Summary Cards
     const formatDateTime = (isoString: string) => {
         if (!isoString) return { date: '-', time: '' };
         const dateObj = new Date(isoString);
@@ -82,20 +76,14 @@ export default function DashboardSummary() {
     const lastResult = recentRecords.length > 0 ? recentRecords[0] : null;
     const lastResultTime = lastResult ? formatDateTime(lastResult.changed_dt || lastResult.timestamp) : { date: '--', time: '--' };
 
-    // 6. Render
     return (
         <div className="flex flex-col gap-3 sm:gap-4 h-full min-h-0">
-            
-            {/* --- TOP ROW: 3 CARDS --- */}
             <SummaryCards 
                 lastResult={lastResult}
                 lastResultTime={lastResultTime}
             />
 
-            {/* --- BOTTOM ROW --- */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 flex-1 min-h-0 pb-2 sm:pb-4">
-                
-                {/* PANEL 4: RECENT HISTORY */}
                 <RecentAnalysisTable 
                     loading={loading}
                     recentRecords={recentRecords}
@@ -103,9 +91,7 @@ export default function DashboardSummary() {
                     highlight={highlight}
                 />
 
-                {/* PANEL 5: DISTRIBUTION */}
                 <DistributionChart stats={stats} />
-
             </div>
         </div>
     );

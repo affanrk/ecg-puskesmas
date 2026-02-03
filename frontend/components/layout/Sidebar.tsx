@@ -24,18 +24,14 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar() {
-    // 1. Hooks & State
     const pathname = usePathname();
     const { user, isSidebarPinned, setIsSidebarPinned } = useStore();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
-    // 2. Computed
     const isProfileComplete = user?.is_patient;
     
-    // Desktop: Expanded if pinned OR hovered. Mobile: Controlled by isMobileOpen
-
     const navItems = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
         { name: 'Classifier', href: '/classifier', icon: BrainCircuit, allowed: isProfileComplete },
@@ -44,17 +40,14 @@ export default function Sidebar() {
         { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isProfileComplete },
     ];
 
-    // 3. Handlers
     const handleLogout = () => {
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         window.location.href = '/login';
     };
 
-    // 4. Render
     return (
         <>
-            {/* Mobile Toggle */}
             <button 
                 className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-white rounded-md shadow-md border border-slate-200 text-slate-600 hover:text-teal-600 transition-colors"
                 onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -62,14 +55,10 @@ export default function Sidebar() {
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            {/* Sidebar Container */}
             <aside 
                 className={clsx(
                     "fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 z-[60] transition-all duration-300 ease-in-out flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]",
-                    // Mobile: Slide in from left
                     isMobileOpen ? "translate-x-0" : "-translate-x-full",
-                    
-                    // Desktop Logic
                     (isSidebarPinned || isHovered) 
                         ? "lg:translate-x-0 lg:shadow-xl" 
                         : "lg:-translate-x-[92%] lg:opacity-90 hover:opacity-100 lg:shadow-none"
@@ -77,7 +66,6 @@ export default function Sidebar() {
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
-                {/* Auto-hide Trigger Handle (Visible when hidden) */}
                 {!isSidebarPinned && !isHovered && (
                     <div className="absolute right-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-pointer group">
                         <div className="w-1 h-12 bg-slate-300 rounded-full group-hover:bg-teal-400 transition-colors" />
@@ -85,7 +73,6 @@ export default function Sidebar() {
                     </div>
                 )}
 
-                {/* Logo Area */}
                 <div className="h-[72px] flex items-center gap-3 px-6 border-b border-slate-100/50 bg-white shrink-0 relative overflow-hidden group-hover:bg-slate-50/30 transition-colors">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-50/50 to-transparent pointer-events-none" />
                     <div className="relative w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-md flex items-center justify-center shadow-lg shadow-teal-500/20 ring-4 ring-teal-50 shrink-0">
@@ -97,7 +84,6 @@ export default function Sidebar() {
                     </div>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Main Menu</p>
                     
@@ -156,7 +142,6 @@ export default function Sidebar() {
                     </Link>
                 </nav>
 
-                {/* Footer: Logout & Pin Toggle */}
                 <div className="p-4 border-t border-slate-100 bg-white shrink-0 flex flex-col gap-2">
                     <button 
                         onClick={() => setShowLogoutConfirm(true)}
@@ -168,7 +153,6 @@ export default function Sidebar() {
                         <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>Sign Out</span>
                     </button>
 
-                    {/* Pin Toggle Button */}
                     <button 
                         onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                         className={clsx(
@@ -189,7 +173,6 @@ export default function Sidebar() {
                 </div>
             </aside>
 
-            {/* Overlay */}
             {isMobileOpen && (
                 <div 
                     className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden animate-in fade-in"

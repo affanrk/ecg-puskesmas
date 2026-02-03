@@ -86,7 +86,7 @@ export function useProfileManager() {
         let error = "";
         switch (field) {
             case 'nik':
-                if (value.length > 0 && !/^\d*$/.test(value)) return "Numbers only";
+                if (value.length > 0 && !/\d*$/.test(value)) return "Numbers only";
                 if (value.length > 0 && value.length < 16) return "Must be 16 digits";
                 if (value.length > 16) return "Max 16 digits";
                 break;

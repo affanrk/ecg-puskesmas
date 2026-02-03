@@ -7,14 +7,11 @@ import { ChevronLeft, Calendar, Clock, AlertTriangle, CheckCircle, Stethoscope, 
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
 
-// Import New Grid Components
 import YearGrid from './calendar/YearGrid';
 import MonthGrid from './calendar/MonthGrid';
 import DayGrid from './calendar/DayGrid';
 import TimeGrid from './calendar/TimeGrid';
 import SecondGrid from './calendar/SecondGrid';
-
-// --- Types ---
 
 export interface CalendarNode {
     label: string;
@@ -46,15 +43,11 @@ export default function CalendarDrillDown() {
 
     const [viewTitle, setViewTitle] = useState("Yearly Archive");
 
-    // UI Loading State for detail fetch
     const [resultLoading, setResultLoading] = useState(false);
 
-    // Derived states from store for cleaner access
     const isResultOpen = selectedResult.data !== null || resultLoading;
     const resultData = selectedResult.data;
     const selectedSecond = selectedResult.second;
-
-    // --- Helpers ---
 
     const getBreadcrumbs = () => {
         const parts = [];
@@ -70,8 +63,6 @@ export default function CalendarDrillDown() {
         const dates = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         return dates[m] || String(m);
     };
-
-    // --- Data Fetching ---
 
     const fetchData = useCallback(async () => {
         if (!user?.id || isFetching.current) return;
@@ -89,7 +80,6 @@ export default function CalendarDrillDown() {
             });
             setData(res);
             
-            // Update Title
             if (!selection.year) setViewTitle("Select Year");
             else if (!selection.month) setViewTitle(`${selection.year} - Select Month`);
             else if (!selection.day) setViewTitle(`${getMonthName(selection.month)} ${selection.year} - Select Day`);
@@ -120,9 +110,7 @@ export default function CalendarDrillDown() {
             const dateStr = `${selection.year}-${String(selection.month).padStart(2, '0')}-${String(selection.day).padStart(2, '0')}`;
             const timeStr = `${String(selection.hour).padStart(2, '0')}:${String(selection.minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`;
             
-            // Build local timestamp without 'Z' so backend compares it against local_dt
             const startDt = `${dateStr}T${timeStr}`;
-            // Simple approach: set endDt to the same second with a high millisecond precision
             const endDt = `${dateStr}T${timeStr}.999`;
             
             const results = await api.fetchHistory({
@@ -145,8 +133,6 @@ export default function CalendarDrillDown() {
             setResultLoading(false);
         }
     };
-
-    // --- Interaction ---
 
     const handleNodeClick = (node: CalendarNode) => {
         if (node.level === 'year') {
@@ -185,8 +171,6 @@ export default function CalendarDrillDown() {
         setSelectedResult({ data: null, second: null });
     };
 
-    // --- Render ---
-
     const isRoot = selection.year === null;
     const currentLevel = data?.level || 'year';
 
@@ -223,7 +207,6 @@ export default function CalendarDrillDown() {
                     </div>
                 ) : resultData ? (
                     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-                        {/* Top Info Bar */}
                         <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-50/80 rounded-lg p-3 sm:p-4 border border-slate-100 gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 bg-white rounded-md flex items-center justify-center text-teal-600 shadow-sm border border-slate-200 shrink-0">
@@ -238,17 +221,6 @@ export default function CalendarDrillDown() {
                             </div>
                             
                             <div className="flex items-center gap-3">
-                                <div className="bg-white px-3 py-1.5 rounded-md border border-slate-200 shadow-sm flex items-center gap-2">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Device:</span>
-                                    <span className="text-[10px] font-bold text-slate-600">{resultData.device_id || "--"}</span>
-                                </div>
-                                <button 
-                                    onClick={() => api.downloadRecording('plot', resultData.recording_id)}
-                                    className="p-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors shadow-sm"
-                                    title="Download Report"
-                                >
-                                    <FileText size={16} />
-                                </button>
                                 <button 
                                     onClick={closeResultModal}
                                     className="p-2 bg-white text-slate-400 border border-slate-200 rounded-md hover:text-rose-500 hover:border-rose-100 transition-colors"
@@ -260,7 +232,6 @@ export default function CalendarDrillDown() {
                         </div>
 
                         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6">
-                            {/* Left: Classification & Metrics (7 cols) */}
                             <div className="xl:col-span-7 space-y-3 sm:space-y-4">
                                 <div className="flex flex-col gap-2">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Condition Overview</span>
@@ -324,7 +295,6 @@ export default function CalendarDrillDown() {
                                 </div>
                             </div>
 
-                            {/* Right: AI Advice (5 cols) */}
                             <div className="xl:col-span-5 flex flex-col gap-2">
                                 <div className="flex items-center justify-between px-1">
                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Medical Insights</span>
@@ -366,7 +336,6 @@ export default function CalendarDrillDown() {
                             </div>
                         </div>
 
-                        {/* Actions (Floating-like at bottom or just centered) */}
                         <div className="flex items-center justify-center gap-4 py-2">
                             <button 
                                 onClick={closeResultModal}
@@ -389,8 +358,6 @@ export default function CalendarDrillDown() {
 
     return (
         <div className="flex flex-col h-full gap-3 p-1 relative">
-            
-            {/* Navigation Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 bg-white p-3 rounded-lg shadow-sm border border-slate-100 gap-2">
                 <div className="flex items-center gap-3">
                     {!isRoot && (
@@ -413,7 +380,6 @@ export default function CalendarDrillDown() {
                 </div>
             </div>
 
-            {/* Grid Content */}
             <div className="flex-1 overflow-y-auto min-h-0 bg-white rounded-md sm:rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-4 sm:p-6">
                 {loading ? (
                     <div className="h-full w-full flex flex-col items-center justify-center py-10 gap-3 opacity-40">

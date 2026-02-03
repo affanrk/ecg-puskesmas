@@ -35,8 +35,6 @@ export default function IdentityCard({
 }: IdentityCardProps) {
     return (
         <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
-            
-            {/* Background Decoration */}
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                 <Fingerprint size={120} strokeWidth={1} />
             </div>

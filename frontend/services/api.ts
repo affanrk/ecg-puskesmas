@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-// --- Types ---
-
 declare global {
     interface Window {
         __ENV__?: Record<string, string>;
@@ -12,8 +10,6 @@ export interface HistoryFilters {
     [key: string]: string | number | boolean | undefined;
 }
 
-// --- Environment Helpers ---
-
 export const getApiUrl = (): string => {
     let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
@@ -21,18 +17,14 @@ export const getApiUrl = (): string => {
         url = window.__ENV__.NEXT_PUBLIC_API_URL || url;
     }
 
-    // Sanitize: Remove trailing slash
     url = url.replace(/\/$/, '');
 
-    // Auto-fix: Ensure it ends with /api/v1
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }
 
     return url;
 };
-
-// --- API Functions ---
 
 export async function fetchHistory(filters: HistoryFilters = {}) {
     const params = new URLSearchParams();
@@ -124,8 +116,6 @@ export async function fetchCalendar(filters: {
         throw error;
     }
 }
-
-// --- Exports ---
 
 export const api = {
     fetchHistory,

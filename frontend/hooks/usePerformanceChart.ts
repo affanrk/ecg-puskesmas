@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Chart, ChartConfiguration } from 'chart.js';
 
 interface UsePerformanceChartProps {
@@ -14,12 +14,10 @@ interface UsePerformanceChartProps {
 export function usePerformanceChart({ data, color, label, maxPoints, suggestedMax }: UsePerformanceChartProps) {
     const chartRef = useRef<Chart | null>(null);
 
-    // Initialize Chart
     const initChart = (ctx: CanvasRenderingContext2D) => {
-        // Create Gradient
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, color + '40'); // 25% opacity
-        gradient.addColorStop(1, color + '00'); // 0% opacity
+        gradient.addColorStop(0, color + '40');
+        gradient.addColorStop(1, color + '00');
 
         const config: ChartConfiguration = {
             type: 'line',
@@ -27,14 +25,14 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
                 labels: Array(maxPoints).fill(''),
                 datasets: [{
                     label,
-                    data: [], // Initialize empty, let updateData fill it
+                    data: [],
                     borderColor: color,
                     backgroundColor: gradient,
                     fill: true,
                     borderWidth: 2,
                     pointRadius: 0,
                     pointHoverRadius: 4,
-                    tension: 0.35 // Slightly sharper
+                    tension: 0.35
                 }]
             },
             options: {
@@ -48,12 +46,12 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
                         beginAtZero: true,
                         suggestedMax: suggestedMax,
                         grid: { 
-                            color: '#f1f5f9', // slate-100
+                            color: '#f1f5f9',
                             tickLength: 0
                         },
                         border: { display: false },
                         ticks: { 
-                            color: '#94a3b8', // slate-400
+                            color: '#94a3b8',
                             font: { size: 9, family: 'var(--font-inter)', weight: 600 },
                             padding: 6,
                             maxTicksLimit: 5
@@ -66,16 +64,13 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
         chartRef.current = new Chart(ctx, config);
     };
 
-    // Update Chart Data
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const updateChart = () => {
+    const updateChart = useCallback(() => {
         if (chartRef.current) {
             chartRef.current.data.datasets[0].data = [...data];
             chartRef.current.update('none');
         }
-    };
+    }, [data]);
 
-    // Cleanup Chart
     const destroyChart = () => {
         if (chartRef.current) {
             chartRef.current.destroy();
@@ -85,7 +80,7 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
 
     useEffect(() => {
         updateChart();
-    }, [data, updateChart]);
+    }, [updateChart]);
 
     return { initChart, destroyChart };
 }

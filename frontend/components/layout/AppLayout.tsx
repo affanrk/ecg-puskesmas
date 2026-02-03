@@ -9,15 +9,11 @@ import { useDeviceManager } from '@/hooks/useDeviceManager';
 import clsx from 'clsx';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-    // 1. Hooks & State
     const { isRecording, updateTimer, isSidebarPinned } = useStore();
     const isMounted = useRef(false);
 
-    // Initialize global device listeners (Disconnection/Timeout handling)
     useDeviceManager();
 
-    // 2. Effects
-    // Initialize WebSocket
     useEffect(() => {
         if (!isMounted.current) {
             isMounted.current = true;
@@ -25,7 +21,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    // Global Timer Interval
     useEffect(() => {
         let interval: NodeJS.Timeout;
         if (isRecording) {
@@ -36,13 +31,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [isRecording, updateTimer]);
 
-    // 3. Render
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
-            {/* Sidebar */}
             <Sidebar />
 
-            {/* Main Content */}
             <div 
                 className={clsx(
                     "flex-1 flex flex-col min-w-0 bg-white shadow-2xl relative z-10 overflow-hidden transition-all duration-300 ease-in-out",

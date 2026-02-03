@@ -5,11 +5,9 @@ import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
 
 export function useSessionManager() {
-    // 1. Store & Hooks
     const { isRecording, currentDeviceId, user } = useStore();
     const { show: toast } = useToast();
 
-    // 2. Actions
     const toggleRecording = () => {
         if (!currentDeviceId) {
             toast("No device selected", "error");
@@ -27,9 +25,9 @@ export function useSessionManager() {
             const payload = {
                 type: "start_recording",
                 device_id: currentDeviceId,
-                user_id: user.id, // ID is int
+                user_id: user.id,
                 username: user.username,
-                subject_id: String(user.id) // Fallback for components expecting subject_id
+                subject_id: String(user.id)
             };
             sendJson(payload);
         }

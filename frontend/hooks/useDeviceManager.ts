@@ -13,12 +13,9 @@ export interface Device {
 }
 
 export function useDeviceManager() {
-    // 1. Store & Hooks
     const { currentDeviceId, setDeviceId, isRecording, setRecording, devices, setBpm } = useStore();
     const { show: toast } = useToast();
 
-    // 2. Effects
-    // Handle AUTOMATIC disconnection (network/power loss)
     useEffect(() => {
         const handleDeviceList = (list: Device[]) => {
             if (currentDeviceId) {
@@ -35,11 +32,9 @@ export function useDeviceManager() {
 
             const wasRecording = isRecording || (typeof data !== 'string' && data.was_recording);
 
-            // Clear Device ID (Keeps session active in store logic)
             setDeviceId(null); 
             setBpm('--');
 
-            // If it was recording, stop it and notify
             if (wasRecording) {
                 setRecording(false); 
                 toast(`Recording PAUSED! Device ${disconnectedId} lost connection. Select another device to continue.`, "error");
@@ -48,10 +43,8 @@ export function useDeviceManager() {
             }
         };
 
-        // Handle Reconnection: Re-subscribe if we had a device selected
         const handleReconnection = () => {
             if (currentDeviceId) {
-                console.log("[DeviceManager] Socket reconnected, re-subscribing to:", currentDeviceId);
                 sendJson({ type: "subscribe_to_device", device_id: currentDeviceId });
             }
         };
@@ -67,23 +60,18 @@ export function useDeviceManager() {
         };
     }, [currentDeviceId, isRecording, setDeviceId, setRecording, toast, setBpm]);
 
-    // 3. Actions
-    // Handle MANUAL selection (Switching devices)
     const selectDevice = (deviceId: string) => {
         if (deviceId === currentDeviceId) return;
 
-        // If recording, stop current (UI should confirm this first)
         if (isRecording) {
             sendJson({ type: "stop_recording", device_id: currentDeviceId });
             setRecording(false);
         }
 
-        // Unsubscribe old
         if (currentDeviceId) {
             sendJson({ type: "unsubscribe" });
         }
 
-        // Set new (Preserves session)
         setDeviceId(deviceId);
 
         if (deviceId) {
@@ -91,21 +79,17 @@ export function useDeviceManager() {
         }
     };
 
-    // Handle MANUAL Disconnect button
     const disconnectDevice = () => {
         if (!currentDeviceId) return;
 
-        // If recording, stop (UI should confirm this first)
         if (isRecording) {
             sendJson({ type: "stop_recording", device_id: currentDeviceId });
             setRecording(false);
         }
         
-        // Send Unsubscribe
         sendJson({ type: "unsubscribe" });
         
-        // Clear Local State
-        setDeviceId(null); // Keeps session active
+        setDeviceId(null); 
         setBpm('--');
         
         toast("Disconnected from device");

@@ -12,17 +12,13 @@ import clsx from 'clsx';
 import { Settings2, Activity, Square, XCircle } from 'lucide-react';
 import DeviceDropdown from './DeviceDropdown';
 
-// --- Interfaces ---
-
 interface ECGChartProps {
     onToggleLead?: (key: 'leadI' | 'leadII' | 'v1') => void;
     visibleLeads?: Record<string, boolean>;
 }
 
-// --- Helpers ---
-
 const medicalGridStyle = {
-    backgroundColor: '#fffcfc', // Very slight red tint to white
+    backgroundColor: '#fffcfc',
     backgroundImage: `
         linear-gradient(rgba(220, 38, 38, 0.1) 1px, transparent 1px),
         linear-gradient(90deg, rgba(220, 38, 38, 0.1) 1px, transparent 1px),
@@ -87,8 +83,8 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
             point: { radius: 0 },
             line: {
                 borderWidth: 2,
-                tension: 0.35, // Slightly sharper for "ink" feel
-                borderColor: '#000000' // Pure Black Ink
+                tension: 0.35,
+                borderColor: '#000000'
             }
         }
     };
@@ -110,28 +106,22 @@ const adjustScaleSingle = (chart: Chart) => {
     }
 
     if (!hasData) {
-        // Default range if no data
         minVal = -2;
         maxVal = 2;
     } else {
-        // Add 10% padding
         const range = maxVal - minVal;
-        const padding = range * 0.1 || 0.5; // Default padding if range is 0
+        const padding = range * 0.1 || 0.5;
         minVal -= padding;
         maxVal += padding;
     }
 
-    // Ensure chart options scales object exists
     if (chart.options.scales?.y) {
         chart.options.scales.y.min = minVal;
         chart.options.scales.y.max = maxVal;
     }
 };
 
-// --- Component ---
-
 export default function ECGChart({ }: ECGChartProps) {
-    // 1. Refs for 3 Canvases
     const canvasRefI = useRef<HTMLCanvasElement>(null);
     const canvasRefII = useRef<HTMLCanvasElement>(null);
     const canvasRefV1 = useRef<HTMLCanvasElement>(null);
@@ -143,12 +133,10 @@ export default function ECGChart({ }: ECGChartProps) {
     const cursorRef = useRef(0);
     const bufferRef = useRef<{ leadI: number | null, leadII: number | null, v1: number | null }[]>([]);
 
-    // 2. Store Hooks
     const { currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
     const { toggleRecording } = useSessionManager();
     const [showConfirmReset, setShowConfirmReset] = useState(false);
 
-    // 3. Handlers
     const handleReset = () => {
         if (isRecording) return;
         setShowConfirmReset(true);
@@ -159,14 +147,10 @@ export default function ECGChart({ }: ECGChartProps) {
         setShowConfirmReset(false);
     };
 
-    // 4. Effects
-
-    // Init Charts
     useEffect(() => {
         const totalPoints = CONFIG.MAX_DATA_POINTS;
         const initialData = new Array(totalPoints).fill(null);
 
-        // --- Lead I Setup ---
         if (canvasRefI.current) {
             const ctxI = canvasRefI.current.getContext('2d');
             if (ctxI) {
@@ -181,7 +165,6 @@ export default function ECGChart({ }: ECGChartProps) {
             }
         }
 
-        // --- Lead II Setup ---
         if (canvasRefII.current) {
             const ctxII = canvasRefII.current.getContext('2d');
             if (ctxII) {
@@ -196,7 +179,6 @@ export default function ECGChart({ }: ECGChartProps) {
             }
         }
 
-        // --- V1 Setup ---
         if (canvasRefV1.current) {
             const ctxV1 = canvasRefV1.current.getContext('2d');
             if (ctxV1) {
@@ -211,7 +193,6 @@ export default function ECGChart({ }: ECGChartProps) {
             }
         }
 
-        // Restore Persistent Data
         if (ecgBuffer.length > 0) {
             const pointsToRestore = ecgBuffer.slice(-totalPoints);
 
@@ -237,7 +218,6 @@ export default function ECGChart({ }: ECGChartProps) {
             cursorRef.current = pointsToRestore.length % totalPoints;
         }
 
-        // Render Loop
         const processBuffer = () => {
             if (bufferRef.current.length === 0) return;
 
@@ -303,8 +283,6 @@ export default function ECGChart({ }: ECGChartProps) {
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-
-    // Handle Reset/Clear
     useEffect(() => {
         if (ecgBuffer.length === 0) {
             cursorRef.current = 0;
@@ -322,7 +300,6 @@ export default function ECGChart({ }: ECGChartProps) {
         }
     }, [currentDeviceId, isRecording, ecgBuffer.length]);
 
-    // Handle Data Stream
     useEffect(() => {
         const handleData = (data: { leadI: number, leadII: number, v1: number }) => {
             bufferRef.current.push(data);
@@ -342,7 +319,6 @@ export default function ECGChart({ }: ECGChartProps) {
 
     return (
         <div className="flex flex-col w-full bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
-            {/* Header Controls */}
             <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-white relative z-20">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-rose-50 rounded-md text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
@@ -357,7 +333,6 @@ export default function ECGChart({ }: ECGChartProps) {
                 <div className="flex items-center gap-4">
                     <DeviceDropdown />
 
-                    {/* Recording Controls */}
                     {(currentDeviceId || isSessionActive) && (
                         <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
                             {!isSessionActive ? (
@@ -408,9 +383,7 @@ export default function ECGChart({ }: ECGChartProps) {
                 </div>
             </div>
 
-            {/* Charts Area - Split into 3 Rows with Gap */}
-            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-4 py-4 border-b                ││     border-slate-100 min-h-0 overflow-y-auto">
-                {/* Row 1: Lead I */}
+            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-4 py-4 border-b border-slate-100 min-h-0 overflow-y-auto">
                 <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
@@ -423,7 +396,6 @@ export default function ECGChart({ }: ECGChartProps) {
                     <canvas ref={canvasRefI} className="w-full h-full relative z-0 block"></canvas>
                 </div>
 
-                {/* Row 2: Lead II */}
                 <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
@@ -436,7 +408,6 @@ export default function ECGChart({ }: ECGChartProps) {
                     <canvas ref={canvasRefII} className="w-full h-full relative z-0 block"></canvas>
                 </div>
 
-                {/* Row 3: V1 */}
                 <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
@@ -450,7 +421,6 @@ export default function ECGChart({ }: ECGChartProps) {
                 </div>
             </div>
 
-            {/* Bottom Info Bar */}
             <div className="bg-slate-50 border-t border-slate-100 flex items-center px-6 py-3 justify-between shrink-0 relative z-20">
                 <div className="flex items-center gap-8">
                     <div className="flex items-center gap-2">

@@ -6,7 +6,6 @@ import { calculateAge } from '@/utils/helpers';
 import { useStore } from '@/store/useStore';
 
 interface SummaryCardsProps {
-    // highlight: boolean; // Removed unused
     lastResult: {
         classification?: string;
         confidence?: number;
@@ -25,7 +24,6 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 shrink-0">
-            {/* CARD 1: ACTIVE USER */}
             <div className={cardClass}>
                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                     <User size={120} strokeWidth={1} />
@@ -59,7 +57,6 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                 </div>
             </div>
 
-            {/* CARD 2: LAST RECEIVED DATA */}
             <div className={cardClass}>
                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                     <Clock size={120} strokeWidth={1} />
@@ -85,20 +82,20 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                 </div>
             </div>
 
-            {/* CARD 3: LAST KNOWN RESULT */}
             <div className={cardClass}>
                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
                     <Activity size={120} strokeWidth={1} />
                 </div>
                 
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className={clsx(
-                                                "w-10 h-10 rounded-md flex items-center justify-center shadow-sm border transition-colors",
-                                                lastResult?.classification === 'Normal' ? "bg-emerald-50 text-emerald-600 border-emerald-100/50" : "bg-rose-50 text-rose-600 border-rose-100/50"
-                                            )}>
-                                                <Activity size={18} strokeWidth={2.5} />
-                                            </div>                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Latest Result</span>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className={clsx(
+                            "w-10 h-10 rounded-md flex items-center justify-center shadow-sm border transition-colors",
+                            lastResult?.classification === 'Normal' ? "bg-emerald-50 text-emerald-600 border-emerald-100/50" : "bg-rose-50 text-rose-600 border-rose-100/50"
+                        )}>
+                            <Activity size={18} strokeWidth={2.5} />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Latest Result</span>
                     </div>
                     
                     <h3 className={clsx(

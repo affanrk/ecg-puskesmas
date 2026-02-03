@@ -1,15 +1,12 @@
 import mitt from 'mitt';
 import { Device } from '@/store/useStore';
 
-// --- Types ---
-
 export type EcgPoint = {
     leadI: number;
     leadII: number;
     v1: number;
 };
 
- 
 type Events = {
     'ws:connected': void;
     'ws:disconnected': void;
@@ -27,7 +24,5 @@ type Events = {
         loss_pct: number;
     };
 };
-
-// --- Bus Instance ---
 
 export const globalEventBus = mitt<Events>();

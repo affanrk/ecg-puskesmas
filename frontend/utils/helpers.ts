@@ -1,5 +1,3 @@
-// --- Formatting Helpers ---
-
 export function escapeHtml(text: string | null | undefined): string {
     if (text === null || text === undefined) return "-";
     const map: { [key: string]: string } = {
@@ -27,8 +25,6 @@ export function formatDate(isoString: string | null | undefined): string {
         hour12: false
     });
 }
-
-// --- Logic Helpers ---
 
 export function debounce<T extends (...args: any[]) => void>(func: T, wait: number) { // eslint-disable-line @typescript-eslint/no-explicit-any
     let timeout: NodeJS.Timeout;

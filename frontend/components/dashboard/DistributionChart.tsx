@@ -5,7 +5,6 @@ import { PieChart, Activity } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, LegendItem } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 
-// Register ChartJS components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface DistributionChartProps {
@@ -19,16 +18,16 @@ export default function DistributionChart({ stats }: DistributionChartProps) {
 
     const getColorForLabel = (label: string) => {
         const l = label.toLowerCase();
-        if (l === 'normal') return '#10b981'; // emerald-500
-        if (l === 'abnormal') return '#94a3b8'; // slate-400 (neutral gray)
-        if (l === 'berpotensi aritmia') return '#f97316'; // orange-500
-        if (l === 'sangat berpotensi aritmia') return '#ef4444'; // red-500
+        if (l === 'normal') return '#10b981';
+        if (l === 'abnormal') return '#94a3b8';
+        if (l === 'berpotensi aritmia') return '#f97316';
+        if (l === 'sangat berpotensi aritmia') return '#ef4444';
         
         if (l.includes('sangat')) return '#ef4444';
         if (l.includes('berpotensi')) return '#f97316';
         if (l.includes('aritmia')) return '#f43f5e';
         
-        return '#94a3b8'; // default gray
+        return '#94a3b8';
     };
 
     const chartData = {
@@ -103,14 +102,14 @@ export default function DistributionChart({ stats }: DistributionChartProps) {
                     <div className="w-full h-full min-h-[220px] max-h-[280px] animate-in fade-in zoom-in-95 duration-700">
                         <Doughnut data={chartData} options={chartOptions} />
                     </div>
-                                                                ) : (
-                                                                    <div className="flex flex-col items-center justify-center gap-4 opacity-30 py-12">
-                                                                        <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
-                                                                            <Activity size={32} className="text-slate-300" />
-                                                                        </div>
-                                                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Awaiting Analytics</div>
-                                                                    </div>
-                                                                )}                {/* Center Text Overlay */}
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-4 opacity-30 py-12">
+                        <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
+                            <Activity size={32} className="text-slate-300" />
+                        </div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Awaiting Analytics</div>
+                    </div>
+                )}
                 {totalProcessed > 0 && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-12">
                         <span className="text-4xl font-black text-slate-800 tracking-tighter leading-none">{totalProcessed}</span>

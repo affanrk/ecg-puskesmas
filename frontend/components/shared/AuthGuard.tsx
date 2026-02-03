@@ -7,14 +7,12 @@ import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
-    // 1. Hooks & State
     const router = useRouter();
     const pathname = usePathname();
     const { setUser, user: storeUser } = useStore();
     const [authorized, setAuthorized] = useState(false);
     const isMounted = useRef(false);
 
-    // 2. Effects
     useEffect(() => {
         const checkAuth = async () => {
             if (isMounted.current) return;
@@ -32,20 +30,15 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             }
 
             try {
-                // If we already have the user in store, we are good (client-side nav)
-                // But if it's a reload (storeUser is null), we MUST fetch from API
-                // to get the FULL profile (localStorage might only have partial data from login)
                 if (!storeUser) {
                     const userData = await api.fetchUserProfile(token);
                     setUser(userData);
-                    // Update LS to keep it somewhat fresh, though we rely on API for completeness
                     localStorage.setItem('ecg_user', JSON.stringify(userData));
                 }
 
                 setAuthorized(true);
             } catch (error) {
                 console.error("Session verification failed:", error);
-                // If fetch fails (e.g. 401), clear session and redirect
                 localStorage.removeItem('ecg_token');
                 localStorage.removeItem('ecg_user');
                 setAuthorized(false);
@@ -56,7 +49,6 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         checkAuth();
     }, [pathname, router, setUser, storeUser]);
 
-    // 3. Render
     if (pathname === '/login' || pathname === '/register') {
         return <>{children}</>;
     }
