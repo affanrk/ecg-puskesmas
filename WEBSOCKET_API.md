@@ -70,6 +70,21 @@ Completes the current recording session and triggers AI analysis.
     ```
 *   **Success Response:** `state_update` (status: "Analyzing...").
 
+### Calculate Live BPM
+Requests the server to calculate BPM from a provided array of Lead II ECG samples.
+*   **Request:**
+    ```json
+    {
+      "type": "calculate_live_bpm",
+      "device_id": "string",
+      "data": [0.12, 0.45, 0.88, "..."]
+    }
+    ```
+*   **Fields:**
+    *   `device_id`: Target device.
+    *   `data`: An array of numeric values representing Lead II ECG samples.
+*   **Success Response:** `live_metrics_update` containing the calculated BPM.
+
 ### Pong (Heartbeat)
 Required response to server-initiated pings.
 *   **Request:**
