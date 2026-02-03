@@ -18,7 +18,7 @@ class DeviceState:
         self.is_recording = False
         self.subject_id: Optional[str] = None
         self.recording_id: Optional[str] = None
-        self.recording_source: str = "WEB"  # Track if recording is from WEB or MOBILE
+        self.recording_source: str = "WEB"
         self.samples_collected = 0
         self.segment_count = 0
         self.status_message = "Idle"

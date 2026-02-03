@@ -139,7 +139,7 @@ class WebSocketHandler:
             state.recording_id = recording_id
             state.subject_id = str(user_id)
             state.segment_count = 1
-            state.recording_source = source  # Store source in state for MQTT handler
+            state.recording_source = source
             state.status_message = "Recording..."
 
             await device_state_manager.notify_state_update(device_id)

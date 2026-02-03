@@ -2,10 +2,15 @@ from .auth import Token, TokenData, UserLogin
 from .user import (
     UserBase,
     UserCreate,
-    UserProfileUpdate,
     UserUsernameUpdate,
     UserPasswordUpdate,
     UserResponse,
+)
+from .patient import (
+    PatientBase,
+    PatientCreate,
+    PatientUpdate,
+    PatientResponse,
 )
 from .session import (
     SessionResponse,
@@ -23,10 +28,13 @@ __all__ = [
     "MessageResponse",
     "UserBase",
     "UserCreate",
-    "UserProfileUpdate",
     "UserUsernameUpdate",
     "UserPasswordUpdate",
     "UserResponse",
+    "PatientBase",
+    "PatientCreate",
+    "PatientUpdate",
+    "PatientResponse",
     "SessionResponse",
     "DeviceStatusResponse",
     "ClassificationCount",

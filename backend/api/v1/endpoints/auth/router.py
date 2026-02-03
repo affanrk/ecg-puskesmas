@@ -4,13 +4,18 @@ from sqlalchemy.exc import IntegrityError, DataError
 import traceback
 
 from core import settings, verify_password, create_access_token
-from core.dependencies import get_current_user, get_user_repository
+from core.dependencies import (
+    get_current_user,
+    get_user_repository,
+    get_patient_repository,
+)
 from repositories.user import UserRepository
+from repositories.patient import PatientRepository
 from schemas.auth import Token, UserLogin, MessageResponse
+from schemas.patient import PatientUpdate
 from schemas.user import (
     UserCreate,
     UserResponse,
-    UserProfileUpdate,
     UserUsernameUpdate,
     UserPasswordUpdate,
 )
@@ -132,13 +137,16 @@ def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
 
 @router.put("/profile", response_model=UserResponse)
 def update_user_profile(
-    profile_in: UserProfileUpdate,
+    profile_in: PatientUpdate,
     current_user: TbMUser = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repository),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     """Update profile information for the current user."""
     try:
-        updated_user = user_repo.update_profile(current_user.id, profile_in)
+        patient_repo.update_by_user_id(current_user.id, profile_in)
+        updated_user = user_repo.find_by_id(current_user.id)
+
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")
         return updated_user

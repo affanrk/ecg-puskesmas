@@ -46,3 +46,4 @@ coverage.xml
 scripts/
 .github/
 .ruff_cache/
+*.sql

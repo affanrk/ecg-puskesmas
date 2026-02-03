@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from models import TbMUser
 from repositories.base import BaseRepository
@@ -12,7 +12,12 @@ class UserReader(BaseRepository[TbMUser]):
 
     def find_by_id(self, user_id: int) -> Optional[TbMUser]:
         try:
-            return self.get(user_id)
+            return (
+                self.db.query(TbMUser)
+                .options(joinedload(TbMUser.patient_profile))
+                .filter(TbMUser.id == user_id)
+                .first()
+            )
         except Exception as e:
             raise DatabaseException(
                 f"Failed to find user by ID {user_id}", details={"error": str(e)}
@@ -20,7 +25,12 @@ class UserReader(BaseRepository[TbMUser]):
 
     def find_by_email(self, email: str) -> Optional[TbMUser]:
         try:
-            return self.get_by(email=email)
+            return (
+                self.db.query(TbMUser)
+                .options(joinedload(TbMUser.patient_profile))
+                .filter(TbMUser.email == email)
+                .first()
+            )
         except Exception as e:
             raise DatabaseException(
                 f"Failed to find user by email {email}", details={"error": str(e)}
@@ -28,7 +38,12 @@ class UserReader(BaseRepository[TbMUser]):
 
     def find_by_username(self, username: str) -> Optional[TbMUser]:
         try:
-            return self.get_by(username=username)
+            return (
+                self.db.query(TbMUser)
+                .options(joinedload(TbMUser.patient_profile))
+                .filter(TbMUser.username == username)
+                .first()
+            )
         except Exception as e:
             raise DatabaseException(
                 f"Failed to find user by username {username}", details={"error": str(e)}
@@ -38,6 +53,7 @@ class UserReader(BaseRepository[TbMUser]):
         try:
             return (
                 self.db.query(self.model)
+                .options(joinedload(TbMUser.patient_profile))
                 .filter(
                     or_(
                         self.model.email == identifier,
@@ -54,7 +70,13 @@ class UserReader(BaseRepository[TbMUser]):
 
     def list_all(self, skip: int = 0, limit: int = 100) -> List[TbMUser]:
         try:
-            return self.get_multi(skip=skip, limit=limit)
+            return (
+                self.db.query(TbMUser)
+                .options(joinedload(TbMUser.patient_profile))
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
         except Exception as e:
             raise DatabaseException(
                 "Failed to list all users", details={"error": str(e)}

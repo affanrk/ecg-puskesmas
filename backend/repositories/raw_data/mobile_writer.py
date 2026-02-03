@@ -23,3 +23,16 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
             raise DatabaseException(
                 "Failed bulk insert mobile", details={"error": str(e)}
             )
+        
+    def delete_by_recording_id(self, recording_id: str) -> int:
+        try:
+            count = (
+                self.db.query(TbREcgRawMobile)
+                .filter(TbREcgRawMobile.recording_id == recording_id)
+                .delete(synchronize_session=False)
+            )
+            self.db.commit()
+            return count
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseException("Failed delete raw mobile", details={"error": str(e)})

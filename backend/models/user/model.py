@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean, Text, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from ..base import Base, AuditMixin
 
@@ -45,31 +45,20 @@ class TbMUser(Base, AuditMixin):
     is_patient = Column(
         Boolean, default=False, comment="True if the user is also a patient"
     )
-    full_name = Column(
-        String(100), nullable=True, comment="Full name of the patient/user"
-    )
-    nik = Column(
-        String(20),
-        unique=True,
-        index=True,
-        nullable=True,
-        comment="Nomor Induk Kependudukan (Patient ID)",
-    )
-    pob = Column(String(100), nullable=True, comment="Place of birth")
-    dob = Column(Date, nullable=True, comment="Date of birth")
-    gender = Column(
-        String(10), nullable=True, comment="Gender (L for Male, P for Female)"
-    )
-    address = Column(String(255), nullable=True, comment="Residential address")
-    contact_number = Column(String(20), nullable=True, comment="Contact phone number")
-    medical_history = Column(
-        Text, nullable=True, comment="Text field for medical history notes"
-    )
+
     last_login_dt = Column(
         DateTime(timezone=True), nullable=True, comment="Timestamp of last login"
     )
     last_login_source = Column(
         String(50), nullable=True, comment="Platform of last login (WEB, MOBILE)"
+    )
+
+    patient_profile = relationship(
+        "TbMPatient",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     sessions = relationship(
@@ -78,3 +67,35 @@ class TbMUser(Base, AuditMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    @property
+    def full_name(self):
+        return self.patient_profile.full_name if self.patient_profile else None
+
+    @property
+    def nik(self):
+        return self.patient_profile.nik if self.patient_profile else None
+
+    @property
+    def pob(self):
+        return self.patient_profile.pob if self.patient_profile else None
+
+    @property
+    def dob(self):
+        return self.patient_profile.dob if self.patient_profile else None
+
+    @property
+    def gender(self):
+        return self.patient_profile.gender if self.patient_profile else None
+
+    @property
+    def address(self):
+        return self.patient_profile.address if self.patient_profile else None
+
+    @property
+    def contact_number(self):
+        return self.patient_profile.contact_number if self.patient_profile else None
+
+    @property
+    def medical_history(self):
+        return self.patient_profile.medical_history if self.patient_profile else None

@@ -13,6 +13,7 @@ from services import device_state_manager
 from repositories.session import SessionRepository
 from repositories.performance import PerformanceRepository
 from repositories.user import UserRepository
+from repositories.patient import PatientRepository
 from repositories.calendar import CalendarRepository
 from schemas.auth import TokenData
 from models import TbMUser
@@ -38,6 +39,11 @@ def get_performance_repository(db: Session = Depends(get_db)):
 def get_user_repository(db: Session = Depends(get_db)):
     """Dependency that provides a UserRepository instance."""
     return UserRepository(db)
+
+
+def get_patient_repository(db: Session = Depends(get_db)):
+    """Dependency that provides a PatientRepository instance."""
+    return PatientRepository(db)
 
 
 def get_device_state_manager():

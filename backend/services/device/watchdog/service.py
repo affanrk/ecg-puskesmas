@@ -3,7 +3,7 @@ import numpy as np
 
 from services.device import device_state_manager
 from repositories.session import SessionRepository
-from repositories.raw_data import RawDataRepository
+from repositories.raw_data import RawDataRepository, RawDataMobileRepository
 from core.database import SessionLocal
 from utils import (
     logger,
@@ -105,7 +105,11 @@ class DeviceWatchdogService:
         db = SessionLocal()
         try:
             session_repo = SessionRepository(db)
-            raw_repo = RawDataRepository(db)
+            session = session_repo.get(recording_id)
+            if session.created_by == "MOBILE":
+                raw_repo = RawDataMobileRepository(db)
+            else:
+                raw_repo = RawDataRepository(db)
             raw_repo.delete_by_recording_id(recording_id)
             session_repo.delete_by(recording_id=recording_id)
             logger.info(f"[Watchdog] Deleted recording {recording_id}")

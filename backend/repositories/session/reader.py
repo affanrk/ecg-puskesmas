@@ -1,8 +1,9 @@
 from typing import List, Optional, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, or_
 from models.session import TbREcgSession
 from models.user import TbMUser
+from models.patient import TbMPatient
 from core.exceptions import DatabaseException, RecordingNotFoundException
 from core.config import settings
 from utils import ECGClassification
@@ -18,7 +19,12 @@ class SessionReader(BaseRepository[TbREcgSession]):
         return TbREcgSession.changed_dt.op("AT TIME ZONE")(settings.TIMEZONE)
 
     def find_by_recording_id(self, recording_id: str) -> Optional[TbREcgSession]:
-        return self.get_by(recording_id=recording_id)
+        return (
+            self.db.query(TbREcgSession)
+            .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
+            .filter(TbREcgSession.recording_id == recording_id)
+            .first()
+        )
 
     def find_by_recording_id_or_fail(self, recording_id: str) -> TbREcgSession:
         session = self.find_by_recording_id(recording_id)
@@ -27,24 +33,29 @@ class SessionReader(BaseRepository[TbREcgSession]):
         return session
 
     def list_by_device(self, device_id: str, limit: int = 100) -> List[TbREcgSession]:
-        return self.filter(
-            filters={"device_id": device_id},
-            limit=limit,
-            order_by="changed_dt",
-            desc_order=True,
+        return (
+            self.db.query(TbREcgSession)
+            .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
+            .filter(TbREcgSession.device_id == device_id)
+            .order_by(desc(TbREcgSession.changed_dt))
+            .limit(limit)
+            .all()
         )
 
     def list_by_user(self, user_id: int, limit: int = 100) -> List[TbREcgSession]:
-        return self.filter(
-            filters={"user_id": user_id},
-            limit=limit,
-            order_by="changed_dt",
-            desc_order=True,
+        return (
+            self.db.query(TbREcgSession)
+            .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
+            .filter(TbREcgSession.user_id == user_id)
+            .order_by(desc(TbREcgSession.changed_dt))
+            .limit(limit)
+            .all()
         )
 
     def get_recent_sessions(self, user_id: int, limit: int) -> List[TbREcgSession]:
         return (
             self.db.query(self.model)
+            .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
             .filter(
                 self.model.user_id == user_id,
                 self.model.classification_result != ECGClassification.RECORDING.value,
@@ -65,9 +76,16 @@ class SessionReader(BaseRepository[TbREcgSession]):
         limit: int = 200,
     ) -> List[Tuple[TbREcgSession, str, str, str]]:
         try:
-            query = self.db.query(
-                TbREcgSession, TbMUser.full_name, TbMUser.username, TbMUser.nik
-            ).outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
+            query = (
+                self.db.query(
+                    TbREcgSession,
+                    TbMPatient.full_name,
+                    TbMUser.username,
+                    TbMPatient.nik,
+                )
+                .outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
+                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+            )
 
             if device_id:
                 query = query.filter(TbREcgSession.device_id == device_id)
@@ -84,7 +102,7 @@ class SessionReader(BaseRepository[TbREcgSession]):
                     pattern = f"%{kw}%"
                     query = query.filter(
                         or_(
-                            TbMUser.full_name.ilike(pattern),
+                            TbMPatient.full_name.ilike(pattern),
                             TbMUser.username.ilike(pattern),
                             TbREcgSession.device_id.ilike(pattern),
                         )

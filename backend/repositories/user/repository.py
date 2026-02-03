@@ -30,9 +30,6 @@ class UserRepository:
     def update_record_login(self, user_id, source):
         return self.writer.update_record_login(user_id, source)
 
-    def update_profile(self, user_id, profile_data):
-        return self.writer.update_profile(user_id, profile_data)
-
     def update_username(self, user_id, new_username):
         return self.writer.update_username(user_id, new_username)
 
