@@ -9,8 +9,9 @@ class MonthProcessor(BaseCalendarProcessor):
         group_field = extract("month", local_dt).label("value")
         severity_expr = func.max(self._get_severity_case()).label("max_severity")
         count_expr = func.count(TbREcgSession.recording_id).label("count")
+        class_counts = self._get_classification_counts()
 
-        query = self.db.query(group_field, severity_expr, count_expr)
+        query = self.db.query(group_field, severity_expr, count_expr, *class_counts)
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
         query = query.filter(extract("year", local_dt) == year)

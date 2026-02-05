@@ -8,6 +8,7 @@ class CalendarNode(BaseModel):
     level: str
     status: str
     count: int = 0
+    classifications: dict[str, int] = {}
 
 
 class CalendarResponse(BaseModel):

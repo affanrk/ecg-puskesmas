@@ -110,7 +110,6 @@ class RecordingStorageService:
         web_items = []
         mobile_items = []
 
-        # Split items by source and clean dictionary for SQLAlchemy
         for item in valid_items:
             source = item.pop("source", "WEB")
             if source == "MOBILE":
@@ -118,7 +117,6 @@ class RecordingStorageService:
             else:
                 web_items.append(item)
 
-        # 1. Insert Web Items
         if web_items:
             raw_repo = RawDataRepository(db)
             for i in range(0, len(web_items), DB_BATCH_CHUNK_SIZE):
@@ -133,7 +131,6 @@ class RecordingStorageService:
                     logger.error(f"[Storage] Failed to insert WEB ECG chunk: {e}")
                     raise
 
-        # 2. Insert Mobile Items
         if mobile_items:
             mobile_repo = RawDataMobileRepository(db)
             for i in range(0, len(mobile_items), DB_BATCH_CHUNK_SIZE):

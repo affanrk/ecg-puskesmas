@@ -36,8 +36,8 @@ export default function PasswordCard({
     loading
 }: PasswordCardProps) {
     return (
-        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative group">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+        <div className="bg-white p-6 lg:p-8 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all duration-500 relative group">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                 <KeyRound size={120} strokeWidth={1} />
             </div>
 
@@ -65,8 +65,8 @@ export default function PasswordCard({
             <div className="flex-1 flex flex-col min-h-0 w-full relative z-10">
                 {!isChangingPassword ? (
                     <div className="flex-1 flex items-center justify-center animate-in fade-in duration-500">
-                        <div className="w-full flex flex-col items-center justify-center p-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 min-h-[240px] group/box hover:bg-white hover:border-rose-200 transition-all duration-500">
-                            <div className="w-20 h-20 bg-white rounded-md shadow-md flex items-center justify-center mb-6 text-emerald-500 ring-1 ring-emerald-100 group-hover/box:scale-110 transition-transform duration-500">
+                        <div className="w-full flex flex-col items-center justify-center p-10 bg-slate-50/50 rounded-md border border-dashed border-slate-200 min-h-[240px] group/box transition-all duration-500">
+                            <div className="w-20 h-20 bg-white rounded-md shadow-md flex items-center justify-center mb-6 text-emerald-500 ring-1 ring-emerald-100 transition-transform duration-500">
                                 <ShieldCheck size={36} strokeWidth={1.5} />
                             </div>
                             <p className="text-slate-900 text-base font-black tracking-tight mb-2 uppercase tracking-widest text-xs">Encryption Active</p>

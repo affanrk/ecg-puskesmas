@@ -10,7 +10,6 @@ import {
     LayoutDashboard, 
     Activity, 
     History, 
-    BarChart2, 
     Settings, 
     LogOut, 
     Menu, 
@@ -36,7 +35,6 @@ export default function Sidebar() {
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
         { name: 'Classifier', href: '/classifier', icon: BrainCircuit, allowed: isProfileComplete },
         { name: 'History', href: '/history', icon: History, allowed: isProfileComplete },
-        { name: 'Performance', href: '/performance', icon: BarChart2, allowed: isProfileComplete },
         { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isProfileComplete },
     ];
 

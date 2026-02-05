@@ -20,12 +20,12 @@ interface SummaryCardsProps {
 
 export default function SummaryCards({ lastResult, lastResultTime }: SummaryCardsProps) {
     const { user } = useStore();
-    const cardClass = "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group";
+    const cardClass = "bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 transition-all duration-500 relative overflow-hidden group";
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 shrink-0">
             <div className={cardClass}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none transition-transform duration-700">
                     <User size={120} strokeWidth={1} />
                 </div>
                 
@@ -58,7 +58,7 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
             </div>
 
             <div className={cardClass}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none transition-transform duration-700">
                     <Clock size={120} strokeWidth={1} />
                 </div>
                 
@@ -83,7 +83,7 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
             </div>
 
             <div className={cardClass}>
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                     <Activity size={120} strokeWidth={1} />
                 </div>
                 
@@ -108,9 +108,9 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                     </h3>
                     
                     <div className="flex items-center gap-3 mt-4">
-                        <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-50">
+                        <div className="h-2 flex-1 bg-slate-100 rounded-md overflow-hidden p-0.5 border border-slate-50">
                             <div 
-                                className={clsx("h-full rounded-full transition-all duration-1000", lastResult?.classification === 'Normal' ? "bg-emerald-500" : "bg-rose-500")}
+                                className={clsx("h-full rounded-md transition-all duration-1000", lastResult?.classification === 'Normal' ? "bg-emerald-500" : "bg-rose-500")}
                                 style={{ width: `${(lastResult?.confidence || 0) * 100}%` }} 
                             />
                         </div>

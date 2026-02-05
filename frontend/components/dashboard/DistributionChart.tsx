@@ -85,7 +85,7 @@ export default function DistributionChart({ stats }: DistributionChartProps) {
     };
 
     return (
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
+        <div className="lg:col-span-2 bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col overflow-hidden transition-all duration-500">
             <div className="px-8 py-5 border-b border-slate-50 bg-white/50 backdrop-blur-sm shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-md flex items-center justify-center border border-slate-100 shadow-sm">

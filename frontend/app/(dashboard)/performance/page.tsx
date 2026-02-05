@@ -17,14 +17,14 @@ export default function PerformancePage() {
     }, [setPerformanceTrackingEnabled]);
 
     // Common Card Styles
-    const cardClass = "bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500 relative overflow-hidden";
+    const cardClass = "bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-500";
 
     // 3. Render
     return (
         <div className="flex flex-col gap-6 w-full min-h-full">
             {/* Header / Title */}
             <div className="flex items-center gap-4 shrink-0">
-                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
+                <div className="w-12 h-12 bg-white rounded-md flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
                     <Activity size={24} className="text-teal-500" strokeWidth={2.5} />
                 </div>
                 <div>
@@ -40,7 +40,7 @@ export default function PerformancePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-40">
                 {/* Latency Card */}
                 <div className={cardClass}>
-                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
                         <Wifi size={80} strokeWidth={1} />
                     </div>
                     
@@ -68,7 +68,7 @@ export default function PerformancePage() {
 
                 {/* Jitter Card */}
                 <div className={cardClass}>
-                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-blue-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-blue-900 pointer-events-none transition-transform duration-700">
                         <Zap size={90} strokeWidth={1} />
                     </div>
                     
@@ -93,7 +93,7 @@ export default function PerformancePage() {
 
                 {/* Packet Loss Card */}
                 <div className={clsx(cardClass, performance.loss > 0 && "border-rose-100 bg-rose-50/10")}>
-                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-rose-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                         <AlertTriangle size={90} strokeWidth={1} />
                     </div>
                     
@@ -126,7 +126,7 @@ export default function PerformancePage() {
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[320px] shrink-0">
                 {/* Latency Chart */}
-                <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
+                <div className="bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden transition-all duration-500">
                     <div className="flex justify-between items-center mb-4 relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-teal-50 rounded-md text-teal-600">
@@ -156,7 +156,7 @@ export default function PerformancePage() {
                 </div>
 
                 {/* Jitter Chart */}
-                <div className="bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden group hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all duration-500">
+                <div className="bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden transition-all duration-500">
                     <div className="flex justify-between items-center mb-4 relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-50 rounded-md text-blue-600">

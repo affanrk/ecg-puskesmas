@@ -44,8 +44,8 @@ export default function ContactCard({
     const canEditMedical = !isLocked || isEditingMedical;
 
     return (
-        <div className="bg-white p-6 lg:p-8 rounded-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+        <div className="bg-white p-6 lg:p-8 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all duration-500 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
                 <HeartPulse size={120} strokeWidth={1} />
             </div>
 
@@ -77,9 +77,9 @@ export default function ContactCard({
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMedicalForm((p) => ({...p, medical_history: e.target.value}))} 
                     disabled={!canEditMedical}
                     options={[
-                        { value: 'Normal', label: 'Normal (No Known Issues)' }, 
-                        { value: 'Hipertensi', label: 'Hypertension (High Blood Pressure)' },
-                        { value: 'Penyakit Jantung', label: 'Heart Disease (Cardiac History)' }
+                        { value: 'Normal', label: 'Normal' }, 
+                        { value: 'Hipertensi', label: 'Hipertensi' },
+                        { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
                     ]}
                 />
                 

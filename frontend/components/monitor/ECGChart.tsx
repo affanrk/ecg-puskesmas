@@ -318,8 +318,8 @@ export default function ECGChart({ }: ECGChartProps) {
     }, []);
 
     return (
-        <div className="flex flex-col w-full bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] duration-500">
-            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-white relative z-20">
+        <div className="flex flex-col w-full h-full bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all duration-500">
+            <div className="flex items-center justify-between px-8 py-3 border-b border-slate-100 bg-white relative z-20 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-rose-50 rounded-md text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
                         <Activity size={18} strokeWidth={2.5} />
@@ -340,7 +340,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                     onClick={toggleRecording}
                                     disabled={!currentDeviceId}
                                     className={clsx(
-                                        "flex items-center gap-2 px-6 py-2.5 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                        "flex items-center gap-2 px-6 py-2 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                         !currentDeviceId ? "bg-slate-300 shadow-none cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                                     )}
                                 >
@@ -352,7 +352,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                         onClick={toggleRecording}
                                         disabled={!isRecording && !currentDeviceId}
                                         className={clsx(
-                                            "flex items-center gap-2 px-4 py-2.5 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                            "flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                             isRecording 
                                                 ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" 
                                                 : (!currentDeviceId 
@@ -367,7 +367,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                         onClick={handleReset}
                                         disabled={isRecording}
                                         className={clsx(
-                                            "px-3 py-2.5 rounded-md text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
+                                            "px-3 py-2 rounded-md text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
                                             isRecording
                                                 ? "bg-slate-50 text-slate-300 cursor-not-allowed border-slate-100"
                                                 : "bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm active:scale-95"
@@ -383,8 +383,8 @@ export default function ECGChart({ }: ECGChartProps) {
                 </div>
             </div>
 
-            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-4 py-4 border-b border-slate-100 min-h-0 overflow-y-auto">
-                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-2 py-2 border-b border-slate-100 min-h-0">
+                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
                             Speed: 25mm/s | Gain: 10mm/mV
@@ -396,7 +396,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     <canvas ref={canvasRefI} className="w-full h-full relative z-0 block"></canvas>
                 </div>
 
-                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
                             Speed: 25mm/s | Gain: 10mm/mV
@@ -408,7 +408,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     <canvas ref={canvasRefII} className="w-full h-full relative z-0 block"></canvas>
                 </div>
 
-                <div className="h-[200px] shrink-0 relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
+                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
                     <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
                         <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
                             Speed: 25mm/s | Gain: 10mm/mV
@@ -421,7 +421,7 @@ export default function ECGChart({ }: ECGChartProps) {
                 </div>
             </div>
 
-            <div className="bg-slate-50 border-t border-slate-100 flex items-center px-6 py-3 justify-between shrink-0 relative z-20">
+            <div className="bg-slate-50 border-t border-slate-100 flex items-center px-6 py-2 justify-between shrink-0 relative z-20">
                 <div className="flex items-center gap-8">
                     <div className="flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-black"></span>

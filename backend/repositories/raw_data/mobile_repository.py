@@ -14,6 +14,6 @@ class RawDataMobileRepository:
 
     def bulk_create(self, *args, **kwargs):
         return self.writer.bulk_create(*args, **kwargs)
-    
+
     def delete_by_recording_id(self, *args, **kwargs):
         return self.writer.delete_by_recording_id(*args, **kwargs)

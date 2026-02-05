@@ -117,6 +117,14 @@ label {
     100% { background-position: 150% 0; }
 }
 
+@keyframes medical-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+}
+.animate-medical-shimmer {
+    animation: medical-shimmer 2s infinite linear;
+}
+
 /* Custom Select Style */
 .modern-select {
     appearance: none;
