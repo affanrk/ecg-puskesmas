@@ -9,6 +9,7 @@ interface MonthCalendarProps {
     month: number;
     nodes: CalendarNode[];
     onDateClick: (date: Date) => void;
+    selectedDate: Date;
     filters: {
         highRisk: boolean;
         potential: boolean;
@@ -16,7 +17,7 @@ interface MonthCalendarProps {
     };
 }
 
-export default function MonthCalendar({ year, month, nodes, onDateClick, filters }: MonthCalendarProps) {
+export default function MonthCalendar({ year, month, nodes, onDateClick, selectedDate, filters }: MonthCalendarProps) {
     const monthIndex = month - 1;
     
     const calendarCells = useMemo(() => {
@@ -49,7 +50,7 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, filters
                 <div className="min-w-[700px] lg:min-w-full h-full flex flex-col">
                     <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/30">
                         {['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'].map(wd => (
-                            <div key={wd} className="text-center py-3 text-[10px] font-black text-slate-400 tracking-[0.2em]">{wd}</div>
+                            <div key={wd} className="text-center py-2 text-[10px] font-black text-slate-400 tracking-[0.2em]">{wd}</div>
                         ))}
                     </div>
                     
@@ -57,11 +58,13 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, filters
                         {calendarCells.map((cell, idx) => {
                             const isCurrentMonth = cell.type === 'current';
                             const isToday = cell.date.getDate() === today.getDate() && cell.date.getMonth() === today.getMonth() && cell.date.getFullYear() === today.getFullYear();
+                            const isSelected = cell.date.getDate() === selectedDate.getDate() && cell.date.getMonth() === selectedDate.getMonth() && cell.date.getFullYear() === selectedDate.getFullYear();
 
                             let totalActiveCount = 0;
                             let priorityEvent = null;
 
                             if (isCurrentMonth && cell.dayNodes) {
+                                // ... existing logic ...
                                 const dayNode = cell.dayNodes[0]; 
                                 
                                 if (dayNode && dayNode.classifications) {
@@ -87,8 +90,24 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, filters
                             }
 
                             return (
-                                <div key={idx} onClick={() => onDateClick(cell.date)} className={clsx("relative flex flex-col group cursor-pointer transition-all p-1.5 min-h-[100px]", isCurrentMonth ? "bg-white hover:bg-slate-50/50" : "bg-slate-50/20")}>
-                                    <div className="flex justify-center sm:justify-start mb-1">
+                                <div 
+                                    key={idx} 
+                                    onClick={() => onDateClick(cell.date)} 
+                                    className={clsx(
+                                        "relative flex flex-col group cursor-pointer transition-all p-1.5 min-h-[85px] overflow-hidden", 
+                                        isCurrentMonth ? "bg-white hover:bg-slate-50/50" : "bg-slate-50/20",
+                                        isSelected && isCurrentMonth && "bg-blue-50/50 z-10"
+                                    )}
+                                >
+                                    {/* Selection Indicators */}
+                                    {isSelected && isCurrentMonth && (
+                                        <>
+                                            <div className="absolute inset-0 ring-1 ring-inset ring-blue-200/50 pointer-events-none" />
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[2px_0_8px_rgba(59,130,246,0.3)] z-20" />
+                                        </>
+                                    )}
+
+                                    <div className="flex justify-center sm:justify-start mb-0.5 relative z-10">
                                         <span className={clsx("text-xs font-bold w-7 h-7 flex items-center justify-center rounded-md transition-all", 
                                             isToday ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : isCurrentMonth ? "text-slate-700 group-hover:bg-slate-100" : "text-slate-300")}>
                                             {cell.day}

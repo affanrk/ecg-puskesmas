@@ -66,35 +66,32 @@ export default function DeviceDropdown() {
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className={clsx(
-                    "flex items-center gap-3 px-4 py-2.5 rounded-md border transition-all duration-200 shadow-sm active:scale-95 min-w-[200px] justify-between",
+                    "flex items-center gap-3 px-3 py-1.5 rounded-md border transition-all duration-200 active:scale-95 min-w-[180px] justify-between",
                     currentDeviceId 
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-800 hover:border-emerald-300" 
-                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                        ? "bg-emerald-50/50 border-emerald-200 text-emerald-800 hover:bg-emerald-50" 
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
                 )}
             >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5">
                     <div className={clsx(
-                        "w-2.5 h-2.5 rounded-full shadow-sm ring-2 ring-white",
+                        "w-2 h-2 rounded-full ring-2 ring-white",
                         isConnected 
                             ? (currentDeviceId ? "bg-emerald-500 animate-pulse" : "bg-slate-300") 
                             : "bg-rose-400"
                     )}></div>
                     
-                    <div className="flex flex-col items-start">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
-                            {currentDeviceId ? "Device Connected" : "No Device"}
-                        </span>
-                        <span className="text-xs font-black uppercase tracking-wider leading-none truncate max-w-[120px]">
-                            {currentDeviceId || "Select Source"}
+                    <div className="flex flex-col items-start justify-center">
+                        <span className="text-[10px] font-black uppercase tracking-wider leading-none truncate max-w-[120px]">
+                            {currentDeviceId || "Select Device"}
                         </span>
                     </div>
                 </div>
                 
-                <ChevronDown size={16} className={clsx("transition-transform duration-200 text-slate-400", isOpen && "rotate-180")} />
+                <ChevronDown size={14} className={clsx("transition-transform duration-200 text-slate-300", isOpen && "rotate-180")} />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-top-2 overflow-hidden ring-1 ring-black/5">
+                <div className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-bottom-2 overflow-hidden ring-1 ring-black/5">
                     
                     {currentDeviceId && (
                         <div className="px-4 py-4 border-b border-slate-50 bg-emerald-50/30">

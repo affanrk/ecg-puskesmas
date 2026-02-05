@@ -1,7 +1,7 @@
 'use client';
 
 import { AnalysisResult } from '@/store/useStore';
-import { HeartPulse, Activity, AlertTriangle, ChevronRight, Clock, ChevronDown } from 'lucide-react';
+import { HeartPulse, Activity, AlertTriangle, ChevronRight, Clock, ChevronDown, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useState, useRef, useEffect } from 'react';
 
@@ -13,6 +13,10 @@ interface AgendaViewProps {
     onStartTimeChange: (val: string) => void;
     onEndTimeChange: (val: string) => void;
     loading?: boolean;
+    currentDate: Date;
+    onPrevDay: () => void;
+    onNextDay: () => void;
+    onResetTime: () => void;
 }
 
 export default function AgendaView({ 
@@ -22,7 +26,11 @@ export default function AgendaView({
     endTime,
     onStartTimeChange,
     onEndTimeChange,
-    loading
+    loading,
+    currentDate,
+    onPrevDay,
+    onNextDay,
+    onResetTime
 }: AgendaViewProps) {
     // Filter out normal ones
     const filteredResults = results.filter(r => {
@@ -30,36 +38,86 @@ export default function AgendaView({
         return !cls.includes('normal');
     });
 
+    const formattedDate = currentDate.toLocaleDateString('id-ID', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+
+    const isDefaultFilter = startTime === "00:00:00" && endTime === "23:59:59";
+
     return (
-        <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-4 duration-500 pb-10 relative">
-            {/* Granular Time Range Selector */}
-            <div className="bg-slate-50/50 border border-slate-100 p-5 rounded-md flex flex-col lg:flex-row items-start lg:items-center gap-6 shrink-0">
-                <div className="flex items-center gap-3 shrink-0">
-                    <div className="flex items-center gap-2 text-blue-600">
-                        <Clock size={24} strokeWidth={2.5} />
-                    </div>
-                    <div>
-                        <span className="text-[11px] font-black text-slate-800 uppercase tracking-widest block leading-none">Filter Presisi</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 block leading-none">Skala Jam : Menit : Detik</span>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto">
-                    <TimePickerField 
-                        label="Dari Waktu" 
-                        value={startTime} 
-                        onChange={onStartTimeChange} 
-                    />
+        <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-4 duration-500 pb-10 relative">
+            
+            {/* Sticky Header: Navigation & Filters Combined */}
+            <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 px-4 sm:px-6 py-2 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm transition-all">
+                <div className="flex flex-col md:flex-row md:items-center gap-3">
                     
-                    <div className="hidden lg:block text-slate-300">
-                        <Activity size={12} />
+                    {/* Filter Presisi (Compact Row) - Now on Left */}
+                    <div className="flex items-center gap-2 bg-slate-50/50 p-1 rounded-lg border border-slate-100 flex-1 h-12">
+                        <div className="hidden lg:flex items-center gap-2 px-3 border-r border-slate-200 shrink-0 h-full">
+                            <Clock size={14} className="text-blue-500" strokeWidth={2.5} />
+                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Filters</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-1 pl-1">
+                            <TimePickerField 
+                                label="From" 
+                                value={startTime} 
+                                onChange={onStartTimeChange} 
+                                compact={true}
+                            />
+                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-1">
+                                TO
+                            </div>
+                            <TimePickerField 
+                                label="To" 
+                                value={endTime} 
+                                onChange={onEndTimeChange} 
+                                compact={true}
+                            />
+
+                            <button 
+                                onClick={onResetTime}
+                                disabled={isDefaultFilter}
+                                className={clsx(
+                                    "ml-1 p-2 border rounded-md transition-all shadow-sm group",
+                                    isDefaultFilter 
+                                        ? "bg-slate-50 border-slate-100 text-slate-200 cursor-not-allowed" 
+                                        : "bg-white border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 active:scale-95"
+                                )}
+                                title={isDefaultFilter ? "Filters at default" : "Reset Time Filter"}
+                            >
+                                <RotateCcw size={14} className={clsx(!isDefaultFilter && "group-hover:rotate-[-45deg] transition-transform")} />
+                            </button>
+                        </div>
                     </div>
 
-                    <TimePickerField 
-                        label="Sampai Waktu" 
-                        value={endTime} 
-                        onChange={onEndTimeChange} 
-                    />
+                    {/* Day Navigation - Now on Right */}
+                    <div className="flex items-center justify-between bg-slate-50/80 p-1 rounded-lg border border-slate-100 flex-1 h-12">
+                        <div className="flex items-center justify-between flex-1">
+                            <button 
+                                onClick={onPrevDay}
+                                className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-400 hover:text-blue-600 transition-all active:scale-95 group flex items-center gap-2"
+                            >
+                                <ChevronRight size={14} className="rotate-180 transition-transform group-hover:-translate-x-0.5" />
+                                <span className="text-[8px] font-black uppercase tracking-widest hidden xl:block">Prev</span>
+                            </button>
+
+                            <div className="flex flex-col items-center px-4">
+                                <h2 className="text-[11px] font-black text-slate-800 tracking-tight whitespace-nowrap">{formattedDate}</h2>
+                            </div>
+
+                            <button 
+                                onClick={onNextDay}
+                                className="p-1.5 hover:bg-white hover:shadow-sm rounded-md text-slate-400 hover:text-blue-600 transition-all active:scale-95 group flex items-center gap-2"
+                            >
+                                <span className="text-[8px] font-black uppercase tracking-widest hidden xl:block">Next</span>
+                                <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -73,15 +131,15 @@ export default function AgendaView({
                     </div>
                 )}
 
-                <div className="flex flex-col gap-8 h-full">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-5">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-blue-600 text-white rounded-md flex items-center justify-center font-black text-sm shadow-lg shadow-blue-100">
+                <div className="flex flex-col gap-6 h-full px-1">
+                    <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-600 text-white rounded-md flex items-center justify-center font-black text-xs shadow-lg shadow-blue-100">
                                 {filteredResults.length}
                             </div>
                             <div>
-                                <h3 className="text-lg font-black text-slate-800 tracking-tight">Rekaman Klinis</h3>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Hasil ditemukan pada koordinat waktu terpilih</p>
+                                <h3 className="text-base font-black text-slate-800 tracking-tight">Clinical Records</h3>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Detected abnormalities for this period</p>
                             </div>
                         </div>
                     </div>
@@ -155,8 +213,10 @@ export default function AgendaView({
                                                 </div>
                                             </div>
                                             
-                                            <div className="shrink-0 p-2 rounded-md border border-slate-100 group-hover:border-blue-200 group-hover:bg-blue-50 transition-all">
-                                                <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500 transition-all" />
+                                            <div className="shrink-0 flex items-center h-full">
+                                                <span className="text-[10px] font-black text-slate-300 group-hover:text-blue-500 uppercase tracking-widest transition-colors whitespace-nowrap px-4 border-l border-slate-50 group-hover:border-blue-100 h-10 flex items-center">
+                                                    Click to see details
+                                                </span>
                                             </div>
                                         </div>
                                     </button>
@@ -170,7 +230,7 @@ export default function AgendaView({
     );
 }
 
-function TimePickerField({ label, value, onChange }: { label: string, value: string, onChange: (v: string) => void }) {
+function TimePickerField({ value, onChange, compact = false }: { label: string, value: string, onChange: (v: string) => void, compact?: boolean }) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const [h, m, s] = value.split(':');
@@ -191,19 +251,21 @@ function TimePickerField({ label, value, onChange }: { label: string, value: str
 
     return (
         <div className="relative flex-1 sm:flex-none" ref={ref}>
-            <div className="text-[9px] font-black text-slate-400 uppercase mb-1 ml-1 text-center sm:text-left">{label}</div>
             <button 
                 onClick={() => setOpen(!open)}
-                className="w-full sm:w-44 bg-white border border-slate-200 rounded-md px-3 py-2 flex items-center justify-center sm:justify-between text-xs font-black text-slate-700 hover:border-blue-300 transition-all shadow-sm group"
+                className={clsx(
+                    "bg-white border border-slate-200 rounded-md flex items-center font-black text-slate-700 hover:border-blue-300 transition-all shadow-sm group relative",
+                    compact ? "w-full sm:w-32 px-2 py-2 text-[10px]" : "w-full sm:w-44 px-3 py-2.5 text-xs"
+                )}
             >
-                <div className="flex items-center gap-1 font-mono text-sm tracking-tighter">
+                <div className={clsx("flex items-center gap-1 font-mono tracking-tighter pl-1", compact ? "text-xs" : "text-sm")}>
                     <span className="text-blue-600">{h}</span>
                     <span className="text-slate-300">:</span>
                     <span className="text-blue-600">{m}</span>
                     <span className="text-slate-300">:</span>
                     <span className="text-blue-600">{s}</span>
                 </div>
-                <ChevronDown size={14} className={clsx("ml-2 sm:ml-0 text-slate-400 transition-transform", open && "rotate-180")} />
+                <ChevronDown size={compact ? 12 : 14} className={clsx("absolute right-2 text-slate-400 transition-transform", open && "rotate-180")} />
             </button>
             
             {open && (

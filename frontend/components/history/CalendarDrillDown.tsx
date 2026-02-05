@@ -166,35 +166,49 @@ export default function CalendarDrillDown() {
         }
     }, [currentDate, startTime, endTime, user?.id, toast]);
 
-    // Effect to fetch data based on View
+    // Effect to fetch indicators (Nodes) whenever Month/Year changes
     useEffect(() => {
-        if (view === 'month') {
-            fetchMonthData();
-        } else {
+        fetchMonthData();
+    }, [fetchMonthData]);
+
+    // Effect to fetch agenda data ONLY in agenda view
+    useEffect(() => {
+        if (view === 'agenda') {
             fetchDayData();
         }
-    }, [view, fetchMonthData, fetchDayData]);
+    }, [view, fetchDayData]);
 
 
     // Navigation Handlers
     const handlePrev = () => {
         const newDate = new Date(currentDate);
-        if (view === 'month') {
-            newDate.setMonth(newDate.getMonth() - 1);
-        } else {
-            newDate.setDate(newDate.getDate() - 1);
-        }
+        newDate.setMonth(newDate.getMonth() - 1);
         setCurrentDate(newDate);
     };
 
     const handleNext = () => {
         const newDate = new Date(currentDate);
-        if (view === 'month') {
-            newDate.setMonth(newDate.getMonth() + 1);
-        } else {
-            newDate.setDate(newDate.getDate() + 1);
-        }
+        newDate.setMonth(newDate.getMonth() + 1);
         setCurrentDate(newDate);
+    };
+
+    const handleResetTime = useCallback(() => {
+        setStartTime("00:00:00");
+        setEndTime("23:59:59");
+    }, []);
+
+    const handlePrevDay = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() - 1);
+        setCurrentDate(newDate);
+        handleResetTime();
+    };
+
+    const handleNextDay = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + 1);
+        setCurrentDate(newDate);
+        handleResetTime();
     };
 
     const handleToday = () => {
@@ -257,6 +271,7 @@ export default function CalendarDrillDown() {
                                     month={currentDate.getMonth() + 1}
                                     nodes={calendarNodes}
                                     onDateClick={handleDateSelect}
+                                    selectedDate={currentDate}
                                     filters={filters}
                                 />
                             </>
@@ -270,6 +285,10 @@ export default function CalendarDrillDown() {
                                     onStartTimeChange={setStartTime}
                                     onEndTimeChange={setEndTime}
                                     loading={loading}
+                                    currentDate={currentDate}
+                                    onPrevDay={handlePrevDay}
+                                    onNextDay={handleNextDay}
+                                    onResetTime={handleResetTime}
                                 />
                             </div>
                         )}

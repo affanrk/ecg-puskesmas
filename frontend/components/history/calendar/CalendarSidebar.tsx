@@ -115,10 +115,10 @@ export default function CalendarSidebar({
     };
 
     return (
-        <div className="w-64 shrink-0 flex flex-col gap-6 p-5 border-r border-slate-100 bg-white h-full hidden lg:flex select-none overflow-y-auto min-h-0">
+        <div className="w-56 shrink-0 flex flex-col gap-4 p-4 border-r border-slate-100 bg-white h-full hidden lg:flex select-none overflow-y-auto min-h-0">
             <div className="border-b border-slate-50 pb-2 shrink-0">
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-black text-slate-400 uppercase tracking-[0.15em] px-1">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] px-1">
                         {miniDate.toLocaleString('default', { month: 'short', year: 'numeric' })}
                     </span>
                     <div className="flex items-center gap-0.5">
@@ -127,27 +127,27 @@ export default function CalendarSidebar({
                             disabled={miniDate.getFullYear() === minYear && miniDate.getMonth() === 0}
                             className="p-1 hover:bg-slate-100 rounded-md text-slate-400 transition-colors disabled:opacity-20"
                         >
-                            <ChevronLeft size={16} />
+                            <ChevronLeft size={14} />
                         </button>
                         <button 
                             onClick={handleNextMonth} 
                             disabled={miniDate.getFullYear() === maxYear && miniDate.getMonth() === 11}
                             className="p-1 hover:bg-slate-100 rounded-md text-slate-400 transition-colors disabled:opacity-20"
                         >
-                            <ChevronRight size={16} />
+                            <ChevronRight size={14} />
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-7 gap-y-1 place-items-center">
+                <div className="grid grid-cols-7 gap-y-0.5 place-items-center">
                     {['S','M','T','W','T','F','S'].map((d, i) => (
-                        <span key={i} className="text-[9px] font-black text-slate-300 w-7 text-center uppercase tracking-tighter">{d}</span>
+                        <span key={i} className="text-[8px] font-black text-slate-300 w-6 text-center uppercase tracking-tighter">{d}</span>
                     ))}
                     {renderMiniCalendar()}
                 </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Filter Klinis</span>
+            <div className="flex flex-col gap-1.5">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Filter Klinis</span>
                 <div className="space-y-0.5">
                     <FilterItem label="Sangat Berpotensi" color="bg-rose-500" checked={filters.highRisk} onClick={() => onFilterChange({...filters, highRisk: !filters.highRisk})} />
                     <FilterItem label="Berpotensi" color="bg-orange-500" checked={filters.potential} onClick={() => onFilterChange({...filters, potential: !filters.potential})} />
@@ -156,13 +156,13 @@ export default function CalendarSidebar({
             </div>
 
             {/* Notice Section */}
-            <div className="bg-blue-50/50 border border-blue-100/50 rounded-md p-4 flex flex-col gap-2">
+            <div className="bg-blue-50/50 border border-blue-100/50 rounded-md p-2.5 flex flex-col gap-1 mt-auto">
                 <div className="flex items-center gap-2 text-blue-600">
-                    <ShieldAlert size={16} strokeWidth={2.5} />
-                    <span className="text-[10px] font-black uppercase tracking-wider">Arsip Rekaman</span>
+                    <ShieldAlert size={14} strokeWidth={2.5} />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Arsip Rekaman</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-                    Sistem hanya menyimpan riwayat medis untuk <span className="text-blue-700 font-bold">5 tahun terakhir</span> guna efisiensi data.
+                <p className="text-[10px] text-slate-600 leading-relaxed font-medium">
+                    Sistem hanya menyimpan riwayat medis untuk <span className="text-blue-700 font-bold">5 tahun terakhir</span>.
                 </p>
             </div>
         </div>

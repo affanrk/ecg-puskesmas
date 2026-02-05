@@ -67,26 +67,26 @@ export default function CalendarHeader({
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 sm:h-16 border-b border-slate-100 bg-white/80 backdrop-blur-md shrink-0 select-none z-30 sticky top-0 gap-4 sm:gap-0">
-            <div className="flex items-center justify-between w-full sm:w-auto gap-4 sm:gap-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between px-3 sm:px-5 py-2 sm:h-14 border-b border-slate-100 bg-white/80 backdrop-blur-md shrink-0 select-none z-30 sticky top-0 gap-3 sm:gap-0">
+            <div className="flex items-center justify-between w-full sm:w-auto gap-3 sm:gap-6">
                 <div className="flex items-center gap-2 text-blue-600">
-                    <CalendarIcon size={24} strokeWidth={2.5} />
+                    <CalendarIcon size={20} strokeWidth={2.5} />
                 </div>
                 
-                <div className="flex items-center gap-4 sm:gap-6 flex-1 sm:flex-none justify-center">
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 sm:flex-none justify-center">
                     <button 
                         onClick={onToday}
-                        className="px-3 sm:px-5 py-1.5 bg-white border border-slate-200 rounded-md text-[10px] sm:text-xs font-black text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm uppercase tracking-widest"
+                        className="px-3 py-1 bg-white border border-slate-200 rounded-md text-[9px] sm:text-[10px] font-black text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm uppercase tracking-widest"
                     >
                         Today
                     </button>
 
-                    <div className="flex items-center bg-slate-50 p-1 rounded-md border border-slate-100 sm:ml-2">
-                        <button onClick={onPrev} className="p-1 sm:p-1.5 rounded-md hover:bg-white hover:shadow-sm text-slate-500 transition-all active:scale-90">
-                            <ChevronLeft size={16} strokeWidth={2.5} />
+                    <div className="flex items-center bg-slate-50 p-1 rounded-md border border-slate-100 sm:ml-1">
+                        <button onClick={onPrev} className="p-1 sm:p-1 rounded-md hover:bg-white hover:shadow-sm text-slate-500 transition-all active:scale-90">
+                            <ChevronLeft size={14} strokeWidth={2.5} />
                         </button>
-                        <button onClick={onNext} className="p-1 sm:p-1.5 rounded-md hover:bg-white hover:shadow-sm text-slate-500 transition-all active:scale-90">
-                            <ChevronRight size={16} strokeWidth={2.5} />
+                        <button onClick={onNext} className="p-1 sm:p-1 rounded-md hover:bg-white hover:shadow-sm text-slate-500 transition-all active:scale-90">
+                            <ChevronRight size={14} strokeWidth={2.5} />
                         </button>
                     </div>
                 </div>
@@ -199,12 +199,20 @@ export default function CalendarHeader({
                     </div>
                 </div>
 
-                <div className="flex items-center bg-slate-100/50 p-1 rounded-md border border-slate-100">
+                <div className="flex items-center bg-slate-100/80 p-1 rounded-lg border border-slate-200/50 relative overflow-hidden">
+                    {/* Sliding Background Indicator */}
+                    <div 
+                        className={clsx(
+                            "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-md shadow-sm border border-slate-100 transition-all duration-300 ease-out z-0",
+                            view === 'month' ? "left-1" : "left-[calc(50%+1px)]"
+                        )}
+                    />
+                    
                     <button
                         onClick={() => onViewChange('month')}
                         className={clsx(
-                            "px-3 sm:px-6 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all rounded-md",
-                            view === 'month' ? "bg-white text-blue-600 shadow-sm border border-slate-100" : "text-slate-400 hover:text-slate-600"
+                            "relative z-10 px-4 sm:px-6 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors duration-300 rounded-md flex-1",
+                            view === 'month' ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
                         )}
                     >
                         Month
@@ -212,8 +220,8 @@ export default function CalendarHeader({
                     <button
                         onClick={() => onViewChange('agenda')}
                         className={clsx(
-                            "px-3 sm:px-6 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-all rounded-md",
-                            view === 'agenda' ? "bg-white text-blue-600 shadow-sm border border-slate-100" : "text-slate-400 hover:text-slate-600"
+                            "relative z-10 px-4 sm:px-6 py-1.5 sm:py-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors duration-300 rounded-md flex-1",
+                            view === 'agenda' ? "text-blue-600" : "text-slate-400 hover:text-slate-600"
                         )}
                     >
                         List

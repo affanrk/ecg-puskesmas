@@ -9,7 +9,7 @@ import { useStore } from '@/store/useStore';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
-import { Settings2, Activity, Square, XCircle } from 'lucide-react';
+import { Activity, Square, XCircle } from 'lucide-react';
 import DeviceDropdown from './DeviceDropdown';
 
 interface ECGChartProps {
@@ -18,12 +18,12 @@ interface ECGChartProps {
 }
 
 const medicalGridStyle = {
-    backgroundColor: '#fffcfc',
+    backgroundColor: '#ffffff',
     backgroundImage: `
-        linear-gradient(rgba(220, 38, 38, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(220, 38, 38, 0.1) 1px, transparent 1px),
-        linear-gradient(rgba(220, 38, 38, 0.25) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(220, 38, 38, 0.25) 1px, transparent 1px)
+        linear-gradient(rgba(244, 63, 94, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244, 63, 94, 0.1) 1px, transparent 1px),
+        linear-gradient(rgba(244, 63, 94, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244, 63, 94, 0.2) 1px, transparent 1px)
     `,
     backgroundSize: '10px 10px, 10px 10px, 50px 50px, 50px 50px',
     backgroundPosition: '-1px -1px, -1px -1px, -1px -1px, -1px -1px'
@@ -34,13 +34,9 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        devicePixelRatio: typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1,
         layout: {
-            padding: {
-                left: 0,
-                right: 0,
-                top: 10,
-                bottom: 10
-            }
+            padding: { left: 5, right: 5, top: 15, bottom: 15 }
         },
         plugins: {
             legend: { display: false },
@@ -52,9 +48,6 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
                 display: false,
                 min: 0,
                 max: totalPoints,
-                grid: { display: false },
-                ticks: { display: false },
-                border: { display: false }
             },
             y: {
                 display: true,
@@ -66,15 +59,13 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
                     color: '#475569',
                     font: {
                         size: 9,
-                        family: 'var(--font-inter)',
-                        weight: 700
+                        family: 'monospace',
+                        weight: 'bold'
                     },
                     padding: 8,
                     stepSize: 0.5,
-                    callback: (value) => `${Number(value).toFixed(1)}mV`
+                    callback: (value) => `${parseFloat(value as string).toFixed(1)}mV`
                 },
-                min: undefined,
-                max: undefined,
                 suggestedMin: minY,
                 suggestedMax: maxY
             }
@@ -84,7 +75,7 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
             line: {
                 borderWidth: 2,
                 tension: 0.35,
-                borderColor: '#000000'
+                borderColor: '#0f172a', // Sharp Dark Slate signal
             }
         }
     };
@@ -92,32 +83,30 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
 
 const adjustScaleSingle = (chart: Chart) => {
     const ds = chart.data.datasets[0];
-    let minVal = Infinity;
-    let maxVal = -Infinity;
+    let maxAbs = 0;
     let hasData = false;
 
     for (let j = 0; j < ds.data.length; j++) {
         const v = ds.data[j] as number;
         if (v !== null && v !== undefined) {
-            if (v < minVal) minVal = v;
-            if (v > maxVal) maxVal = v;
+            const absV = Math.abs(v);
+            if (absV > maxAbs) maxAbs = absV;
             hasData = true;
         }
     }
 
-    if (!hasData) {
-        minVal = -2;
-        maxVal = 2;
+    let limit;
+    if (!hasData || maxAbs === 0) {
+        limit = 2.0;
     } else {
-        const range = maxVal - minVal;
-        const padding = range * 0.1 || 0.5;
-        minVal -= padding;
-        maxVal += padding;
+        limit = maxAbs * 1.2;
     }
 
+    const roundedLimit = Math.ceil(limit * 10) / 10;
+
     if (chart.options.scales?.y) {
-        chart.options.scales.y.min = minVal;
-        chart.options.scales.y.max = maxVal;
+        chart.options.scales.y.min = -roundedLimit;
+        chart.options.scales.y.max = roundedLimit;
     }
 };
 
@@ -130,12 +119,73 @@ export default function ECGChart({ }: ECGChartProps) {
     const chartRefII = useRef<Chart | null>(null);
     const chartRefV1 = useRef<Chart | null>(null);
 
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [snappedHeight, setSnappedHeight] = useState<number | null>(null);
+    const [canvasHeight, setCanvasHeight] = useState<number | null>(null);
+
     const cursorRef = useRef(0);
     const bufferRef = useRef<{ leadI: number | null, leadII: number | null, v1: number | null }[]>([]);
+    const isMounted = useRef(false);
 
-    const { currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
+    const { user, currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
     const { toggleRecording } = useSessionManager();
     const [showConfirmReset, setShowConfirmReset] = useState(false);
+
+    // Final Clarity Fix: Sync CSS pixels to Bitmap pixels
+    useEffect(() => {
+        isMounted.current = true;
+        const syncPixels = () => {
+            if (!containerRef.current || !isMounted.current) return;
+            
+            // Use Math.floor on parent to start from a clean integer
+            const parentHeight = Math.floor(containerRef.current.parentElement?.clientHeight || 0);
+            const reserved = 90; // Header(45) + Footer(45)
+            const available = parentHeight - reserved;
+            
+            // Calculation for Sharpness:
+            // The container has border-y (2px total).
+            // Inside, we use divide-y which adds 1px between each lead (2px total for 3 leads).
+            // Total fixed border/divider height = 4px.
+            const cH = Math.floor((available - 4) / 3);
+            if (cH <= 0) return;
+
+            const totalH = (3 * cH) + 4;
+            const dpr = window.devicePixelRatio || 1;
+
+            setCanvasHeight(cH);
+            setSnappedHeight(totalH);
+
+            [
+                { cRef: canvasRefI, chartRef: chartRefI },
+                { cRef: canvasRefII, chartRef: chartRefII },
+                { cRef: canvasRefV1, chartRef: chartRefV1 }
+            ].forEach(({ cRef, chartRef }) => {
+                const canvas = cRef.current;
+                if (canvas && isMounted.current) {
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = Math.round(rect.width * dpr);
+                    canvas.height = Math.round(cH * dpr);
+                    
+                    if (chartRef.current) {
+                        try {
+                            chartRef.current.resize();
+                            chartRef.current.update('none');
+                        } catch {
+                            // Silently catch resize errors during unmount or stale refs
+                        }
+                    }
+                }
+            });
+        };
+
+        const observer = new ResizeObserver(syncPixels);
+        if (containerRef.current?.parentElement) observer.observe(containerRef.current.parentElement);
+        syncPixels();
+        return () => {
+            isMounted.current = false;
+            observer.disconnect();
+        };
+    }, []);
 
     const handleReset = () => {
         if (isRecording) return;
@@ -150,6 +200,7 @@ export default function ECGChart({ }: ECGChartProps) {
     useEffect(() => {
         const totalPoints = CONFIG.MAX_DATA_POINTS;
         const initialData = new Array(totalPoints).fill(null);
+        const signalColor = '#0f172a'; // High-contrast Dark Slate
 
         if (canvasRefI.current) {
             const ctxI = canvasRefI.current.getContext('2d');
@@ -158,7 +209,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     type: 'line',
                     data: {
                         labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
+                        datasets: [{ data: [...initialData], borderColor: signalColor }]
                     },
                     options: createChartConfig(totalPoints)
                 });
@@ -172,7 +223,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     type: 'line',
                     data: {
                         labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
+                        datasets: [{ data: [...initialData], borderColor: signalColor }]
                     },
                     options: createChartConfig(totalPoints)
                 });
@@ -186,7 +237,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     type: 'line',
                     data: {
                         labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: '#000000' }]
+                        datasets: [{ data: [...initialData], borderColor: signalColor }]
                     },
                     options: createChartConfig(totalPoints)
                 });
@@ -318,33 +369,105 @@ export default function ECGChart({ }: ECGChartProps) {
     }, []);
 
     return (
-        <div className="flex flex-col w-full h-full bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 relative overflow-hidden transition-all duration-500">
-            <div className="flex items-center justify-between px-8 py-3 border-b border-slate-100 bg-white relative z-20 shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-rose-50 rounded-md text-rose-500 flex items-center justify-center shadow-sm border border-rose-100/50">
-                        <Activity size={18} strokeWidth={2.5} />
+        <div className="flex flex-col w-full h-full bg-white relative transition-all duration-500">
+            {/* Clinical Header: Better UI/UX */}
+            <div className="h-[45px] flex items-center justify-between px-6 border-b border-slate-100 bg-white relative z-20 shrink-0">
+                <div className="flex items-center gap-8">
+                    {/* Live Indicator */}
+                    <div className="flex items-center gap-2 pr-6 border-r border-slate-100">
+                        <Activity size={14} className="text-rose-500 animate-pulse" />
+                        <h3 className="font-black text-slate-800 text-[11px] uppercase tracking-tight">Monitoring</h3>
                     </div>
-                    <div>
-                        <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">Live ECG Monitor</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Real-time Signal Acquisition</p>
+
+                    {/* Patient Clinical Profile */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500">
+                                {(user?.full_name || user?.username || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-black text-slate-800 leading-none">
+                                    {user?.full_name || user?.username || 'Unknown Patient'}
+                                </span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Patient Identity</span>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-6 bg-slate-100" />
+
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medical History:</span>
+                                <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                                    {user?.medical_history || 'No Prior Records'}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                <div className="flex items-center gap-3 text-[9px] font-mono font-bold text-slate-300 uppercase tracking-[0.2em]">
+                    ECG-LX Digital Stream
+                </div>
+            </div>
+
+            {/* Waveforms Area - Simplified & Sharp */}
+            <div 
+                ref={containerRef}
+                className="w-full flex flex-col bg-white border-y border-slate-950 divide-y divide-slate-950 overflow-hidden shrink-0"
+                style={{ height: snappedHeight ? `${snappedHeight}px` : 'auto' }}
+            >
+                {[
+                    { id: 'leadI', label: 'Lead I', ref: canvasRefI },
+                    { id: 'leadII', label: 'Lead II', ref: canvasRefII },
+                    { id: 'v1', label: 'V1', ref: canvasRefV1 }
+                ].map((lead) => (
+                    <div 
+                        key={lead.id} 
+                        className="relative w-full overflow-hidden bg-white"
+                        style={{ 
+                            ...medicalGridStyle,
+                            height: canvasHeight ? `${canvasHeight}px` : 'auto'
+                        }}
+                    >
+                        {/* Technical Parameters */}
+                        <div className="absolute top-2 left-4 z-10 pointer-events-none">
+                            <div className="text-[8px] font-mono font-bold text-rose-600/40 uppercase tracking-widest">Speed: 25mm/s | Gain: 10mm/mV</div>
+                        </div>
+                        {/* Lead Title */}
+                        <div className="absolute top-2 right-4 z-10 pointer-events-none">
+                            <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-white/90 px-1.5 py-0.5 border border-slate-200 shadow-sm rounded-sm">
+                                {lead.label}
+                            </div>
+                        </div>
+                        <canvas 
+                            ref={lead.ref} 
+                            style={{ height: canvasHeight ? `${canvasHeight}px` : '100%' }}
+                            className="w-full relative z-0 block"
+                        ></canvas>
+                    </div>
+                ))}
+            </div>
+
+            {/* Footer: Fixed Integer Height */}
+            <div className="h-[45px] bg-white border-t border-slate-100 flex items-center px-4 justify-between shrink-0 relative z-20">
                 <div className="flex items-center gap-4">
                     <DeviceDropdown />
+                </div>
 
+                <div className="flex items-center gap-3">
                     {(currentDeviceId || isSessionActive) && (
-                        <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
+                        <div className="flex items-center gap-2">
                             {!isSessionActive ? (
                                 <button
                                     onClick={toggleRecording}
                                     disabled={!currentDeviceId}
                                     className={clsx(
-                                        "flex items-center gap-2 px-6 py-2 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                        "flex items-center gap-2 px-6 py-1.5 rounded-md text-[10px] font-black shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                         !currentDeviceId ? "bg-slate-300 shadow-none cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                                     )}
                                 >
-                                    <Activity size={16} /> Start Recording
+                                    <Activity size={14} /> Start Recording
                                 </button>
                             ) : (
                                 <>
@@ -352,7 +475,7 @@ export default function ECGChart({ }: ECGChartProps) {
                                         onClick={toggleRecording}
                                         disabled={!isRecording && !currentDeviceId}
                                         className={clsx(
-                                            "flex items-center gap-2 px-4 py-2 rounded-md text-xs font-bold shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
+                                            "flex items-center gap-2 px-4 py-1.5 rounded-md text-[10px] font-black shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
                                             isRecording 
                                                 ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" 
                                                 : (!currentDeviceId 
@@ -360,81 +483,26 @@ export default function ECGChart({ }: ECGChartProps) {
                                                     : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20")
                                         )}
                                     >
-                                        {isRecording ? <><Square size={14} fill="currentColor" /> Stop</> : <><Activity size={14} /> Resume</>}
+                                        {isRecording ? <><Square size={12} fill="currentColor" /> Stop Recording</> : <><Activity size={12} /> Resume Recording</>}
                                     </button>
 
                                     <button
                                         onClick={handleReset}
                                         disabled={isRecording}
                                         className={clsx(
-                                            "px-3 py-2 rounded-md text-xs font-bold border transition-all uppercase tracking-wider flex items-center justify-center",
+                                            "px-2.5 py-1.5 rounded-md text-[10px] font-black border transition-all uppercase tracking-wider flex items-center justify-center",
                                             isRecording
                                                 ? "bg-slate-50 text-slate-300 cursor-not-allowed border-slate-100"
                                                 : "bg-white border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm active:scale-95"
                                         )}
                                         title="End Session"
                                     >
-                                        <XCircle size={18} />
+                                        <XCircle size={16} />
                                     </button>
                                 </>
                             )}
                         </div>
                     )}
-                </div>
-            </div>
-
-            <div className="flex-1 w-full flex flex-col bg-slate-50 gap-2 py-2 border-b border-slate-100 min-h-0">
-                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
-                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
-                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
-                            Speed: 25mm/s | Gain: 10mm/mV
-                        </div>
-                    </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead I</span>
-                    </div>
-                    <canvas ref={canvasRefI} className="w-full h-full relative z-0 block"></canvas>
-                </div>
-
-                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
-                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
-                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
-                            Speed: 25mm/s | Gain: 10mm/mV
-                        </div>
-                    </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">Lead II</span>
-                    </div>
-                    <canvas ref={canvasRefII} className="w-full h-full relative z-0 block"></canvas>
-                </div>
-
-                <div className="flex-1 min-h-[120px] relative w-full bg-white border-y border-slate-200 shadow-sm overflow-hidden" style={medicalGridStyle}>
-                    <div className="absolute top-3 left-3 z-10 opacity-60 pointer-events-none">
-                        <div className="text-[10px] font-mono font-bold text-rose-600 uppercase tracking-widest">
-                            Speed: 25mm/s | Gain: 10mm/mV
-                        </div>
-                    </div>
-                    <div className="absolute top-2 right-2 z-10 bg-white/90 px-2 py-0.5 rounded-sm border border-slate-100 backdrop-blur-sm shadow-sm">
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-wider">V1</span>
-                    </div>
-                    <canvas ref={canvasRefV1} className="w-full h-full relative z-0 block"></canvas>
-                </div>
-            </div>
-
-            <div className="bg-slate-50 border-t border-slate-100 flex items-center px-6 py-2 justify-between shrink-0 relative z-20">
-                <div className="flex items-center gap-8">
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-black"></span>
-                        <span className="text-[10px] font-black text-slate-600 uppercase tracking-wide">Signal: High Precision</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-px h-4 bg-slate-200" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Diagnostic Grade visualization</span>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                    <Settings2 size={10} />
-                    Auto-scaling Enabled
                 </div>
             </div>
 

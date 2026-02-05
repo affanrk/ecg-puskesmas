@@ -220,36 +220,36 @@ export default function RegisterPage() {
             </div>
 
             {/* Right Side: Register Form */}
-            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-12 bg-slate-50 lg:bg-white custom-scrollbar">
+            <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-8 bg-slate-50 lg:bg-white custom-scrollbar">
                 <div className={clsx(
-                    "w-full max-w-[450px] mx-auto my-auto bg-white lg:bg-transparent p-8 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
+                    "w-full max-w-[450px] mx-auto my-auto bg-white lg:bg-transparent p-6 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
                     // Removed 'isShaking' from container
                 )}>
                     
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Create Account</h1>
-                        <p className="text-slate-400 font-medium mt-2">Enter your details to register</p>
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create Account</h1>
+                        <p className="text-slate-400 font-medium mt-1.5 text-sm">Enter your details to register</p>
                     </div>
 
-                    <form onSubmit={handleRegister} className="space-y-5">
+                    <form onSubmit={handleRegister} className="space-y-4">
 
                         {serverError && (
                              <div className={clsx(
-                                 "py-3 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-4 animate-in fade-in slide-in-from-top-1",
+                                 "py-2.5 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-3 animate-in fade-in slide-in-from-top-1",
                                  showErrorEffect && "animate-error-pop" // Applied 'pop' effect here
                              )}>
-                                <AlertCircle className="w-5 h-5 shrink-0" />
-                                <span className="text-sm font-bold">{serverError}</span>
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span className="text-xs font-bold">{serverError}</span>
                             </div>
                         )}
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {/* Username */}
-                            <div className="group space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Username</label>
+                            <div className="group space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Username</label>
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <User className={clsx("w-5 h-5 transition-colors", errors.username ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
+                                        <User className={clsx("w-4 h-4 transition-colors", errors.username ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
                                     </div>
                                     <input
                                         type="text"
@@ -257,22 +257,22 @@ export default function RegisterPage() {
                                         onChange={(e) => handleFieldChange('username', e.target.value)}
                                         onFocus={handleFocus}
                                         className={clsx(
-                                            "w-full pl-12 pr-10 py-3 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
+                                            "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
                                             errors.username ? "border-rose-100 focus:border-rose-500" : "border-slate-100 focus:border-brand-500"
                                         )}
                                         placeholder="Enter a username"
                                     />
                                     {checks.username && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                                 </div>
-                                {errors.username && <span className="text-xs font-bold text-rose-500 ml-1">{errors.username}</span>}
+                                {errors.username && <span className="text-[10px] font-bold text-rose-500 ml-1">{errors.username}</span>}
                             </div>
 
                             {/* Email */}
-                            <div className="group space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Email</label>
+                            <div className="group space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Email</label>
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <Mail className={clsx("w-5 h-5 transition-colors", errors.email ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
+                                        <Mail className={clsx("w-4 h-4 transition-colors", errors.email ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
                                     </div>
                                     <input
                                         type="email"
@@ -280,29 +280,29 @@ export default function RegisterPage() {
                                         onChange={(e) => handleFieldChange('email', e.target.value)}
                                         onFocus={handleFocus}
                                         className={clsx(
-                                            "w-full pl-12 pr-10 py-3 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
+                                            "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
                                             errors.email ? "border-rose-100 focus:border-rose-500" : "border-slate-100 focus:border-brand-500"
                                         )}
                                         placeholder="name@hospital.com"
                                     />
                                     {checks.email && <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />}
                                 </div>
-                                {errors.email && <span className="text-xs font-bold text-rose-500 ml-1">{errors.email}</span>}
+                                {errors.email && <span className="text-[10px] font-bold text-rose-500 ml-1">{errors.email}</span>}
                             </div>
 
                             {/* Password Group - Expanded */}
-                            <div className="space-y-4">
-                                <div className="group space-y-1.5 relative">
+                            <div className="space-y-3">
+                                <div className="group space-y-1 relative">
                                     <div className="flex justify-between items-end px-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">Password</label>
-                                        <span className={clsx("text-[10px] font-black uppercase tracking-wider transition-colors duration-300", strengthInfo.color)}>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Password</label>
+                                        <span className={clsx("text-[9px] font-black uppercase tracking-wider transition-colors duration-300", strengthInfo.color)}>
                                             {formData.password ? strengthInfo.label : ''}
                                         </span>
                                     </div>
                                     
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <Lock className={clsx("w-5 h-5 transition-colors", errors.password ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
+                                            <Lock className={clsx("w-4 h-4 transition-colors", errors.password ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
                                         </div>
                                         <input
                                             type={showPassword ? "text" : "password"}
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                                             onFocus={() => { setShowPwdHint(true); handleFocus(); }}
                                             onBlur={() => setShowPwdHint(false)}
                                             className={clsx(
-                                                "w-full pl-12 pr-10 py-3 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white z-20 relative",
+                                                "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white z-20 relative",
                                                 errors.password ? "border-rose-100 focus:border-rose-500" : 
                                                 (formData.password && isFormValid ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
                                             )}
@@ -324,24 +324,24 @@ export default function RegisterPage() {
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors z-30 p-1"
                                             tabIndex={-1}
                                         >
-                                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
 
                                         {/* Dynamic Hint Popover */}
                                         <div className={clsx(
-                                            "absolute left-0 bottom-[calc(100%+8px)] w-full bg-slate-900 text-white p-4 rounded-xl shadow-2xl transition-all duration-300 z-50 pointer-events-none origin-bottom",
+                                            "absolute left-0 bottom-[calc(100%+8px)] w-full bg-slate-900 text-white p-3 rounded-xl shadow-2xl transition-all duration-300 z-50 pointer-events-none origin-bottom",
                                             showPwdHint ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
                                         )}>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Security Requirements</div>
-                                            <div className="grid grid-cols-2 gap-2">
+                                            <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-2">Security Requirements</div>
+                                            <div className="grid grid-cols-2 gap-1.5">
                                                 {[
                                                     { label: '8+ Chars', met: checks.length },
                                                     { label: 'Uppercase', met: checks.upper },
                                                     { label: 'Number', met: checks.number },
                                                     { label: 'Symbol', met: checks.special }
                                                 ].map((req, i) => (
-                                                    <div key={i} className={clsx("flex items-center gap-2 text-xs font-bold transition-all", req.met ? "text-emerald-400" : "text-slate-500")}>
-                                                        {req.met ? <Check size={12} strokeWidth={4} /> : <div className="w-1 h-1 rounded-full bg-slate-600 ml-1 mr-0.5" />}
+                                                    <div key={i} className={clsx("flex items-center gap-2 text-[10px] font-bold transition-all", req.met ? "text-emerald-400" : "text-slate-500")}>
+                                                        {req.met ? <Check size={10} strokeWidth={4} /> : <div className="w-1 h-1 rounded-full bg-slate-600 ml-1 mr-0.5" />}
                                                         {req.label}
                                                     </div>
                                                 ))}
@@ -352,7 +352,7 @@ export default function RegisterPage() {
                                     </div>
 
                                     {/* Enhanced Progress Bar */}
-                                    <div className="flex gap-1 h-1.5 mt-2 px-1">
+                                    <div className="flex gap-1 h-1 mt-1.5 px-1">
                                         {[1, 2, 3, 4].map((step) => (
                                             <div 
                                                 key={step}
@@ -368,11 +368,11 @@ export default function RegisterPage() {
                                 </div>
 
                                 {/* Confirm Password */}
-                                <div className="group space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Confirm Password</label>
+                                <div className="group space-y-1">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Confirm Password</label>
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                                            <Check className={clsx("w-5 h-5 transition-colors", checks.match && formData.confirmPassword ? "text-emerald-500" : "text-slate-300")} />
+                                            <Check className={clsx("w-4 h-4 transition-colors", checks.match && formData.confirmPassword ? "text-emerald-500" : "text-slate-300")} />
                                         </div>
                                         <input
                                             type={showPassword ? "text" : "password"}
@@ -380,7 +380,7 @@ export default function RegisterPage() {
                                             onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
                                             onFocus={handleFocus}
                                             className={clsx(
-                                                "w-full pl-12 pr-10 py-3 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
+                                                "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
                                                 errors.confirmPassword ? "border-rose-100 focus:border-rose-500" : 
                                                 (formData.confirmPassword && checks.match ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
                                             )}
@@ -392,12 +392,12 @@ export default function RegisterPage() {
                         </div>
 
                         {/* Submit */}
-                        <div className="pt-4">
+                        <div className="pt-2">
                             <button
                                 type="submit"
                                 disabled={loading || success}
                                 className={clsx(
-                                    "w-full py-4 rounded-xl font-bold transition-all shadow-xl text-sm uppercase tracking-wide active:scale-[0.98] flex items-center justify-center gap-2",
+                                    "w-full py-3.5 rounded-xl font-bold transition-all shadow-lg text-xs uppercase tracking-wide active:scale-[0.98] flex items-center justify-center gap-2",
                                     loading || success
                                         ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
                                         : "bg-brand-600 hover:bg-brand-700 text-white shadow-brand-500/25 hover:shadow-brand-500/40"
@@ -405,26 +405,26 @@ export default function RegisterPage() {
                             >
                                 {loading ? (
                                     <>
-                                        <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                                        <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
                                         Creating...
                                     </>
                                 ) : success ? (
                                     <>
-                                        <Check size={18} />
+                                        <Check size={16} />
                                         Created!
                                     </>
                                 ) : (
                                     <>
                                         Create Account
-                                        <UserPlus size={18} />
+                                        <UserPlus size={16} />
                                     </>
                                 )}
                             </button>
                         </div>
                     </form>
 
-                    <div className="mt-8 text-center">
-                        <p className="text-sm font-medium text-slate-500">
+                    <div className="mt-6 text-center">
+                        <p className="text-xs font-medium text-slate-500">
                             Already have an account? 
                             <Link href="/login" className="text-brand-600 font-bold hover:underline ml-2 hover:text-brand-700 transition-colors">
                                 Sign In
