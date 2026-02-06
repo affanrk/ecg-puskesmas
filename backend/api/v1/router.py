@@ -1,8 +1,3 @@
-"""
-API v1 router - updated to include all endpoints
-Organizes all API routes with proper grouping and tags.
-"""
-
 from fastapi import APIRouter
 
 from api.v1.endpoints import (

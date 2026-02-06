@@ -25,17 +25,6 @@ def _map_session_to_response(
     session: TbREcgSession,
     user_details: Optional[Union[Tuple[str, str, str], TbMUser]] = None,
 ) -> SessionResponse:
-    """
-    Maps a database session object to a SessionResponse schema.
-
-    Args:
-        session: The database session object.
-        user_details: A tuple (full_name, username, nik) or a TbMUser object
-                      containing user information to populate patient_name and subject_id.
-
-    Returns:
-        A populated SessionResponse object.
-    """
     patient_name = "Unknown"
     subject_id = str(session.user_id)
 
@@ -75,9 +64,6 @@ async def get_calendar_view(
     minute: Optional[int] = Query(None),
     calendar_repo: CalendarRepository = Depends(get_calendar_repository),
 ):
-    """
-    Get aggregated calendar view (Year -> Month -> Day -> Hour -> Minute -> Second).
-    """
     nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
 
     level = "year"
@@ -102,9 +88,6 @@ async def get_history_stats(
     user_id: Optional[int] = Query(None, description="Filter by User ID"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Get aggregated classification statistics.
-    """
     return session_repo.get_classification_stats(user_id)
 
 
@@ -126,10 +109,6 @@ async def get_recording_history(
     ),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Get recording history with advanced filtering.
-    """
-
     results = session_repo.search_sessions(
         search_query=search,
         device_id=device_id,
@@ -152,9 +131,6 @@ async def get_recent_history(
     limit: int = Query(10, le=20, description="Maximum results"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Get recent completed recording history for a specific user (excludes 'Recording...' status).
-    """
     sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
 
     return [_map_session_to_response(session, session.user) for session in sessions]
@@ -164,10 +140,6 @@ async def get_recent_history(
 async def get_recording_detail(
     recording_id: str, session_repo: SessionRepository = Depends(get_session_repository)
 ):
-    """
-    Get detailed information for a specific recording.
-    """
-
     session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     return _map_session_to_response(session, session.user)
@@ -179,9 +151,6 @@ async def get_device_history(
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Get all recording history for a specific device.
-    """
     sessions = session_repo.list_by_device(device_id, limit=limit)
 
     return [_map_session_to_response(session, session.user) for session in sessions]
@@ -193,9 +162,6 @@ async def get_user_history(
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Get all recording history for a specific user.
-    """
     sessions = session_repo.list_by_user(user_id, limit=limit)
 
     return [_map_session_to_response(session, session.user) for session in sessions]

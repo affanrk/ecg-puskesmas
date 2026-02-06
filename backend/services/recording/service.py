@@ -19,19 +19,10 @@ from utils import DB_BATCH_INTERVAL, DB_BATCH_CHUNK_SIZE
 
 
 class RecordingStorageService:
-    """
-    Manages batch insertion of recording data to database.
-    Optimized for high-throughput time-series data.
-    """
-
     def __init__(self):
         self.is_running = False
 
     async def run_batch_inserter(self):
-        """
-        Main batch insertion loop.
-        Runs as background task during application lifetime.
-        """
         self.is_running = True
         logger.info("[Storage] Batch inserter started")
 
@@ -46,15 +37,9 @@ class RecordingStorageService:
         logger.info("[Storage] Batch inserter stopped")
 
     async def stop(self):
-        """Stop the batch inserter"""
         self.is_running = False
 
     async def _process_batches(self):
-        """
-        Process all pending batches from memory buffers.
-        Extracts data, validates, and inserts to database.
-        """
-
         async with device_state_manager.batch_lock:
             idle_items = device_state_manager.buffer_idle_batch.copy()
             rec_items = device_state_manager.buffer_recording_batch.copy()
@@ -75,14 +60,9 @@ class RecordingStorageService:
     def _execute_batch_insert(
         self, rec_items: List[Dict[str, Any]], perf_items: List[Dict[str, Any]]
     ):
-        """
-        Synchronous batch insertion.
-        Runs in thread pool executor to avoid blocking event loop.
-        """
         db = SessionLocal()
 
         try:
-
             if rec_items:
                 self._insert_recording_batch(db, rec_items)
 
@@ -96,11 +76,6 @@ class RecordingStorageService:
             db.close()
 
     def _insert_recording_batch(self, db: Session, items: List[Dict[str, Any]]):
-        """
-        Insert ECG recording data in batches.
-        Filters out cancelled recordings and routes to correct table (Web vs Mobile).
-        """
-
         cancelled = device_state_manager.cancelled_recordings
         valid_items = [item for item in items if item["recording_id"] not in cancelled]
 
@@ -146,7 +121,6 @@ class RecordingStorageService:
                     raise
 
     def _insert_performance_batch(self, db: Session, items: List[Dict[str, Any]]):
-        """Insert performance log data in batch"""
         if not items:
             return
 
@@ -160,10 +134,6 @@ class RecordingStorageService:
             raise
 
     async def cleanup_zombie_sessions(self):
-        """
-        Delete sessions stuck in "Recording..." state.
-        Called during application startup.
-        """
         logger.info("[Storage] Cleaning up zombie sessions...")
 
         loop = asyncio.get_running_loop()
@@ -172,10 +142,6 @@ class RecordingStorageService:
         logger.info(f"[Storage] Cleaned up {count} zombie sessions")
 
     def _execute_zombie_cleanup(self) -> int:
-        """
-        Synchronous zombie session cleanup.
-        Runs in thread pool during startup.
-        """
         db = SessionLocal()
 
         try:
@@ -190,19 +156,11 @@ class RecordingStorageService:
             db.close()
 
     async def flush_all_buffers(self):
-        """
-        Force immediate flush of all pending data.
-        Useful before shutdown or during testing.
-        """
         logger.info("[Storage] Flushing all buffers...")
         await self._process_batches()
         logger.info("[Storage] Flush complete")
 
     def get_buffer_stats(self) -> Dict[str, int]:
-        """
-        Get current buffer sizes.
-        Useful for monitoring and debugging.
-        """
         return {
             "idle_buffer": len(device_state_manager.buffer_idle_batch),
             "recording_buffer": len(device_state_manager.buffer_recording_batch),

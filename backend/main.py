@@ -1,8 +1,3 @@
-"""
-Main application entry point - refactored
-Now uses new architecture with services, repositories, and clean separation.
-"""
-
 import os
 import sys
 import asyncio
@@ -66,15 +61,10 @@ app.add_middleware(
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    """
-    Handle all custom application exceptions.
-    Returns consistent error response format.
-    """
     logger.error(
         f"[Exception] {exc.__class__.__name__}: {exc.message}",
         extra={"details": exc.details},
     )
-
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -90,14 +80,9 @@ async def app_exception_handler(request: Request, exc: AppException):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
-    """
-    Handle all unhandled exceptions.
-    Returns 500 with stack trace for debugging (staging/dev only).
-    """
     error_msg = str(exc)
     tb = traceback.format_exc()
     logger.error(f"[Unhandled Exception] {error_msg}\n{tb}")
-
     return JSONResponse(
         status_code=500,
         content={
@@ -113,25 +98,21 @@ async def generic_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(DeviceException)
 async def device_exception_handler(request: Request, exc: DeviceException):
-    """Handle device-specific exceptions"""
     return await app_exception_handler(request, exc)
 
 
 @app.exception_handler(RecordingException)
 async def recording_exception_handler(request: Request, exc: RecordingException):
-    """Handle recording-specific exceptions"""
     return await app_exception_handler(request, exc)
 
 
 @app.exception_handler(PatientException)
 async def patient_exception_handler(request: Request, exc: PatientException):
-    """Handle patient-specific exceptions"""
     return await app_exception_handler(request, exc)
 
 
 @app.exception_handler(AnalysisException)
 async def analysis_exception_handler(request: Request, exc: AnalysisException):
-    """Handle analysis-specific exceptions"""
     return await app_exception_handler(request, exc)
 
 
@@ -159,7 +140,6 @@ if __name__ == "__main__":
         reload=True,
     )
     server = uvicorn.Server(config)
-
     try:
         server.run()
     except KeyboardInterrupt:

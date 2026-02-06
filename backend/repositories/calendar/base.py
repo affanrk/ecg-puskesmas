@@ -61,7 +61,15 @@ class BaseCalendarProcessor:
                 )
             ).label("count_abnormal"),
             func.count(
-                case((TbREcgSession.classification_result.ilike("%normal%"), 1))
+                case(
+                    (
+                        TbREcgSession.classification_result.ilike("%normal%")
+                        & ~TbREcgSession.classification_result.ilike("%abnormal%")
+                        & ~TbREcgSession.classification_result.ilike("%aritmia%")
+                        & ~TbREcgSession.classification_result.ilike("%berpotensi%"),
+                        1,
+                    )
+                )
             ).label("count_normal"),
         ]
 

@@ -9,7 +9,6 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
     rpeaks_info = {}
     waves_info = {}
 
-    # 1. Detect R-Peaks
     try:
         signals, rpeaks_info = nk.ecg_peaks(signal, sampling_rate=sampling_rate)
 
@@ -21,9 +20,7 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
         logger.error(f"[DSP] R-Peak detection failed: {e}")
         return {}, {}
 
-    # 2. Delineate Waves (P, Q, S, T)
     try:
-        # Try DWT first (standard, most accurate)
         signals, waves_info = nk.ecg_delineate(
             signal, rpeaks_info, sampling_rate=sampling_rate, method="dwt"
         )
@@ -32,41 +29,21 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
             f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}"
         )
         try:
-            # Fallback to 'peak' method (faster, uses local extrema)
             signals, waves_info = nk.ecg_delineate(
                 signal, rpeaks_info, sampling_rate=sampling_rate, method="peak"
             )
         except Exception as e2:
             logger.error(f"[DSP] Wave delineation failed (all methods): {e2}")
-            # Return at least R-peaks if waves fail, so BPM/RR can still be calculated
             return rpeaks_info, {}
 
     return rpeaks_info, waves_info
 
 
 def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, dict]:
-    """
-    Correct detected peaks by removing artifacts.
-
-    This complex logic handles:
-    - Removing peaks before first P-onset
-    - Removing peaks after last T-offset
-    - Removing weak R-peaks (amplitude check)
-
-    Args:
-        rpeaks: R-peaks dictionary
-        waves: Waves dictionary
-        signal: Filtered signal for amplitude checking
-
-    Returns:
-        Tuple of (corrected_rpeaks, corrected_waves)
-    """
-
     rpeaks_corr = rpeaks.copy()
     waves_corr = waves.copy()
 
     try:
-
         rpeaks_corr["ECG_R_Peaks"] = _clean_array(rpeaks_corr.get("ECG_R_Peaks", []))
 
         wave_keys = [
@@ -112,7 +89,6 @@ def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, 
 
 
 def _clean_array(arr) -> np.ndarray:
-    """Remove NaN/Inf values and convert to int array"""
     cleaned = []
     for x in arr:
         try:
@@ -129,7 +105,6 @@ def _clean_array(arr) -> np.ndarray:
 
 
 def _correct_first_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
-    """Remove incomplete first cardiac cycle"""
     if len(waves["ECG_P_Onsets"]) == 0:
         return rpeaks, waves
 
@@ -166,7 +141,6 @@ def _correct_first_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
 
 
 def _correct_last_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
-    """Remove incomplete last cardiac cycle"""
     if len(waves["ECG_T_Offsets"]) == 0:
         return rpeaks, waves
 
@@ -205,7 +179,6 @@ def _correct_last_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
 def _remove_weak_peaks(
     rpeaks: dict, waves: dict, signal: np.ndarray
 ) -> Tuple[dict, dict]:
-    """Remove R-peaks with insufficient amplitude"""
     if len(rpeaks["ECG_R_Peaks"]) < 2:
         return rpeaks, waves
 

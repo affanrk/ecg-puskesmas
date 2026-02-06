@@ -28,7 +28,6 @@ router = APIRouter()
 def register(
     user_in: UserCreate, user_repo: UserRepository = Depends(get_user_repository)
 ):
-    """Register a new user account."""
     if user_repo.find_by_email(email=user_in.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -44,7 +43,6 @@ def register(
 def login(
     login_data: UserLogin, user_repo: UserRepository = Depends(get_user_repository)
 ):
-    """Authenticate user and return access token."""
     user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
 
     if not user or not verify_password(login_data.password, user.hashed_password):
@@ -80,7 +78,6 @@ def login(
 def register_mobile(
     user_in: UserCreate, user_repo: UserRepository = Depends(get_user_repository)
 ):
-    """Register a new user account."""
     if user_repo.find_by_email(email=user_in.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -96,7 +93,6 @@ def register_mobile(
 def login_mobile(
     login_data: UserLogin, user_repo: UserRepository = Depends(get_user_repository)
 ):
-    """Authenticate user and return access token."""
     user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
 
     if not user or not verify_password(login_data.password, user.hashed_password):
@@ -131,7 +127,6 @@ def login_mobile(
 
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
-    """Get profile of the currently authenticated user."""
     return current_user
 
 
@@ -142,7 +137,6 @@ def update_user_profile(
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
-    """Update profile information for the current user."""
     try:
         patient_repo.update_by_user_id(current_user.id, profile_in)
         updated_user = user_repo.find_by_id(current_user.id)
@@ -171,8 +165,6 @@ def update_user_username(
     current_user: TbMUser = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    """Change username for the current user."""
-
     if user_repo.find_by_username(username_in.new_username):
         raise HTTPException(status_code=400, detail="Username already taken")
 
@@ -185,7 +177,6 @@ def update_user_password(
     current_user: TbMUser = Depends(get_current_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    """Update password for the current user."""
     if not verify_password(password_in.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect current password")
 

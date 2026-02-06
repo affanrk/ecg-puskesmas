@@ -31,26 +31,6 @@ router = APIRouter()
 
 @router.get("", response_model=HealthCheckResponse)
 async def health_check():
-    """
-    Basic health check endpoint.
-
-    **Returns:**
-    - `status`: "healthy" or "degraded"
-    - `timestamp`: Current server timestamp
-
-    **Example:**
-    ```
-    GET /api/health
-    ```
-
-    Response:
-    ```json
-    {
-      "status": "healthy",
-      "timestamp": 1704067200.123
-    }
-    ```
-    """
     return {"status": "healthy", "timestamp": time.time()}
 
 
@@ -58,46 +38,6 @@ async def health_check():
 async def detailed_health_check(
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
 ):
-    """
-    Detailed system health check.
-
-    **Returns:**
-    Comprehensive system status including:
-    - Database connectivity
-    - MQTT connection status
-    - ML model status
-    - Active devices count
-    - Buffer statistics
-    - System performance metrics
-
-    **Example:**
-    ```
-    GET /api/health/detailed
-    ```
-
-    Response:
-    ```json
-    {
-      "status": "healthy",
-      "timestamp": 1704067200.123,
-      "components": {
-        "database": {"status": "healthy", "latency_ms": 5.2},
-        "mqtt": {"status": "connected"},
-        "ml_model": {"status": "loaded"},
-        "devices": {"active": 3, "recording": 1}
-      },
-      "buffers": {
-        "recording_buffer": 150,
-        "performance_buffer": 25
-      },
-      "performance": {
-        "avg_latency_ms": 35.2,
-        "avg_jitter_ms": 8.5,
-        "avg_packet_loss_pct": 0.3
-      }
-    }
-    ```
-    """
     components = {}
 
     try:
@@ -145,41 +85,6 @@ async def detailed_health_check(
 
 @router.get("/monitoring/devices", response_model=DeviceMonitoringResponse)
 async def get_device_monitoring():
-    """
-    Get current status of all devices.
-
-    **Returns:**
-    List of devices with their current state:
-    - Device ID
-    - Connection status
-    - Recording status
-    - Network performance metrics
-
-    **Example:**
-    ```
-    GET /api/monitoring/devices
-    ```
-
-    Response:
-    ```json
-    {
-      "devices": [
-        {
-          "device_id": "ECG001",
-          "is_connected": true,
-          "is_recording": true,
-          "status_message": "Recording (Seg 2)...",
-          "performance": {
-            "avg_latency_ms": 35.2,
-            "jitter_ms": 8.1,
-            "packet_loss_pct": 0.2
-          }
-        }
-      ]
-    }
-    ```
-    """
-
     devices_status = []
 
     for device_id in device_state_manager.get_all_device_ids():
@@ -218,42 +123,6 @@ async def get_performance_monitoring(
     hours: int = 24,
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
 ):
-    """
-    Get system performance metrics over time.
-
-    **Query Parameters:**
-    - `hours`: Time window in hours (default: 24)
-
-    **Returns:**
-    Performance statistics and worst performing devices.
-
-    **Example:**
-    ```
-    GET /api/monitoring/performance?hours=24
-    ```
-
-    Response:
-    ```json
-    {
-      "time_window_hours": 24,
-      "system_summary": {
-        "avg_latency_ms": 35.2,
-        "avg_jitter_ms": 8.5,
-        "avg_packet_loss_pct": 0.3,
-        "active_devices": 3
-      },
-      "worst_performers": [
-        {
-          "device_id": "ECG003",
-          "avg_latency_ms": 85.3,
-          "avg_jitter_ms": 25.1,
-          "avg_packet_loss_pct": 2.5
-        }
-      ]
-    }
-    ```
-    """
-
     system_summary = perf_repo.get_system_health_summary()
 
     worst_latency = perf_repo.get_worst_performing_devices(
@@ -273,33 +142,6 @@ async def get_performance_monitoring(
 
 @router.get("/monitoring/ml", response_model=MlMonitoringResponse)
 async def get_ml_monitoring():
-    """
-    Get ML model status and information.
-
-    **Returns:**
-    ML model diagnostics including:
-    - Model loaded status
-    - Model type and configuration
-    - Thread pool status
-
-    **Example:**
-    ```
-    GET /api/monitoring/ml
-    ```
-
-    Response:
-    ```json
-    {
-      "model_info": {
-        "is_loaded": true,
-        "model_type": "ANN",
-        "scaler_type": "StandardScaler",
-        "executor_workers": 3
-      },
-      "status": "operational"
-    }
-    ```
-    """
     model_info = ml_engine_service.get_model_info()
 
     return {
@@ -313,28 +155,6 @@ async def cleanup_old_performance_logs(
     days: int = 30,
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
 ):
-    """
-    Admin endpoint to cleanup old performance logs.
-
-    **Query Parameters:**
-    - `days`: Delete logs older than this many days (default: 30)
-
-    **Returns:**
-    Number of deleted log entries.
-
-    **Example:**
-    ```
-    POST /api/admin/cleanup/old-logs?days=30
-    ```
-
-    Response:
-    ```json
-    {
-      "deleted_count": 15432,
-      "cutoff_days": 30
-    }
-    ```
-    """
     deleted_count = perf_repo.delete_old_logs(days=days)
 
     return {"deleted_count": deleted_count, "cutoff_days": days}

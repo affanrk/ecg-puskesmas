@@ -28,33 +28,6 @@ async def export_raw_ecg_data(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Export raw ECG signal data as CSV.
-
-    **Path Parameters:**
-    - `recording_id`: Recording identifier
-
-    **Returns:**
-    CSV file with columns:
-    - `timestamp`: ISO timestamp
-    - `recording_id`: Recording ID
-    - `lead_I_mV`: Lead I calibrated value
-    - `lead_II_mV`: Lead II calibrated value
-    - `v1_mV`: V1 calibrated value
-    - `raw_adc_I`: Lead I raw ADC value
-    - `raw_adc_II`: Lead II raw ADC value
-    - `raw_adc_v1`: V1 raw ADC value
-
-    **Raises:**
-    - `404`: Recording not found
-
-    **Example:**
-    ```
-    GET /api/export/raw/123e4567-e89b-12d3-a456-426614174000
-    ```
-    Downloads: `ecg_raw_123e4567-e89b-12d3-a456-426614174000.csv`
-    """
-
     session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     db = SessionLocal()
@@ -103,38 +76,6 @@ async def export_analysis_features(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Export analysis features and results as CSV.
-
-    **Path Parameters:**
-    - `recording_id`: Recording identifier
-
-    **Returns:**
-    CSV file with columns:
-    - `recording_id`: Recording ID
-    - `patient_id`: Patient identifier (NIK)
-    - `timestamp`: Recording timestamp
-    - `classification`: AI classification result
-    - `confidence`: Confidence score (0-1)
-    - `bpm`: Heart rate (beats per minute)
-    - `avg_rr_ms`: Average RR interval (ms)
-    - `avg_pr_ms`: Average PR interval (ms)
-    - `avg_qs_ms`: Average QS interval (ms)
-    - `avg_qtc_ms`: Average corrected QT interval (ms)
-    - `avg_st_ms`: Average ST segment duration (ms)
-    - `rs_ratio_v1`: R/S amplitude ratio in V1
-    - `analyzed_by`: System/user who performed analysis
-
-    **Raises:**
-    - `404`: Recording not found
-
-    **Example:**
-    ```
-    GET /api/export/features/123e4567-e89b-12d3-a456-426614174000
-    ```
-    Downloads: `ecg_features_123e4567-e89b-12d3-a456-426614174000.csv`
-    """
-
     session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     feature_data = {
@@ -169,29 +110,6 @@ async def export_ecg_chart(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Export ECG waveform chart as PNG image.
-
-    **Path Parameters:**
-    - `recording_id`: Recording identifier
-
-    **Returns:**
-    PNG image file with 3-lead ECG waveform plot.
-    - Resolution: 150 DPI
-    - Size: 24x12 inches
-    - Includes DSP-filtered signals
-    - Professional medical chart styling
-
-    **Raises:**
-    - `404`: Recording not found or insufficient data
-
-    **Example:**
-    ```
-    GET /api/export/plot/123e4567-e89b-12d3-a456-426614174000
-    ```
-    Downloads: `ecg_chart_123e4567-e89b-12d3-a456-426614174000.png`
-    """
-
     session_repo.find_by_recording_id_or_fail(recording_id)
 
     loop = asyncio.get_running_loop()
@@ -226,27 +144,6 @@ async def export_ecg_chart(
 async def export_complete_package(
     recording_id: str, session_repo: SessionRepository = Depends(get_session_repository)
 ):
-    """
-    Export complete package (future enhancement).
-
-    Will include:
-    - Raw ECG data (CSV)
-    - Analysis features (CSV)
-    - ECG chart (PNG)
-    - Summary report (PDF)
-
-    All packaged in a ZIP file.
-
-    **Status:** Not yet implemented
-
-    **Path Parameters:**
-    - `recording_id`: Recording identifier
-
-    **Example:**
-    ```
-    GET /api/export/complete/123e4567-e89b-12d3-a456-426614174000
-    ```
-    """
     raise HTTPException(
         status_code=501, detail="Complete package export not yet implemented"
     )
@@ -258,18 +155,4 @@ async def export_batch_recordings(
     format: str = "csv",
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
-    """
-    Export multiple recordings in batch (future enhancement).
-
-    **Query Parameters:**
-    - `recording_ids`: Comma-separated recording IDs
-    - `format`: Export format ("csv" or "zip")
-
-    **Status:** Not yet implemented
-
-    **Example:**
-    ```
-    GET /api/export/batch?recording_ids=id1,id2,id3&format=zip
-    ```
-    """
     raise HTTPException(status_code=501, detail="Batch export not yet implemented")
