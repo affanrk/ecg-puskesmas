@@ -15,8 +15,7 @@ export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab 
     if (!user) return null;
 
     return (
-        <div className="bg-white p-4 lg:p-5 rounded-xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
-            {/* Decorative Background Element */}
+        <div className="bg-white p-4 lg:p-5 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-teal-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
 
             <div className="flex items-center gap-6 w-full md:w-auto relative z-10">
@@ -48,16 +47,13 @@ export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab 
                 </div>
             </div>
             
-            {/* Tab Navigation */}
-            <div className="p-1 bg-slate-100/80 rounded-xl border border-slate-200 w-full md:w-auto relative z-10 backdrop-blur-sm flex shadow-inner gap-1">
-                {/* Sliding Background Indicator */}
+            <div className="p-1 bg-slate-100/80 rounded-lg w-full md:w-auto relative z-10 backdrop-blur-sm flex gap-1">
                 <div 
                     className={clsx(
-                        "absolute top-1 bottom-1 w-[calc(50%-6px)] bg-white rounded-md shadow-[0_4px_10px_-2px_rgba(0,0,0,0.05)] ring-1 ring-black/5 transition-all duration-300 ease-out z-0",
+                        "absolute top-1 bottom-1 w-[calc(50%-6px)] bg-white rounded-md transition-all duration-300 ease-out z-0",
                         activeTab === 'medical' ? "left-1" : "left-[calc(50%+2px)]"
                     )}
                 />
-
                 <button 
                     onClick={() => setActiveTab('medical')} 
                     className={clsx(

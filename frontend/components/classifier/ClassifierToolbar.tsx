@@ -86,7 +86,7 @@ export default function ClassifierToolbar({
 
     return (
 
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 backdrop-blur-sm relative z-20 shrink-0">
+        <div className="px-4 sm:px-6 py-2.5 2xl:py-3.5 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 backdrop-blur-sm relative z-20 shrink-0">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 flex-wrap">
                 <div className="relative w-full sm:w-48 group/limit shrink-0">
                     <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within/limit:text-teal-500 transition-colors" />

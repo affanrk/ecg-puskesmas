@@ -22,7 +22,7 @@ export default function DashboardSummary() {
         setLoading(true);
         try {
             const [historyData, statsData] = await Promise.all([
-                api.fetchRecentHistory(user.id, 10),
+                api.fetchRecentHistory(user.id, 10), 
                 api.fetchStats(user.id)
             ]);
             
@@ -77,21 +77,27 @@ export default function DashboardSummary() {
     const lastResultTime = lastResult ? formatDateTime(lastResult.changed_dt || lastResult.timestamp) : { date: '--', time: '--' };
 
     return (
-        <div className="flex flex-col gap-3 sm:gap-4 h-full min-h-0">
-            <SummaryCards 
-                lastResult={lastResult}
-                lastResultTime={lastResultTime}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6 flex-1 min-h-0 pb-2 sm:pb-4">
+        <div className="grid grid-cols-1 xl:grid-cols-12 xl:h-full xl:min-h-0 overflow-y-auto xl:overflow-hidden no-scrollbar pb-4 xl:pb-0">
+            <div className="xl:col-span-7 flex flex-col min-h-[500px] xl:min-h-0 h-full border-r border-slate-100">
                 <RecentAnalysisTable 
                     loading={loading}
                     recentRecords={recentRecords}
                     loadDashboardData={loadDashboardData}
                     highlight={highlight}
                 />
+            </div>
 
-                <DistributionChart stats={stats} />
+            <div className="xl:col-span-5 flex flex-col min-h-0 h-full overflow-hidden">
+                <div className="flex-none min-h-0 flex flex-col overflow-hidden">
+                    <SummaryCards 
+                        lastResult={lastResult}
+                        lastResultTime={lastResultTime}
+                        isVertical={true}
+                    />
+                </div>
+                <div className="flex-1 min-h-0 border-t border-slate-100 flex flex-col overflow-hidden">
+                    <DistributionChart stats={stats} isVertical={true} />
+                </div>
             </div>
         </div>
     );

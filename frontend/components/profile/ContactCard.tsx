@@ -1,8 +1,8 @@
 'use client';
 
-import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Edit2, CheckCircle2, HeartPulse, Stethoscope, ChevronDown } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
 import clsx from 'clsx';
 
 interface MedicalForm {
@@ -41,10 +41,23 @@ export default function ContactCard({
     onSaveProfileClick,
     loading
 }: ContactCardProps) {
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const canEditMedical = !isLocked || isEditingMedical;
+    const historyRef = useRef<HTMLDivElement>(null);
+
+    // Handle clicks outside dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
+                setIsHistoryOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
-        <div className="bg-white p-5 lg:p-6 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all duration-500 relative overflow-hidden group">
+        <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
                 <HeartPulse size={100} strokeWidth={1} />
             </div>
@@ -70,18 +83,62 @@ export default function ContactCard({
                 )}
             </div>
 
-            <div className={clsx("space-y-4 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
-                <SelectInput 
-                    label="Medical History / Risk Factors" 
-                    value={medicalForm.medical_history} 
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMedicalForm((p) => ({...p, medical_history: e.target.value}))} 
-                    disabled={!canEditMedical}
-                    options={[
-                        { value: 'Normal', label: 'Normal' }, 
-                        { value: 'Hipertensi', label: 'Hipertensi' },
-                        { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
-                    ]}
-                />
+            <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
+                {/* Improved Medical History Picker: Custom Dropdown */}
+                <div className="space-y-2 relative" ref={historyRef}>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Medical History / Risk Factors</label>
+                    
+                    <button
+                        type="button"
+                        disabled={!canEditMedical}
+                        onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                        className={clsx(
+                            "w-full px-4 py-3 bg-white border rounded-md flex items-center justify-between transition-all group/btn",
+                            isHistoryOpen ? "border-teal-500 shadow-lg shadow-teal-500/5" : "border-slate-200",
+                            canEditMedical && !isHistoryOpen && "hover:border-teal-300",
+                            !canEditMedical && "cursor-not-allowed opacity-100"
+                        )}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={clsx(
+                                "w-1.5 h-1.5 rounded-full transition-all",
+                                medicalForm.medical_history ? "bg-teal-500 scale-125" : "bg-slate-200"
+                            )} />
+                            <span className={clsx(
+                                "text-[11px] font-black uppercase tracking-wider",
+                                medicalForm.medical_history ? "text-slate-700" : "text-slate-400"
+                            )}>
+                                {medicalForm.medical_history || "Select History"}
+                            </span>
+                        </div>
+                        <ChevronDown size={14} className={clsx("text-slate-400 transition-transform duration-300", isHistoryOpen && "rotate-180")} strokeWidth={3} />
+                    </button>
+
+                    {isHistoryOpen && canEditMedical && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-md shadow-2xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top">
+                            {['Normal', 'Hipertensi', 'Penyakit Jantung'].map((option) => {
+                                const isSelected = medicalForm.medical_history === option;
+                                return (
+                                    <button
+                                        key={option}
+                                        type="button"
+                                        onClick={() => {
+                                            setMedicalForm(p => ({ ...p, medical_history: option }));
+                                            setIsHistoryOpen(false);
+                                        }}
+                                        className={clsx(
+                                            "w-full px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-between group",
+                                            isSelected ? "bg-teal-50 text-teal-700" : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+                                        )}
+                                    >
+                                        <span>{option}</span>
+                                        {isSelected && <CheckCircle2 size={12} className="text-teal-600" strokeWidth={3} />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
                 
                 <StandardInput 
                     label="Phone Number" 
@@ -104,7 +161,7 @@ export default function ContactCard({
             </div>
 
             {isLocked && isEditingMedical && (
-                <div className="flex gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
+                <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
                     <button 
                         onClick={handleCancelMedical} 
                         className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"

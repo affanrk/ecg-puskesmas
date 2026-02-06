@@ -34,7 +34,7 @@ export default function IdentityCard({
     loading
 }: IdentityCardProps) {
     return (
-        <div className="bg-white p-5 lg:p-6 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full transition-all duration-500 relative overflow-hidden group">
+        <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none transition-transform duration-700">
                 <Fingerprint size={100} strokeWidth={1} />
             </div>

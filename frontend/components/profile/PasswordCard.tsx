@@ -36,7 +36,7 @@ export default function PasswordCard({
     loading
 }: PasswordCardProps) {
     return (
-        <div className="bg-white p-5 lg:p-6 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all duration-500 relative group">
+        <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                 <KeyRound size={100} strokeWidth={1} />
             </div>
@@ -111,7 +111,7 @@ export default function PasswordCard({
                             </div>
                         </div>
 
-                        <div className="flex gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
+                        <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
                             <button
                                 type="button"
                                 onClick={handleCancelPassword}

@@ -42,7 +42,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 )}
             >
                 <Header />
-                <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden p-4 lg:p-5 relative custom-scrollbar bg-white">
+                <main className="flex-1 flex flex-col overflow-hidden relative custom-scrollbar bg-white">
                     {children}
                 </main>
             </div>

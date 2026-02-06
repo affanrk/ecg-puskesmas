@@ -75,7 +75,7 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
             line: {
                 borderWidth: 2,
                 tension: 0.35,
-                borderColor: '#0f172a', // Sharp Dark Slate signal
+                borderColor: '#0f172a', 
             }
         }
     };
@@ -95,13 +95,7 @@ const adjustScaleSingle = (chart: Chart) => {
         }
     }
 
-    let limit;
-    if (!hasData || maxAbs === 0) {
-        limit = 2.0;
-    } else {
-        limit = maxAbs * 1.2;
-    }
-
+    const limit = (!hasData || maxAbs === 0) ? 2.0 : maxAbs * 1.2;
     const roundedLimit = Math.ceil(limit * 10) / 10;
 
     if (chart.options.scales?.y) {
@@ -131,21 +125,15 @@ export default function ECGChart({ }: ECGChartProps) {
     const { toggleRecording } = useSessionManager();
     const [showConfirmReset, setShowConfirmReset] = useState(false);
 
-    // Final Clarity Fix: Sync CSS pixels to Bitmap pixels
     useEffect(() => {
         isMounted.current = true;
         const syncPixels = () => {
             if (!containerRef.current || !isMounted.current) return;
             
-            // Use Math.floor on parent to start from a clean integer
             const parentHeight = Math.floor(containerRef.current.parentElement?.clientHeight || 0);
-            const reserved = 90; // Header(45) + Footer(45)
+            const reserved = 90; 
             const available = parentHeight - reserved;
             
-            // Calculation for Sharpness:
-            // The container has border-y (2px total).
-            // Inside, we use divide-y which adds 1px between each lead (2px total for 3 leads).
-            // Total fixed border/divider height = 4px.
             const cH = Math.floor((available - 4) / 3);
             if (cH <= 0) return;
 
@@ -171,7 +159,6 @@ export default function ECGChart({ }: ECGChartProps) {
                             chartRef.current.resize();
                             chartRef.current.update('none');
                         } catch {
-                            // Silently catch resize errors during unmount or stale refs
                         }
                     }
                 }
@@ -185,7 +172,7 @@ export default function ECGChart({ }: ECGChartProps) {
             isMounted.current = false;
             observer.disconnect();
         };
-    }, []);
+    }, []); 
 
     const handleReset = () => {
         if (isRecording) return;
@@ -200,7 +187,7 @@ export default function ECGChart({ }: ECGChartProps) {
     useEffect(() => {
         const totalPoints = CONFIG.MAX_DATA_POINTS;
         const initialData = new Array(totalPoints).fill(null);
-        const signalColor = '#0f172a'; // High-contrast Dark Slate
+        const signalColor = '#0f172a'; 
 
         if (canvasRefI.current) {
             const ctxI = canvasRefI.current.getContext('2d');
@@ -332,7 +319,7 @@ export default function ECGChart({ }: ECGChartProps) {
             chartRefII.current?.destroy();
             chartRefV1.current?.destroy();
         };
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [ecgBuffer]); 
 
     useEffect(() => {
         if (ecgBuffer.length === 0) {
@@ -370,16 +357,13 @@ export default function ECGChart({ }: ECGChartProps) {
 
     return (
         <div className="flex flex-col w-full h-full bg-white relative transition-all duration-500">
-            {/* Clinical Header: Better UI/UX */}
             <div className="h-[45px] flex items-center justify-between px-6 border-b border-slate-100 bg-white relative z-20 shrink-0">
                 <div className="flex items-center gap-8">
-                    {/* Live Indicator */}
                     <div className="flex items-center gap-2 pr-6 border-r border-slate-100">
                         <Activity size={14} className="text-rose-500 animate-pulse" />
                         <h3 className="font-black text-slate-800 text-[11px] uppercase tracking-tight">Monitoring</h3>
                     </div>
 
-                    {/* Patient Clinical Profile */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500">
@@ -407,11 +391,10 @@ export default function ECGChart({ }: ECGChartProps) {
                 </div>
 
                 <div className="flex items-center gap-3 text-[9px] font-mono font-bold text-slate-300 uppercase tracking-[0.2em]">
-                    ECG-LX Digital Stream
+                    ECG Digital Stream
                 </div>
             </div>
 
-            {/* Waveforms Area - Simplified & Sharp */}
             <div 
                 ref={containerRef}
                 className="w-full flex flex-col bg-white border-y border-slate-950 divide-y divide-slate-950 overflow-hidden shrink-0"
@@ -430,11 +413,9 @@ export default function ECGChart({ }: ECGChartProps) {
                             height: canvasHeight ? `${canvasHeight}px` : 'auto'
                         }}
                     >
-                        {/* Technical Parameters */}
                         <div className="absolute top-2 left-4 z-10 pointer-events-none">
                             <div className="text-[8px] font-mono font-bold text-rose-600/40 uppercase tracking-widest">Speed: 25mm/s | Gain: 10mm/mV</div>
                         </div>
-                        {/* Lead Title */}
                         <div className="absolute top-2 right-4 z-10 pointer-events-none">
                             <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-white/90 px-1.5 py-0.5 border border-slate-200 shadow-sm rounded-sm">
                                 {lead.label}
@@ -449,7 +430,6 @@ export default function ECGChart({ }: ECGChartProps) {
                 ))}
             </div>
 
-            {/* Footer: Fixed Integer Height */}
             <div className="h-[45px] bg-white border-t border-slate-100 flex items-center px-4 justify-between shrink-0 relative z-20">
                 <div className="flex items-center gap-4">
                     <DeviceDropdown />

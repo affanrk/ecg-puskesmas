@@ -29,9 +29,19 @@ export default function ClassifierTable({
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
-                const availableHeight = height - 50;
-                const calculatedRows = Math.max(1, Math.floor(availableHeight / 48));
-                setRowsPerPage(calculatedRows);
+                const headerHeight = 60; 
+                const availableHeight = height - headerHeight;
+                
+                const idealRows = 10;
+                const rowHeight = 48; 
+                
+                const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+                
+                if (calculatedRows >= idealRows) {
+                    setRowsPerPage(idealRows);
+                } else {
+                    setRowsPerPage(calculatedRows);
+                }
             }
         });
 
@@ -56,12 +66,12 @@ export default function ClassifierTable({
             ) : (
                 <div className="h-full w-full overflow-x-auto no-scrollbar overflow-y-hidden">
                     <table className="w-full h-full text-left border-collapse table-fixed lg:table-auto">
-                        <thead className="bg-slate-50/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[50px]">
+                        <thead className="bg-slate-50/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[60px]">
                             <tr>
-                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">Capture Date</th>
-                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">NIK</th>
-                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">Patient Name</th>
-                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs uppercase tracking-[0.15em] border-b border-slate-100 text-right whitespace-nowrap">Analysis</th>
+                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs 2xl:text-sm uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">Capture Date</th>
+                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs 2xl:text-sm uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">NIK</th>
+                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs 2xl:text-sm uppercase tracking-[0.15em] border-b border-slate-100 whitespace-nowrap">Patient Name</th>
+                                <th className="px-3 sm:px-4 lg:px-6 font-black text-xs 2xl:text-sm uppercase tracking-[0.15em] border-b border-slate-100 text-right whitespace-nowrap">Analysis</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -80,29 +90,29 @@ export default function ClassifierTable({
                                         key={rec.recording_id || `${rec.changed_dt}-${idx}`}
                                         onClick={() => setSelectedRecord(isSelected ? null : rec)}
                                         className={clsx(
-                                            "cursor-pointer transition-all group h-[48px]",
+                                            "cursor-pointer transition-all group h-[48px]", 
                                             isSelected
                                                 ? "bg-teal-100 border-l-4 border-l-teal-500"
                                                 : "hover:bg-slate-50/80"
                                         )}
                                     >
                                         <td className="px-3 sm:px-4 lg:px-6 py-2 whitespace-nowrap">
-                                            <div className="font-mono text-sm font-bold text-slate-700">
+                                            <div className="font-mono text-sm 2xl:text-base font-bold text-slate-700">
                                                 {formatDate(rec.changed_dt).split(',')[0]}
                                             </div>
-                                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                            <div className="text-[10px] 2xl:text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">
                                                 {formatDate(rec.changed_dt).split(',')[1]}
                                             </div>
                                         </td>
-                                        <td className="px-3 sm:px-4 lg:px-6 py-2 font-mono text-xs font-bold text-slate-500 whitespace-nowrap">
+                                        <td className="px-3 sm:px-4 lg:px-6 py-2 font-mono text-xs 2xl:text-sm font-bold text-slate-500 whitespace-nowrap">
                                             {rec.subject_id}
                                         </td>
-                                        <td className="px-3 sm:px-4 lg:px-6 py-2 font-bold text-sm text-slate-700 whitespace-nowrap">
+                                        <td className="px-3 sm:px-4 lg:px-6 py-2 font-bold text-sm 2xl:text-base text-slate-700 whitespace-nowrap">
                                             {rec.patient_name}
                                         </td>
                                         <td className="px-3 sm:px-4 lg:px-6 py-2 text-right whitespace-nowrap">
                                             <span className={clsx(
-                                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[9px] sm:text-[10px] font-black uppercase tracking-[0.12em] transition-all border shadow-sm whitespace-nowrap max-w-full",
+                                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[9px] sm:text-[10px] 2xl:text-xs font-black uppercase tracking-[0.12em] transition-all border shadow-sm whitespace-nowrap max-w-full",
                                                 isHighRisk && "bg-rose-500 text-white border-rose-600",
                                                 isPotential && !isHighRisk && "bg-orange-500 text-white border-orange-600",
                                                 isAbnormal && !isHighRisk && !isPotential && "bg-slate-500 text-white border-slate-600",

@@ -9,6 +9,7 @@ interface MonthCalendarProps {
     month: number;
     nodes: CalendarNode[];
     onDateClick: (date: Date) => void;
+    onViewChange: (view: 'month' | 'agenda') => void; // Added onViewChange prop
     selectedDate: Date;
     filters: {
         highRisk: boolean;
@@ -17,7 +18,7 @@ interface MonthCalendarProps {
     };
 }
 
-export default function MonthCalendar({ year, month, nodes, onDateClick, selectedDate, filters }: MonthCalendarProps) {
+export default function MonthCalendar({ year, month, nodes, onDateClick, onViewChange, selectedDate, filters }: MonthCalendarProps) {
     const monthIndex = month - 1;
     
     const calendarCells = useMemo(() => {
@@ -46,9 +47,9 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, selecte
 
     return (
         <div className="flex flex-col h-full bg-white select-none overflow-hidden">
-            <div className="flex-1 overflow-x-auto">
-                <div className="min-w-[700px] lg:min-w-full h-full flex flex-col">
-                    <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/30">
+            <div className="flex-1 overflow-auto">
+                <div className="min-w-[700px] lg:min-w-full min-h-full flex flex-col">
+                    <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/30 shrink-0">
                         {['MIN', 'SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB'].map(wd => (
                             <div key={wd} className="text-center py-2 text-[10px] font-black text-slate-400 tracking-[0.2em]">{wd}</div>
                         ))}
@@ -64,20 +65,14 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, selecte
                             let priorityEvent = null;
 
                             if (isCurrentMonth && cell.dayNodes) {
-                                // ... existing logic ...
                                 const dayNode = cell.dayNodes[0]; 
                                 
                                 if (dayNode && dayNode.classifications) {
-                                    const totalDayCount = (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) + 
-                                                       (dayNode.classifications['Berpotensi Aritmia'] || 0) + 
-                                                       (dayNode.classifications['Abnormal'] || 0) + 
-                                                       (dayNode.classifications['Normal'] || 0);
-                                    
                                     const highCount = filters.highRisk ? (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) : 0;
                                     const potentialCount = filters.potential ? (dayNode.classifications['Berpotensi Aritmia'] || 0) : 0;
                                     const abnormalCount = filters.abnormal ? (dayNode.classifications['Abnormal'] || 0) : 0;
 
-                                    totalActiveCount = totalDayCount;
+                                    totalActiveCount = dayNode.count - (dayNode.classifications['Normal'] || 0);
 
                                     if (highCount > 0) {
                                         priorityEvent = { color: 'bg-rose-500 shadow-rose-100', label: 'Sangat Berpotensi', count: highCount };
@@ -92,14 +87,16 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, selecte
                             return (
                                 <div 
                                     key={idx} 
-                                    onClick={() => onDateClick(cell.date)} 
+                                    onClick={() => {
+                                        onDateClick(cell.date);
+                                        onViewChange('agenda'); 
+                                    }} 
                                     className={clsx(
-                                        "relative flex flex-col group cursor-pointer transition-all p-1.5 min-h-[85px] overflow-hidden", 
+                                        "relative flex flex-col group cursor-pointer transition-all p-2 sm:p-3 min-h-[110px] lg:min-h-[120px] 2xl:min-h-0 overflow-hidden", 
                                         isCurrentMonth ? "bg-white hover:bg-slate-50/50" : "bg-slate-50/20",
                                         isSelected && isCurrentMonth && "bg-blue-50/50 z-10"
                                     )}
                                 >
-                                    {/* Selection Indicators */}
                                     {isSelected && isCurrentMonth && (
                                         <>
                                             <div className="absolute inset-0 ring-1 ring-inset ring-blue-200/50 pointer-events-none" />
@@ -107,23 +104,31 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, selecte
                                         </>
                                     )}
 
-                                    <div className="flex justify-center sm:justify-start mb-0.5 relative z-10">
-                                        <span className={clsx("text-xs font-bold w-7 h-7 flex items-center justify-center rounded-md transition-all", 
+                                    <div className="flex justify-center sm:justify-start mb-2 relative z-10">
+                                        <span className={clsx("text-sm lg:text-base 2xl:text-lg font-bold w-7 h-7 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 flex items-center justify-center rounded-md transition-all", 
                                             isToday ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : isCurrentMonth ? "text-slate-700 group-hover:bg-slate-100" : "text-slate-300")}>
                                             {cell.day}
                                         </span>
                                     </div>
 
-                                    <div className="mt-1 flex flex-col gap-1 overflow-hidden">
+                                    <div className="mt-auto flex flex-col gap-1.5 2xl:gap-2 overflow-hidden">
                                         {priorityEvent && (
-                                            <div className={clsx("px-2 py-1 rounded-md text-[9px] font-black text-white truncate mx-0.5 shadow-md", priorityEvent.color)}>
-                                                {priorityEvent.count} {priorityEvent.label}
+                                            <div className={clsx(
+                                                "px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md font-black text-white truncate mx-0.5 shadow-md transition-all",
+                                                "text-[10px] lg:text-[11px] 2xl:text-[14px]",
+                                                priorityEvent.color
+                                            )}>
+                                                {priorityEvent.count} <span className="hidden lg:inline">{priorityEvent.label}</span>
+                                                <span className="lg:hidden">{priorityEvent.label.includes('Sangat') ? 'High' : 'Risk'}</span>
                                             </div>
                                         )}
                                         
                                         {totalActiveCount > 0 && (
-                                            <div className="px-2 py-1 rounded-md text-[8px] font-black text-slate-500 bg-white border border-slate-100 truncate mx-0.5 shadow-sm group-hover:border-slate-200 transition-colors">
-                                                TOTAL: {totalActiveCount} REKAMAN
+                                            <div className={clsx(
+                                                "px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md font-black text-slate-500 bg-white border border-slate-100 truncate mx-0.5 shadow-sm group-hover:border-slate-200 transition-all",
+                                                "text-[9px] lg:text-[10px] 2xl:text-[12px]"
+                                            )}>
+                                                {totalActiveCount} <span className="hidden lg:inline">REKAMAN</span><span className="lg:hidden">REC</span>
                                             </div>
                                         )}
                                     </div>

@@ -3,7 +3,7 @@
 import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
-import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity, HeartPulse, ShieldCheck, Globe } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
@@ -281,21 +281,6 @@ export default function LoginPage() {
                             </Link>
                         </p>
                     </div>
-                    
-                    {/* Compliance/Footer Note */}
-                    <div className="mt-12 text-center border-t border-slate-100 pt-6">
-                        <div className="flex items-center justify-center gap-2 text-slate-300 text-xs font-medium">
-                            <HeartPulse size={14} />
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-100/50">
-                                <ShieldCheck size={14} className="text-teal-600" />
-                                <span>Secure Medical Standard</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100/50">
-                                <Globe size={14} className="text-blue-600" />
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
         </div>

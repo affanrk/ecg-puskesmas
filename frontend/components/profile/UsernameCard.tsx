@@ -36,7 +36,7 @@ export default function UsernameCard({
     loading
 }: UsernameCardProps) {
     return (
-        <div className="bg-white p-5 lg:p-6 rounded-md border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] flex flex-col h-full w-full overflow-hidden transition-all duration-500 relative group">
+        <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none transition-transform duration-700">
                 <UserCircle2 size={100} strokeWidth={1} />
             </div>
@@ -90,7 +90,7 @@ export default function UsernameCard({
                             />
                         </div>
 
-                        <div className="flex gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
+                        <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
                             <button
                                 onClick={handleCancelUsername}
                                 className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"

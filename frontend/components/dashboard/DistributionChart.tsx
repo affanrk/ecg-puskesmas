@@ -9,9 +9,10 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 interface DistributionChartProps {
     stats: Record<string, number>;
+    isVertical?: boolean;
 }
 
-export default function DistributionChart({ stats }: DistributionChartProps) {
+export default function DistributionChart({ stats, isVertical = false }: DistributionChartProps) {
     const totalProcessed = useMemo(() => {
         return Object.values(stats).reduce((a, b) => a + b, 0);
     }, [stats]);
@@ -45,15 +46,17 @@ export default function DistributionChart({ stats }: DistributionChartProps) {
 
     const chartOptions = {
         cutout: '65%', 
-        layout: { padding: { top: 15, bottom: 15, left: 15, right: 15 } },
+        layout: { 
+            padding: isVertical ? { top: 5, bottom: 5, left: 10, right: 10 } : { top: 15, bottom: 15, left: 15, right: 15 } 
+        },
         plugins: {
             legend: {
                 position: 'bottom' as const,
                 labels: {
                     usePointStyle: true,
                     boxWidth: 8,
-                    padding: 15,
-                    font: { size: 10, family: 'var(--font-inter)', weight: 600 },
+                    padding: isVertical ? 8 : 15,
+                    font: { size: 9, family: 'var(--font-inter)', weight: 600 },
                     color: '#64748b',
                     generateLabels: (chart: ChartJS): LegendItem[] => {
                         const data = chart.data;
@@ -85,35 +88,35 @@ export default function DistributionChart({ stats }: DistributionChartProps) {
     };
 
     return (
-        <div className="lg:col-span-2 bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col overflow-hidden transition-all duration-500">
-            <div className="px-8 py-5 border-b border-slate-50 bg-white/50 backdrop-blur-sm shrink-0">
+        <div className="bg-white flex flex-col overflow-hidden transition-all duration-500 min-h-0 h-full">
+            <div className="px-8 py-5 border-b border-slate-50 bg-white shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-md flex items-center justify-center border border-slate-100 shadow-sm">
-                        <PieChart size={18} strokeWidth={2.5} />
+                    <div className="w-8 h-8 bg-slate-50 text-slate-400 rounded-md flex items-center justify-center border border-slate-100 shadow-sm">
+                        <PieChart size={16} strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h3 className="font-black text-slate-800 text-sm tracking-tight">Distribution</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aggregate Results</p>
+                        <h3 className="font-black text-slate-800 text-xs 2xl:text-sm tracking-tight italic uppercase">Classification Distribution</h3>
+                        <p className="text-[9px] 2xl:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Aggregate Results Data</p>
                     </div>
                 </div>
             </div>
-            <div className="flex-1 p-8 flex items-center justify-center relative min-h-0">
+            <div className="flex-1 p-6 2xl:p-10 flex items-center justify-center relative min-h-0">
+                {totalProcessed > 0 && (
+                    <div className="absolute inset-0 z-0 flex flex-col items-center justify-center pointer-events-none pb-12 2xl:pb-16">
+                        <span className="text-3xl 2xl:text-5xl font-black text-slate-800 tracking-tighter leading-none">{totalProcessed}</span>
+                        <span className="text-[10px] 2xl:text-xs font-black text-slate-400 uppercase tracking-[0.4em] mt-2 ml-1">Packets</span>
+                    </div>
+                )}
                 {totalProcessed > 0 ? (
-                    <div className="w-full h-full min-h-[220px] max-h-[280px] animate-in fade-in zoom-in-95 duration-700">
+                    <div className="w-full h-full z-10 animate-in fade-in zoom-in-95 duration-700">
                         <Doughnut data={chartData} options={chartOptions} />
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center gap-4 opacity-30 py-12">
-                        <div className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
-                            <Activity size={32} className="text-slate-300" />
+                    <div className="flex flex-col items-center justify-center gap-4 opacity-30 py-8">
+                        <div className="w-16 h-16 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
+                            <Activity size={24} className="text-slate-300" />
                         </div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Awaiting Analytics</div>
-                    </div>
-                )}
-                {totalProcessed > 0 && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-12">
-                        <span className="text-4xl font-black text-slate-800 tracking-tighter leading-none">{totalProcessed}</span>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] mt-1.5">Total Packets</span>
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Awaiting Analytics</div>
                     </div>
                 )}
             </div>

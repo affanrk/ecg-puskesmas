@@ -17,7 +17,6 @@ export default function StatsPanel({ className }: StatsPanelProps) {
 
     return (
         <div className={clsx("grid gap-px bg-slate-200 h-full", className || "grid-cols-2")}>
-            {/* Heart Rate Card */}
             <div className={cardBase}>
                 <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-rose-900 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Heart size={60} strokeWidth={1} />
@@ -35,7 +34,6 @@ export default function StatsPanel({ className }: StatsPanelProps) {
                 </div>
             </div>
 
-            {/* Session Duration Card */}
             <div className={cardBase}>
                 <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Timer size={60} strokeWidth={1} />

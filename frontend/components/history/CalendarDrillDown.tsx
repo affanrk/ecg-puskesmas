@@ -217,9 +217,6 @@ export default function CalendarDrillDown() {
 
     const handleDateSelect = (date: Date) => {
         setCurrentDate(date);
-        if (view === 'month' && date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear()) {
-             setView('agenda');
-        }
     };
 
     const handleResultClick = (result: AnalysisResult) => {
@@ -255,7 +252,10 @@ export default function CalendarDrillDown() {
 
                 {/* Main Content */}
                 <div className="flex-1 flex flex-col relative overflow-hidden bg-slate-50/10">
-                    <div className="flex-1 overflow-y-auto p-0 sm:p-0 relative">
+                    <div className={clsx(
+                        "flex-1 relative",
+                        view === 'agenda' ? "overflow-y-auto" : "overflow-y-auto 2xl:overflow-hidden"
+                    )}>
                         {view === 'month' ? (
                             <>
                                 {loading && (
@@ -271,12 +271,13 @@ export default function CalendarDrillDown() {
                                     month={currentDate.getMonth() + 1}
                                     nodes={calendarNodes}
                                     onDateClick={handleDateSelect}
+                                    onViewChange={setView} // New prop
                                     selectedDate={currentDate}
                                     filters={filters}
                                 />
                             </>
                         ) : (
-                            <div className="p-4 sm:p-6 max-w-5xl mx-auto min-h-full">
+                            <div className="min-h-full">
                                 <AgendaView 
                                     results={dayResults} 
                                     onResultClick={handleResultClick} 
@@ -289,6 +290,8 @@ export default function CalendarDrillDown() {
                                     onPrevDay={handlePrevDay}
                                     onNextDay={handleNextDay}
                                     onResetTime={handleResetTime}
+                                    filters={filters}
+                                    onFilterChange={setFilters}
                                 />
                             </div>
                         )}
@@ -318,15 +321,28 @@ export default function CalendarDrillDown() {
                         {/* Body */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <MetricCard label="Klasifikasi" value={selectedResult.data.classification} 
-                                    color={(selectedResult.data.classification?.toLowerCase() || '').includes('berpotensi') ? 'text-rose-600' : 'text-slate-700'} 
-                                />
+                                <div className={clsx(
+                                    "p-6 rounded-md border shadow-sm transition-all flex flex-col justify-center",
+                                    (selectedResult.data.classification?.toLowerCase() || '').includes('sangat berpotensi') 
+                                        ? "bg-rose-50 border-rose-100 text-rose-700" 
+                                        : (selectedResult.data.classification?.toLowerCase() || '').includes('berpotensi')
+                                        ? "bg-orange-50 border-orange-100 text-orange-700"
+                                        : "bg-white border-slate-100 text-slate-700"
+                                )}>
+                                    <span className="text-[10px] font-black uppercase tracking-widest block mb-2 opacity-60">Klasifikasi</span>
+                                    <span className="text-xl font-black leading-tight">
+                                        {selectedResult.data.classification}
+                                    </span>
+                                </div>
                                 <MetricCard label="Detak Jantung" value={`${Math.round(Number(selectedResult.data.bpm || selectedResult.data.avg_bpm || 0))} BPM`} />
                             </div>
 
                             <div className="p-5 bg-slate-50 rounded-md border border-slate-100">
-                                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Wawasan Klinis AI</h3>
-                                <p className="text-sm text-slate-700 leading-relaxed italic">
+                                <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    Wawasan Klinis AI
+                                </h3>
+                                <p className="text-sm text-slate-700 leading-relaxed font-medium italic">
                                     &quot;{(() => {
                                         const cls = selectedResult.data.classification?.toLowerCase() || '';
                                         if (cls.includes('normal')) return "Irama jantung tampak stabil dan dalam batas normal. Lanjutkan pemantauan rutin.";
@@ -340,7 +356,7 @@ export default function CalendarDrillDown() {
 
                         {/* Footer */}
                         <div className="px-6 py-4 border-t border-slate-100 flex justify-end bg-slate-50/50">
-                            <button onClick={() => setSelectedResult({ data: null })} className="px-8 py-2 bg-slate-800 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors shadow-sm">
+                            <button onClick={() => setSelectedResult({ data: null })} className="px-8 py-2.5 bg-slate-900 text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-200">
                                 Tutup Analisis
                             </button>
                         </div>
@@ -353,9 +369,9 @@ export default function CalendarDrillDown() {
 
 function MetricCard({ label, value, color = "text-slate-800" }: { label: string, value: string | number, color?: string }) {
     return (
-        <div className="bg-white border border-slate-100 p-6 rounded-md shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">{label}</span>
-            <span className={clsx("text-lg font-bold truncate block", color)}>{value}</span>
+        <div className="bg-white border border-slate-100 p-6 rounded-md shadow-sm flex flex-col justify-center">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">{label}</span>
+            <span className={clsx("text-xl font-black leading-tight", color)}>{value}</span>
         </div>
     );
 }
