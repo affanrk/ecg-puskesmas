@@ -6,6 +6,7 @@ import Header from './Header';
 import { useStore } from '@/store/useStore';
 import { connectWebSocket } from '@/services/socket';
 import { useDeviceManager } from '@/hooks/useDeviceManager';
+import { useDeviceListeners } from '@/hooks/useDeviceListeners';
 import clsx from 'clsx';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     const isMounted = useRef(false);
 
     useDeviceManager();
+    useDeviceListeners();
 
     useEffect(() => {
         if (!isMounted.current) {

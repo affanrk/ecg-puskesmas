@@ -43,19 +43,17 @@ class MQTTDataHandler:
             delta_ts_s = (current_hw_ts - state.last_hw_ts_us) / 1_000_000.0
             delta_cnt = end_counter - state.last_hw_counter
 
-            if 0.1 < delta_ts_s < 5.0:
+            if 0.005 < delta_ts_s < 5.0:
                 calculated_sps = delta_cnt / delta_ts_s
-                state.observed_sps = int(
-                    round(state.observed_sps * 0.9 + calculated_sps * 0.1)
-                )
+                state.observed_sps = state.observed_sps * 0.98 + calculated_sps * 0.02
 
         state.last_hw_ts_us = current_hw_ts
         state.last_hw_counter = end_counter
 
-        if abs(state.observed_sps - sampling_rate) < 10:
+        if abs(state.observed_sps - sampling_rate) < 20:
             current_sps = sampling_rate
         else:
-            current_sps = state.observed_sps
+            current_sps = int(round(state.observed_sps))
 
         state.sampling_rate = current_sps
 

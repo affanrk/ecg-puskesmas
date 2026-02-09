@@ -135,7 +135,7 @@ if __name__ == "__main__":
         app=app,
         host="0.0.0.0",
         port=settings.FLASK_PORT,
-        log_level="info",
+        log_level="debug",
         loop="asyncio",
         reload=True,
     )

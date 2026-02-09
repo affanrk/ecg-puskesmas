@@ -25,12 +25,12 @@ export function useDeviceListeners() {
             if (currentDeviceId) {
                 const exists = list.some(d => d.id === currentDeviceId);
                 if (!exists) {
-                    handleDeviceDisconnect({ device_id: currentDeviceId, was_recording: isRecording });
+                    handleDeviceDisconnect({ device_id: currentDeviceId, was_recording: isRecording }, true);
                 }
             }
         };
 
-        const handleDeviceDisconnect = (data: { device_id?: string; was_recording?: boolean } | string) => {
+        const handleDeviceDisconnect = (data: { device_id?: string; was_recording?: boolean } | string, silent: boolean = false) => {
             const disconnectedId = typeof data === 'string' ? data : data.device_id;
             if (disconnectedId !== currentDeviceId) return;
 
@@ -42,11 +42,13 @@ export function useDeviceListeners() {
             setDeviceId(null); 
             setBpm('--');
 
-            if (wasRecording) {
-                setRecording(false); 
-                toast(`Recording PAUSED! Device ${disconnectedId} lost connection. Select another device to continue.`, "error");
-            } else {
-                toast(`Device ${disconnectedId} disconnected`);
+            if (!silent) {
+                if (wasRecording) {
+                    setRecording(false); 
+                    toast(`Recording PAUSED! Device ${disconnectedId} lost connection. Select another device to continue.`, "error");
+                } else {
+                    toast(`Device ${disconnectedId} disconnected`);
+                }
             }
         };
 

@@ -367,8 +367,10 @@ export default function ECGChart({ }: ECGChartProps) {
             bufferRef.current.push(...batch.samples);
 
             if (batch.sampling_rate && batch.sampling_rate > 0) {
-                currentSpsRef.current = batch.sampling_rate;
-                const newMax = batch.sampling_rate * 5;
+                // Use a stable, rounded rate for UI scaling to avoid jitter
+                const stableSps = Math.round(batch.sampling_rate);
+                currentSpsRef.current = stableSps;
+                const newMax = stableSps * 5;
                 
                 [chartRefI, chartRefII, chartRefV1].forEach(ref => {
                     const chart = ref.current;
