@@ -13,7 +13,6 @@ interface PerformanceChartProps {
 }
 
 export default function PerformanceChart({ data, color, label, maxPoints = 50, suggestedMax = 100 }: PerformanceChartProps) {
-    // 1. Refs
     const canvasRef = useRef<HTMLCanvasElement>(null);
     
     const { initChart, destroyChart } = usePerformanceChart({
@@ -24,9 +23,6 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
         suggestedMax
     });
 
-    // 2. Effects
-    
-    // Init Chart
     useEffect(() => {
         if (!canvasRef.current) return;
 
@@ -38,10 +34,8 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
         return () => {
             destroyChart();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [color, label, maxPoints, suggestedMax]); // Re-init if config changes
+    }, [initChart, destroyChart]);
 
-    // 3. Render
     return (
         <div className="h-full w-full relative">
             {/* Subtle grid background */}

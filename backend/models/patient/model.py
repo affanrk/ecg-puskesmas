@@ -42,5 +42,4 @@ class TbMPatient(Base, AuditMixin):
         Text, nullable=True, comment="Text field for medical history notes"
     )
 
-    # Relationship to User
     user = relationship("TbMUser", back_populates="patient_profile")

@@ -11,7 +11,6 @@ import CalendarSidebar from './calendar/CalendarSidebar';
 import MonthCalendar from './calendar/MonthCalendar';
 import AgendaView from './calendar/AgendaView';
 
-// Re-export needed types
 export interface CalendarNode {
     label: string;
     value: number;
@@ -30,28 +29,24 @@ export default function CalendarDrillDown() {
     
     const { show: toast } = useToast();
     
-    // State
     const [view, setView] = useState<'month' | 'agenda'>('month');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [startTime, setStartTime] = useState("00:00:00");
     const [endTime, setEndTime] = useState("23:59:59");
     const [loading, setLoading] = useState(false);
     
-    // Data
     const [calendarNodes, setCalendarNodes] = useState<CalendarNode[]>([]);
     const [miniCalendarNodes, setMiniCalendarNodes] = useState<CalendarNode[]>([]);
     const [yearNodes, setYearNodes] = useState<CalendarNode[]>([]);
     const [monthNodes, setMonthNodes] = useState<CalendarNode[]>([]);
     const [dayResults, setDayResults] = useState<AnalysisResult[]>([]);
 
-    // Filters
     const [filters, setFilters] = useState({
         highRisk: true,
         potential: true,
         abnormal: true
     });
 
-    // Fetch Available Years (for Year Picker status)
     const fetchYearData = useCallback(async () => {
         if (!user?.id) return;
         try {
@@ -62,7 +57,6 @@ export default function CalendarDrillDown() {
         }
     }, [user?.id]);
 
-    // Fetch Months of Current Year (for Month Picker status)
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
 
@@ -79,22 +73,20 @@ export default function CalendarDrillDown() {
         }
     }, [currentYear, user?.id]);
 
-    // Fetch Calendar Month Data (Days)
     const fetchMonthData = useCallback(async () => {
         if (!user?.id) return;
         
         setLoading(true);
-        setCalendarNodes([]); // Clear stale data
+        setCalendarNodes([]);
         try {
             const res = await api.fetchCalendar({
                 year: currentYear,
-                month: currentMonth + 1, // API expects 1-based month
+                month: currentMonth + 1,
                 user_id: user.id
             });
             
             const nodes = res.nodes || [];
             setCalendarNodes(nodes);
-            // Also sync mini calendar if it's currently on the same month
             setMiniCalendarNodes(nodes);
         } catch (error) {
             console.error(error);
@@ -104,11 +96,9 @@ export default function CalendarDrillDown() {
         }
     }, [currentYear, currentMonth, user?.id, toast]);
 
-    // Fetch mini-calendar specific data when user navigates it independently
     const handleMiniDateChange = useCallback(async (date: Date) => {
         if (!user?.id) return;
         
-        // If it matches the main view, just sync from main nodes instead of returning early
         if (date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear()) {
             setMiniCalendarNodes(calendarNodes);
             return;
@@ -126,7 +116,6 @@ export default function CalendarDrillDown() {
         }
     }, [currentDate, calendarNodes, user?.id]);
 
-    // Initial fetch for summary data
     useEffect(() => {
         fetchYearData();
     }, [fetchYearData]);
@@ -135,12 +124,11 @@ export default function CalendarDrillDown() {
         fetchMonthChoices();
     }, [fetchMonthChoices]);
 
-    // Fetch Agenda Day Data
     const fetchDayData = useCallback(async () => {
         if (!user?.id) return;
         
         setLoading(true);
-        setDayResults([]); // Clear stale data
+        setDayResults([]);
         try {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -166,20 +154,16 @@ export default function CalendarDrillDown() {
         }
     }, [currentDate, startTime, endTime, user?.id, toast]);
 
-    // Effect to fetch indicators (Nodes) whenever Month/Year changes
     useEffect(() => {
         fetchMonthData();
     }, [fetchMonthData]);
 
-    // Effect to fetch agenda data ONLY in agenda view
     useEffect(() => {
         if (view === 'agenda') {
             fetchDayData();
         }
     }, [view, fetchDayData]);
 
-
-    // Navigation Handlers
     const handlePrev = () => {
         const newDate = new Date(currentDate);
         newDate.setMonth(newDate.getMonth() - 1);
@@ -271,7 +255,7 @@ export default function CalendarDrillDown() {
                                     month={currentDate.getMonth() + 1}
                                     nodes={calendarNodes}
                                     onDateClick={handleDateSelect}
-                                    onViewChange={setView} // New prop
+                                    onViewChange={setView}
                                     selectedDate={currentDate}
                                     filters={filters}
                                 />

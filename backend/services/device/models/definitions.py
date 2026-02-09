@@ -31,6 +31,9 @@ class DeviceState:
         self.lost_packets = 0
         self.total_packets = 0
         self.sampling_rate = SAMPLING_RATE
+        self.observed_sps = SAMPLING_RATE
+        self.last_hw_ts_us = 0
+        self.last_hw_counter = 0
         self.latencies = deque(maxlen=100)
         self.min_latency_offset = float("inf")
         self.packet_format = "Unknown"
@@ -44,6 +47,13 @@ class DeviceState:
             "lead_II": deque(maxlen=LIVE_BUFFER_SIZE),
             "v1": deque(maxlen=LIVE_BUFFER_SIZE),
         }
+
+    @property
+    def target_buffer_size(self) -> int:
+        """Fixed buffer size for AI analysis (1000 samples)"""
+        from utils import BUFFER_SIZE
+
+        return BUFFER_SIZE
 
     def reset_recording_state(self):
         """Reset all recording-related state"""

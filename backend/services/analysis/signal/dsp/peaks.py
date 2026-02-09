@@ -126,7 +126,6 @@ def _correct_first_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
         "ECG_T_Offsets",
         "ECG_R_Onsets",
         "ECG_T_Onsets",
-        "ECG_P_Onsets",
     ]
 
     for key in wave_keys:
@@ -136,6 +135,21 @@ def _correct_first_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
             waves[key] = np.delete(waves[key], 0)
             if len(waves[key]) == 0:
                 break
+
+    r_peak_first = rpeaks["ECG_R_Peaks"][0]
+    extra_keys = [
+        "ECG_R_Offsets",
+        "ECG_T_Offsets",
+        "ECG_T_Onsets",
+        "ECG_S_Peaks",
+        "ECG_T_Peaks",
+    ]
+    for key in extra_keys:
+        if key in waves:
+            while len(waves[key]) > 0 and waves[key][0] < r_peak_first:
+                waves[key] = np.delete(waves[key], 0)
+                if len(waves[key]) == 0:
+                    break
 
     return rpeaks, waves
 
@@ -162,7 +176,6 @@ def _correct_last_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
         "ECG_R_Onsets",
         "ECG_P_Offsets",
         "ECG_R_Offsets",
-        "ECG_T_Offsets",
     ]
 
     for key in wave_keys:
@@ -172,6 +185,21 @@ def _correct_last_cycle(rpeaks: dict, waves: dict) -> Tuple[dict, dict]:
             waves[key] = np.delete(waves[key], -1)
             if len(waves[key]) == 0:
                 break
+
+    r_peak_last = rpeaks["ECG_R_Peaks"][-1]
+    extra_keys = [
+        "ECG_P_Peaks",
+        "ECG_Q_Peaks",
+        "ECG_P_Onsets",
+        "ECG_P_Offsets",
+        "ECG_R_Onsets",
+    ]
+    for key in extra_keys:
+        if key in waves:
+            while len(waves[key]) > 0 and waves[key][-1] > r_peak_last:
+                waves[key] = np.delete(waves[key], -1)
+                if len(waves[key]) == 0:
+                    break
 
     return rpeaks, waves
 
@@ -187,10 +215,22 @@ def _remove_weak_peaks(
     second_amp = signal[r_peaks_arr[1]]
 
     if first_amp < second_amp / 2:
-        rpeaks["ECG_R_Peaks"] = np.delete(r_peaks_arr, 0)
+        rpeaks["ECG_R_Peaks"] = np.delete(rpeaks["ECG_R_Peaks"], 0)
 
-        for key in waves.keys():
-            if len(waves[key]) > 0:
+        keys_to_trim = [
+            "ECG_P_Peaks",
+            "ECG_Q_Peaks",
+            "ECG_S_Peaks",
+            "ECG_T_Peaks",
+            "ECG_R_Onsets",
+            "ECG_R_Offsets",
+            "ECG_P_Onsets",
+            "ECG_P_Offsets",
+            "ECG_T_Onsets",
+            "ECG_T_Offsets",
+        ]
+        for key in keys_to_trim:
+            if key in waves and len(waves[key]) > 0:
                 waves[key] = np.delete(waves[key], 0)
 
     return rpeaks, waves

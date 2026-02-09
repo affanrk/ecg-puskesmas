@@ -119,6 +119,8 @@ export default function ECGChart({ }: ECGChartProps) {
 
     const cursorRef = useRef(0);
     const bufferRef = useRef<{ leadI: number | null, leadII: number | null, v1: number | null }[]>([]);
+    const currentSpsRef = useRef(100);
+    const lastFrameTimeRef = useRef(0);
     const isMounted = useRef(false);
 
     const { user, currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
@@ -231,8 +233,9 @@ export default function ECGChart({ }: ECGChartProps) {
             }
         }
 
-        if (ecgBuffer.length > 0) {
-            const pointsToRestore = ecgBuffer.slice(-totalPoints);
+        const initialBuffer = useStore.getState().ecgBuffer;
+        if (initialBuffer.length > 0) {
+            const pointsToRestore = initialBuffer.slice(-totalPoints);
 
             if (chartRefI.current) {
                 const ds = chartRefI.current.data.datasets[0].data;
@@ -257,10 +260,26 @@ export default function ECGChart({ }: ECGChartProps) {
         }
 
         const processBuffer = () => {
+            const now = performance.now();
+            const deltaTime = (now - lastFrameTimeRef.current) / 1000;
+            lastFrameTimeRef.current = now;
+
             if (bufferRef.current.length === 0) return;
 
-            const eraseGap = CONFIG.ERASE_GAP;
-            const processLimit = 200;
+            if (bufferRef.current.length > (currentSpsRef.current * 2)) {
+                bufferRef.current = [];
+                return;
+            }
+
+            const dynamicEraseGap = Math.round((currentSpsRef.current / 100) * CONFIG.ERASE_GAP);
+            
+            let targetPoints = currentSpsRef.current * deltaTime;
+            
+            if (bufferRef.current.length > currentSpsRef.current * 0.2) {
+                targetPoints *= 1.2;
+            }
+
+            const processLimit = Math.max(1, Math.ceil(targetPoints));
             const pointsToProcess = bufferRef.current.splice(0, processLimit);
 
             const cI = chartRefI.current;
@@ -268,6 +287,7 @@ export default function ECGChart({ }: ECGChartProps) {
             const cV1 = chartRefV1.current;
 
             let lastCursor = cursorRef.current;
+            const totalPoints = currentSpsRef.current * 5;
 
             for (let i = 0; i < pointsToProcess.length; i++) {
                 const data = pointsToProcess[i];
@@ -275,19 +295,19 @@ export default function ECGChart({ }: ECGChartProps) {
                 if (cI) {
                     const dsI = cI.data.datasets[0].data;
                     dsI[lastCursor] = data.leadI ?? 0;
-                    for (let j = 1; j <= eraseGap; j++) dsI[(lastCursor + j) % totalPoints] = null;
+                    for (let j = 1; j <= dynamicEraseGap; j++) dsI[(lastCursor + j) % totalPoints] = null;
                 }
 
                 if (cII) {
                     const dsII = cII.data.datasets[0].data;
                     dsII[lastCursor] = data.leadII ?? 0;
-                    for (let j = 1; j <= eraseGap; j++) dsII[(lastCursor + j) % totalPoints] = null;
+                    for (let j = 1; j <= dynamicEraseGap; j++) dsII[(lastCursor + j) % totalPoints] = null;
                 }
 
                 if (cV1) {
                     const dsV1 = cV1.data.datasets[0].data;
                     dsV1[lastCursor] = data.v1 ?? 0;
-                    for (let j = 1; j <= eraseGap; j++) dsV1[(lastCursor + j) % totalPoints] = null;
+                    for (let j = 1; j <= dynamicEraseGap; j++) dsV1[(lastCursor + j) % totalPoints] = null;
                 }
 
                 lastCursor = (lastCursor + 1) % totalPoints;
@@ -311,6 +331,7 @@ export default function ECGChart({ }: ECGChartProps) {
             processBuffer();
             animationFrameId = requestAnimationFrame(renderLoop);
         };
+        lastFrameTimeRef.current = performance.now();
         animationFrameId = requestAnimationFrame(renderLoop);
 
         return () => {
@@ -319,7 +340,7 @@ export default function ECGChart({ }: ECGChartProps) {
             chartRefII.current?.destroy();
             chartRefV1.current?.destroy();
         };
-    }, [ecgBuffer]); 
+    }, []); 
 
     useEffect(() => {
         if (ecgBuffer.length === 0) {
@@ -339,19 +360,47 @@ export default function ECGChart({ }: ECGChartProps) {
     }, [currentDeviceId, isRecording, ecgBuffer.length]);
 
     useEffect(() => {
-        const handleData = (data: { leadI: number, leadII: number, v1: number }) => {
+        const handleData = (data: { leadI: number, leadII: number, v1: number, counter?: number }) => {
             bufferRef.current.push(data);
         };
-        const handleBatch = (batch: { leadI: number, leadII: number, v1: number }[]) => {
-            bufferRef.current.push(...batch);
+        const handleBatch = (batch: { samples: { leadI: number, leadII: number, v1: number }[], counter?: number, sampling_rate?: number }) => {
+            bufferRef.current.push(...batch.samples);
+
+            if (batch.sampling_rate && batch.sampling_rate > 0) {
+                currentSpsRef.current = batch.sampling_rate;
+                const newMax = batch.sampling_rate * 5;
+                
+                [chartRefI, chartRefII, chartRefV1].forEach(ref => {
+                    const chart = ref.current;
+                    if (chart && chart.options.scales?.x && chart.options.scales.x.max !== newMax) {
+                        chart.options.scales.x.max = newMax;
+                        chart.data.labels = Array.from({ length: newMax }, (_, i) => i);
+                        
+                        const currentData = chart.data.datasets[0].data;
+                        if (currentData.length < newMax) {
+                            chart.data.datasets[0].data = [...currentData, ...new Array(newMax - currentData.length).fill(null)];
+                        } else if (currentData.length > newMax) {
+                            chart.data.datasets[0].data = currentData.slice(0, newMax);
+                            if (cursorRef.current >= newMax) cursorRef.current = 0;
+                        }
+                        
+                        chart.update('none');
+                    }
+                });
+            }
+        };
+        const handleDisconnect = () => {
+            bufferRef.current = [];
         };
 
         globalEventBus.on(EVENTS.CHART.ECG_DATA, handleData);
         globalEventBus.on(EVENTS.CHART.ECG_BATCH, handleBatch);
+        globalEventBus.on(EVENTS.DEVICE.DISCONNECTED, handleDisconnect);
 
         return () => {
             globalEventBus.off(EVENTS.CHART.ECG_DATA, handleData);
             globalEventBus.off(EVENTS.CHART.ECG_BATCH, handleBatch);
+            globalEventBus.off(EVENTS.DEVICE.DISCONNECTED, handleDisconnect);
         };
     }, []);
 

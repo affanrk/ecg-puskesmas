@@ -12,8 +12,8 @@ type Events = {
     'ws:disconnected': void;
     'device:list_updated': Device[];
     'device:disconnected': { device_id: string };
-    'chart:ecg_data': EcgPoint;
-    'chart:ecg_batch': EcgPoint[];
+    'chart:ecg_data': EcgPoint & { counter?: number };
+    'chart:ecg_batch': { samples: EcgPoint[]; counter?: number; sampling_rate?: number };
     'chart:metrics': { bpm: number };
     'state:live_data_updated': unknown;
     'state:recording_changed': boolean;

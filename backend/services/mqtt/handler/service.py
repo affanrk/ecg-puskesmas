@@ -17,7 +17,7 @@ from services.recording import recording_storage_service
 from repositories.session import SessionRepository
 from core.database import SessionLocal
 from utils import logger
-from utils import BUFFER_SIZE, WSMessageType
+from utils import WSMessageType
 
 
 class MQTTDataHandler:
@@ -35,19 +35,34 @@ class MQTTDataHandler:
         sampling_rate: int,
     ):
         state = device_state_manager.get_state(device_id)
-        state.sampling_rate = sampling_rate
+
+        sample_interval_us = 1_000_000 / sampling_rate
+        current_hw_ts = samples[-1].timestamp_us + sample_interval_us
+
+        if state.last_hw_ts_us > 0 and end_counter > state.last_hw_counter:
+            delta_ts_s = (current_hw_ts - state.last_hw_ts_us) / 1_000_000.0
+            delta_cnt = end_counter - state.last_hw_counter
+
+            if 0.1 < delta_ts_s < 5.0:
+                calculated_sps = delta_cnt / delta_ts_s
+                state.observed_sps = int(
+                    round(state.observed_sps * 0.9 + calculated_sps * 0.1)
+                )
+
+        state.last_hw_ts_us = current_hw_ts
+        state.last_hw_counter = end_counter
+
+        if abs(state.observed_sps - sampling_rate) < 10:
+            current_sps = sampling_rate
+        else:
+            current_sps = state.observed_sps
+
+        state.sampling_rate = current_sps
 
         now = time.time()
         if state.last_seen:
             interval_ms = (now - state.last_seen) * 1000
             state.latencies.append(interval_ms)
-
-        if state.last_packet_num > 0:
-            expected_start = state.last_packet_num + 1
-            actual_start = end_counter - len(samples) + 1
-            gap = actual_start - expected_start
-            if gap > 0:
-                state.lost_packets += gap
 
         state.is_connected = True
         state.last_seen = now
@@ -64,7 +79,7 @@ class MQTTDataHandler:
         for lead_name in ["lead_I", "lead_II", "v1"]:
             raw_data = np.array(state.live_raw_buffer[lead_name])
             if len(raw_data) > 20:
-                filtered_full = signal_processor.apply_filters(raw_data)
+                filtered_full = signal_processor.apply_filters(raw_data, current_sps)
 
                 filtered_leads[lead_name] = filtered_full[-len(samples) :]
             else:
@@ -90,7 +105,14 @@ class MQTTDataHandler:
 
         if ui_batch:
             await device_state_manager.broadcast_to_device(
-                device_id, "live_batch", {"device_id": device_id, "samples": ui_batch}
+                device_id,
+                "live_batch",
+                {
+                    "device_id": device_id,
+                    "samples": ui_batch,
+                    "counter": end_counter,
+                    "sampling_rate": int(state.sampling_rate),
+                },
             )
 
     async def _broadcast_performance(self, state: DeviceState):
@@ -177,11 +199,11 @@ class MQTTDataHandler:
                 {
                     "device_id": state.device_id,
                     "current": state.samples_collected,
-                    "total": BUFFER_SIZE,
+                    "total": state.target_buffer_size,
                 },
             )
 
-        if state.samples_collected >= BUFFER_SIZE:
+        if state.samples_collected >= state.target_buffer_size:
             await self._complete_segment(state)
 
     async def _complete_segment(self, state: DeviceState):

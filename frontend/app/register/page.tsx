@@ -10,7 +10,6 @@ import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
 
 export default function RegisterPage() {
-    // 1. Hooks & State
     const router = useRouter();
     const { show: toast } = useToast();
 
@@ -41,7 +40,6 @@ export default function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [showErrorEffect, setShowErrorEffect] = useState(false);
 
-    // 2. Helpers
     const validateField = (field: string, value: string) => {
         let error = "";
         switch (field) {
@@ -84,7 +82,6 @@ export default function RegisterPage() {
         setTimeout(() => setShowErrorEffect(false), 400);
     };
 
-    // 3. Effects
     useEffect(() => {
         const pwd = formData.password;
         const usernameRegex = /^[a-zA-Z0-9_-]{3,}$/;
@@ -102,7 +99,6 @@ export default function RegisterPage() {
         });
     }, [formData]);
 
-    // 4. Computed
     const isFormValid = Object.values(checks).every(Boolean);
     const pwdStrengthCount = [checks.length, checks.upper, checks.number, checks.special].filter(Boolean).length;
     
@@ -115,7 +111,6 @@ export default function RegisterPage() {
     
     const strengthInfo = getStrengthLabel();
 
-    // 5. Handlers
     const handleFocus = () => {
         if (serverError) setServerError('');
     };
@@ -134,7 +129,6 @@ export default function RegisterPage() {
         if (Object.values(newErrors).some(e => e) || !isFormValid) {
             setErrors(newErrors);
             
-            // Generate relevant error message
             let msg = "Please correct the highlighted errors.";
             
             if (Object.values(newErrors).some(e => e === "Required")) {
@@ -185,7 +179,6 @@ export default function RegisterPage() {
         }
     };
 
-    // 7. Render
     return (
         <div className="flex min-h-screen bg-white overflow-hidden font-sans">
             
@@ -223,7 +216,6 @@ export default function RegisterPage() {
             <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-8 bg-slate-50 lg:bg-white custom-scrollbar">
                 <div className={clsx(
                     "w-full max-w-[450px] mx-auto my-auto bg-white lg:bg-transparent p-6 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
-                    // Removed 'isShaking' from container
                 )}>
                     
                     <div className="mb-6">
@@ -236,7 +228,7 @@ export default function RegisterPage() {
                         {serverError && (
                              <div className={clsx(
                                  "py-2.5 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-3 animate-in fade-in slide-in-from-top-1",
-                                 showErrorEffect && "animate-error-pop" // Applied 'pop' effect here
+                                 showErrorEffect && "animate-error-pop"
                              )}>
                                 <AlertCircle className="w-4 h-4 shrink-0" />
                                 <span className="text-xs font-bold">{serverError}</span>
@@ -319,7 +311,7 @@ export default function RegisterPage() {
                                         />
                                         <button
                                             type="button"
-                                            onMouseDown={(e) => e.preventDefault()} // Prevent losing focus
+                                            onMouseDown={(e) => e.preventDefault()}
                                             onClick={() => setShowPassword(!showPassword)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors z-30 p-1"
                                             tabIndex={-1}

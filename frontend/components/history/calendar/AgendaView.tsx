@@ -37,8 +37,7 @@ export default function AgendaView({
     onPrevDay,
     onNextDay,
     onResetTime,
-    filters,
-    onFilterChange
+    filters
 }: AgendaViewProps) {
     const filteredResults = results.filter(r => {
         const cls = r.classification?.toLowerCase().trim() || '';

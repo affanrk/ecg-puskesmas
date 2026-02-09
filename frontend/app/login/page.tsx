@@ -9,7 +9,6 @@ import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
 
 export default function LoginPage() {
-    // 1. State
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -18,10 +17,8 @@ export default function LoginPage() {
     const [serverError, setServerError] = useState('');
     const [showErrorEffect, setShowErrorEffect] = useState(false);
 
-    // 2. Hooks
     const { show: toast } = useToast();
 
-    // 3. Helpers
     const validateField = (field: string, value: string) => {
         let error = "";
         if (field === 'usernameOrEmail') {
@@ -45,7 +42,6 @@ export default function LoginPage() {
         setTimeout(() => setShowErrorEffect(false), 400);
     };
 
-    // 4. Handlers
     const handleFocus = () => {
         if (serverError) setServerError('');
     };
@@ -60,7 +56,6 @@ export default function LoginPage() {
         if (userErr || passErr) {
             setErrors({ usernameOrEmail: userErr, password: passErr });
             
-            // Relevant Error Message Logic
             let msg = "Please correct the errors.";
             if (userErr === "Required" || passErr === "Required") {
                 msg = "Please enter both username and password.";
@@ -113,7 +108,6 @@ export default function LoginPage() {
                 const detail = err.response.data.detail;
                 msg = Array.isArray(detail) ? detail[0].msg : detail;
             } else if (err instanceof Error) {
-                // Network errors often appear here
                 msg = "Unable to connect to server. Please check your connection.";
             }
             setServerError(msg);
@@ -122,7 +116,6 @@ export default function LoginPage() {
         }
     };
 
-    // 5. Render
     return (
         <div className="flex min-h-screen bg-white overflow-hidden font-sans">
             
@@ -163,7 +156,6 @@ export default function LoginPage() {
             <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-8 lg:p-12 bg-slate-50 lg:bg-white relative custom-scrollbar">
                 <div className={clsx(
                     "w-full max-w-[420px] mx-auto my-auto bg-white lg:bg-transparent p-10 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform",
-                    // Removed 'isShaking' from container
                 )}>
                     
                     <div className="mb-10">

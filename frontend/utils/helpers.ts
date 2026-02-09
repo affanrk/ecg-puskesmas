@@ -26,7 +26,7 @@ export function formatDate(isoString: string | null | undefined): string {
     });
 }
 
-export function debounce<T extends (...args: any[]) => void>(func: T, wait: number) { // eslint-disable-line @typescript-eslint/no-explicit-any
+export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number) {
     let timeout: NodeJS.Timeout;
     return function executedFunction(...args: Parameters<T>) {
         const later = () => {

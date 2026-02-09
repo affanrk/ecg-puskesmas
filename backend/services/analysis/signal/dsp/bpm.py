@@ -34,8 +34,7 @@ def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float
             avg_rr = np.median(rr_intervals)
             if avg_rr > 0:
                 bpm = 60.0 / avg_rr
-                if 30 <= bpm <= 220:
-                    return float(round(bpm))
+                return float(round(bpm))
         return 0.0
     except Exception:
         return 0.0

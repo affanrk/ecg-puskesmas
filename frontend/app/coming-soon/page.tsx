@@ -22,32 +22,28 @@ interface RoleConfig {
 }
 
 export default function ComingSoonPage() {
-    // 1. Hooks & State
     const router = useRouter();
     const [user, setUser] = useState<UserData | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    // 2. Effects
     useEffect(() => {
         const userStr = localStorage.getItem('ecg_user');
         if (userStr) {
             try {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setUser(JSON.parse(userStr));
+                const userData = JSON.parse(userStr);
+                setTimeout(() => setUser(userData), 0);
             } catch (e) {
                 console.error("Failed to parse user", e);
             }
         }
     }, []);
 
-    // 3. Handlers
     const handleLogout = () => {
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         router.push('/login');
     };
 
-    // 4. Computed
     const role = user?.role?.toLowerCase() || 'user';
 
     const config: Record<string, RoleConfig> = {
@@ -92,7 +88,6 @@ export default function ComingSoonPage() {
     const current = config[role] || config.user;
     const Icon = current.icon;
 
-    // 5. Render
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">

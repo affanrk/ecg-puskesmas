@@ -132,7 +132,7 @@ class MLEngineService:
 
             raw_data = self._fetch_raw_data(db, recording_id)
 
-            features = self._extract_features_from_data(raw_data)
+            features = self._extract_features_from_data(raw_data, device_id)
 
             classification, confidence = self._predict(features)
 
@@ -199,7 +199,9 @@ class MLEngineService:
 
         return df
 
-    def _extract_features_from_data(self, df: pd.DataFrame) -> Dict[str, float]:
+    def _extract_features_from_data(
+        self, df: pd.DataFrame, device_id: str
+    ) -> Dict[str, float]:
         """
         Extract ECG features from DataFrame.
         Uses FeatureExtractor service.
@@ -209,7 +211,12 @@ class MLEngineService:
         lead_ii = df["lead_II"].fillna(0).values
         lead_v1 = df["v1"].fillna(0).values
 
-        features = feature_extractor.extract_features(lead_i, lead_ii, lead_v1)
+        state = device_state_manager.get_state(device_id)
+        s_rate = state.sampling_rate if state else 100
+
+        features = feature_extractor.extract_features(
+            lead_i, lead_ii, lead_v1, sampling_rate=s_rate
+        )
 
         return features
 

@@ -8,11 +8,15 @@ class SignalProcessor:
     def __init__(self, sampling_rate: int = SAMPLING_RATE):
         self.sampling_rate = sampling_rate
 
-    def apply_filters(self, signal: np.ndarray) -> np.ndarray:
-        return apply_filters(signal, self.sampling_rate)
+    def apply_filters(
+        self, signal: np.ndarray, sampling_rate: Optional[int] = None
+    ) -> np.ndarray:
+        return apply_filters(signal, sampling_rate or self.sampling_rate)
 
-    def detect_peaks(self, signal: np.ndarray) -> Tuple[dict, dict]:
-        return detect_peaks(signal, self.sampling_rate)
+    def detect_peaks(
+        self, signal: np.ndarray, sampling_rate: Optional[int] = None
+    ) -> Tuple[dict, dict]:
+        return detect_peaks(signal, sampling_rate or self.sampling_rate)
 
     def correct_peaks(
         self, rpeaks: dict, waves: dict, signal: np.ndarray

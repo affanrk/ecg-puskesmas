@@ -7,13 +7,11 @@ import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/services/api';
 
 export function useProfileManager() {
-    // 1. State Variables
     const { user, setUser } = useStore();
     const { show: toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'medical' | 'security'>('medical');
 
-    // Form State
     const [medicalForm, setMedicalForm] = useState({
         full_name: '',
         nik: '',
@@ -34,12 +32,10 @@ export function useProfileManager() {
 
     const [errors, setErrors] = useState<Record<string, string>>({});
 
-    // UX Modes
     const [isEditingMedical, setIsEditingMedical] = useState(false);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-    // Modal State
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean;
         type: 'identity' | 'medical' | 'username' | 'password' | null;
@@ -55,8 +51,6 @@ export function useProfileManager() {
         action: async () => { },
         isDestructive: false
     });
-
-    // 2. Helpers
 
     const resetForms = useCallback(() => {
         if (user) {
@@ -75,12 +69,9 @@ export function useProfileManager() {
         }
     }, [user]);
 
-    // Init Effect
     useEffect(() => {
         resetForms();
     }, [user, resetForms]);
-
-    // 3. Validation Logic
 
     const validateField = useCallback((field: string, value: string) => {
         let error = "";
@@ -141,8 +132,6 @@ export function useProfileManager() {
         return Object.keys(newErrors).length === 0;
     };
 
-    // 4. Change Handlers
-
     const handleMedicalChange = useCallback((field: string, value: string) => {
         setMedicalForm(prev => ({ ...prev, [field]: value }));
         const error = validateField(field, value);
@@ -155,20 +144,18 @@ export function useProfileManager() {
         setErrors(prev => ({ ...prev, [field]: error }));
     }, [validateField]);
 
-    // 5. API Logic
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handleApiError = (err: any, defaultField?: string) => {
+    const handleApiError = (err: unknown, defaultField?: string) => {
         const fieldErrors: Record<string, string> = {};
-        if (err.response?.status === 400 || err.response?.status === 422) {
-            const detail = err.response.data.detail;
+        const apiErr = err as { response?: { status: number; data: { detail: string | Array<{ loc: string[]; msg: string }> } } };
+        
+        if (apiErr.response?.status === 400 || apiErr.response?.status === 422) {
+            const detail = apiErr.response.data.detail;
             if (typeof detail === 'string') {
                 if (defaultField) fieldErrors[defaultField] = detail;
                 else if (detail.toLowerCase().includes('nik')) fieldErrors.nik = detail;
                 else toast(detail, "error");
             } else if (Array.isArray(detail)) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                detail.forEach((e: any) => {
+                detail.forEach((e) => {
                     const field = e.loc[e.loc.length - 1];
                     fieldErrors[field] = e.msg;
                 });
@@ -185,13 +172,12 @@ export function useProfileManager() {
         const API_URL = getApiUrl();
         const token = localStorage.getItem('ecg_token');
 
-        // Clean payload: Convert empty strings to null to ensure compatibility with backend Optional types
         const payload = {
             ...medicalForm,
             full_name: medicalForm.full_name || null,
             nik: medicalForm.nik || null,
             pob: medicalForm.pob || null,
-            dob: medicalForm.dob || null, // Critical: Empty string fails Pydantic Date parsing
+            dob: medicalForm.dob || null,
             address: medicalForm.address || null,
             contact_number: medicalForm.contact_number || null,
             medical_history: medicalForm.medical_history || null
@@ -254,8 +240,6 @@ export function useProfileManager() {
             setLoading(false);
         }
     };
-
-    // 6. Interaction Handlers
 
     const handleCancelMedical = () => {
         setIsEditingMedical(false);

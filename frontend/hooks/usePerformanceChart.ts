@@ -14,7 +14,7 @@ interface UsePerformanceChartProps {
 export function usePerformanceChart({ data, color, label, maxPoints, suggestedMax }: UsePerformanceChartProps) {
     const chartRef = useRef<Chart | null>(null);
 
-    const initChart = (ctx: CanvasRenderingContext2D) => {
+    const initChart = useCallback((ctx: CanvasRenderingContext2D) => {
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, color + '40');
         gradient.addColorStop(1, color + '00');
@@ -62,7 +62,7 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
         };
 
         chartRef.current = new Chart(ctx, config);
-    };
+    }, [color, label, maxPoints, suggestedMax]);
 
     const updateChart = useCallback(() => {
         if (chartRef.current) {
@@ -71,12 +71,12 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
         }
     }, [data]);
 
-    const destroyChart = () => {
+    const destroyChart = useCallback(() => {
         if (chartRef.current) {
             chartRef.current.destroy();
             chartRef.current = null;
         }
-    };
+    }, []);
 
     useEffect(() => {
         updateChart();

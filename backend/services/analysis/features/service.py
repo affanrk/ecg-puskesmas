@@ -7,7 +7,7 @@ Separated from ML logic for better maintainability.
 import numpy as np
 import pandas as pd
 import math
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
 from ..signal import signal_processor
 from utils import logger, SAMPLING_RATE
@@ -23,7 +23,11 @@ class FeatureExtractor:
         self.sampling_rate = sampling_rate
 
     def extract_features(
-        self, lead_i: np.ndarray, lead_ii: np.ndarray, lead_v1: np.ndarray
+        self,
+        lead_i: np.ndarray,
+        lead_ii: np.ndarray,
+        lead_v1: np.ndarray,
+        sampling_rate: Optional[int] = None,
     ) -> Dict[str, float]:
         """
         Extract all features from 3-lead ECG data.
@@ -32,10 +36,13 @@ class FeatureExtractor:
             lead_i: Lead I signal
             lead_ii: Lead II signal
             lead_v1: Lead V1 signal
+            sampling_rate: Optional override for hardware sampling rate
 
         Returns:
             Dictionary with feature names and values
         """
+        s_rate = sampling_rate or self.sampling_rate
+
         features = {
             "rr_avg": 0.0,
             "pr_avg": 0.0,
@@ -46,18 +53,20 @@ class FeatureExtractor:
             "bpm": 0.0,
         }
 
-        lead_ii_features = self._extract_lead_ii_features(lead_ii)
+        lead_ii_features = self._extract_lead_ii_features(lead_ii, s_rate)
         features.update(lead_ii_features)
 
-        st_avg = self._extract_st_segment(lead_i)
+        st_avg = self._extract_st_segment(lead_i, s_rate)
         features["st_avg"] = st_avg
 
-        rs_ratio = self._extract_rs_ratio(lead_v1)
+        rs_ratio = self._extract_rs_ratio(lead_v1, s_rate)
         features["rs_ratio"] = rs_ratio
 
         return features
 
-    def _extract_lead_ii_features(self, signal: np.ndarray) -> Dict[str, float]:
+    def _extract_lead_ii_features(
+        self, signal: np.ndarray, sampling_rate: int
+    ) -> Dict[str, float]:
         """
         Extract comprehensive features from Lead II.
         Includes RR, PR, QS, QT, QTc, and BPM.
@@ -72,9 +81,9 @@ class FeatureExtractor:
 
         try:
 
-            filtered = signal_processor.apply_filters(signal)
+            filtered = signal_processor.apply_filters(signal, sampling_rate)
 
-            rpeaks, waves = signal_processor.detect_peaks(filtered)
+            rpeaks, waves = signal_processor.detect_peaks(filtered, sampling_rate)
 
             rpeaks_corr, waves_corr = signal_processor.correct_peaks(
                 rpeaks, waves, filtered
@@ -83,15 +92,17 @@ class FeatureExtractor:
             if len(rpeaks_corr.get("ECG_R_Peaks", [])) == 0:
                 return features
 
-            rr_avg, bpm = self._calculate_rr_and_bpm(rpeaks_corr)
+            rr_avg, bpm = self._calculate_rr_and_bpm(rpeaks_corr, sampling_rate)
             features["rr_avg"] = rr_avg
             features["bpm"] = bpm
 
-            features["pr_avg"] = self._calculate_pr_interval(waves_corr)
+            features["pr_avg"] = self._calculate_pr_interval(waves_corr, sampling_rate)
 
-            features["qs_avg"] = self._calculate_qs_interval(waves_corr)
+            features["qs_avg"] = self._calculate_qs_interval(waves_corr, sampling_rate)
 
-            qt_avg, qtc_avg = self._calculate_qt_intervals(waves_corr, rr_avg)
+            qt_avg, qtc_avg = self._calculate_qt_intervals(
+                waves_corr, rr_avg, sampling_rate
+            )
             features["qtc_avg"] = qtc_avg
 
             return features
@@ -100,7 +111,9 @@ class FeatureExtractor:
             logger.error(f"[FeatureExtractor] Lead II extraction failed: {e}")
             return features
 
-    def _calculate_rr_and_bpm(self, rpeaks: dict) -> Tuple[float, float]:
+    def _calculate_rr_and_bpm(
+        self, rpeaks: dict, sampling_rate: int
+    ) -> Tuple[float, float]:
         """
         Calculate RR interval (ms) and heart rate (BPM).
         """
@@ -109,38 +122,46 @@ class FeatureExtractor:
         if len(r_peaks_arr) < 2:
             return 0.0, 0.0
 
-        rr_intervals = np.diff(r_peaks_arr) / self.sampling_rate * 1000.0
+        rr_intervals = np.diff(r_peaks_arr) / sampling_rate * 1000.0
         rr_avg = float(np.mean(rr_intervals))
 
         bpm = 60000.0 / rr_avg if rr_avg > 0 else 0.0
 
         return rr_avg, bpm
 
-    def _calculate_pr_interval(self, waves: dict) -> float:
+    def _calculate_pr_interval(self, waves: dict, sampling_rate: int) -> float:
         """
-        Calculate PR interval (P-onset to R-onset).
-        Represents atrial depolarization to ventricular activation.
+        Calculate PR interval (P-onset to R-onset/Q-peak).
+        Matches legacy index-shift logic.
         """
         p_onsets = waves.get("ECG_P_Onsets", [])
         r_onsets = waves.get("ECG_R_Onsets", [])
+        q_peaks = waves.get("ECG_Q_Peaks", [])
 
-        if len(p_onsets) == 0 or len(r_onsets) == 0:
+        if len(p_onsets) == 0 or (len(r_onsets) == 0 and len(q_peaks) == 0):
             return 0.0
 
-        min_len = min(len(p_onsets), len(r_onsets))
-
+        min_len = min(len(p_onsets), len(r_onsets), len(q_peaks))
         pr_intervals = []
-        for i in range(min_len):
-            if r_onsets[i] > p_onsets[i]:
-                pr_ms = (r_onsets[i] - p_onsets[i]) / self.sampling_rate * 1000.0
-                pr_intervals.append(pr_ms)
+        for i in range(min_len - 1):
+            if r_onsets[i] < p_onsets[i]:
+                pr_samples = q_peaks[i] - p_onsets[i]
+            else:
+                pr_samples = r_onsets[i] - p_onsets[i]
 
-        return float(np.mean(pr_intervals)) if pr_intervals else 0.0
+            pr_ms = (pr_samples / sampling_rate) * 1000.0
+            pr_intervals.append(pr_ms)
 
-    def _calculate_qs_interval(self, waves: dict) -> float:
+        return (
+            float(np.mean([x for x in pr_intervals if not pd.isna(x)]))
+            if pr_intervals
+            else 0.0
+        )
+
+    def _calculate_qs_interval(self, waves: dict, sampling_rate: int) -> float:
         """
         Calculate QS interval (Q-peak to S-peak).
-        Represents ventricular depolarization duration.
+        Matches legacy index-shift logic (i+1).
         """
         q_peaks = waves.get("ECG_Q_Peaks", [])
         s_peaks = waves.get("ECG_S_Peaks", [])
@@ -149,23 +170,28 @@ class FeatureExtractor:
             return 0.0
 
         min_len = min(len(q_peaks), len(s_peaks))
-
         qs_intervals = []
-        for i in range(min_len):
-            duration_samples = s_peaks[i] - q_peaks[i]
+        for i in range(min_len - 1):
+            if s_peaks[i] < q_peaks[i] and (i + 1) < len(s_peaks):
+                qs_samples = s_peaks[i + 1] - q_peaks[i]
+            else:
+                qs_samples = s_peaks[i] - q_peaks[i]
 
-            if 0 < duration_samples < (0.2 * self.sampling_rate):
-                qs_ms = duration_samples / self.sampling_rate * 1000.0
-                qs_intervals.append(qs_ms)
+            qs_ms = (qs_samples / sampling_rate) * 1000.0
+            qs_intervals.append(qs_ms)
 
-        return float(np.mean(qs_intervals)) if qs_intervals else 0.0
+        return (
+            float(np.mean([x for x in qs_intervals if not pd.isna(x)]))
+            if qs_intervals
+            else 0.0
+        )
 
     def _calculate_qt_intervals(
-        self, waves: dict, rr_avg: float
+        self, waves: dict, rr_avg: float, sampling_rate: int
     ) -> Tuple[float, float]:
         """
-        Calculate QT and QTc (corrected QT) intervals.
-        QTc uses Bazett's formula: QTc = QT / sqrt(RR in seconds)
+        Calculate QT and QTc intervals.
+        Matches legacy index-shift logic (i+1).
         """
         r_onsets = waves.get("ECG_R_Onsets", [])
         t_offsets = waves.get("ECG_T_Offsets", [])
@@ -174,18 +200,20 @@ class FeatureExtractor:
             return 0.0, 0.0
 
         min_len = min(len(r_onsets), len(t_offsets))
-
         qt_intervals = []
-        for i in range(min_len):
-            if t_offsets[i] > r_onsets[i]:
-                qt_ms = (t_offsets[i] - r_onsets[i]) / self.sampling_rate * 1000.0
-                qt_intervals.append(qt_ms)
+        for i in range(min_len - 1):
+            if t_offsets[i] < r_onsets[i] and (i + 1) < len(t_offsets):
+                qt_samples = t_offsets[i + 1] - r_onsets[i]
+            else:
+                qt_samples = t_offsets[i] - r_onsets[i]
+
+            qt_ms = (qt_samples / sampling_rate) * 1000.0
+            qt_intervals.append(qt_ms)
 
         if not qt_intervals:
             return 0.0, 0.0
 
-        qt_avg = float(np.mean(qt_intervals))
-
+        qt_avg = float(np.mean([x for x in qt_intervals if not pd.isna(x)]))
         qtc_avg = 0.0
         if rr_avg > 0:
             rr_seconds = rr_avg / 1000.0
@@ -193,14 +221,14 @@ class FeatureExtractor:
 
         return qt_avg, qtc_avg
 
-    def _extract_st_segment(self, signal: np.ndarray) -> float:
+    def _extract_st_segment(self, signal: np.ndarray, sampling_rate: int) -> float:
         """
         Extract ST segment duration from Lead I.
-        Measured from R-offset to T-offset.
+        Matches legacy index-shift logic (i+1).
         """
         try:
-            filtered = signal_processor.apply_filters(signal)
-            rpeaks, waves = signal_processor.detect_peaks(filtered)
+            filtered = signal_processor.apply_filters(signal, sampling_rate)
+            rpeaks, waves = signal_processor.detect_peaks(filtered, sampling_rate)
 
             r_offsets = waves.get("ECG_R_Offsets", [])
             t_offsets = waves.get("ECG_T_Offsets", [])
@@ -209,52 +237,62 @@ class FeatureExtractor:
                 return 0.0
 
             min_len = min(len(r_offsets), len(t_offsets))
-
             st_intervals = []
-            for i in range(min_len):
-                if t_offsets[i] > r_offsets[i]:
-                    st_ms = (t_offsets[i] - r_offsets[i]) / self.sampling_rate * 1000.0
-                    st_intervals.append(st_ms)
+            for i in range(min_len - 1):
+                if t_offsets[i] < r_offsets[i] and (i + 1) < len(t_offsets):
+                    st_samples = t_offsets[i + 1] - r_offsets[i]
+                else:
+                    st_samples = t_offsets[i] - r_offsets[i]
 
-            return float(np.mean(st_intervals)) if st_intervals else 0.0
+                st_ms = (st_samples / sampling_rate) * 1000.0
+                st_intervals.append(st_ms)
+
+            return (
+                float(np.mean([x for x in st_intervals if not pd.isna(x)]))
+                if st_intervals
+                else 0.0
+            )
 
         except Exception as e:
             logger.debug(f"[FeatureExtractor] ST segment extraction failed: {e}")
             return 0.0
 
-    def _extract_rs_ratio(self, signal: np.ndarray) -> float:
+    def _extract_rs_ratio(self, signal: np.ndarray, sampling_rate: int) -> float:
         """
         Extract R/S amplitude ratio from Lead V1.
-        Important for ventricular hypertrophy detection.
+        Matches legacy logic exactly.
         """
         try:
-            filtered = signal_processor.apply_filters(signal)
-            rpeaks, waves = signal_processor.detect_peaks(filtered)
+            filtered = signal_processor.apply_filters(signal, sampling_rate)
+            rpeaks, waves = signal_processor.detect_peaks(filtered, sampling_rate)
 
-            r_peaks_arr = rpeaks.get("ECG_R_Peaks", [])
-            s_peaks_arr = waves.get("ECG_S_Peaks", [])
+            if (
+                "ECG_S_Peaks" in waves.keys()
+                and len(rpeaks.get("ECG_R_Peaks", [])) > 0
+                and len(waves.get("ECG_S_Peaks", [])) > 0
+            ):
 
-            if len(r_peaks_arr) == 0 or len(s_peaks_arr) == 0:
-                return 0.0
+                r_amplitudes = [
+                    filtered[int(i)]
+                    for i in rpeaks["ECG_R_Peaks"]
+                    if int(i) < len(filtered)
+                ]
+                s_amplitudes = [
+                    filtered[int(i)]
+                    for i in waves["ECG_S_Peaks"]
+                    if not pd.isna(i) and int(i) < len(filtered)
+                ]
 
-            r_amplitudes = [filtered[p] for p in r_peaks_arr if p < len(filtered)]
+                if not r_amplitudes or not s_amplitudes:
+                    return 0.0
 
-            s_amplitudes = [
-                filtered[p]
-                for p in s_peaks_arr
-                if not pd.isna(p) and int(p) < len(filtered)
-            ]
+                avg_r = np.mean(r_amplitudes)
+                avg_s = np.mean(s_amplitudes)
 
-            if not r_amplitudes or not s_amplitudes:
-                return 0.0
+                if abs(avg_s) > 1e-9:
+                    return float(avg_r / abs(avg_s))
 
-            avg_r = np.mean(r_amplitudes)
-            avg_s = abs(np.mean(s_amplitudes))
-
-            if avg_s < 1e-6:
-                return 0.0
-
-            return float(avg_r / avg_s)
+            return 0.0
 
         except Exception as e:
             logger.debug(f"[FeatureExtractor] R/S ratio extraction failed: {e}")

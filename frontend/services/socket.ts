@@ -14,8 +14,8 @@ declare global {
 type SocketMessage =
     | { type: 'ping' }
     | { type: 'device_list_update'; devices: Device[] }
-    | { type: 'live_data'; device_id?: string; cal_lead_I: number; cal_lead_II: number; cal_v1: number }
-    | { type: 'live_batch'; device_id?: string; samples: Array<{ i: number; ii: number; v1: number }> }
+    | { type: 'live_data'; device_id?: string; cal_lead_I: number; cal_lead_II: number; cal_v1: number; counter?: number }
+    | { type: 'live_batch'; device_id?: string; samples: Array<{ i: number; ii: number; v1: number }>; counter?: number; sampling_rate?: number }
     | { type: 'live_result'; device_id: string; classification: string; confidence?: number; recording_id?: string }
     | { type: 'state_update'; device_id?: string; is_recording: boolean }
     | { type: 'performance_update'; device_id?: string; latency_ms: number; jitter_ms: number; packet_loss_pct: number }
@@ -85,7 +85,7 @@ const handleMessage = (msg: SocketMessage) => {
 
     switch (msg.type) {
         case "live_data": {
-            const point = { leadI: msg.cal_lead_I, leadII: msg.cal_lead_II, v1: msg.cal_v1 };
+            const point = { leadI: msg.cal_lead_I, leadII: msg.cal_lead_II, v1: msg.cal_v1, counter: msg.counter };
             store.pushEcgData([point]);
             globalEventBus.emit(EVENTS.CHART.ECG_DATA, point);
             resetWatchdog();
@@ -101,7 +101,11 @@ const handleMessage = (msg: SocketMessage) => {
                 }));
 
                 store.pushEcgData(batchData);
-                globalEventBus.emit(EVENTS.CHART.ECG_BATCH, batchData);
+                globalEventBus.emit(EVENTS.CHART.ECG_BATCH, { 
+                    samples: batchData, 
+                    counter: msg.counter,
+                    sampling_rate: msg.sampling_rate 
+                });
                 resetWatchdog();
             }
             break;

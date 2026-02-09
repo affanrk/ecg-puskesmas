@@ -7,19 +7,15 @@ import { Wifi, AlertTriangle, Zap, Server } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function PerformancePage() {
-    // 1. Hooks & State
     const { performance, setPerformanceTrackingEnabled } = useStore();
 
-    // 2. Effects
     useEffect(() => {
         setPerformanceTrackingEnabled(true);
         return () => setPerformanceTrackingEnabled(false);
     }, [setPerformanceTrackingEnabled]);
 
-    // Common Card Styles
     const cardClass = "bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-500";
 
-    // 3. Render
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-white relative">
             {/* Header Area */}

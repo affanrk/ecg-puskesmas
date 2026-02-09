@@ -84,7 +84,6 @@ class BaseCalendarProcessor:
             return "normal"
 
     def _build_nodes(self, results, range_start, range_end, level, months_map=None):
-        # results schema: (value, max_severity, total_count, count_sb, count_b, count_a, count_n)
         data_map = {}
         for r in results:
             if r[0] is not None:

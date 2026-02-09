@@ -33,12 +33,11 @@ export default function RecentAnalysisTable({
                 const availableHeight = height - headerHeight - footerHeight;
                 
                 const idealRows = 10;
-                const is2xl = window.innerWidth >= 1536; // Matching Tailwind's 2xl breakpoint
-                const rowHeight = is2xl ? 52 : 48; // Dynamic row height based on CSS
+                const is2xl = window.innerWidth >= 1536;
+                const rowHeight = is2xl ? 52 : 48;
                 
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
                 
-                // Prioritize 10 rows if possible, otherwise calculate responsively
                 if (calculatedRows >= idealRows) {
                     setRowsPerPage(idealRows);
                 } else {

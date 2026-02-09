@@ -9,7 +9,7 @@ interface MonthCalendarProps {
     month: number;
     nodes: CalendarNode[];
     onDateClick: (date: Date) => void;
-    onViewChange: (view: 'month' | 'agenda') => void; // Added onViewChange prop
+    onViewChange: (view: 'month' | 'agenda') => void;
     selectedDate: Date;
     filters: {
         highRisk: boolean;

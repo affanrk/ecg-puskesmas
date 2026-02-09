@@ -9,7 +9,7 @@ from services.mqtt import mqtt_protocol, mqtt_data_handler
 from services.device import device_state_manager
 from core.config import settings
 from utils import logger
-from utils import MQTT_TOPIC_PATTERN, MQTT_QOS
+from utils import MQTT_TOPIC_PATTERN, MQTT_QOS, WSMessageType
 
 
 class MQTTClientService:
@@ -96,6 +96,7 @@ class MQTTClientService:
         Args:
             message: MQTT message object
         """
+        buffer_limit = 20
         try:
             logger.debug(
                 f"[MQTT] Received message on topic: {message.topic}, payload size: {len(message.payload)} bytes"
@@ -137,22 +138,30 @@ class MQTTClientService:
 
             state.update_connection_status(True)
 
-            if mqtt_protocol.should_reset_buffer(end_counter, state.last_packet_num):
-                logger.warning(
-                    f"[MQTT] Packet counter reset detected for {device_id}. Clearing buffer."
-                )
-                state.reset_network_metrics()
+            if state.last_packet_num > 0:
+                actual_start = end_counter - len(samples) + 1
+                gap = actual_start - (state.last_packet_num + 1)
 
-                await mqtt_data_handler.process_samples(
-                    device_id, samples, end_counter, packet_format, sampling_rate
-                )
-                return
+                if gap > buffer_limit or gap < 0:
+                    logger.error(
+                        f"[MQTT] Large data jump detected for {device_id} (Gap: {gap}). "
+                        f"Expected {state.last_packet_num + 1}, got {actual_start}. "
+                        "Disconnecting to preserve data authenticity."
+                    )
+                    state.packet_buffer.clear()
+                    state.reset_recording_state()
+                    state.reset_network_metrics()
+                    await device_state_manager.broadcast_to_device(
+                        device_id,
+                        WSMessageType.DEVICE_DISCONNECTED.value,
+                        {"device_id": device_id},
+                    )
+                    return
 
             if mqtt_protocol.is_duplicate_packet(end_counter, state.last_packet_num):
                 return
 
             start_counter = end_counter - len(samples) + 1
-            buffer_limit = 20
 
             if mqtt_protocol.should_buffer_packet(
                 start_counter,
@@ -170,33 +179,36 @@ class MQTTClientService:
                 )
 
             while state.packet_buffer:
-
                 p_start, p_end, p_payload = state.packet_buffer[0]
-
                 is_next = (state.last_packet_num == 0) or (
                     p_start == state.last_packet_num + 1
                 )
                 is_full = len(state.packet_buffer) > buffer_limit
 
-                if is_next or is_full:
-
+                if is_next:
                     heapq.heappop(state.packet_buffer)
-
-                    if not is_next and is_full:
-
-                        logger.debug(
-                            f"[MQTT] Buffer overflow. Forcing process of {p_start} (Expected {state.last_packet_num + 1}). Gap will be recorded."
-                        )
-
                     _, p_samples, _, p_format, p_sampling_rate = (
                         mqtt_protocol.parse_packet(p_payload)
                     )
-
                     await mqtt_data_handler.process_samples(
                         device_id, p_samples, p_end, p_format, p_sampling_rate
                     )
+                elif is_full:
+                    logger.error(
+                        f"[MQTT] Data sequence broken for {device_id}. "
+                        f"Expected {state.last_packet_num + 1}, got {p_start}. "
+                        "Disconnecting to preserve data authenticity."
+                    )
+                    state.packet_buffer.clear()
+                    state.reset_recording_state()
+                    state.reset_network_metrics()
+                    await device_state_manager.broadcast_to_device(
+                        device_id,
+                        WSMessageType.DEVICE_DISCONNECTED.value,
+                        {"device_id": device_id},
+                    )
+                    break
                 else:
-
                     break
 
         except orjson.JSONDecodeError:

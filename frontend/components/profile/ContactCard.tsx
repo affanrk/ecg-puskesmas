@@ -45,7 +45,6 @@ export default function ContactCard({
     const canEditMedical = !isLocked || isEditingMedical;
     const historyRef = useRef<HTMLDivElement>(null);
 
-    // Handle clicks outside dropdown to close it
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
