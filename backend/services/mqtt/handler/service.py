@@ -157,10 +157,15 @@ class MQTTDataHandler:
             )
 
             if bpm and bpm > 0:
+                state.bpm_history.append(bpm)
+                smoothed_bpm = int(
+                    round(sum(state.bpm_history) / len(state.bpm_history))
+                )
+
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
                     WSMessageType.LIVE_METRICS.value,
-                    {"device_id": state.device_id, "data": {"bpm": bpm}},
+                    {"device_id": state.device_id, "data": {"bpm": smoothed_bpm}},
                 )
 
     async def _process_single_sample(

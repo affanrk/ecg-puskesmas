@@ -25,8 +25,9 @@ def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float
             )
             r_peaks = info["ECG_R_Peaks"]
         except Exception:
+            # Fallback: find peaks with at least 0.25s distance (max 240 BPM)
             r_peaks, _ = scipy.signal.find_peaks(
-                signal_norm, height=1.5, distance=sampling_rate * 0.4
+                signal_norm, height=1.0, distance=int(sampling_rate * 0.25)
             )
 
         if len(r_peaks) > 1:

@@ -35,6 +35,7 @@ class DeviceState:
         self.last_hw_ts_us = 0
         self.last_hw_counter = 0
         self.latencies = deque(maxlen=100)
+        self.bpm_history = deque(maxlen=5)
         self.min_latency_offset = float("inf")
         self.packet_format = "Unknown"
 
