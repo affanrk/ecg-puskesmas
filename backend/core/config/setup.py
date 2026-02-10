@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     DATABASE_PORT: str = "5432"
     DATABASE_NAME: str = "ecg_db"
 
-    MQTT_BROKER: str = "103.183.75.251"
+    MQTT_BROKER: str = "34.50.65.132"
     MQTT_PORT: int = 1883
-    MQTT_USERNAME: str = "admin"
-    MQTT_PASSWORD: str = "ecgctai"
+    MQTT_USERNAME: str = "ecg-client"
+    MQTT_PASSWORD: str = "mqttECG2026!"
     MQTT_USE_TLS: bool = False
 
     FLASK_PORT: int = 8080
