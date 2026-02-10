@@ -41,5 +41,11 @@ class TbMPatient(Base, AuditMixin):
     medical_history = Column(
         Text, nullable=True, comment="Text field for medical history notes"
     )
+    status = Column(
+        String(20),
+        default="QUEUE",
+        nullable=False,
+        comment="Patient status (QUEUE, APPROVED, REJECTED)",
+    )
 
     user = relationship("TbMUser", back_populates="patient_profile")

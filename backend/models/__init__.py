@@ -4,6 +4,7 @@ from .patient import TbMPatient
 from .session import TbREcgSession
 from .raw_data import TbREcgRaw
 from .performance import TbRPerformanceLog
+from .approval.model import TbRLogApproval
 
 __all__ = [
     "Base",
@@ -13,4 +14,5 @@ __all__ = [
     "TbREcgSession",
     "TbREcgRaw",
     "TbRPerformanceLog",
+    "TbRLogApproval",
 ]

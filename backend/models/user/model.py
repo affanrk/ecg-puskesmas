@@ -50,10 +50,6 @@ class TbMUser(Base, AuditMixin):
         Integer, default=0, comment="1 for approved/activated, 0 for pending/rejected"
     )
 
-    rejection_reason = Column(
-        String(255), nullable=True, comment="Reason for profile rejection by admin"
-    )
-
     last_login_dt = Column(
         DateTime(timezone=True), nullable=True, comment="Timestamp of last login"
     )
@@ -74,6 +70,14 @@ class TbMUser(Base, AuditMixin):
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+
+    approval_logs = relationship(
+        "TbRLogApproval",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="desc(TbRLogApproval.created_dt)",
     )
 
     @property
@@ -107,3 +111,15 @@ class TbMUser(Base, AuditMixin):
     @property
     def medical_history(self):
         return self.patient_profile.medical_history if self.patient_profile else None
+
+    @property
+    def status(self):
+        return self.patient_profile.status if self.patient_profile else None
+
+    @property
+    def rejection_reason(self):
+        if self.status == "REJECTED":
+            for log in self.approval_logs:
+                if log.status == "REJECTED":
+                    return log.reason
+        return None

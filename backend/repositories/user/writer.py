@@ -1,8 +1,9 @@
+import uuid
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError, DataError
-from models import TbMUser, TbMPatient
+from models import TbMUser, TbMPatient, TbRLogApproval
 from schemas.user import UserCreate
 from core.exceptions import DatabaseException
 from core.security import get_password_hash
@@ -91,7 +92,7 @@ class UserWriter(BaseRepository[TbMUser]):
             )
 
     def update_activation_status(
-        self, user_id: int, is_activated: int, rejection_reason: Optional[str] = None
+        self, user_id: int, is_activated: int, reason: Optional[str] = None
     ) -> Optional[TbMUser]:
         try:
             db_user = self.get(user_id)
@@ -100,14 +101,30 @@ class UserWriter(BaseRepository[TbMUser]):
 
             db_user.is_activated = is_activated
 
+            # Update patient status and log the action
+            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            status = "APPROVED" if is_activated == 1 else "REJECTED"
+
+            if patient:
+                patient.status = status
+                patient.changed_by = "ADMIN"  # Or get from context if available
+
+            log = TbRLogApproval(
+                id=str(uuid.uuid4()),
+                user_id=user_id,
+                status=status,
+                reason=reason,
+                created_by="ADMIN",
+            )
+            self.db.add(log)
+
             # Officially mark as patient only upon admin approval
             if is_activated == 1:
                 db_user.is_patient = True
-                db_user.rejection_reason = None
             else:
-                # If rejected or reset to pending, they are not an active patient yet
-                db_user.is_patient = False
-                db_user.rejection_reason = rejection_reason
+                # If rejected, they are still a user who filled the form (is_patient=True)
+                # but not activated
+                db_user.is_patient = True
 
             self.db.commit()
             self.db.refresh(db_user)

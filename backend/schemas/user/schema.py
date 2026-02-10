@@ -89,7 +89,7 @@ class UserPasswordUpdate(BaseModel):
 
 class UserApprovalUpdate(BaseModel):
     is_activated: int
-    rejection_reason: Optional[str] = None
+    reason: Optional[str] = None
 
 
 class UserResponse(UserBase):
@@ -98,6 +98,7 @@ class UserResponse(UserBase):
     role: str
     is_patient: bool
     is_activated: int
+    status: Optional[str] = None
     rejection_reason: Optional[str] = None
     created_dt: datetime
     changed_dt: Optional[datetime] = None

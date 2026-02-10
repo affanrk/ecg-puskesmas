@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
-from models import TbMUser
+from models import TbMUser, TbMPatient
 from repositories.base import BaseRepository
 from core.exceptions import DatabaseException
 
@@ -87,7 +87,7 @@ class UserReader(BaseRepository[TbMUser]):
             return (
                 self.db.query(TbMUser)
                 .join(TbMUser.patient_profile)
-                .filter(TbMUser.is_activated == 0)
+                .filter(TbMPatient.status == "QUEUE")
                 .offset(skip)
                 .limit(limit)
                 .all()
