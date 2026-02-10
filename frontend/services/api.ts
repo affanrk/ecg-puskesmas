@@ -130,18 +130,31 @@ export async function fetchCalendar(filters: {
         }
     }
     
-    export async function updateUserStatus(userId: number, isActivated: number, rejectionReason?: string) {
+    export async function updateUserStatus(userId: number, isActivated: number, reason?: string) {
         const token = localStorage.getItem('ecg_token');
         try {
             const response = await axios.post(`${getApiUrl()}/admin/update-status/${userId}`, {
                 is_activated: isActivated,
-                rejection_reason: rejectionReason
+                reason: reason
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             return response.data;
         } catch (error) {
             console.error("Update User Status Error:", error);
+            throw error;
+        }
+    }
+
+    export async function fetchApprovalLogs() {
+        const token = localStorage.getItem('ecg_token');
+        try {
+            const response = await axios.get(`${getApiUrl()}/admin/approval-logs`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Fetch Approval Logs Error:", error);
             throw error;
         }
     }
@@ -154,6 +167,7 @@ export async function fetchCalendar(filters: {
         fetchRecentHistory,
         fetchCalendar,
         fetchPendingApprovals,
-        updateUserStatus
+        updateUserStatus,
+        fetchApprovalLogs
     };
     

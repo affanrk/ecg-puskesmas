@@ -9,7 +9,9 @@ export interface User {
     email?: string;
     role: string;
     is_patient: boolean;
-    is_approved: boolean;
+    is_activated: number;
+    status?: string;
+    rejection_reason?: string;
     full_name?: string;
     nik?: string;
     pob?: string;

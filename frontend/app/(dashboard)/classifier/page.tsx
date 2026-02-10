@@ -1,6 +1,6 @@
 'use client';
 
-import ResultTable from '@/components/classifier/ResultTable';
+import ResultTable from '@/components/user/classifier/ResultTable';
 
 export default function ResultPage() {
     return (

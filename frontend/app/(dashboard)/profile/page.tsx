@@ -1,11 +1,11 @@
 'use client';
 
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ProfileHeader from '@/components/profile/ProfileHeader';
-import IdentityCard from '@/components/profile/IdentityCard';
-import ContactCard from '@/components/profile/ContactCard';
-import UsernameCard from '@/components/profile/UsernameCard';
-import PasswordCard from '@/components/profile/PasswordCard';
+import ProfileHeader from '@/components/user/profile/ProfileHeader';
+import IdentityCard from '@/components/user/profile/IdentityCard';
+import ContactCard from '@/components/user/profile/ContactCard';
+import UsernameCard from '@/components/user/profile/UsernameCard';
+import PasswordCard from '@/components/user/profile/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
 import { AlertCircle } from 'lucide-react';
 
@@ -41,8 +41,9 @@ export default function ProfilePage() {
     } = useProfileManager();
 
     if (!user) return null;
-    const isActivated = user.is_activated === 1;
-    const isPending = !!user.nik && !isActivated && !rejectionReason;
+    const isActivated = user.status === 'APPROVED';
+    const isPending = user.status === 'QUEUE';
+    const isRejected = user.status === 'REJECTED';
     const isLocked = isActivated || isPending;
 
     return (
@@ -61,7 +62,7 @@ export default function ProfilePage() {
                         isLoading={loading}
                     />
 
-                    { !isActivated && rejectionReason && (
+                    { isRejected && rejectionReason && (
                         <div className="mx-4 mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl animate-in slide-in-from-top-2 duration-500">
                             <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600 shrink-0">

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import PerformanceChart from '@/components/performance/PerformanceChart';
+import PerformanceChart from '@/components/user/performance/PerformanceChart';
 import { Wifi, AlertTriangle, Zap, Server } from 'lucide-react';
 import clsx from 'clsx';
 

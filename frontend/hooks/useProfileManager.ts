@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { useStore, User } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/services/api';
 
@@ -66,7 +66,7 @@ export function useProfileManager() {
                 medical_history: user.medical_history || 'Normal'
             });
             setSecurityForm(p => ({ ...p, new_username: user.username, current_password: '', new_password: '', confirm_password: '' }));
-            setRejectionReason((user as User & { rejection_reason?: string }).rejection_reason || null);
+            setRejectionReason(user.rejection_reason || null);
             setErrors({});
         }
     }, [user]);

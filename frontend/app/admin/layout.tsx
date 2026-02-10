@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState, useRef } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { LogOut, ShieldCheck, User } from 'lucide-react';
@@ -13,17 +13,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     const { user } = useStore();
     const { show: toast } = useToast();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const isMounted = useRef(false);
 
     useEffect(() => {
-        if (!isMounted.current) {
-            isMounted.current = true;
-            return;
-        }
-        
         if (user && user.role !== 'admin') {
             toast("Access denied. Admin only.", "error");
-            router.push('/dashboard');
+            router.replace('/dashboard');
         }
     }, [user, router, toast]);
 
