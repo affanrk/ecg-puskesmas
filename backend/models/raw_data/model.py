@@ -36,6 +36,10 @@ class TbREcgRaw(Base):
 
     mv_lead_I = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_II = Column(Float, comment="Calibrated Lead II value in mV")
+    mv_lead_III = Column(
+        Float, nullable=True, comment="Calibrated Lead III value in mV"
+    )
+    mv_avF = Column(Float, nullable=True, comment="Calibrated avF value in mV")
     mv_v1 = Column(Float, comment="Calibrated V1 value in mV")
 
     raw_lead_I = Column(Integer, nullable=True, comment="Raw ADC value for Lead I")
@@ -78,6 +82,10 @@ class TbREcgRawMobile(Base):
 
     mv_lead_I = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_II = Column(Float, comment="Calibrated Lead II value in mV")
+    mv_lead_III = Column(
+        Float, nullable=True, comment="Calibrated Lead III value in mV"
+    )
+    mv_avF = Column(Float, nullable=True, comment="Calibrated avF value in mV")
     mv_v1 = Column(Float, comment="Calibrated V1 value in mV")
 
     raw_lead_I = Column(Integer, nullable=True, comment="Raw ADC value for Lead I")

@@ -58,6 +58,7 @@ export default function ProfilePage() {
                         onConfirm={confirmState.action}
                         title={confirmState.title}
                         message={confirmState.message}
+                        confirmText={confirmState.confirmText}
                         isDestructive={confirmState.isDestructive}
                         isLoading={loading}
                     />

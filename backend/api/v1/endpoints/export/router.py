@@ -49,6 +49,8 @@ async def export_raw_ecg_data(
                     "recording_id": row.recording_id,
                     "lead_I_mV": row.mv_lead_I,
                     "lead_II_mV": row.mv_lead_II,
+                    "lead_III_mV": row.mv_lead_III,
+                    "avF_mV": row.mv_avF,
                     "v1_mV": row.mv_v1,
                     "raw_adc_I": row.raw_lead_I,
                     "raw_adc_II": row.raw_lead_II,

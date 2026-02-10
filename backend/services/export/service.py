@@ -65,9 +65,13 @@ class PlotGeneratorService:
             if raw_data.empty:
                 raise RecordingNotFoundException(recording_id)
 
-            time_axis, lead_i, lead_ii, lead_v1 = self._prepare_plot_data(raw_data)
+            time_axis, lead_i, lead_ii, lead_iii, lead_avf, lead_v1 = (
+                self._prepare_plot_data(raw_data)
+            )
 
-            buf = self._create_plot(time_axis, lead_i, lead_ii, lead_v1)
+            buf = self._create_plot(
+                time_axis, lead_i, lead_ii, lead_iii, lead_avf, lead_v1
+            )
 
             return buf
 
@@ -103,7 +107,13 @@ class PlotGeneratorService:
 
         df = pd.DataFrame(
             [
-                {"lead_I": r.mv_lead_I, "lead_II": r.mv_lead_II, "v1": r.mv_v1}
+                {
+                    "lead_I": r.mv_lead_I,
+                    "lead_II": r.mv_lead_II,
+                    "lead_III": r.mv_lead_III,
+                    "avF": r.mv_avF,
+                    "v1": r.mv_v1,
+                }
                 for r in rows
             ]
         )
@@ -116,21 +126,30 @@ class PlotGeneratorService:
         Applies DSP filters for clean visualization.
 
         Returns:
-            Tuple of (time_axis, lead_i, lead_ii, lead_v1)
+            Tuple of (time_axis, lead_i, lead_ii, lead_iii, lead_avf, lead_v1)
         """
 
         time_axis = [i / self.sampling_rate for i in range(len(df))]
 
         raw_i = df["lead_I"].values
         raw_ii = df["lead_II"].values
+        raw_iii = df["lead_III"].values
+        raw_avf = df["avF"].values
         raw_v1 = df["v1"].values
 
-        lead_i, lead_ii, lead_v1 = self._apply_filters_safe(raw_i, raw_ii, raw_v1)
+        lead_i, lead_ii, lead_iii, lead_avf, lead_v1 = self._apply_filters_safe(
+            raw_i, raw_ii, raw_iii, raw_avf, raw_v1
+        )
 
-        return time_axis, lead_i, lead_ii, lead_v1
+        return time_axis, lead_i, lead_ii, lead_iii, lead_avf, lead_v1
 
     def _apply_filters_safe(
-        self, raw_i: np.ndarray, raw_ii: np.ndarray, raw_v1: np.ndarray
+        self,
+        raw_i: np.ndarray,
+        raw_ii: np.ndarray,
+        raw_iii: np.ndarray,
+        raw_avf: np.ndarray,
+        raw_v1: np.ndarray,
     ) -> tuple:
         """
         Apply DSP filters with fallback to raw data on failure.
@@ -139,29 +158,41 @@ class PlotGeneratorService:
             if len(raw_i) > 20:
                 lead_i = signal_processor.apply_filters(raw_i)
                 lead_ii = signal_processor.apply_filters(raw_ii)
+                lead_iii = signal_processor.apply_filters(raw_iii)
+                lead_avf = signal_processor.apply_filters(raw_avf)
                 lead_v1 = signal_processor.apply_filters(raw_v1)
-                return lead_i, lead_ii, lead_v1
+                return lead_i, lead_ii, lead_iii, lead_avf, lead_v1
         except Exception as e:
             logger.warning(f"[PlotGenerator] Filter failed, using raw: {e}")
 
-        return raw_i, raw_ii, raw_v1
+        return raw_i, raw_ii, raw_iii, raw_avf, raw_v1
 
     def _create_plot(
-        self, time_axis: list, lead_i: list, lead_ii: list, lead_v1: list
+        self,
+        time_axis: list,
+        lead_i: list,
+        lead_ii: list,
+        lead_iii: list,
+        lead_avf: list,
+        lead_v1: list,
     ) -> io.BytesIO:
         """
         Create matplotlib figure and save to buffer.
         """
 
-        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=self.figure_size, sharex=True)
+        fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(
+            5, 1, figsize=(self.figure_size[0], self.figure_size[1] * 1.5), sharex=True
+        )
 
         plt.subplots_adjust(hspace=0.2)
 
         self._style_subplot(ax1, "Lead I (mV)", time_axis, lead_i, "#3b82f6")
         self._style_subplot(ax2, "Lead II (mV)", time_axis, lead_ii, "#10b981")
-        self._style_subplot(ax3, "Lead V1 (mV)", time_axis, lead_v1, "#f59e0b")
+        self._style_subplot(ax3, "Lead III (mV)", time_axis, lead_iii, "#8b5cf6")
+        self._style_subplot(ax4, "avF (mV)", time_axis, lead_avf, "#ec4899")
+        self._style_subplot(ax5, "Lead V1 (mV)", time_axis, lead_v1, "#f59e0b")
 
-        ax3.set_xlabel("Time (seconds)", fontsize=10, fontweight="bold")
+        ax5.set_xlabel("Time (seconds)", fontsize=10, fontweight="bold")
 
         plt.margins(x=0.01)
         plt.tight_layout()

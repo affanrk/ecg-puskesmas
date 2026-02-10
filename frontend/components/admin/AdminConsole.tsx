@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import { User } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
@@ -27,8 +27,11 @@ export default function AdminConsole() {
     const [approvingUser, setApprovingUser] = useState<{ id: number, name: string } | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const { show: toast } = useToast();
+    const isFetching = useRef(false);
 
     const loadData = useCallback(async (showToast = false) => {
+        if (isFetching.current) return;
+        isFetching.current = true;
         setLoading(true);
         try {
             if (activeView === 'queue') {
@@ -44,6 +47,7 @@ export default function AdminConsole() {
             toast(`Failed to load ${activeView}`, "error");
         } finally {
             setLoading(false);
+            isFetching.current = false;
         }
     }, [toast, activeView]);
 

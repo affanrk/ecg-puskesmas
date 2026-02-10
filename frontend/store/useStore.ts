@@ -46,6 +46,8 @@ export interface AnalysisResult {
 export interface EcgSample {
     leadI: number;
     leadII: number;
+    leadIII: number;
+    avF: number;
     v1: number;
 }
 
@@ -87,7 +89,7 @@ interface AppState {
     archiveData: AnalysisResult[];
     ecgBuffer: EcgSample[];
     performance: PerformanceMetrics;
-    visibleLeads: { leadI: boolean; leadII: boolean; v1: boolean };
+    visibleLeads: { leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean };
 
     setDeviceId: (id: string | null) => void;
     setDevices: (devices: Device[]) => void;
@@ -105,7 +107,7 @@ interface AppState {
     setIsSidebarPinned: (pinned: boolean) => void;
     setCalendarSelection: (selection: Partial<AppState['calendarSelection']>) => void;
     setSelectedResult: (result: Partial<AppState['selectedResult']>) => void;
-    setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; v1: boolean }>) => void;
+    setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean }>) => void;
     resetSession: () => void;
 }
 
@@ -148,6 +150,8 @@ export const useStore = create<AppState>((set, get) => ({
     visibleLeads: {
         leadI: true,
         leadII: true,
+        leadIII: true,
+        avF: true,
         v1: true
     },
 

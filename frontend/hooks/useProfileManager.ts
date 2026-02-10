@@ -44,13 +44,15 @@ export function useProfileManager() {
         message: string;
         action: () => Promise<void>;
         isDestructive?: boolean;
+        confirmText?: string;
     }>({
         isOpen: false,
         type: null,
         title: '',
         message: '',
         action: async () => { },
-        isDestructive: false
+        isDestructive: false,
+        confirmText: 'Confirm'
     });
 
     const resetForms = useCallback(() => {
@@ -270,15 +272,20 @@ export function useProfileManager() {
                 title: 'Confirm Identity',
                 message: 'Once saved, your Name, NIK, Date of Birth, and Gender will be PERMANENTLY locked. Please ensure they match your official ID exactly.',
                 action: executeSaveProfile,
-                isDestructive: false
+                isDestructive: false,
+                confirmText: 'Activate Profile'
             });
         } else {
+            const isRejected = user?.status === 'REJECTED';
             setConfirmState({
                 isOpen: true,
                 type: 'medical',
-                title: 'Update Profile',
-                message: 'Are you sure you want to update your contact and medical information?',
-                action: executeSaveProfile
+                title: isRejected ? 'Resubmit Profile' : 'Update Profile',
+                message: isRejected 
+                    ? 'Are you sure you want to resubmit your profile for administrative review?' 
+                    : 'Are you sure you want to update your contact and medical information?',
+                action: executeSaveProfile,
+                confirmText: isRejected ? 'Resubmit Now' : 'Save Changes'
             });
         }
     };

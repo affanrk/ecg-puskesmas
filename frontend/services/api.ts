@@ -158,6 +158,19 @@ export async function fetchCalendar(filters: {
             throw error;
         }
     }
+
+    export async function fetchDetailedHealth() {
+        const token = localStorage.getItem('ecg_token');
+        try {
+            const response = await axios.get(`${getApiUrl()}/health/detailed`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Fetch Health Error:", error);
+            throw error;
+        }
+    }
     
     export const api = {
         fetchHistory,
@@ -168,6 +181,7 @@ export async function fetchCalendar(filters: {
         fetchCalendar,
         fetchPendingApprovals,
         updateUserStatus,
-        fetchApprovalLogs
+        fetchApprovalLogs,
+        fetchDetailedHealth
     };
     

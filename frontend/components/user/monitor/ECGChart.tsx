@@ -107,10 +107,14 @@ const adjustScaleSingle = (chart: Chart) => {
 export default function ECGChart({ }: ECGChartProps) {
     const canvasRefI = useRef<HTMLCanvasElement>(null);
     const canvasRefII = useRef<HTMLCanvasElement>(null);
+    const canvasRefIII = useRef<HTMLCanvasElement>(null);
+    const canvasRefavF = useRef<HTMLCanvasElement>(null);
     const canvasRefV1 = useRef<HTMLCanvasElement>(null);
 
     const chartRefI = useRef<Chart | null>(null);
     const chartRefII = useRef<Chart | null>(null);
+    const chartRefIII = useRef<Chart | null>(null);
+    const chartRefavF = useRef<Chart | null>(null);
     const chartRefV1 = useRef<Chart | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -118,7 +122,7 @@ export default function ECGChart({ }: ECGChartProps) {
     const [canvasHeight, setCanvasHeight] = useState<number | null>(null);
 
     const cursorRef = useRef(0);
-    const bufferRef = useRef<{ leadI: number | null, leadII: number | null, v1: number | null }[]>([]);
+    const bufferRef = useRef<{ leadI: number | null, leadII: number | null, leadIII: number | null, avF: number | null, v1: number | null }[]>([]);
     const currentSpsRef = useRef(100);
     const lastFrameTimeRef = useRef(0);
     const isMounted = useRef(false);
@@ -136,10 +140,10 @@ export default function ECGChart({ }: ECGChartProps) {
             const reserved = 90; 
             const available = parentHeight - reserved;
             
-            const cH = Math.floor((available - 4) / 3);
+            const cH = Math.floor((available - 6) / 5);
             if (cH <= 0) return;
 
-            const totalH = (3 * cH) + 4;
+            const totalH = (5 * cH) + 6;
             const dpr = window.devicePixelRatio || 1;
 
             setCanvasHeight(cH);
@@ -148,6 +152,8 @@ export default function ECGChart({ }: ECGChartProps) {
             [
                 { cRef: canvasRefI, chartRef: chartRefI },
                 { cRef: canvasRefII, chartRef: chartRefII },
+                { cRef: canvasRefIII, chartRef: chartRefIII },
+                { cRef: canvasRefavF, chartRef: chartRefavF },
                 { cRef: canvasRefV1, chartRef: chartRefV1 }
             ].forEach(({ cRef, chartRef }) => {
                 const canvas = cRef.current;
@@ -191,70 +197,46 @@ export default function ECGChart({ }: ECGChartProps) {
         const initialData = new Array(totalPoints).fill(null);
         const signalColor = '#0f172a'; 
 
-        if (canvasRefI.current) {
-            const ctxI = canvasRefI.current.getContext('2d');
-            if (ctxI) {
-                chartRefI.current = new Chart(ctxI, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: signalColor }]
-                    },
-                    options: createChartConfig(totalPoints)
-                });
+        const createAndSetChart = (ref: React.RefObject<HTMLCanvasElement | null>, chartRef: React.MutableRefObject<Chart | null>) => {
+            if (ref.current) {
+                const ctx = ref.current.getContext('2d');
+                if (ctx) {
+                    chartRef.current = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: Array.from({ length: totalPoints }, (_, i) => i),
+                            datasets: [{ data: [...initialData], borderColor: signalColor }]
+                        },
+                        options: createChartConfig(totalPoints)
+                    });
+                }
             }
-        }
+        };
 
-        if (canvasRefII.current) {
-            const ctxII = canvasRefII.current.getContext('2d');
-            if (ctxII) {
-                chartRefII.current = new Chart(ctxII, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: signalColor }]
-                    },
-                    options: createChartConfig(totalPoints)
-                });
-            }
-        }
-
-        if (canvasRefV1.current) {
-            const ctxV1 = canvasRefV1.current.getContext('2d');
-            if (ctxV1) {
-                chartRefV1.current = new Chart(ctxV1, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({ length: totalPoints }, (_, i) => i),
-                        datasets: [{ data: [...initialData], borderColor: signalColor }]
-                    },
-                    options: createChartConfig(totalPoints)
-                });
-            }
-        }
+        createAndSetChart(canvasRefI, chartRefI);
+        createAndSetChart(canvasRefII, chartRefII);
+        createAndSetChart(canvasRefIII, chartRefIII);
+        createAndSetChart(canvasRefavF, chartRefavF);
+        createAndSetChart(canvasRefV1, chartRefV1);
 
         const initialBuffer = useStore.getState().ecgBuffer;
         if (initialBuffer.length > 0) {
             const pointsToRestore = initialBuffer.slice(-totalPoints);
 
-            if (chartRefI.current) {
-                const ds = chartRefI.current.data.datasets[0].data;
-                pointsToRestore.forEach((pt, i) => ds[i] = pt.leadI);
-                adjustScaleSingle(chartRefI.current);
-                chartRefI.current.update('none');
-            }
-            if (chartRefII.current) {
-                const ds = chartRefII.current.data.datasets[0].data;
-                pointsToRestore.forEach((pt, i) => ds[i] = pt.leadII);
-                adjustScaleSingle(chartRefII.current);
-                chartRefII.current.update('none');
-            }
-            if (chartRefV1.current) {
-                const ds = chartRefV1.current.data.datasets[0].data;
-                pointsToRestore.forEach((pt, i) => ds[i] = pt.v1);
-                adjustScaleSingle(chartRefV1.current);
-                chartRefV1.current.update('none');
-            }
+            const restore = (chartRef: React.MutableRefObject<Chart | null>, key: 'leadI' | 'leadII' | 'leadIII' | 'avF' | 'v1') => {
+                if (chartRef.current) {
+                    const ds = chartRef.current.data.datasets[0].data;
+                    pointsToRestore.forEach((pt, i) => ds[i] = pt[key]);
+                    adjustScaleSingle(chartRef.current);
+                    chartRef.current.update('none');
+                }
+            };
+
+            restore(chartRefI, 'leadI');
+            restore(chartRefII, 'leadII');
+            restore(chartRefIII, 'leadIII');
+            restore(chartRefavF, 'avF');
+            restore(chartRefV1, 'v1');
 
             cursorRef.current = pointsToRestore.length % totalPoints;
         }
@@ -282,9 +264,13 @@ export default function ECGChart({ }: ECGChartProps) {
             const processLimit = Math.max(1, Math.ceil(targetPoints));
             const pointsToProcess = bufferRef.current.splice(0, processLimit);
 
-            const cI = chartRefI.current;
-            const cII = chartRefII.current;
-            const cV1 = chartRefV1.current;
+            const charts = [
+                { chart: chartRefI.current, key: 'leadI' as const },
+                { chart: chartRefII.current, key: 'leadII' as const },
+                { chart: chartRefIII.current, key: 'leadIII' as const },
+                { chart: chartRefavF.current, key: 'avF' as const },
+                { chart: chartRefV1.current, key: 'v1' as const }
+            ];
 
             let lastCursor = cursorRef.current;
             const totalPoints = currentSpsRef.current * 5;
@@ -292,23 +278,13 @@ export default function ECGChart({ }: ECGChartProps) {
             for (let i = 0; i < pointsToProcess.length; i++) {
                 const data = pointsToProcess[i];
 
-                if (cI) {
-                    const dsI = cI.data.datasets[0].data;
-                    dsI[lastCursor] = data.leadI ?? 0;
-                    for (let j = 1; j <= dynamicEraseGap; j++) dsI[(lastCursor + j) % totalPoints] = null;
-                }
-
-                if (cII) {
-                    const dsII = cII.data.datasets[0].data;
-                    dsII[lastCursor] = data.leadII ?? 0;
-                    for (let j = 1; j <= dynamicEraseGap; j++) dsII[(lastCursor + j) % totalPoints] = null;
-                }
-
-                if (cV1) {
-                    const dsV1 = cV1.data.datasets[0].data;
-                    dsV1[lastCursor] = data.v1 ?? 0;
-                    for (let j = 1; j <= dynamicEraseGap; j++) dsV1[(lastCursor + j) % totalPoints] = null;
-                }
+                charts.forEach(({ chart, key }) => {
+                    if (chart) {
+                        const ds = chart.data.datasets[0].data;
+                        ds[lastCursor] = data[key] ?? 0;
+                        for (let j = 1; j <= dynamicEraseGap; j++) ds[(lastCursor + j) % totalPoints] = null;
+                    }
+                });
 
                 lastCursor = (lastCursor + 1) % totalPoints;
             }
@@ -316,14 +292,14 @@ export default function ECGChart({ }: ECGChartProps) {
             cursorRef.current = lastCursor;
 
             if (lastCursor % 50 === 0) {
-                if (cI) adjustScaleSingle(cI);
-                if (cII) adjustScaleSingle(cII);
-                if (cV1) adjustScaleSingle(cV1);
+                charts.forEach(({ chart }) => {
+                    if (chart) adjustScaleSingle(chart);
+                });
             }
 
-            if (cI) cI.update('none');
-            if (cII) cII.update('none');
-            if (cV1) cV1.update('none');
+            charts.forEach(({ chart }) => {
+                if (chart) chart.update('none');
+            });
         };
 
         let animationFrameId: number;
@@ -336,9 +312,7 @@ export default function ECGChart({ }: ECGChartProps) {
 
         return () => {
             cancelAnimationFrame(animationFrameId);
-            chartRefI.current?.destroy();
-            chartRefII.current?.destroy();
-            chartRefV1.current?.destroy();
+            [chartRefI, chartRefII, chartRefIII, chartRefavF, chartRefV1].forEach(ref => ref.current?.destroy());
         };
     }, []); 
 
@@ -346,7 +320,7 @@ export default function ECGChart({ }: ECGChartProps) {
         if (ecgBuffer.length === 0) {
             cursorRef.current = 0;
             bufferRef.current = [];
-            [chartRefI, chartRefII, chartRefV1].forEach(ref => {
+            [chartRefI, chartRefII, chartRefIII, chartRefavF, chartRefV1].forEach(ref => {
                 if (ref.current) {
                     ref.current.data.datasets[0].data.fill(null);
                     if (ref.current.options.scales?.y) {
@@ -360,19 +334,18 @@ export default function ECGChart({ }: ECGChartProps) {
     }, [currentDeviceId, isRecording, ecgBuffer.length]);
 
     useEffect(() => {
-        const handleData = (data: { leadI: number, leadII: number, v1: number, counter?: number }) => {
+        const handleData = (data: { leadI: number, leadII: number, leadIII: number, avF: number, v1: number, counter?: number }) => {
             bufferRef.current.push(data);
         };
-        const handleBatch = (batch: { samples: { leadI: number, leadII: number, v1: number }[], counter?: number, sampling_rate?: number }) => {
+        const handleBatch = (batch: { samples: { leadI: number, leadII: number, leadIII: number, avF: number, v1: number }[], counter?: number, sampling_rate?: number }) => {
             bufferRef.current.push(...batch.samples);
 
             if (batch.sampling_rate && batch.sampling_rate > 0) {
-                // Use a stable, rounded rate for UI scaling to avoid jitter
                 const stableSps = Math.round(batch.sampling_rate);
                 currentSpsRef.current = stableSps;
                 const newMax = stableSps * 5;
                 
-                [chartRefI, chartRefII, chartRefV1].forEach(ref => {
+                [chartRefI, chartRefII, chartRefIII, chartRefavF, chartRefV1].forEach(ref => {
                     const chart = ref.current;
                     if (chart && chart.options.scales?.x && chart.options.scales.x.max !== newMax) {
                         chart.options.scales.x.max = newMax;
@@ -448,17 +421,19 @@ export default function ECGChart({ }: ECGChartProps) {
 
             <div 
                 ref={containerRef}
-                className="w-full flex flex-col bg-white border-y border-slate-950 divide-y divide-slate-950 overflow-hidden shrink-0"
+                className="w-full flex-1 flex flex-col bg-white border-y border-slate-950 divide-y divide-slate-950 overflow-hidden shrink-0"
                 style={{ height: snappedHeight ? `${snappedHeight}px` : 'auto' }}
             >
                 {[
                     { id: 'leadI', label: 'Lead I', ref: canvasRefI },
                     { id: 'leadII', label: 'Lead II', ref: canvasRefII },
+                    { id: 'leadIII', label: 'Lead III', ref: canvasRefIII },
+                    { id: 'avF', label: 'avF', ref: canvasRefavF },
                     { id: 'v1', label: 'V1', ref: canvasRefV1 }
                 ].map((lead) => (
                     <div 
                         key={lead.id} 
-                        className="relative w-full overflow-hidden bg-white"
+                        className="relative w-full overflow-hidden bg-white flex-1"
                         style={{ 
                             ...medicalGridStyle,
                             height: canvasHeight ? `${canvasHeight}px` : 'auto'

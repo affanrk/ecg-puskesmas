@@ -4,6 +4,8 @@ import { Device } from '@/store/useStore';
 export type EcgPoint = {
     leadI: number;
     leadII: number;
+    leadIII: number;
+    avF: number;
     v1: number;
 };
 

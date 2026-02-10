@@ -23,6 +23,8 @@ class ECGSample:
     cal_lead_i: float
     cal_lead_ii: float
     cal_v1: float
+    cal_lead_iii: float
+    cal_avf: float
 
 
 class MQTTProtocolHandler:
@@ -46,7 +48,7 @@ class MQTTProtocolHandler:
         if not device_id:
             raise ValueError("Missing device ID in packet")
 
-        is_batch = "r1" in payload and isinstance(payload["r1"], list)
+        is_batch = "c1" in payload and isinstance(payload["c1"], list)
 
         if is_batch:
             samples, end_counter, packet_format, sampling_rate = (
@@ -66,17 +68,21 @@ class MQTTProtocolHandler:
         Parse batch format packet.
         """
 
-        list_r1 = payload["r1"]
-        list_r2 = payload["r2"]
-        list_r3 = payload["r3"]
         list_c1 = payload["c1"]
         list_c2 = payload["c2"]
         list_c3 = payload["c3"]
+        list_c4 = payload.get("c4", [0.0] * len(list_c1))
+        list_c5 = payload.get("c5", [0.0] * len(list_c1))
+
+        # Raw data lists might not be present in all batch formats
+        list_r1 = payload.get("r1", [0] * len(list_c1))
+        list_r2 = payload.get("r2", [0] * len(list_c1))
+        list_r3 = payload.get("r3", [0] * len(list_c1))
 
         end_ts_us = payload.get("ts_us") or int(time.time() * 1_000_000)
-        end_counter = payload.get("cnt", 0)
+        end_counter = payload.get("cnt") or payload.get("counter", 0)
 
-        batch_size = len(list_r1)
+        batch_size = len(list_c1)
 
         current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
         interval_us = int((1 / current_sps) * 1_000_000)
@@ -95,6 +101,8 @@ class MQTTProtocolHandler:
                 cal_lead_i=list_c1[i],
                 cal_lead_ii=list_c2[i],
                 cal_v1=list_c3[i],
+                cal_lead_iii=list_c4[i],
+                cal_avf=list_c5[i],
             )
             samples.append(sample)
 
@@ -122,6 +130,8 @@ class MQTTProtocolHandler:
             cal_lead_i=payload.get("cal_mv_c1", payload.get("c1", 0.0)),
             cal_lead_ii=payload.get("cal_mv_c2", payload.get("c2", 0.0)),
             cal_v1=payload.get("cal_mv_c3", payload.get("c3", 0.0)),
+            cal_lead_iii=payload.get("cal_mv_c4", payload.get("c4", 0.0)),
+            cal_avf=payload.get("cal_mv_c5", payload.get("c5", 0.0)),
         )
 
         counter = payload.get("counter", payload.get("cnt", 0))

@@ -71,10 +71,12 @@ class MQTTDataHandler:
         for s in samples:
             state.live_raw_buffer["lead_I"].append(s.cal_lead_i)
             state.live_raw_buffer["lead_II"].append(s.cal_lead_ii)
+            state.live_raw_buffer["lead_III"].append(s.cal_lead_iii)
+            state.live_raw_buffer["avF"].append(s.cal_avf)
             state.live_raw_buffer["v1"].append(s.cal_v1)
 
         filtered_leads = {}
-        for lead_name in ["lead_I", "lead_II", "v1"]:
+        for lead_name in ["lead_I", "lead_II", "lead_III", "avF", "v1"]:
             raw_data = np.array(state.live_raw_buffer[lead_name])
             if len(raw_data) > 20:
                 filtered_full = signal_processor.apply_filters(raw_data, current_sps)
@@ -97,6 +99,8 @@ class MQTTDataHandler:
                 {
                     "i": round(filtered_leads["lead_I"][i], 3),
                     "ii": round(filtered_leads["lead_II"][i], 3),
+                    "iii": round(filtered_leads["lead_III"][i], 3),
+                    "avf": round(filtered_leads["avF"][i], 3),
                     "v1": round(filtered_leads["v1"][i], 3),
                 }
             )
@@ -187,6 +191,8 @@ class MQTTDataHandler:
                     "created_by": state.device_id,
                     "mv_lead_I": sample.cal_lead_i,
                     "mv_lead_II": sample.cal_lead_ii,
+                    "mv_lead_III": sample.cal_lead_iii,
+                    "mv_avF": sample.cal_avf,
                     "mv_v1": sample.cal_v1,
                     "raw_lead_I": sample.raw_lead_i,
                     "raw_lead_II": sample.raw_lead_ii,

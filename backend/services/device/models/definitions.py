@@ -24,7 +24,13 @@ class DeviceState:
         self.status_message = "Idle"
 
         self.last_raw_values = {"lead_I": 0, "lead_II": 0, "v1": 0}
-        self.last_cal_values = {"lead_I": 0.0, "lead_II": 0.0, "v1": 0.0}
+        self.last_cal_values = {
+            "lead_I": 0.0,
+            "lead_II": 0.0,
+            "lead_III": 0.0,
+            "avF": 0.0,
+            "v1": 0.0,
+        }
 
         self.last_packet_num = 0
         self.packet_buffer: List[tuple] = []
@@ -46,6 +52,8 @@ class DeviceState:
         self.live_raw_buffer = {
             "lead_I": deque(maxlen=LIVE_BUFFER_SIZE),
             "lead_II": deque(maxlen=LIVE_BUFFER_SIZE),
+            "lead_III": deque(maxlen=LIVE_BUFFER_SIZE),
+            "avF": deque(maxlen=LIVE_BUFFER_SIZE),
             "v1": deque(maxlen=LIVE_BUFFER_SIZE),
         }
 
