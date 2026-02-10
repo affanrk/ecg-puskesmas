@@ -3,6 +3,7 @@ from .schema import (
     UserCreate,
     UserUsernameUpdate,
     UserPasswordUpdate,
+    UserApprovalUpdate,
     UserResponse,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "UserCreate",
     "UserUsernameUpdate",
     "UserPasswordUpdate",
+    "UserApprovalUpdate",
     "UserResponse",
 ]

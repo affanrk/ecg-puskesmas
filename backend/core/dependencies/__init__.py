@@ -8,6 +8,7 @@ from .injection import (
     validate_device_exists,
     get_current_user,
     get_current_active_user,
+    get_admin_user,
     DateRangeParams,
     oauth2_scheme,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "validate_device_exists",
     "get_current_user",
     "get_current_active_user",
+    "get_admin_user",
     "DateRangeParams",
     "oauth2_scheme",
 ]

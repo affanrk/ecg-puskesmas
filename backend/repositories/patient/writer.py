@@ -63,9 +63,10 @@ class PatientWriter(BaseRepository[TbMPatient]):
 
             db_user = self.db.query(TbMUser).get(user_id)
             if db_user:
-                if patient.nik and patient.full_name and patient.dob and patient.gender:
-                    db_user.is_patient = True
                 db_user.changed_by = source
+                # Clear rejection and ensure status is pending upon any update
+                db_user.rejection_reason = None
+                db_user.is_activated = 0
 
             self.db.commit()
             self.db.refresh(patient)

@@ -3,6 +3,7 @@ from .export import router as export_router
 from .health import router as health_router
 from .history import router as history_router
 from .websocket import router as websocket_router
+from .admin import router as admin_router
 
 __all__ = [
     "auth_router",
@@ -10,4 +11,5 @@ __all__ = [
     "health_router",
     "history_router",
     "websocket_router",
+    "admin_router",
 ]

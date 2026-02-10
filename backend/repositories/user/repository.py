@@ -24,6 +24,9 @@ class UserRepository:
     def list_all(self, skip=0, limit=100):
         return self.reader.list_all(skip, limit)
 
+    def list_pending_approval(self, skip=0, limit=100):
+        return self.reader.list_pending_approval(skip, limit)
+
     def create(self, user_in):
         return self.writer.create(user_in)
 
@@ -35,6 +38,11 @@ class UserRepository:
 
     def update_password(self, user_id, new_password):
         return self.writer.update_password(user_id, new_password)
+
+    def update_activation_status(self, user_id, is_activated, rejection_reason=None):
+        return self.writer.update_activation_status(
+            user_id, is_activated, rejection_reason
+        )
 
     def delete(self, user_id):
         return self.writer.delete(user_id)

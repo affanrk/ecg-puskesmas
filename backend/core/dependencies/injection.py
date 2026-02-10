@@ -104,6 +104,20 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_admin_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    """
+    Dependency that returns the current admin user.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The user does not have enough privileges",
+        )
+    return current_user
+
+
 class DateRangeParams:
     def __init__(
         self,

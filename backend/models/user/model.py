@@ -46,6 +46,14 @@ class TbMUser(Base, AuditMixin):
         Boolean, default=False, comment="True if the user is also a patient"
     )
 
+    is_activated = Column(
+        Integer, default=0, comment="1 for approved/activated, 0 for pending/rejected"
+    )
+
+    rejection_reason = Column(
+        String(255), nullable=True, comment="Reason for profile rejection by admin"
+    )
+
     last_login_dt = Column(
         DateTime(timezone=True), nullable=True, comment="Timestamp of last login"
     )

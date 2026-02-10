@@ -90,6 +90,35 @@ class UserWriter(BaseRepository[TbMUser]):
                 f"Failed to update password for ID {user_id}", details={"error": str(e)}
             )
 
+    def update_activation_status(
+        self, user_id: int, is_activated: int, rejection_reason: Optional[str] = None
+    ) -> Optional[TbMUser]:
+        try:
+            db_user = self.get(user_id)
+            if not db_user:
+                return None
+
+            db_user.is_activated = is_activated
+
+            # Officially mark as patient only upon admin approval
+            if is_activated == 1:
+                db_user.is_patient = True
+                db_user.rejection_reason = None
+            else:
+                # If rejected or reset to pending, they are not an active patient yet
+                db_user.is_patient = False
+                db_user.rejection_reason = rejection_reason
+
+            self.db.commit()
+            self.db.refresh(db_user)
+            return db_user
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseException(
+                f"Failed to update activation status for user ID {user_id}",
+                details={"error": str(e)},
+            )
+
     def delete(self, user_id: int) -> bool:
         try:
             obj = self.get(user_id)

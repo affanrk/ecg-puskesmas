@@ -81,3 +81,18 @@ class UserReader(BaseRepository[TbMUser]):
             raise DatabaseException(
                 "Failed to list all users", details={"error": str(e)}
             )
+
+    def list_pending_approval(self, skip: int = 0, limit: int = 100) -> List[TbMUser]:
+        try:
+            return (
+                self.db.query(TbMUser)
+                .join(TbMUser.patient_profile)
+                .filter(TbMUser.is_activated == 0)
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+        except Exception as e:
+            raise DatabaseException(
+                "Failed to list pending approval users", details={"error": str(e)}
+            )

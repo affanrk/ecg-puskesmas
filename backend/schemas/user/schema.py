@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, field_validator
 import re
 
@@ -87,11 +87,20 @@ class UserPasswordUpdate(BaseModel):
         return v
 
 
+class UserApprovalUpdate(BaseModel):
+    is_activated: int
+    rejection_reason: Optional[str] = None
+
+
 class UserResponse(UserBase):
     id: int
     is_active: bool
     role: str
     is_patient: bool
+    is_activated: int
+    rejection_reason: Optional[str] = None
+    created_dt: datetime
+    changed_dt: Optional[datetime] = None
 
     full_name: Optional[str] = None
     nik: Optional[str] = None
