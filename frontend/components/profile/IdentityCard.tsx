@@ -18,6 +18,8 @@ interface MedicalForm {
 
 interface IdentityCardProps {
     isLocked: boolean;
+    isActivated: boolean;
+    rejectionReason: string | null;
     medicalForm: MedicalForm;
     handleMedicalChange: (field: string, value: string) => void;
     errors: Record<string, string>;
@@ -27,6 +29,8 @@ interface IdentityCardProps {
 
 export default function IdentityCard({
     isLocked,
+    isActivated,
+    rejectionReason,
     medicalForm,
     handleMedicalChange,
     errors,
@@ -50,7 +54,7 @@ export default function IdentityCard({
                     </div>
                 </div>
                 
-                {isLocked ? (
+                {isActivated ? (
                     <div className="flex flex-col items-end gap-1">
                         <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md flex items-center gap-1.5 border border-emerald-100 shadow-sm uppercase tracking-wider">
                             <BadgeCheck size={12} strokeWidth={3} /> Verified
@@ -58,7 +62,7 @@ export default function IdentityCard({
                     </div>
                 ) : (
                     <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-100 flex items-center gap-1.5 shadow-sm uppercase tracking-wider animate-pulse">
-                        <Info size={12} strokeWidth={3} /> Pending Activation
+                        <Info size={12} strokeWidth={3} /> {isLocked ? "Awaiting Activation" : "Pending Activation"}
                     </span>
                 )}
             </div>
@@ -124,7 +128,7 @@ export default function IdentityCard({
                         className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-[0.15em] px-8 py-3.5 rounded-md transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] flex items-center gap-3 group/btn overflow-hidden relative"
                     >
                         <Save size={16} strokeWidth={2.5} className="relative z-10" />
-                        <span className="relative z-10">Activate Profile</span>
+                        <span className="relative z-10">{rejectionReason ? "Update & Reactivate" : "Activate Profile"}</span>
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover/btn:opacity-100 transition-opacity"></div>
                     </button>
                 </div>

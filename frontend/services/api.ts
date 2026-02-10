@@ -111,17 +111,49 @@ export async function fetchCalendar(filters: {
     try {
         const response = await axios.get(`${getApiUrl()}/history/calendar`, { params });
         return response.data;
-    } catch (error) {
-        console.error("Fetch Calendar Error:", error);
-        throw error;
+        } catch (error) {
+            console.error("Fetch Calendar Error:", error);
+            throw error;
+        }
     }
-}
-
-export const api = {
-    fetchHistory,
-    downloadRecording,
-    fetchUserProfile,
-    fetchStats,
-    fetchRecentHistory,
-    fetchCalendar
-};
+    
+    export async function fetchPendingApprovals() {
+        const token = localStorage.getItem('ecg_token');
+        try {
+            const response = await axios.get(`${getApiUrl()}/admin/pending-approvals`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Fetch Pending Approvals Error:", error);
+            throw error;
+        }
+    }
+    
+    export async function updateUserStatus(userId: number, isActivated: number, rejectionReason?: string) {
+        const token = localStorage.getItem('ecg_token');
+        try {
+            const response = await axios.post(`${getApiUrl()}/admin/update-status/${userId}`, {
+                is_activated: isActivated,
+                rejection_reason: rejectionReason
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Update User Status Error:", error);
+            throw error;
+        }
+    }
+    
+    export const api = {
+        fetchHistory,
+        downloadRecording,
+        fetchUserProfile,
+        fetchStats,
+        fetchRecentHistory,
+        fetchCalendar,
+        fetchPendingApprovals,
+        updateUserStatus
+    };
+    

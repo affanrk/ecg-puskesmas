@@ -156,26 +156,27 @@ export default function ContactCard({
                         disabled={!canEditMedical} 
                         placeholder="Street, City, Zip Code..." 
                     />
-                </div>
-            </div>
-
-            {isLocked && isEditingMedical && (
-                <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
-                    <button 
-                        onClick={handleCancelMedical} 
-                        className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"
-                    >
-                        Discard
-                    </button>
-                    <button 
-                        onClick={onSaveProfileClick} 
-                        disabled={loading} 
-                        className="flex-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
-                    >
-                        <CheckCircle2 size={16} strokeWidth={2.5} /> Save Updates
-                    </button>
-                </div>
-            )}
-        </div>
-    );
-}
+                                </div>
+                            </div>
+                
+                                        {isEditingMedical && (
+                                            <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
+                                                <button 
+                                                    onClick={handleCancelMedical} 
+                                                    className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"
+                                                >
+                                                    Discard
+                                                </button>
+                                                <button 
+                                                    onClick={onSaveProfileClick} 
+                                                    disabled={loading} 
+                                                    className="flex-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
+                                                >
+                                                    <CheckCircle2 size={16} strokeWidth={2.5} /> Save Updates
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+                            

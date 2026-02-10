@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { ShieldCheck, AlertCircle, Activity, Settings2 } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Activity, Settings2, Clock } from 'lucide-react';
 import { User } from '@/store/useStore';
 
 interface ProfileHeaderProps {
@@ -14,6 +14,10 @@ interface ProfileHeaderProps {
 export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab }: ProfileHeaderProps) {
     if (!user) return null;
 
+    const isApproved = user.is_activated === 1;
+    const isActivated = isLocked && isApproved;
+    const hasRejection = !!user.rejection_reason && !isApproved;
+
     return (
         <div className="bg-white p-4 lg:p-5 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-teal-50 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
@@ -25,9 +29,9 @@ export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab 
                     </div>
                     <div className={clsx(
                         "absolute -bottom-1 -right-1 w-8 h-8 rounded-md flex items-center justify-center border-2 border-white shadow-lg animate-in zoom-in duration-300",
-                        isLocked ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                        isActivated ? "bg-emerald-500 text-white" : (hasRejection ? "bg-rose-500 text-white" : (isLocked ? "bg-amber-500 text-white" : "bg-slate-400 text-white"))
                     )}>
-                        {isLocked ? <ShieldCheck size={14} strokeWidth={3} /> : <AlertCircle size={14} strokeWidth={3} />}
+                        {isActivated ? <ShieldCheck size={14} strokeWidth={3} /> : (hasRejection ? <AlertCircle size={14} strokeWidth={3} /> : (isLocked ? <Clock size={14} strokeWidth={3} /> : <AlertCircle size={14} strokeWidth={3} />))}
                     </div>
                 </div>
                 
@@ -40,8 +44,11 @@ export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab 
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider border border-slate-200">
                             NIK: {user.nik || "---"}
                         </div>
-                        <span className={clsx("px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border flex items-center gap-1.5 shadow-sm", isLocked ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100")}>
-                            {isLocked ? "Verified Patient" : "Profile Incomplete"}
+                        <span className={clsx("px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border flex items-center gap-1.5 shadow-sm", 
+                            isActivated ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 
+                            (hasRejection ? "bg-rose-50 text-rose-700 border-rose-100" : (isLocked ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-slate-50 text-slate-500 border-slate-200"))
+                        )}>
+                            {isActivated ? "Verified Patient" : (hasRejection ? "Profile Rejected" : (isLocked ? "Awaiting Approval" : "Profile Incomplete"))}
                         </span>
                     </div>
                 </div>

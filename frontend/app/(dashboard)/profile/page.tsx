@@ -7,6 +7,7 @@ import ContactCard from '@/components/profile/ContactCard';
 import UsernameCard from '@/components/profile/UsernameCard';
 import PasswordCard from '@/components/profile/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
+import { AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
     const {
@@ -19,6 +20,7 @@ export default function ProfilePage() {
         securityForm,
         setSecurityForm,
         errors,
+        rejectionReason,
         isEditingMedical,
         setIsEditingMedical,
         isEditingUsername,
@@ -39,7 +41,9 @@ export default function ProfilePage() {
     } = useProfileManager();
 
     if (!user) return null;
-    const isLocked = user.is_patient;
+    const isActivated = user.is_activated === 1;
+    const isPending = !!user.nik && !isActivated && !rejectionReason;
+    const isLocked = isActivated || isPending;
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-white relative">
@@ -57,6 +61,22 @@ export default function ProfilePage() {
                         isLoading={loading}
                     />
 
+                    { !isActivated && rejectionReason && (
+                        <div className="mx-4 mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl animate-in slide-in-from-top-2 duration-500">
+                            <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600 shrink-0">
+                                    <AlertCircle size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-black text-rose-800 uppercase tracking-tight">Profile Rejected</h4>
+                                    <p className="text-xs font-bold text-rose-600/80 mt-0.5 leading-relaxed">
+                                        Your medical profile was not approved. Admin reason: <span className="text-rose-700 font-black">&quot;{rejectionReason}&quot;</span>. Please update your information and save again.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <ProfileHeader
                         user={user}
                         isLocked={isLocked}
@@ -69,6 +89,8 @@ export default function ProfilePage() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
                                 <IdentityCard
                                     isLocked={isLocked}
+                                    isActivated={isActivated}
+                                    rejectionReason={rejectionReason}
                                     medicalForm={medicalForm}
                                     handleMedicalChange={handleMedicalChange}
                                     errors={errors}

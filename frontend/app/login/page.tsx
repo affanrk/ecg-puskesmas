@@ -98,7 +98,11 @@ export default function LoginPage() {
             toast("Welcome back!", "success");
 
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                if (data.role === 'admin') {
+                    window.location.href = '/admin/approvals';
+                } else {
+                    window.location.href = '/dashboard';
+                }
             }, 500);
         } catch (err: unknown) {
             triggerErrorEffect();

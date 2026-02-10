@@ -9,6 +9,7 @@ export interface User {
     email?: string;
     role: string;
     is_patient: boolean;
+    is_approved: boolean;
     full_name?: string;
     nik?: string;
     pob?: string;

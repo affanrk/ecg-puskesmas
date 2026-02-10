@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, ReactNode, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { useStore } from '@/store/useStore';
@@ -10,7 +11,8 @@ import { useDeviceListeners } from '@/hooks/useDeviceListeners';
 import clsx from 'clsx';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-    const { isRecording, updateTimer, isSidebarPinned } = useStore();
+    const router = useRouter();
+    const { user, isRecording, updateTimer, isSidebarPinned } = useStore();
     const isMounted = useRef(false);
 
     useDeviceManager();
@@ -21,7 +23,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             isMounted.current = true;
             connectWebSocket();
         }
-    }, []);
+
+        // Strict separation: Admins should not be in the user dashboard area
+        if (user && user.role === 'admin') {
+            router.replace('/admin/approvals');
+        }
+    }, [user, router]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -32,6 +39,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         }
         return () => clearInterval(interval);
     }, [isRecording, updateTimer]);
+
+    // Prevent rendering dashboard content for admin users
+    if (user && user.role === 'admin') {
+        return null;
+    }
 
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
