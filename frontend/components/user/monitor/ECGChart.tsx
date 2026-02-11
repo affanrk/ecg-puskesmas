@@ -341,27 +341,10 @@ export default function ECGChart({ }: ECGChartProps) {
             bufferRef.current.push(...batch.samples);
 
             if (batch.sampling_rate && batch.sampling_rate > 0) {
-                const stableSps = Math.round(batch.sampling_rate);
-                currentSpsRef.current = stableSps;
-                const newMax = stableSps * 5;
-                
-                [chartRefI, chartRefII, chartRefIII, chartRefavF, chartRefV1].forEach(ref => {
-                    const chart = ref.current;
-                    if (chart && chart.options.scales?.x && chart.options.scales.x.max !== newMax) {
-                        chart.options.scales.x.max = newMax;
-                        chart.data.labels = Array.from({ length: newMax }, (_, i) => i);
-                        
-                        const currentData = chart.data.datasets[0].data;
-                        if (currentData.length < newMax) {
-                            chart.data.datasets[0].data = [...currentData, ...new Array(newMax - currentData.length).fill(null)];
-                        } else if (currentData.length > newMax) {
-                            chart.data.datasets[0].data = currentData.slice(0, newMax);
-                            if (cursorRef.current >= newMax) cursorRef.current = 0;
-                        }
-                        
-                        chart.update('none');
-                    }
-                });
+                // Keep the visual grid STABLE at 500 points (5 seconds @ 100Hz)
+                // This ensures peak distances remain consistent on the screen.
+                // We only update the internal SPS reference for playback speed calculation.
+                currentSpsRef.current = Math.round(batch.sampling_rate);
             }
         };
         const handleDisconnect = () => {
