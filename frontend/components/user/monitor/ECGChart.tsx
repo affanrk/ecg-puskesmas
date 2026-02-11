@@ -341,10 +341,8 @@ export default function ECGChart({ }: ECGChartProps) {
             bufferRef.current.push(...batch.samples);
 
             if (batch.sampling_rate && batch.sampling_rate > 0) {
-                // Keep the visual grid STABLE at 500 points (5 seconds @ 100Hz)
-                // This ensures peak distances remain consistent on the screen.
-                // We only update the internal SPS reference for playback speed calculation.
-                currentSpsRef.current = Math.round(batch.sampling_rate);
+                const newSps = Math.round(batch.sampling_rate);
+                currentSpsRef.current = (currentSpsRef.current * 0.95) + (newSps * 0.05);
             }
         };
         const handleDisconnect = () => {
