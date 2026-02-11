@@ -43,14 +43,18 @@ class MQTTDataHandler:
             delta_ts_s = (current_hw_ts - state.last_hw_ts_us) / 1_000_000.0
             delta_cnt = end_counter - state.last_hw_counter
 
-            if 0.005 < delta_ts_s < 5.0:
+            if 0.01 < delta_ts_s < 5.0:
                 calculated_sps = delta_cnt / delta_ts_s
-                state.observed_sps = state.observed_sps * 0.98 + calculated_sps * 0.02
+                # Clamp calculated_sps to avoid massive spikes from jitter
+                clamped_sps = max(sampling_rate * 0.5, min(sampling_rate * 2.0, calculated_sps))
+                # Stronger smoothing (0.99) to keep visual rhythm stable
+                state.observed_sps = state.observed_sps * 0.99 + clamped_sps * 0.01
 
         state.last_hw_ts_us = current_hw_ts
         state.last_hw_counter = end_counter
 
-        if abs(state.observed_sps - sampling_rate) < 20:
+        # Use reported rate if observed is within a reasonable margin (extended to 30)
+        if abs(state.observed_sps - sampling_rate) < 30:
             current_sps = sampling_rate
         else:
             current_sps = int(round(state.observed_sps))
