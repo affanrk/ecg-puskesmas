@@ -108,8 +108,14 @@ class MQTTClientService:
             payload = orjson.loads(message.payload)
 
             device_id = payload.get("id")
+            logger.debug(
+                f"[MQTT] Processing payload from {device_id} on topic {message.topic}. Keys: {list(payload.keys())}"
+            )
+
             if not device_id:
-                logger.warning("[MQTT] Received packet without device ID")
+                logger.warning(
+                    f"[MQTT] Received packet without device ID. Payload: {payload}"
+                )
                 return
 
             should_update_list = False
@@ -135,10 +141,11 @@ class MQTTClientService:
             )
 
             state = device_state_manager.get_state(device_id)
-
             state.update_connection_status(True)
 
-            if state.last_packet_num > 0:
+            is_first_packet = state.last_packet_num == 0
+
+            if not is_first_packet:
                 actual_start = end_counter - len(samples) + 1
                 gap = actual_start - (state.last_packet_num + 1)
 
@@ -163,53 +170,61 @@ class MQTTClientService:
 
             start_counter = end_counter - len(samples) + 1
 
-            if mqtt_protocol.should_buffer_packet(
-                start_counter,
-                state.last_packet_num,
-                len(state.packet_buffer),
-                buffer_limit=buffer_limit,
-            ):
-                mqtt_protocol.add_to_jitter_buffer(
-                    state.packet_buffer, start_counter, end_counter, payload
+            if is_first_packet:
+                # Process the first packet immediately to establish the baseline
+                await mqtt_data_handler.process_samples(
+                    device_id, samples, end_counter, packet_format, sampling_rate
                 )
+                state.last_packet_num = end_counter
             else:
-
-                mqtt_protocol.add_to_jitter_buffer(
-                    state.packet_buffer, start_counter, end_counter, payload
-                )
-
-            while state.packet_buffer:
-                p_start, p_end, p_payload = state.packet_buffer[0]
-                is_next = (state.last_packet_num == 0) or (
-                    p_start == state.last_packet_num + 1
-                )
-                is_full = len(state.packet_buffer) > buffer_limit
-
-                if is_next:
-                    heapq.heappop(state.packet_buffer)
-                    _, p_samples, _, p_format, p_sampling_rate = (
-                        mqtt_protocol.parse_packet(p_payload)
+                # Use jitter buffer for subsequent packets
+                if mqtt_protocol.should_buffer_packet(
+                    start_counter,
+                    state.last_packet_num,
+                    len(state.packet_buffer),
+                    buffer_limit=buffer_limit,
+                ):
+                    mqtt_protocol.add_to_jitter_buffer(
+                        state.packet_buffer, start_counter, end_counter, payload
                     )
-                    await mqtt_data_handler.process_samples(
-                        device_id, p_samples, p_end, p_format, p_sampling_rate
-                    )
-                elif is_full:
-                    logger.error(
-                        f"[MQTT] Data sequence broken for {device_id}. "
-                        f"Expected {state.last_packet_num + 1}, got {p_start}. "
-                        "Disconnecting to preserve data authenticity."
-                    )
-                    state.packet_buffer.clear()
-                    state.reset_recording_state()
-                    state.reset_network_metrics()
-                    await device_state_manager.broadcast_to_device(
-                        device_id,
-                        WSMessageType.DEVICE_DISCONNECTED.value,
-                        {"device_id": device_id},
-                    )
-                    break
                 else:
-                    break
+                    mqtt_protocol.add_to_jitter_buffer(
+                        state.packet_buffer, start_counter, end_counter, payload
+                    )
+
+                while state.packet_buffer:
+                    p_start, p_end, p_payload = state.packet_buffer[0]
+                    is_next = (state.last_packet_num == 0) or (
+                        p_start == state.last_packet_num + 1
+                    )
+                    is_full = len(state.packet_buffer) > buffer_limit
+
+                    if is_next:
+                        heapq.heappop(state.packet_buffer)
+                        _, p_samples, _, p_format, p_sampling_rate = (
+                            mqtt_protocol.parse_packet(p_payload)
+                        )
+                        await mqtt_data_handler.process_samples(
+                            device_id, p_samples, p_end, p_format, p_sampling_rate
+                        )
+                        state.last_packet_num = p_end
+                    elif is_full:
+                        logger.error(
+                            f"[MQTT] Data sequence broken for {device_id}. "
+                            f"Expected {state.last_packet_num + 1}, got {p_start}. "
+                            "Disconnecting to preserve data authenticity."
+                        )
+                        state.packet_buffer.clear()
+                        state.reset_recording_state()
+                        state.reset_network_metrics()
+                        await device_state_manager.broadcast_to_device(
+                            device_id,
+                            WSMessageType.DEVICE_DISCONNECTED.value,
+                            {"device_id": device_id},
+                        )
+                        break
+                    else:
+                        break
 
         except orjson.JSONDecodeError:
             logger.warning("[MQTT] Invalid JSON in message")

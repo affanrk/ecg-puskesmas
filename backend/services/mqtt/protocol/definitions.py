@@ -122,6 +122,7 @@ class MQTTProtocolHandler:
             or int(time.time() * 1_000_000)
         )
 
+        # Support both new short keys and old long keys
         sample = ECGSample(
             timestamp_us=ts_us,
             raw_lead_i=payload.get("raw_c1", payload.get("r1", 0)),
@@ -134,7 +135,8 @@ class MQTTProtocolHandler:
             cal_avf=payload.get("cal_mv_c5", payload.get("c5", 0.0)),
         )
 
-        counter = payload.get("counter", payload.get("cnt", 0))
+        # Support both 'cnt' and 'counter'
+        counter = payload.get("cnt", payload.get("counter", 0))
         current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
 
         return [sample], counter, "JSON Single", current_sps
