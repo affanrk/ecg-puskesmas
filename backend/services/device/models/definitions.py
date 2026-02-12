@@ -7,10 +7,6 @@ from utils import LIVE_BUFFER_SIZE
 
 
 class DeviceState:
-    """
-    Encapsulates all runtime state for a single ECG device.
-    Immutable device_id, mutable state properties.
-    """
 
     def __init__(self, device_id: str):
         self.device_id = device_id
@@ -59,13 +55,13 @@ class DeviceState:
 
     @property
     def target_buffer_size(self) -> int:
-        """Fixed buffer size for AI analysis (1000 samples)"""
+
         from utils import BUFFER_SIZE
 
         return BUFFER_SIZE
 
     def reset_recording_state(self):
-        """Reset all recording-related state"""
+
         self.is_recording = False
         self.subject_id = None
         self.recording_id = None
@@ -75,7 +71,7 @@ class DeviceState:
         self.status_message = "Idle"
 
     def reset_network_metrics(self):
-        """Reset network performance counters"""
+
         self.lost_packets = 0
         self.total_packets = 0
         self.last_packet_num = 0
@@ -84,17 +80,17 @@ class DeviceState:
         self.min_latency_offset = float("inf")
 
     def clear_buffers(self):
-        """Clear all data buffers"""
+
         for lead in ["lead_I", "lead_II", "v1"]:
             self.live_raw_buffer[lead].clear()
         self.packet_buffer.clear()
 
     def update_connection_status(self, is_connected: bool):
-        """Update connection status and timestamp"""
+
         self.is_connected = is_connected
         if is_connected:
             self.last_seen = time.time()
 
     def get_time_since_last_seen(self) -> float:
-        """Get seconds since last packet received"""
+
         return time.time() - self.last_seen

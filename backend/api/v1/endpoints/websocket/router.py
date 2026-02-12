@@ -14,29 +14,15 @@ router = APIRouter()
 
 
 class WebSocketHandler:
-    """
-    Handles individual WebSocket connections and their interactions with devices and recordings.
-    """
 
     def __init__(self, websocket: WebSocket, session_repo: SessionRepository):
-        """
-        Initializes the WebSocketHandler.
 
-        Args:
-            websocket: The FastAPI WebSocket object for the current connection.
-            session_repo: The SessionRepository instance for database operations.
-        """
         self.websocket = websocket
         self.session_repo = session_repo
         self.current_device_id: str | None = None
 
     async def handle_message(self, message: dict):
-        """
-        Routes incoming WebSocket messages to the appropriate handler method based on message type.
 
-        Args:
-            message: The incoming JSON message from the WebSocket client.
-        """
         m_type = message.get("type")
         handlers = {
             WSMessageType.SUBSCRIBE.value: self._handle_subscribe,
@@ -52,10 +38,7 @@ class WebSocketHandler:
             await self.websocket.send_json({"type": WSMessageType.PONG.value})
 
     async def _handle_calculate_live_bpm(self, message: dict):
-        """
-        Handles 'live_calculate_bpm' messages.
-        Calculates BPM from provided Lead II data and broadcasts it back to the device.
-        """
+
         device_id = message.get("device_id")
         data = message.get("data")
 
@@ -81,13 +64,7 @@ class WebSocketHandler:
             logger.error(f"Failed to calculate live BPM: {e}")
 
     async def _handle_subscribe(self, message: dict):
-        """
-        Handles 'subscribe_to_device' messages. Attempts to subscribe the WebSocket
-        to a specified device, locking it if successful.
 
-        Args:
-            message: The incoming 'subscribe_to_device' message containing the 'device_id'.
-        """
         device_id = message.get("device_id")
         if not device_id:
             return
@@ -127,13 +104,7 @@ class WebSocketHandler:
             )
 
     async def _handle_unsubscribe(self, message: dict):
-        """
-        Handles 'unsubscribe' messages. Unsubscribes the WebSocket from its
-        current device and unlocks the device.
 
-        Args:
-            message: The incoming 'unsubscribe' message.
-        """
         if self.current_device_id:
             unlocked = device_state_manager.unsubscribe_from_device(self.websocket)
             self.current_device_id = None
@@ -141,13 +112,7 @@ class WebSocketHandler:
                 await device_state_manager.notify_device_list_update()
 
     async def _handle_start_recording(self, message: dict):
-        """
-        Handles 'start_recording' messages. Initiates a new recording session
-        for the subscribed device.
 
-        Args:
-            message: The incoming 'start_recording' message containing 'device_id' and 'user_id'.
-        """
         device_id = message.get("device_id")
         user_id_raw = message.get("user_id") or message.get("subject_id")
         source = message.get("source", "WEB")
@@ -194,22 +159,13 @@ class WebSocketHandler:
             )
 
     async def _handle_stop_recording(self, message: dict):
-        """
-        Handles 'stop_recording' messages. Forces cancellation of the current recording
-        for the specified device.
 
-        Args:
-            message: The incoming 'stop_recording' message containing 'device_id'.
-        """
         device_id = message.get("device_id")
         if device_id:
             await device_watchdog_service.force_cancel_recording(device_id)
 
     async def cleanup(self):
-        """
-        Performs cleanup operations when the WebSocket connection is closed.
-        Unsubscribes from the current device and unregisters from broadcast updates.
-        """
+
         if self.current_device_id:
             unlocked = device_state_manager.unsubscribe_from_device(self.websocket)
             if unlocked:
@@ -221,10 +177,7 @@ class WebSocketHandler:
 async def websocket_endpoint(
     websocket: WebSocket, s_repo: SessionRepository = Depends(get_session_repository)
 ):
-    """
-    Main WebSocket endpoint for real-time communication with connected clients.
-    Handles device subscriptions, recording control, and broadcast updates.
-    """
+
     await websocket.accept()
 
     device_state_manager.register_broadcast_connection(websocket)

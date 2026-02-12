@@ -10,8 +10,39 @@ class BaseCalendarProcessor:
         self.db = db
 
     def _get_local_dt(self):
-        """Convert changed_dt to local timezone for extraction"""
+
         return TbREcgSession.changed_dt.op("AT TIME ZONE")(settings.TIMEZONE)
+
+    def _apply_range_filter(
+        self, query, year, month=None, day=None, hour=None, minute=None
+    ):
+
+        from datetime import datetime, timedelta
+        import calendar
+
+        if year is None:
+            return query
+
+        if month is None:
+            start = datetime(year, 1, 1)
+            end = datetime(year + 1, 1, 1)
+        elif day is None:
+            start = datetime(year, month, 1)
+            days_in_month = calendar.monthrange(year, month)[1]
+            end = start + timedelta(days=days_in_month)
+        elif hour is None:
+            start = datetime(year, month, day)
+            end = start + timedelta(days=1)
+        elif minute is None:
+            start = datetime(year, month, day, hour)
+            end = start + timedelta(hours=1)
+        else:
+            start = datetime(year, month, day, hour, minute)
+            end = start + timedelta(minutes=1)
+
+        return query.filter(
+            TbREcgSession.changed_dt >= start, TbREcgSession.changed_dt < end
+        )
 
     def _get_severity_case(self):
         return case(
@@ -23,7 +54,7 @@ class BaseCalendarProcessor:
         )
 
     def _get_classification_counts(self):
-        """Returns a list of count expressions for each priority classification"""
+
         return [
             func.count(
                 case(

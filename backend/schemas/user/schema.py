@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field
 import re
 
 
@@ -89,7 +89,7 @@ class UserPasswordUpdate(BaseModel):
 
 class UserApprovalUpdate(BaseModel):
     is_activated: int
-    reason: Optional[str] = None
+    reason: Optional[str] = Field(None, max_length=100)
 
 
 class UserResponse(UserBase):

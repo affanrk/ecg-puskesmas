@@ -1,9 +1,3 @@
-"""
-Export endpoints - refactored from download.py
-Handles CSV and image exports for recordings.
-Now uses services and repositories for better separation.
-"""
-
 import asyncio
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor

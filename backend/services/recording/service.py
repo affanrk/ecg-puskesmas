@@ -1,9 +1,3 @@
-"""
-Recording storage service - refactored from db_worker.py
-Handles batch insertion of ECG data and performance logs.
-Now uses repositories for cleaner data access.
-"""
-
 import asyncio
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session

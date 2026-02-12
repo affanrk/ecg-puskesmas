@@ -1,18 +1,9 @@
-"""
-Session/Recording response schemas - refactored from ecg.py
-Better organized with clearer naming.
-"""
-
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
 
 
 class SessionResponse(BaseModel):
-    """
-    Response schema for recording session data.
-    Used in history endpoints and session details.
-    """
 
     recording_id: str = Field(..., description="Unique recording identifier")
     device_id: str = Field(..., description="Device that performed the recording")
@@ -57,7 +48,6 @@ class SessionResponse(BaseModel):
 
 
 class DeviceStatusResponse(BaseModel):
-    """Response schema for device status"""
 
     device_id: str = Field(..., description="Device identifier")
     is_connected: bool = Field(..., description="Device connection status")

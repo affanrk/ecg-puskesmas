@@ -1,9 +1,3 @@
-"""
-ML engine service - refactored from ml_service.py
-Handles model loading, prediction, and analysis orchestration.
-Now uses repositories and separated feature extraction.
-"""
-
 import os
 import asyncio
 import joblib
@@ -36,10 +30,6 @@ from utils import (
 
 
 class MLEngineService:
-    """
-    Machine Learning engine for ECG classification.
-    Handles model lifecycle and prediction orchestration.
-    """
 
     def __init__(self, max_workers: int = 3):
         self.scaler = None
@@ -48,10 +38,7 @@ class MLEngineService:
         self.is_loaded = False
 
     def load_model(self):
-        """
-        Load ML model and scaler from disk.
-        Called during application startup.
-        """
+
         try:
 
             import tensorflow as tf
@@ -80,10 +67,7 @@ class MLEngineService:
             self.is_loaded = False
 
     def shutdown(self):
-        """
-        Shutdown thread pool executor.
-        Called during application shutdown.
-        """
+
         logger.info("[ML Engine] Shutting down thread pool...")
         self.executor.shutdown(wait=False)
         logger.info("[ML Engine] Shutdown complete")
@@ -91,15 +75,7 @@ class MLEngineService:
     async def trigger_analysis(
         self, recording_id: str, subject_id: str, device_id: str
     ):
-        """
-        Trigger analysis for a completed recording segment.
-        Runs in thread pool to avoid blocking event loop.
 
-        Args:
-            recording_id: Recording identifier
-            subject_id: Patient identifier (NIK)
-            device_id: Device identifier
-        """
         try:
             logger.info(
                 f"[ML Engine] Starting analysis for recording {recording_id} (Device: {device_id})"
@@ -122,10 +98,7 @@ class MLEngineService:
     def _analyze_recording(
         self, recording_id: str, subject_id: str, device_id: str
     ) -> Optional[Dict]:
-        """
-        Synchronous analysis logic.
-        Runs in thread pool executor.
-        """
+
         db = SessionLocal()
 
         try:
@@ -162,13 +135,7 @@ class MLEngineService:
             db.close()
 
     def _fetch_raw_data(self, db: Session, recording_id: str) -> pd.DataFrame:
-        """
-        Fetch and validate raw ECG data.
 
-        Raises:
-            RecordingNotFoundException: If recording not found
-            InsufficientDataException: If not enough samples
-        """
         session_repo = SessionRepository(db)
         session = session_repo.get(recording_id)
 
@@ -202,10 +169,6 @@ class MLEngineService:
     def _extract_features_from_data(
         self, df: pd.DataFrame, device_id: str
     ) -> Dict[str, float]:
-        """
-        Extract ECG features from DataFrame.
-        Uses FeatureExtractor service.
-        """
 
         lead_i = df["lead_I"].fillna(0).values
         lead_ii = df["lead_II"].fillna(0).values
@@ -221,12 +184,7 @@ class MLEngineService:
         return features
 
     def _predict(self, features: Dict[str, float]) -> tuple[str, float]:
-        """
-        Make classification prediction using ML model.
 
-        Returns:
-            Tuple of (classification, confidence)
-        """
         if not self.is_loaded:
             logger.warning("[ML Engine] Model not loaded, returning Unknown")
             return ECGClassification.UNKNOWN.value, 0.0
@@ -262,9 +220,7 @@ class MLEngineService:
         confidence: float,
         features: Dict[str, float],
     ):
-        """
-        Save analysis results to database.
-        """
+
         session_repo = SessionRepository(db)
 
         session_repo.update_analysis_results(
@@ -276,9 +232,6 @@ class MLEngineService:
         )
 
     async def _broadcast_result(self, device_id: str, result: Dict):
-        """
-        Broadcast analysis result to connected clients.
-        """
 
         await device_state_manager.broadcast_to_device(
             device_id,
@@ -297,11 +250,11 @@ class MLEngineService:
         )
 
     def is_model_loaded(self) -> bool:
-        """Check if model is loaded and ready"""
+
         return self.is_loaded
 
     def get_model_info(self) -> Dict:
-        """Get model information for diagnostics"""
+
         return {
             "is_loaded": self.is_loaded,
             "model_type": "ANN" if self.model else None,

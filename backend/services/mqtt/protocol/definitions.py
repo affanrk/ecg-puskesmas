@@ -1,9 +1,3 @@
-"""
-MQTT protocol handler - extracted from mqtt_service.py
-Handles message parsing and packet unpacking.
-Separates protocol logic from business logic.
-"""
-
 import heapq
 import time
 from typing import List, Tuple
@@ -14,7 +8,6 @@ from utils import SAMPLING_RATE
 
 @dataclass
 class ECGSample:
-    """Represents a single ECG sample from device"""
 
     timestamp_us: int
     raw_lead_i: int
@@ -28,21 +21,9 @@ class ECGSample:
 
 
 class MQTTProtocolHandler:
-    """
-    Handles MQTT message protocol parsing and jitter buffering.
-    Supports both single-sample and batch packet formats.
-    """
 
     def parse_packet(self, payload: dict) -> Tuple[str, List[ECGSample], int, str, int]:
-        """
-        Parse MQTT packet payload into ECG samples.
 
-        Args:
-            payload: JSON payload from MQTT message
-
-        Returns:
-            Tuple of (device_id, samples_list, end_counter, packet_format, sampling_rate)
-        """
         device_id = payload.get("id")
 
         if not device_id:
@@ -64,9 +45,6 @@ class MQTTProtocolHandler:
     def _parse_batch_packet(
         self, payload: dict
     ) -> Tuple[List[ECGSample], int, str, int]:
-        """
-        Parse batch format packet.
-        """
 
         list_c1 = payload["c1"]
         list_c2 = payload["c2"]
@@ -74,7 +52,6 @@ class MQTTProtocolHandler:
         list_c4 = payload.get("c4", [0.0] * len(list_c1))
         list_c5 = payload.get("c5", [0.0] * len(list_c1))
 
-        # Raw data lists might not be present in all batch formats
         list_r1 = payload.get("r1", [0] * len(list_c1))
         list_r2 = payload.get("r2", [0] * len(list_c1))
         list_r3 = payload.get("r3", [0] * len(list_c1))
@@ -111,10 +88,6 @@ class MQTTProtocolHandler:
     def _parse_single_packet(
         self, payload: dict
     ) -> Tuple[List[ECGSample], int, str, int]:
-        """
-        Parse single sample format packet.
-        Supports multiple naming conventions for maximum compatibility.
-        """
 
         ts_us = (
             payload.get("ts_us")
@@ -122,7 +95,6 @@ class MQTTProtocolHandler:
             or int(time.time() * 1_000_000)
         )
 
-        # Support both new short keys and old long keys
         sample = ECGSample(
             timestamp_us=ts_us,
             raw_lead_i=payload.get("raw_c1", payload.get("r1", 0)),
@@ -135,7 +107,6 @@ class MQTTProtocolHandler:
             cal_avf=payload.get("cal_mv_c5", payload.get("c5", 0.0)),
         )
 
-        # Support both 'cnt' and 'counter'
         counter = payload.get("cnt", payload.get("counter", 0))
         current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
 
@@ -148,18 +119,6 @@ class MQTTProtocolHandler:
         buffer_size: int,
         buffer_limit: int = 5,
     ) -> bool:
-        """
-        Determine if packet should be buffered or processed immediately.
-
-        Args:
-            packet_counter: Counter of incoming packet
-            last_processed: Last processed packet counter
-            buffer_size: Current buffer size
-            buffer_limit: Maximum buffer size before forcing process
-
-        Returns:
-            True if should buffer, False if should process immediately
-        """
 
         if last_processed == 0:
             return False
@@ -176,32 +135,13 @@ class MQTTProtocolHandler:
     def add_to_jitter_buffer(
         self, buffer: List[Tuple], start_counter: int, end_counter: int, payload: dict
     ):
-        """
-        Add packet to jitter buffer (heap).
-        Maintains sorted order by start counter.
 
-        Args:
-            buffer: Heap list (will be modified)
-            start_counter: Starting packet counter
-            end_counter: Ending packet counter
-            payload: Packet payload
-        """
         heapq.heappush(buffer, (start_counter, end_counter, payload))
 
     def get_next_from_buffer(
         self, buffer: List[Tuple], last_processed: int
     ) -> Tuple[int, int, dict] | None:
-        """
-        Get next processable packet from buffer.
-        Only returns packet if it's the expected next one.
 
-        Args:
-            buffer: Heap list
-            last_processed: Last processed packet counter
-
-        Returns:
-            Tuple of (start, end, payload) or None if not ready
-        """
         if not buffer:
             return None
 
@@ -214,33 +154,12 @@ class MQTTProtocolHandler:
         return None
 
     def is_duplicate_packet(self, packet_counter: int, last_processed: int) -> bool:
-        """
-        Check if packet is a duplicate.
 
-        Args:
-            packet_counter: Incoming packet counter
-            last_processed: Last processed counter
-
-        Returns:
-            True if duplicate
-        """
         return packet_counter <= last_processed and last_processed != 0
 
     def should_reset_buffer(
         self, packet_counter: int, last_processed: int, gap_threshold: int = 5000
     ) -> bool:
-        """
-        Determine if buffer should be reset due to large gap.
-        Indicates device restart or major network issue.
-
-        Args:
-            packet_counter: Incoming packet counter
-            last_processed: Last processed counter
-            gap_threshold: Maximum acceptable gap
-
-        Returns:
-            True if should reset
-        """
 
         if packet_counter < last_processed:
             return True

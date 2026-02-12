@@ -1,15 +1,10 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..base import Base
 
 
 class TbRLogApproval(Base):
-    """
-    SQLAlchemy model for the Approval Log table (TB_R_LOG_APPROVAL).
-    Logs transitions of patient approval status.
-    Append-only audit trail.
-    """
 
     __tablename__ = "tb_r_log_approval"
 
@@ -30,7 +25,7 @@ class TbRLogApproval(Base):
         comment="Status logged (QUEUE, APPROVED, REJECTED)",
     )
     reason = Column(
-        Text,
+        String(100),
         nullable=True,
         comment="Reason for rejection or approval notes",
     )

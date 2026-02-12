@@ -1,9 +1,3 @@
-"""
-Base repository with common CRUD operations.
-All repositories inherit from this to avoid code duplication.
-Uses Generic types for type safety.
-"""
-
 from typing import Generic, TypeVar, Type, List, Optional, Any, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -14,36 +8,14 @@ ModelType = TypeVar("ModelType")
 
 
 class BaseRepository(Generic[ModelType]):
-    """
-    Base repository implementing common database operations.
-
-    Usage:
-        class UserRepository(BaseRepository[TbMUser]):
-            def __init__(self, db: Session):
-                super().__init__(TbMUser, db)
-    """
 
     def __init__(self, model: Type[ModelType], db: Session):
-        """
-        Initialize repository with model and database session.
 
-        Args:
-            model: SQLAlchemy model class
-            db: Database session
-        """
         self.model = model
         self.db = db
 
     def get(self, id: Any) -> Optional[ModelType]:
-        """
-        Get single record by primary key.
 
-        Args:
-            id: Primary key value
-
-        Returns:
-            Model instance or None if not found
-        """
         try:
             return self.db.get(self.model, id)
         except Exception as e:
@@ -53,19 +25,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def get_by(self, **filters) -> Optional[ModelType]:
-        """
-        Get single record by any field(s).
 
-        Args:
-            **filters: Field-value pairs to filter by
-
-        Returns:
-            Model instance or None
-
-        Example:
-            repo.get_by(email="user@example.com")
-            repo.get_by(device_id="ECG001", status="active")
-        """
         try:
             query = self.db.query(self.model)
             for field, value in filters.items():
@@ -84,18 +44,7 @@ class BaseRepository(Generic[ModelType]):
         order_by: Optional[str] = None,
         desc_order: bool = True,
     ) -> List[ModelType]:
-        """
-        Get multiple records with pagination.
 
-        Args:
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-            order_by: Field name to order by (default: id)
-            desc_order: Use descending order (default: True)
-
-        Returns:
-            List of model instances
-        """
         try:
             query = self.db.query(self.model)
 
@@ -118,25 +67,7 @@ class BaseRepository(Generic[ModelType]):
         order_by: Optional[str] = None,
         desc_order: bool = True,
     ) -> List[ModelType]:
-        """
-        Filter records with multiple conditions.
 
-        Args:
-            filters: Dictionary of field-value pairs
-            skip: Number of records to skip
-            limit: Maximum records to return
-            order_by: Field to order by
-            desc_order: Descending order flag
-
-        Returns:
-            List of filtered model instances
-
-        Example:
-            repo.filter(
-                filters={"status": "active", "device_id": "ECG001"},
-                limit=50
-            )
-        """
         try:
             query = self.db.query(self.model)
 
@@ -156,15 +87,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def create(self, obj: ModelType) -> ModelType:
-        """
-        Create new record.
 
-        Args:
-            obj: Model instance to create
-
-        Returns:
-            Created model instance with generated fields
-        """
         try:
             self.db.add(obj)
             self.db.commit()
@@ -177,22 +100,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def create_from_dict(self, data: Dict[str, Any]) -> ModelType:
-        """
-        Create record from dictionary.
 
-        Args:
-            data: Dictionary with field-value pairs
-
-        Returns:
-            Created model instance
-
-        Example:
-            patient = repo.create_from_dict({
-                "patient_id": "12345",
-                "name": "John Doe",
-                "age": "30"
-            })
-        """
         try:
             obj = self.model(**data)
             return self.create(obj)
@@ -203,16 +111,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def update(self, id: Any, data: Dict[str, Any]) -> Optional[ModelType]:
-        """
-        Update existing record.
 
-        Args:
-            id: Primary key value
-            data: Dictionary with fields to update
-
-        Returns:
-            Updated model instance or None if not found
-        """
         try:
             obj = self.get(id)
             if not obj:
@@ -233,15 +132,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def delete(self, id: Any) -> bool:
-        """
-        Delete record by primary key.
 
-        Args:
-            id: Primary key value
-
-        Returns:
-            True if deleted, False if not found
-        """
         try:
             obj = self.get(id)
             if not obj:
@@ -258,18 +149,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def delete_by(self, **filters) -> int:
-        """
-        Delete records matching filters.
 
-        Args:
-            **filters: Field-value pairs to filter by
-
-        Returns:
-            Number of deleted records
-
-        Example:
-            count = repo.delete_by(device_id="ECG001", status="pending")
-        """
         try:
             query = self.db.query(self.model)
             for field, value in filters.items():
@@ -286,15 +166,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def count(self, **filters) -> int:
-        """
-        Count records matching filters.
 
-        Args:
-            **filters: Optional field-value pairs to filter by
-
-        Returns:
-            Number of matching records
-        """
         try:
             query = self.db.query(self.model)
             for field, value in filters.items():
@@ -307,15 +179,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def exists(self, **filters) -> bool:
-        """
-        Check if record exists matching filters.
 
-        Args:
-            **filters: Field-value pairs to filter by
-
-        Returns:
-            True if at least one record exists
-        """
         try:
             query = self.db.query(self.model)
             for field, value in filters.items():
@@ -328,16 +192,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def bulk_create(self, objects: List[ModelType]) -> List[ModelType]:
-        """
-        Create multiple records in bulk.
-        More efficient than multiple create() calls.
 
-        Args:
-            objects: List of model instances
-
-        Returns:
-            List of created instances
-        """
         try:
             self.db.bulk_save_objects(objects)
             self.db.commit()
@@ -350,10 +205,7 @@ class BaseRepository(Generic[ModelType]):
             )
 
     def bulk_insert_dicts(self, data_list: List[Dict[str, Any]]) -> int:
-        """
-        Bulk insert from list of dictionaries.
-        Most efficient for large datasets.
-        """
+
         try:
             if not data_list:
                 return 0

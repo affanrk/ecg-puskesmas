@@ -15,8 +15,8 @@ class DayProcessor(BaseCalendarProcessor):
         query = self.db.query(group_field, severity_expr, count_expr, *class_counts)
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
-        query = query.filter(extract("year", local_dt) == year)
-        query = query.filter(extract("month", local_dt) == month)
+
+        query = self._apply_range_filter(query, year, month)
 
         query = query.group_by(group_field)
 

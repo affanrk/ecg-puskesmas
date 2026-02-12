@@ -101,13 +101,12 @@ class UserWriter(BaseRepository[TbMUser]):
 
             db_user.is_activated = is_activated
 
-            # Update patient status and log the action
             patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
             status = "APPROVED" if is_activated == 1 else "REJECTED"
 
             if patient:
                 patient.status = status
-                patient.changed_by = "ADMIN"  # Or get from context if available
+                patient.changed_by = "ADMIN"
 
             log = TbRLogApproval(
                 id=str(uuid.uuid4()),
@@ -118,12 +117,9 @@ class UserWriter(BaseRepository[TbMUser]):
             )
             self.db.add(log)
 
-            # Officially mark as patient only upon admin approval
             if is_activated == 1:
                 db_user.is_patient = True
             else:
-                # If rejected, they are still a user who filled the form (is_patient=True)
-                # but not activated
                 db_user.is_patient = True
 
             self.db.commit()

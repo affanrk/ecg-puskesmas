@@ -1,13 +1,7 @@
-"""
-Custom application exceptions for better error handling.
-Follows FastAPI exception handling best practices.
-"""
-
 from typing import Any, Optional
 
 
 class AppException(Exception):
-    """Base exception for all application errors"""
 
     def __init__(
         self,
@@ -22,20 +16,17 @@ class AppException(Exception):
 
 
 class DatabaseException(AppException):
-    """Database operation failures"""
 
     def __init__(self, message: str, details: Optional[dict] = None):
         super().__init__(message, status_code=500, details=details)
 
 
 class DeviceException(AppException):
-    """Device-related errors"""
 
     pass
 
 
 class DeviceNotFoundException(DeviceException):
-    """Device not found in system"""
 
     def __init__(self, device_id: str):
         super().__init__(
@@ -46,7 +37,6 @@ class DeviceNotFoundException(DeviceException):
 
 
 class DeviceBusyException(DeviceException):
-    """Device is locked by another user"""
 
     def __init__(self, device_id: str):
         super().__init__(
@@ -57,13 +47,11 @@ class DeviceBusyException(DeviceException):
 
 
 class RecordingException(AppException):
-    """Recording operation errors"""
 
     pass
 
 
 class RecordingNotFoundException(RecordingException):
-    """Recording session not found"""
 
     def __init__(self, recording_id: str):
         super().__init__(
@@ -74,7 +62,6 @@ class RecordingNotFoundException(RecordingException):
 
 
 class RecordingInProgressException(RecordingException):
-    """Attempting operation while recording"""
 
     def __init__(self, device_id: str):
         super().__init__(
@@ -85,13 +72,11 @@ class RecordingInProgressException(RecordingException):
 
 
 class PatientException(AppException):
-    """Patient data errors"""
 
     pass
 
 
 class PatientNotFoundException(PatientException):
-    """Patient not found in database"""
 
     def __init__(self, patient_id: str):
         super().__init__(
@@ -102,14 +87,12 @@ class PatientNotFoundException(PatientException):
 
 
 class AnalysisException(AppException):
-    """ML/Signal processing errors"""
 
     def __init__(self, message: str, details: Optional[dict] = None):
         super().__init__(message, status_code=500, details=details)
 
 
 class InsufficientDataException(AnalysisException):
-    """Not enough data for analysis"""
 
     def __init__(self, recording_id: str, samples: int, required: int):
         super().__init__(
@@ -124,14 +107,12 @@ class InsufficientDataException(AnalysisException):
 
 
 class MQTTException(AppException):
-    """MQTT connection/communication errors"""
 
     def __init__(self, message: str, details: Optional[dict] = None):
         super().__init__(message, status_code=503, details=details)
 
 
 class ValidationException(AppException):
-    """Input validation errors"""
 
     def __init__(self, message: str, field: str, value: Any):
         super().__init__(

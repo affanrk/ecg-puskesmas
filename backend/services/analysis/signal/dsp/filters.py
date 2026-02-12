@@ -4,7 +4,7 @@ from utils import logger, BUTTER_ORDER, FIR_FILTER_CUTOFF, FIR_RIPPLE_DB
 
 
 def apply_butterworth_filter(signal: np.ndarray, sampling_rate: int) -> np.ndarray:
-    """Apply Butterworth lowpass filter for baseline wander removal."""
+
     absolute_cutoff = 30.0
     fs = max(sampling_rate, absolute_cutoff * 2 + 2)
     b, a = scipy.signal.butter(BUTTER_ORDER, absolute_cutoff, "low", fs=fs)
@@ -12,7 +12,7 @@ def apply_butterworth_filter(signal: np.ndarray, sampling_rate: int) -> np.ndarr
 
 
 def apply_fir_kaiser_filter(signal: np.ndarray, sampling_rate: int) -> np.ndarray:
-    """Apply FIR Kaiser window filter for high-frequency noise removal."""
+
     fsf = max(sampling_rate, 2 * FIR_FILTER_CUTOFF + 2)
     nyq_rate = fsf / 2
     width = 5.0 / nyq_rate
@@ -28,7 +28,7 @@ def apply_fir_kaiser_filter(signal: np.ndarray, sampling_rate: int) -> np.ndarra
 
 
 def apply_filters(signal: np.ndarray, sampling_rate: int) -> np.ndarray:
-    """Apply complete DSP filter chain: Detrend -> Butterworth -> FIR."""
+
     try:
         detrended = scipy.signal.detrend(
             signal, axis=-1, type="linear", bp=0, overwrite_data=False

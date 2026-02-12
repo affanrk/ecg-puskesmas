@@ -1,8 +1,3 @@
-"""
-MQTT data handler service.
-Processes incoming MQTT samples, manages device state, and orchestrates data storage and ML analysis.
-"""
-
 import time
 import uuid
 import asyncio
@@ -21,10 +16,6 @@ from utils import WSMessageType
 
 
 class MQTTDataHandler:
-    """
-    Handles the processing of incoming ECG samples from MQTT.
-    Coordinates device state updates, data storage, and triggers ML analysis.
-    """
 
     async def process_samples(
         self,
@@ -45,15 +36,14 @@ class MQTTDataHandler:
 
             if 0.01 < delta_ts_s < 5.0:
                 calculated_sps = delta_cnt / delta_ts_s
-                # Clamp calculated_sps to avoid massive spikes from jitter
-                clamped_sps = max(sampling_rate * 0.5, min(sampling_rate * 2.0, calculated_sps))
-                # Stronger smoothing (0.99) to keep visual rhythm stable
+                clamped_sps = max(
+                    sampling_rate * 0.5, min(sampling_rate * 2.0, calculated_sps)
+                )
                 state.observed_sps = state.observed_sps * 0.99 + clamped_sps * 0.01
 
         state.last_hw_ts_us = current_hw_ts
         state.last_hw_counter = end_counter
 
-        # Use reported rate if observed is within a reasonable margin (extended to 30)
         if abs(state.observed_sps - sampling_rate) < 30:
             current_sps = sampling_rate
         else:
@@ -122,7 +112,7 @@ class MQTTDataHandler:
             )
 
     async def _broadcast_performance(self, state: DeviceState):
-        """Calculate and broadcast network performance metrics"""
+
         if not state.latencies:
             return
 
@@ -149,7 +139,6 @@ class MQTTDataHandler:
         )
 
     async def _calculate_live_bpm(self, state: DeviceState):
-        """Calculate and broadcast BPM more frequently"""
 
         if state.total_packets % 100 == 0 and len(state.live_raw_buffer["lead_II"]) >= (
             state.sampling_rate * 2

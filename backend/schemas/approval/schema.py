@@ -8,6 +8,9 @@ class ApprovalLogResponse(BaseModel):
     user_id: int
     username: Optional[str] = None
     full_name: Optional[str] = None
+    is_patient: bool = False
+    is_operator: bool = False
+    is_doctor: bool = False
     status: str
     reason: Optional[str] = None
     created_dt: datetime

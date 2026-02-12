@@ -1,8 +1,3 @@
-"""
-Health check and monitoring endpoints.
-NEW - Provides system status and diagnostics.
-"""
-
 from fastapi import APIRouter, Depends
 from schemas.health import (
     HealthCheckResponse,

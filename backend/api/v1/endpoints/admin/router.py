@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from core.dependencies import (
     get_admin_user,
     get_user_repository,
@@ -18,28 +18,53 @@ router = APIRouter()
 def get_pending_approvals(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    is_patient: Optional[bool] = Query(None),
+    is_operator: Optional[bool] = Query(None),
+    is_doctor: Optional[bool] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    """
-    Get users who have completed their profile but are not yet approved by admin.
-    """
-    return user_repo.list_pending_approval(skip=skip, limit=limit)
+
+    return user_repo.list_pending_approval(
+        skip=skip,
+        limit=limit,
+        search=search,
+        start_date=start_date,
+        end_date=end_date,
+        is_patient=is_patient,
+        is_operator=is_operator,
+        is_doctor=is_doctor,
+    )
 
 
 @router.get("/approval-logs", response_model=List[ApprovalLogResponse])
 def get_approval_logs(
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    is_patient: Optional[bool] = Query(None),
+    is_operator: Optional[bool] = Query(None),
+    is_doctor: Optional[bool] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
     approval_repo: ApprovalRepository = Depends(get_approval_repository),
 ):
-    """
-    Get all approval/rejection logs.
-    """
-    logs = approval_repo.list_logs(skip=skip, limit=limit)
 
-    # Flatten the response for the schema
+    logs = approval_repo.list_logs(
+        skip=skip,
+        limit=limit,
+        search=search,
+        start_date=start_date,
+        end_date=end_date,
+        is_patient=is_patient,
+        is_operator=is_operator,
+        is_doctor=is_doctor,
+    )
+
     response = []
     for log in logs:
         response.append(
@@ -48,6 +73,9 @@ def get_approval_logs(
                 user_id=log.user_id,
                 username=log.user.username if log.user else None,
                 full_name=log.user.full_name if log.user else None,
+                is_patient=log.user.is_patient if log.user else False,
+                is_operator=log.user.is_operator if log.user else False,
+                is_doctor=log.user.is_doctor if log.user else False,
                 status=log.status,
                 reason=log.reason,
                 created_dt=log.created_dt,
@@ -64,9 +92,7 @@ def update_user_status(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    """
-    Approve or Reject a user's profile.
-    """
+
     user = user_repo.update_activation_status(
         user_id, status_in.is_activated, status_in.reason
     )

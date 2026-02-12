@@ -3,10 +3,6 @@ from ..base import Base, AuditMixin
 
 
 class TbRPerformanceLog(Base, AuditMixin):
-    """
-    SQLAlchemy model for the Performance Log table (TB_R_PERFORMANCE_LOG).
-    Records network performance metrics for devices.
-    """
 
     __tablename__ = "tb_r_performance_log"
     id = Column(
@@ -20,6 +16,7 @@ class TbRPerformanceLog(Base, AuditMixin):
     )
     recording_id = Column(
         String(50),
+        index=True,
         nullable=True,
         comment="Optional: ID of the recording session associated with the log",
     )

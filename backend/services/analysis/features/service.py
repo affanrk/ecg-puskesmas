@@ -1,9 +1,3 @@
-"""
-Feature extraction service - extracted from ml_service.py
-Handles ECG feature calculation for ML model input.
-Separated from ML logic for better maintainability.
-"""
-
 import numpy as np
 import pandas as pd
 import math
@@ -14,10 +8,6 @@ from utils import logger, SAMPLING_RATE
 
 
 class FeatureExtractor:
-    """
-    Extracts ECG features from multi-lead recordings.
-    Calculates intervals, amplitudes, and ratios for ML input.
-    """
 
     def __init__(self, sampling_rate: int = SAMPLING_RATE):
         self.sampling_rate = sampling_rate
@@ -29,18 +19,7 @@ class FeatureExtractor:
         lead_v1: np.ndarray,
         sampling_rate: Optional[int] = None,
     ) -> Dict[str, float]:
-        """
-        Extract all features from 3-lead ECG data.
 
-        Args:
-            lead_i: Lead I signal
-            lead_ii: Lead II signal
-            lead_v1: Lead V1 signal
-            sampling_rate: Optional override for hardware sampling rate
-
-        Returns:
-            Dictionary with feature names and values
-        """
         s_rate = sampling_rate or self.sampling_rate
 
         features = {
@@ -67,10 +46,7 @@ class FeatureExtractor:
     def _extract_lead_ii_features(
         self, signal: np.ndarray, sampling_rate: int
     ) -> Dict[str, float]:
-        """
-        Extract comprehensive features from Lead II.
-        Includes RR, PR, QS, QT, QTc, and BPM.
-        """
+
         features = {
             "rr_avg": 0.0,
             "pr_avg": 0.0,
@@ -114,9 +90,7 @@ class FeatureExtractor:
     def _calculate_rr_and_bpm(
         self, rpeaks: dict, sampling_rate: int
     ) -> Tuple[float, float]:
-        """
-        Calculate RR interval (ms) and heart rate (BPM).
-        """
+
         r_peaks_arr = rpeaks.get("ECG_R_Peaks", [])
 
         if len(r_peaks_arr) < 2:
@@ -130,10 +104,7 @@ class FeatureExtractor:
         return rr_avg, bpm
 
     def _calculate_pr_interval(self, waves: dict, sampling_rate: int) -> float:
-        """
-        Calculate PR interval (P-onset to R-onset/Q-peak).
-        Matches legacy index-shift logic.
-        """
+
         p_onsets = waves.get("ECG_P_Onsets", [])
         r_onsets = waves.get("ECG_R_Onsets", [])
         q_peaks = waves.get("ECG_Q_Peaks", [])
@@ -159,10 +130,7 @@ class FeatureExtractor:
         )
 
     def _calculate_qs_interval(self, waves: dict, sampling_rate: int) -> float:
-        """
-        Calculate QS interval (Q-peak to S-peak).
-        Matches legacy index-shift logic (i+1).
-        """
+
         q_peaks = waves.get("ECG_Q_Peaks", [])
         s_peaks = waves.get("ECG_S_Peaks", [])
 
@@ -189,10 +157,7 @@ class FeatureExtractor:
     def _calculate_qt_intervals(
         self, waves: dict, rr_avg: float, sampling_rate: int
     ) -> Tuple[float, float]:
-        """
-        Calculate QT and QTc intervals.
-        Matches legacy index-shift logic (i+1).
-        """
+
         r_onsets = waves.get("ECG_R_Onsets", [])
         t_offsets = waves.get("ECG_T_Offsets", [])
 
@@ -222,10 +187,7 @@ class FeatureExtractor:
         return qt_avg, qtc_avg
 
     def _extract_st_segment(self, signal: np.ndarray, sampling_rate: int) -> float:
-        """
-        Extract ST segment duration from Lead I.
-        Matches legacy index-shift logic (i+1).
-        """
+
         try:
             filtered = signal_processor.apply_filters(signal, sampling_rate)
             rpeaks, waves = signal_processor.detect_peaks(filtered, sampling_rate)
@@ -258,10 +220,7 @@ class FeatureExtractor:
             return 0.0
 
     def _extract_rs_ratio(self, signal: np.ndarray, sampling_rate: int) -> float:
-        """
-        Extract R/S amplitude ratio from Lead V1.
-        Matches legacy logic exactly.
-        """
+
         try:
             filtered = signal_processor.apply_filters(signal, sampling_rate)
             rpeaks, waves = signal_processor.detect_peaks(filtered, sampling_rate)
@@ -299,10 +258,7 @@ class FeatureExtractor:
             return 0.0
 
     def features_to_array(self, features: Dict[str, float]) -> np.ndarray:
-        """
-        Convert feature dictionary to numpy array for ML model.
-        Order matches model training: [RR, PR, QS, QTc, ST, RS_ratio, BPM]
-        """
+
         return np.array(
             [
                 features["rr_avg"],
@@ -316,10 +272,6 @@ class FeatureExtractor:
         ).reshape(1, -1)
 
     def validate_features(self, features: Dict[str, float]) -> bool:
-        """
-        Validate that extracted features are within reasonable ranges.
-        Returns True if features are valid.
-        """
 
         if not (30 <= features["bpm"] <= 200):
             return False

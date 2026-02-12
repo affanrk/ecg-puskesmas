@@ -15,10 +15,6 @@ from utils import (
 
 
 class DeviceWatchdogService:
-    """
-    Monitors device health and performs maintenance tasks.
-    Handles timeouts, cleanup, and performance monitoring.
-    """
 
     def __init__(self):
         self.is_running = False
@@ -162,10 +158,7 @@ class DeviceWatchdogService:
     async def force_cancel_recording(
         self, device_id: str, reason: str = "Manual cancellation"
     ):
-        """
-        Force cancel recording and clean up data.
-        Used for timeouts, disconnects, and manual stops (rollback).
-        """
+
         state = device_state_manager.get_state_or_fail(device_id)
 
         recording_id = state.recording_id

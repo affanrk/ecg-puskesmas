@@ -14,9 +14,8 @@ class TimeProcessor(BaseCalendarProcessor):
         query = self.db.query(group_field, severity_expr, count_expr, *class_counts)
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
-        query = query.filter(extract("year", local_dt) == year)
-        query = query.filter(extract("month", local_dt) == month)
-        query = query.filter(extract("day", local_dt) == day)
+
+        query = self._apply_range_filter(query, year, month, day)
 
         query = query.group_by(group_field)
         return self._build_nodes(query.all(), 0, 24, "hour")
@@ -31,10 +30,8 @@ class TimeProcessor(BaseCalendarProcessor):
         query = self.db.query(group_field, severity_expr, count_expr, *class_counts)
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
-        query = query.filter(extract("year", local_dt) == year)
-        query = query.filter(extract("month", local_dt) == month)
-        query = query.filter(extract("day", local_dt) == day)
-        query = query.filter(extract("hour", local_dt) == hour)
+
+        query = self._apply_range_filter(query, year, month, day, hour)
 
         query = query.group_by(group_field)
         return self._build_nodes(query.all(), 0, 60, "minute")
@@ -49,11 +46,8 @@ class TimeProcessor(BaseCalendarProcessor):
         query = self.db.query(group_field, severity_expr, count_expr, *class_counts)
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
-        query = query.filter(extract("year", local_dt) == year)
-        query = query.filter(extract("month", local_dt) == month)
-        query = query.filter(extract("day", local_dt) == day)
-        query = query.filter(extract("hour", local_dt) == hour)
-        query = query.filter(extract("minute", local_dt) == minute)
+
+        query = self._apply_range_filter(query, year, month, day, hour, minute)
 
         query = query.group_by(group_field)
         return self._build_nodes(query.all(), 0, 60, "second")

@@ -4,10 +4,6 @@ from ..base import Base, AuditMixin
 
 
 class TbREcgSession(Base, AuditMixin):
-    """
-    SQLAlchemy model for the Recording ECG Session table (TB_R_ECG_SESSION).
-    Stores metadata and analysis results for each ECG recording session.
-    """
 
     __tablename__ = "tb_r_ecg_session"
     recording_id = Column(
@@ -29,6 +25,7 @@ class TbREcgSession(Base, AuditMixin):
     classification_result = Column(
         String(50),
         default="Pending",
+        index=True,
         comment="AI classification result (e.g., Normal, AFib, Arrhythmia)",
     )
     confidence_score = Column(

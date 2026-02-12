@@ -1,8 +1,3 @@
-"""
-History endpoint - refactored from original history.py
-Now uses repositories and better query patterns.
-"""
-
 from fastapi import APIRouter, Depends, Query
 from typing import List, Optional, Tuple, Union
 

@@ -13,20 +13,13 @@ from utils import MQTT_TOPIC_PATTERN, MQTT_QOS, WSMessageType
 
 
 class MQTTClientService:
-    """
-    MQTT client managing connection and message processing.
-    Automatically reconnects on failure.
-    """
 
     def __init__(self):
         self.is_running = False
         self.client: Optional[aiomqtt.Client] = None
 
     async def listen(self):
-        """
-        Main MQTT listener loop.
-        Handles connection, reconnection, and message routing.
-        """
+
         self.is_running = True
         logger.info("[MQTT] Service starting...")
 
@@ -41,9 +34,6 @@ class MQTTClientService:
         logger.info("[MQTT] Service stopped")
 
     async def _connect_and_listen(self):
-        """
-        Connect to MQTT broker and listen for messages.
-        """
 
         config = self._build_connection_config()
 
@@ -63,7 +53,7 @@ class MQTTClientService:
                 await self._handle_message(message)
 
     def _build_connection_config(self) -> dict:
-        """Build MQTT client configuration"""
+
         config = {
             "hostname": settings.MQTT_BROKER,
             "port": settings.MQTT_PORT,
@@ -80,7 +70,7 @@ class MQTTClientService:
         return config
 
     async def disconnect(self):
-        """Gracefully disconnect from MQTT broker"""
+
         self.is_running = False
         if self.client:
             try:
@@ -90,12 +80,7 @@ class MQTTClientService:
         logger.info("[MQTT] Disconnected")
 
     async def _handle_message(self, message: aiomqtt.Message):
-        """
-        Process incoming MQTT message.
 
-        Args:
-            message: MQTT message object
-        """
         buffer_limit = 20
         try:
             logger.debug(
@@ -171,13 +156,11 @@ class MQTTClientService:
             start_counter = end_counter - len(samples) + 1
 
             if is_first_packet:
-                # Process the first packet immediately to establish the baseline
                 await mqtt_data_handler.process_samples(
                     device_id, samples, end_counter, packet_format, sampling_rate
                 )
                 state.last_packet_num = end_counter
             else:
-                # Use jitter buffer for subsequent packets
                 if mqtt_protocol.should_buffer_packet(
                     start_counter,
                     state.last_packet_num,
@@ -232,14 +215,11 @@ class MQTTClientService:
             logger.error(f"[MQTT] Message handling error: {e}")
 
     def is_connected(self) -> bool:
-        """Check if MQTT client is connected"""
+
         return self.client is not None and self.is_running
 
     async def publish(self, topic: str, payload: dict):
-        """
-        Publish message to MQTT broker.
-        Useful for testing or command sending.
-        """
+
         if not self.is_connected():
             raise RuntimeError("MQTT client not connected")
 

@@ -1,8 +1,3 @@
-"""
-Application-wide constants.
-Centralizes magic numbers and configuration values for maintainability.
-"""
-
 from enum import Enum
 
 SAMPLING_RATE = 100
@@ -39,7 +34,6 @@ PLOT_FIGURE_SIZE = (24, 12)
 
 
 class ECGClassification(str, Enum):
-    """ECG classification categories"""
 
     NORMAL = "Normal"
     ABNORMAL = "Abnormal"
@@ -60,7 +54,6 @@ CLASS_INDEX_MAP = {
 
 
 class WSMessageType(str, Enum):
-    """WebSocket message types for type-safe messaging"""
 
     PING = "ping"
     PONG = "pong"
@@ -97,7 +90,6 @@ DEFAULT_MODEL_FILE = "modelann_nonorm2.h5"
 
 
 class Gender(str, Enum):
-    """Gender codes used in patient records"""
 
     MALE = "L"
     FEMALE = "P"
@@ -117,7 +109,6 @@ RECORDING_ID_FORMAT = "uuid4"
 
 
 class ErrorCode(str, Enum):
-    """Standard error codes for API responses"""
 
     DEVICE_NOT_FOUND = "DEVICE_NOT_FOUND"
     DEVICE_BUSY = "DEVICE_BUSY"

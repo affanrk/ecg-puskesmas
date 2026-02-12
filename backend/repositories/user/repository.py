@@ -24,8 +24,27 @@ class UserRepository:
     def list_all(self, skip=0, limit=100):
         return self.reader.list_all(skip, limit)
 
-    def list_pending_approval(self, skip=0, limit=100):
-        return self.reader.list_pending_approval(skip, limit)
+    def list_pending_approval(
+        self,
+        skip=0,
+        limit=100,
+        search=None,
+        start_date=None,
+        end_date=None,
+        is_patient=None,
+        is_operator=None,
+        is_doctor=None,
+    ):
+        return self.reader.list_pending_approval(
+            skip,
+            limit,
+            search,
+            start_date,
+            end_date,
+            is_patient,
+            is_operator,
+            is_doctor,
+        )
 
     def create(self, user_in):
         return self.writer.create(user_in)

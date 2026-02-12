@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy import desc, or_
 from models.session import TbREcgSession
 from models.user import TbMUser
@@ -15,7 +15,7 @@ class SessionReader(BaseRepository[TbREcgSession]):
         super().__init__(TbREcgSession, db)
 
     def _get_local_dt(self):
-        """Convert changed_dt to local timezone for filtering"""
+
         return TbREcgSession.changed_dt.op("AT TIME ZONE")(settings.TIMEZONE)
 
     def find_by_recording_id(self, recording_id: str) -> Optional[TbREcgSession]:
@@ -85,6 +85,11 @@ class SessionReader(BaseRepository[TbREcgSession]):
                 )
                 .outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
                 .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+                .options(
+                    contains_eager(TbREcgSession.user).contains_eager(
+                        TbMUser.patient_profile
+                    )
+                )
             )
 
             if device_id:

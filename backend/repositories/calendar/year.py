@@ -18,6 +18,9 @@ class YearProcessor(BaseCalendarProcessor):
         if user_id:
             query = query.filter(TbREcgSession.user_id == user_id)
 
+        start_year = current_year - 4
+        query = query.filter(TbREcgSession.changed_dt >= datetime(start_year, 1, 1))
+
         query = query.group_by(group_field)
 
         return self._build_nodes(

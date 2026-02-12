@@ -1,8 +1,3 @@
-"""
-Core dependencies for FastAPI application.
-Manages database sessions, authentication, and other common dependencies.
-"""
-
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -23,44 +18,42 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 
 def get_session_repository(db: Session = Depends(get_db)):
-    """Dependency that provides a SessionRepository instance."""
+
     return SessionRepository(db)
 
 
 def get_calendar_repository(db: Session = Depends(get_db)):
-    """Dependency that provides a CalendarRepository instance."""
+
     return CalendarRepository(db)
 
 
 def get_performance_repository(db: Session = Depends(get_db)):
-    """Dependency that provides a PerformanceRepository instance."""
+
     return PerformanceRepository(db)
 
 
 def get_user_repository(db: Session = Depends(get_db)):
-    """Dependency that provides a UserRepository instance."""
+
     return UserRepository(db)
 
 
 def get_patient_repository(db: Session = Depends(get_db)):
-    """Dependency that provides a PatientRepository instance."""
+
     return PatientRepository(db)
 
 
 def get_approval_repository(db: Session = Depends(get_db)):
-    """Dependency that provides an ApprovalRepository instance."""
+
     return ApprovalRepository(db)
 
 
 def get_device_state_manager():
-    """Dependency that provides the global DeviceStateManager instance."""
+
     return device_state_manager
 
 
 def validate_device_exists(device_id: str):
-    """
-    Dependency that validates if a device exists and raises an exception if not.
-    """
+
     device_state_manager.get_state_or_fail(device_id)
     return device_id
 
@@ -69,9 +62,7 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     user_repo: UserRepository = Depends(get_user_repository),
 ) -> TbMUser:
-    """
-    Dependency that retrieves and authenticates the current user from the access token.
-    """
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -102,9 +93,7 @@ async def get_current_user(
 async def get_current_active_user(
     current_user: TbMUser = Depends(get_current_user),
 ) -> TbMUser:
-    """
-    Dependency that returns the current active user.
-    """
+
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
@@ -113,9 +102,7 @@ async def get_current_active_user(
 async def get_admin_user(
     current_user: TbMUser = Depends(get_current_active_user),
 ) -> TbMUser:
-    """
-    Dependency that returns the current admin user.
-    """
+
     if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

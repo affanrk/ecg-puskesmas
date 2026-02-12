@@ -4,10 +4,6 @@ from ..base import Base, AuditMixin
 
 
 class TbMPatient(Base, AuditMixin):
-    """
-    SQLAlchemy model for the Master Patient table (TB_M_PATIENT).
-    Stores patient profile information linked to a user.
-    """
 
     __tablename__ = "tb_m_patient"
     id = Column(
@@ -23,7 +19,9 @@ class TbMPatient(Base, AuditMixin):
         nullable=False,
         comment="Foreign key to the user",
     )
-    full_name = Column(String(100), nullable=True, comment="Full name of the patient")
+    full_name = Column(
+        String(100), index=True, nullable=True, comment="Full name of the patient"
+    )
     nik = Column(
         String(20),
         unique=True,
@@ -44,6 +42,7 @@ class TbMPatient(Base, AuditMixin):
     status = Column(
         String(20),
         default="QUEUE",
+        index=True,
         nullable=False,
         comment="Patient status (QUEUE, APPROVED, REJECTED)",
     )

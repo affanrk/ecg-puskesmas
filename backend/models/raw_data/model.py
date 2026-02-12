@@ -4,10 +4,6 @@ from ..base import Base
 
 
 class TbREcgRaw(Base):
-    """
-    SQLAlchemy model for the Raw ECG Data table (TB_R_ECG_RAW).
-    Stores individual raw and calibrated ECG data points for each recording session.
-    """
 
     __tablename__ = "tb_r_ecg_raw"
     id = Column(
@@ -50,10 +46,6 @@ class TbREcgRaw(Base):
 
 
 class TbREcgRawMobile(Base):
-    """
-    SQLAlchemy model for the Mobile Raw ECG Data table (TB_R_ECG_RAW_MOBILE).
-    Stores individual raw and calibrated ECG data points for recordings from mobile devices.
-    """
 
     __tablename__ = "tb_r_ecg_raw_mobile"
     id = Column(

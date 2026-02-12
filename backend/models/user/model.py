@@ -4,10 +4,6 @@ from ..base import Base, AuditMixin
 
 
 class TbMUser(Base, AuditMixin):
-    """
-    SQLAlchemy model for the Master User table (TB_M_USER).
-    Stores user authentication details and patient profile information.
-    """
 
     __tablename__ = "tb_m_user"
     id = Column(
@@ -43,7 +39,21 @@ class TbMUser(Base, AuditMixin):
     )
 
     is_patient = Column(
-        Boolean, default=False, comment="True if the user is also a patient"
+        Boolean, default=False, index=True, comment="True if the user is also a patient"
+    )
+
+    is_operator = Column(
+        Boolean,
+        default=False,
+        index=True,
+        comment="True if the user is also an operator/nurse",
+    )
+
+    is_doctor = Column(
+        Boolean,
+        default=False,
+        index=True,
+        comment="True if the user is also a specialist doctor",
     )
 
     is_activated = Column(

@@ -117,10 +117,18 @@ export async function fetchCalendar(filters: {
         }
     }
     
-    export async function fetchPendingApprovals() {
+    export async function fetchPendingApprovals(filters: HistoryFilters = {}) {
         const token = localStorage.getItem('ecg_token');
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, val]) => {
+            if (val !== undefined && val !== null && val !== '') {
+                params.append(key, String(val));
+            }
+        });
+
         try {
             const response = await axios.get(`${getApiUrl()}/admin/pending-approvals`, {
+                params,
                 headers: { Authorization: `Bearer ${token}` }
             });
             return response.data;
@@ -146,10 +154,18 @@ export async function fetchCalendar(filters: {
         }
     }
 
-    export async function fetchApprovalLogs() {
+    export async function fetchApprovalLogs(filters: HistoryFilters = {}) {
         const token = localStorage.getItem('ecg_token');
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, val]) => {
+            if (val !== undefined && val !== null && val !== '') {
+                params.append(key, String(val));
+            }
+        });
+
         try {
             const response = await axios.get(`${getApiUrl()}/admin/approval-logs`, {
+                params,
                 headers: { Authorization: `Bearer ${token}` }
             });
             return response.data;

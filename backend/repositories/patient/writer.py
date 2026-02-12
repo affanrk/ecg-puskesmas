@@ -31,7 +31,6 @@ class PatientWriter(BaseRepository[TbMPatient]):
             )
             self.db.add(patient)
 
-            # Log the queue entry
             log = TbRLogApproval(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
@@ -86,7 +85,6 @@ class PatientWriter(BaseRepository[TbMPatient]):
                 db_user.is_activated = 0
                 db_user.is_patient = True
 
-            # Log the queue entry
             log = TbRLogApproval(
                 id=str(uuid.uuid4()),
                 user_id=user_id,
