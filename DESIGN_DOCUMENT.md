@@ -92,18 +92,30 @@ CREATE TABLE tb_m_facilities (
     changed_dt      TIMESTAMP
 );
 
--- Users (Central Identity & Patient Data)
+-- Users (Central Identity & Authentication)
 CREATE TABLE tb_m_user (
-    id              SERIAL PRIMARY KEY,
+    id              VARCHAR(30) PRIMARY KEY,    -- USR20260213000001
     username        VARCHAR(50) UNIQUE NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     role            VARCHAR(20) DEFAULT 'user', -- user, operator, doctor, admin
+    status          VARCHAR(20) DEFAULT 'QUEUE',-- QUEUE, APPROVED, REJECTED
     is_active       INTEGER DEFAULT 1,
-    full_name       VARCHAR(100),
+    current_session_id VARCHAR(255),               -- For "Last Login Wins"
     
-    -- Patient Profile Fields
-    is_patient      BOOLEAN DEFAULT FALSE,      -- Profile Completed Flag
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP
+);
+
+-- Patients (Clinical Profiles)
+CREATE TABLE tb_m_patient (
+    id              VARCHAR(30) PRIMARY KEY,    -- PAT20260213000001
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id),
+    
+    nik             VARCHAR(20) UNIQUE,
+    full_name       VARCHAR(100),
     dob             DATE,
     gender          VARCHAR(10),
     address         VARCHAR(255),
@@ -136,9 +148,10 @@ CREATE TABLE tb_m_devices (
 ```sql
 -- Sessions (Recording Sessions)
 CREATE TABLE tb_r_ecg_session (
-    recording_id    VARCHAR(50) PRIMARY KEY,
+    recording_id    VARCHAR(50) PRIMARY KEY,    -- UUID
     device_id       VARCHAR(50) NOT NULL,
-    user_id         INTEGER NOT NULL REFERENCES tb_m_user(id),
+    user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id),
+    subject_id      VARCHAR(20),                -- NIK of the patient
     
     classification_result VARCHAR(50) DEFAULT 'Pending',
     confidence_score FLOAT,
@@ -158,8 +171,25 @@ CREATE TABLE tb_r_ecg_session (
     changed_dt      TIMESTAMP
 );
 
--- Signal Data
+-- Signal Data (Web/Desktop)
 CREATE TABLE tb_r_ecg_raw (
+    id              BIGSERIAL PRIMARY KEY,
+    recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
+    
+    mv_lead_I       FLOAT,
+    mv_lead_II      FLOAT,
+    mv_v1           FLOAT,
+    
+    raw_lead_I      INTEGER,
+    raw_lead_II     INTEGER,
+    raw_v1          INTEGER,
+    
+    created_by      VARCHAR(50),
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Signal Data (Mobile)
+CREATE TABLE tb_r_ecg_raw_mobile (
     id              BIGSERIAL PRIMARY KEY,
     recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
     

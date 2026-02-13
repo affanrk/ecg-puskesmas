@@ -267,7 +267,38 @@ flowchart LR
 
 ---
 
-## 4. Device List Synchronization (Implicit Disconnect)
+## 4. WebSocket: Session Enforcement (Last Login Wins)
+*Flow: Preventing multiple concurrent connections for the same account.*
+
+```mermaid
+flowchart TD
+    %% SWIMLANE: TRIGGER
+    subgraph Connection [Client Connection]
+        StartWS([Start: WS Handshake]) --> Token[/Payload: ?token=JWT/]
+    end
+
+    %% SWIMLANE: BACKEND VALIDATION
+    subgraph Validation [backend: api/v1/endpoints/websocket.py]
+        Token --> VerifyTok[Verify JWT & Extract 'sid']
+        VerifyTok --> FetchDB[(UserRepository.get_current_session_id)]
+        FetchDB --> Compare{sid == DB.current_session_id?}
+        
+        Compare -- No --> CloseWS([End: Close Connection 4003])
+        Compare -- Yes --> AcceptWS[Accept WebSocket & Register]
+    end
+
+    %% SWIMLANE: RUNTIME CHECK
+    subgraph Runtime [WebSocket Loop]
+        AcceptWS --> Incoming[/Any Command/]
+        Incoming --> ReCheck{sid Valid?}
+        ReCheck -- No --> Kick([End: Force Close])
+        ReCheck -- Yes --> Process[Handle Command]
+    end
+```
+
+---
+
+## 5. Device List Synchronization (Implicit Disconnect)
 *Flow: Handling race conditions where Watchdog clears device before UI updates.*
 
 ```mermaid
@@ -297,7 +328,7 @@ flowchart LR
 
 ---
 
-## 5. ML Analysis & Feedback Loop
+## 6. ML Analysis & Feedback Loop
 *Flow: Post-processing of completed recording segments.*
 
 ```mermaid
@@ -334,8 +365,8 @@ flowchart LR
 
 ---
 
-## 6. Authentication: Login Flow
-*Flow: User authentication and JWT Token generation.*
+## 7. Authentication: Login Flow
+*Flow: User authentication, Session ID generation, and "Last Login Wins" enforcement.*
 
 ```mermaid
 flowchart LR
@@ -353,7 +384,9 @@ flowchart LR
         
         DBQuery --> Verify{Password Valid?}
         Verify -- No --> Err401([End: Return 401])
-        Verify -- Yes --> CreateTok["core/security.py: create_access_token"]
+        Verify -- Yes --> GenSID[Generate New UUID 'sid']
+        GenSID --> UpdateSess[(UserRepository.update_current_session_id)]
+        UpdateSess --> CreateTok["core/security.py: create_access_token(claims={sid})"]
     end
 
     %% SWIMLANE: RESPONSE
@@ -367,8 +400,8 @@ flowchart LR
 
 ---
 
-## 7. Authentication: Registration Flow
-*Flow: New user signup and database insertion.*
+## 8. Authentication: Registration Flow
+*Flow: New user signup, DB split (User + Patient), and Sequential ID generation.*
 
 ```mermaid
 flowchart LR
@@ -387,13 +420,17 @@ flowchart LR
         CheckDup --> Exists{Email Exists?}
         
         Exists -- Yes --> Err400([End: Return 400])
-        Exists -- No --> Hash["core/security.py: get_password_hash"]
-        Hash --> Insert[(UserRepository.create)]
+        Exists -- No --> GenUSR[id_generator: USR2026...]
+        GenUSR --> Hash["core/security.py: get_password_hash"]
+        Hash --> InsertUser[(UserRepository.create)]
+        
+        InsertUser --> GenPAT[id_generator: PAT2026...]
+        GenPAT --> InsertPat[(PatientRepository.create_with_user)]
     end
 
     %% SWIMLANE: RESPONSE
     subgraph Response [frontend: Handling]
-        Insert --> Ret200[/Return: User Schema/]
+        InsertPat --> Ret200[/Return: User Schema/]
         Ret200 -.->|JSON| SuccessToast[/useToast: Registration Successful/]
         SuccessToast --> NavLogin([End: Navigate to /login])
         Err400 -.-> ShowToast
@@ -402,7 +439,7 @@ flowchart LR
 
 ---
 
-## 8. History: Archive Retrieval
+## 9. History: Archive Retrieval
 *Flow: Fetching paginated history data.*
 
 ```mermaid
@@ -429,7 +466,7 @@ flowchart LR
 
 ---
 
-## 9. History: Detail View & Charts
+## 10. History: Detail View & Charts
 *Flow: Viewing deep analytics for a specific session.*
 
 ```mermaid
@@ -457,7 +494,7 @@ flowchart LR
 
 ---
 
-## 10. Export Data (CSV & Plot)
+## 11. Export Data (CSV & Plot)
 *Flow: Generating and downloading reports.*
 
 ```mermaid
@@ -491,7 +528,7 @@ flowchart LR
 
 ---
 
-## 11. Performance Monitoring (Per Device)
+## 12. Performance Monitoring (Per Device)
 *Flow: Calculating and broadcasting network metrics.*
 
 ```mermaid
