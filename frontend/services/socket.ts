@@ -33,6 +33,11 @@ class WebSocketService {
         const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
         let finalUrl = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
 
+        if (!finalUrl.startsWith('ws://') && !finalUrl.startsWith('wss://')) {
+            const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            finalUrl = `${wsProtocol}${finalUrl}`;
+        }
+
         if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
             finalUrl = finalUrl.replace('ws://', 'wss://');
         }

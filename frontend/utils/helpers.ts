@@ -58,6 +58,11 @@ export function getApiUrl(): string {
     
     url = url.replace(/\/$/, '');
     
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https://' : 'http://';
+        url = `${protocol}${url}`;
+    }
+    
     // Auto-upgrade to https if page is https and url is http (and not localhost)
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
         url = url.replace('http://', 'https://');
