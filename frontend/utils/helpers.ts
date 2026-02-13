@@ -57,6 +57,12 @@ export function getApiUrl(): string {
     let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     
     url = url.replace(/\/$/, '');
+    
+    // Auto-upgrade to https if page is https and url is http (and not localhost)
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
+        url = url.replace('http://', 'https://');
+    }
+
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }
