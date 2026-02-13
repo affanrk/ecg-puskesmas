@@ -60,6 +60,9 @@ export interface PerformanceMetrics {
 }
 
 interface AppState {
+    apiUrl: string;
+    wsUrl: string;
+    setRuntimeConfig: (apiUrl: string, wsUrl: string) => void;
     currentDeviceId: string | null;
     isRecording: boolean;
     isSessionActive: boolean;
@@ -110,6 +113,9 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+    apiUrl: 'http://localhost:8080/api/v1',
+    wsUrl: 'ws://localhost:8080/ws',
+    setRuntimeConfig: (apiUrl, wsUrl) => set({ apiUrl, wsUrl }),
     currentDeviceId: null,
     isRecording: false,
     isSessionActive: false,
