@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from ..base import Base, AuditMixin
 
@@ -15,7 +15,7 @@ class TbREcgSession(Base, AuditMixin):
         String(50), index=True, comment="ID of the device used for recording"
     )
     user_id = Column(
-        Integer,
+        String(30),
         ForeignKey("tb_m_user.id"),
         index=True,
         nullable=False,

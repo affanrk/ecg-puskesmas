@@ -10,7 +10,7 @@ class UserReader(BaseRepository[TbMUser]):
     def __init__(self, db: Session):
         super().__init__(TbMUser, db)
 
-    def find_by_id(self, user_id: int) -> Optional[TbMUser]:
+    def find_by_id(self, user_id: str) -> Optional[TbMUser]:
         try:
             return (
                 self.db.query(TbMUser)

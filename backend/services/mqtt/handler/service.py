@@ -231,13 +231,9 @@ class MQTTDataHandler:
     def _create_session(self, rec_id: str, dev_id: str, pat_id: str, source: str):
         db = SessionLocal()
         try:
-            try:
-                user_id = int(pat_id)
-                SessionRepository(db).create_session(
-                    rec_id, dev_id, user_id, created_by=source
-                )
-            except ValueError:
-                logger.error(f"[MQTT] Invalid user_id format in state: {pat_id}")
+            SessionRepository(db).create_session(
+                rec_id, dev_id, pat_id, created_by=source
+            )
         except Exception as e:
             logger.error(f"[MQTT] Failed to create session segment: {e}")
         finally:

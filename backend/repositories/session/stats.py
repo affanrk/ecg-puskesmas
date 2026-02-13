@@ -11,7 +11,7 @@ class SessionStatsProcessor:
         self.db = db
 
     def get_classification_stats(
-        self, user_id: Optional[int] = None
+        self, user_id: Optional[str] = None
     ) -> ClassificationStatsResponse:
         try:
             query = self.db.query(TbREcgSession)

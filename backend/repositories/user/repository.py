@@ -49,19 +49,21 @@ class UserRepository:
     def create(self, user_in):
         return self.writer.create(user_in)
 
-    def update_record_login(self, user_id, source):
-        return self.writer.update_record_login(user_id, source)
+    def update_record_login(self, user_id: str, source: str, session_id: str = None):
+        return self.writer.update_record_login(user_id, source, session_id)
 
-    def update_username(self, user_id, new_username):
+    def update_username(self, user_id: str, new_username: str):
         return self.writer.update_username(user_id, new_username)
 
-    def update_password(self, user_id, new_password):
+    def update_password(self, user_id: str, new_password: str):
         return self.writer.update_password(user_id, new_password)
 
-    def update_activation_status(self, user_id, is_activated, rejection_reason=None):
+    def update_activation_status(
+        self, user_id: str, is_activated: int, rejection_reason=None
+    ):
         return self.writer.update_activation_status(
             user_id, is_activated, rejection_reason
         )
 
-    def delete(self, user_id):
+    def delete(self, user_id: str):
         return self.writer.delete(user_id)

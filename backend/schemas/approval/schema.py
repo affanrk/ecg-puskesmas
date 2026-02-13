@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class ApprovalLogResponse(BaseModel):
     id: str
-    user_id: int
+    user_id: str
     username: Optional[str] = None
     full_name: Optional[str] = None
     is_patient: bool = False

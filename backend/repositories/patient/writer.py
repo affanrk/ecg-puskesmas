@@ -1,4 +1,3 @@
-import uuid
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, DataError
@@ -6,6 +5,7 @@ from models import TbMPatient, TbMUser, TbRLogApproval
 from schemas.patient import PatientUpdate, PatientCreate
 from core.exceptions import DatabaseException
 from repositories.base import BaseRepository
+from utils.helpers.id_generator import generate_custom_id
 
 
 class PatientWriter(BaseRepository[TbMPatient]):
@@ -13,10 +13,12 @@ class PatientWriter(BaseRepository[TbMPatient]):
         super().__init__(TbMPatient, db)
 
     def create_profile(
-        self, patient_in: PatientCreate, user_id: int, source: str = "WEB"
+        self, patient_in: PatientCreate, user_id: str, source: str = "WEB"
     ) -> TbMPatient:
         try:
+            patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
             patient = TbMPatient(
+                id=patient_id,
                 user_id=user_id,
                 full_name=patient_in.full_name,
                 nik=patient_in.nik,
@@ -31,8 +33,9 @@ class PatientWriter(BaseRepository[TbMPatient]):
             )
             self.db.add(patient)
 
+            log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
-                id=str(uuid.uuid4()),
+                id=log_id,
                 user_id=user_id,
                 status="QUEUE",
                 created_by=source,
@@ -61,7 +64,7 @@ class PatientWriter(BaseRepository[TbMPatient]):
             )
 
     def update_by_user_id(
-        self, user_id: int, profile_data: PatientUpdate
+        self, user_id: str, profile_data: PatientUpdate
     ) -> Optional[TbMPatient]:
         try:
             patient = self.get_by(user_id=user_id)
@@ -69,7 +72,10 @@ class PatientWriter(BaseRepository[TbMPatient]):
             source = update_data.pop("source", "WEB")
 
             if not patient:
-                patient = TbMPatient(user_id=user_id, status="QUEUE", created_by=source)
+                patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
+                patient = TbMPatient(
+                    id=patient_id, user_id=user_id, status="QUEUE", created_by=source
+                )
                 self.db.add(patient)
             else:
                 patient.status = "QUEUE"
@@ -85,8 +91,9 @@ class PatientWriter(BaseRepository[TbMPatient]):
                 db_user.is_activated = 0
                 db_user.is_patient = True
 
+            log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
-                id=str(uuid.uuid4()),
+                id=log_id,
                 user_id=user_id,
                 status="QUEUE",
                 created_by=source,

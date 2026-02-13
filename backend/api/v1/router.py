@@ -5,12 +5,15 @@ from api.v1.endpoints import (
     export_router as export,
     health_router as health,
     auth_router as auth,
+    profile_router as profile,
     admin_router as admin,
 )
 
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(auth, prefix="/auth", tags=["Authentication"])
+
+api_router.include_router(profile, prefix="/profile", tags=["User Profile"])
 
 api_router.include_router(admin, prefix="/admin", tags=["Admin Control"])
 

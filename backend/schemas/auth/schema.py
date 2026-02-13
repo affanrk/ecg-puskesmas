@@ -6,7 +6,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     role: str
-    user_id: int
+    user_id: str
     user_name: str
     full_name: Optional[str] = None
     is_patient: bool
@@ -16,11 +16,13 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     username: Optional[str] = None
     role: Optional[str] = None
+    sid: Optional[str] = None
 
 
 class UserLogin(BaseModel):
     username_or_email: str
     password: str
+    source: Optional[str] = "WEB"
 
     @field_validator("username_or_email", mode="before")
     @classmethod

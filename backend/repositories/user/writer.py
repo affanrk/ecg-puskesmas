@@ -1,4 +1,3 @@
-import uuid
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
@@ -8,6 +7,7 @@ from schemas.user import UserCreate
 from core.exceptions import DatabaseException
 from core.security import get_password_hash
 from repositories.base import BaseRepository
+from utils.helpers.id_generator import generate_custom_id
 
 
 class UserWriter(BaseRepository[TbMUser]):
@@ -16,8 +16,10 @@ class UserWriter(BaseRepository[TbMUser]):
 
     def create(self, user_in: UserCreate) -> TbMUser:
         try:
+            user_id = generate_custom_id("USR", "tb_m_user", self.db)
             hashed_password = get_password_hash(user_in.password)
             db_user = TbMUser(
+                id=user_id,
                 email=user_in.email,
                 username=user_in.username,
                 hashed_password=hashed_password,
@@ -26,16 +28,6 @@ class UserWriter(BaseRepository[TbMUser]):
                 created_by=user_in.source,
             )
             self.db.add(db_user)
-            self.db.flush()
-
-            if user_in.full_name:
-                patient = TbMPatient(
-                    user_id=db_user.id,
-                    full_name=user_in.full_name,
-                    created_by=user_in.source,
-                )
-                self.db.add(patient)
-
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
@@ -45,18 +37,22 @@ class UserWriter(BaseRepository[TbMUser]):
                 f"Failed to create user {user_in.email}", details={"error": str(e)}
             )
 
-    def update_record_login(self, user_id: int, source: str):
+    def update_record_login(
+        self, user_id: str, source: str, session_id: Optional[str] = None
+    ):
         try:
             db_user = self.get(user_id)
             if db_user:
                 db_user.last_login_dt = func.now()
                 db_user.last_login_source = source
+                if session_id:
+                    db_user.current_session_id = session_id
                 self.db.commit()
         except Exception:
             self.db.rollback()
             pass
 
-    def update_username(self, user_id: int, new_username: str) -> Optional[TbMUser]:
+    def update_username(self, user_id: str, new_username: str) -> Optional[TbMUser]:
         try:
             db_user = self.get(user_id)
             if not db_user:
@@ -75,7 +71,7 @@ class UserWriter(BaseRepository[TbMUser]):
                 f"Failed to update username for ID {user_id}", details={"error": str(e)}
             )
 
-    def update_password(self, user_id: int, new_password: str) -> Optional[TbMUser]:
+    def update_password(self, user_id: str, new_password: str) -> Optional[TbMUser]:
         try:
             db_user = self.get(user_id)
             if not db_user:
@@ -92,7 +88,7 @@ class UserWriter(BaseRepository[TbMUser]):
             )
 
     def update_activation_status(
-        self, user_id: int, is_activated: int, reason: Optional[str] = None
+        self, user_id: str, is_activated: int, reason: Optional[str] = None
     ) -> Optional[TbMUser]:
         try:
             db_user = self.get(user_id)
@@ -108,8 +104,9 @@ class UserWriter(BaseRepository[TbMUser]):
                 patient.status = status
                 patient.changed_by = "ADMIN"
 
+            log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
-                id=str(uuid.uuid4()),
+                id=log_id,
                 user_id=user_id,
                 status=status,
                 reason=reason,
@@ -132,7 +129,7 @@ class UserWriter(BaseRepository[TbMUser]):
                 details={"error": str(e)},
             )
 
-    def delete(self, user_id: int) -> bool:
+    def delete(self, user_id: str) -> bool:
         try:
             obj = self.get(user_id)
             if not obj:

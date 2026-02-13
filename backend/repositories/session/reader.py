@@ -42,7 +42,7 @@ class SessionReader(BaseRepository[TbREcgSession]):
             .all()
         )
 
-    def list_by_user(self, user_id: int, limit: int = 100) -> List[TbREcgSession]:
+    def list_by_user(self, user_id: str, limit: int = 100) -> List[TbREcgSession]:
         return (
             self.db.query(TbREcgSession)
             .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
@@ -52,7 +52,7 @@ class SessionReader(BaseRepository[TbREcgSession]):
             .all()
         )
 
-    def get_recent_sessions(self, user_id: int, limit: int) -> List[TbREcgSession]:
+    def get_recent_sessions(self, user_id: str, limit: int) -> List[TbREcgSession]:
         return (
             self.db.query(self.model)
             .options(joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile))
@@ -69,7 +69,7 @@ class SessionReader(BaseRepository[TbREcgSession]):
         self,
         search_query: Optional[str] = None,
         device_id: Optional[str] = None,
-        user_id: Optional[int] = None,
+        user_id: Optional[str] = None,
         classification: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,

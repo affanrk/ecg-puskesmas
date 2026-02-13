@@ -67,8 +67,8 @@ class PatientUpdate(PatientBase):
 
 
 class PatientResponse(PatientBase):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
 
     class Config:
         from_attributes = True

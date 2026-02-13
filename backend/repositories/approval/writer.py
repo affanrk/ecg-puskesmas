@@ -1,7 +1,7 @@
-import uuid
 from sqlalchemy.orm import Session
 from models import TbRLogApproval
 from repositories.base import BaseRepository
+from utils.helpers.id_generator import generate_custom_id
 
 
 class ApprovalWriter(BaseRepository[TbRLogApproval]):
@@ -9,10 +9,11 @@ class ApprovalWriter(BaseRepository[TbRLogApproval]):
         super().__init__(TbRLogApproval, db)
 
     def create_log(
-        self, user_id: int, status: str, reason: str = None, source: str = "ADMIN"
+        self, user_id: str, status: str, reason: str = None, source: str = "ADMIN"
     ) -> TbRLogApproval:
+        log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
         log = TbRLogApproval(
-            id=str(uuid.uuid4()),
+            id=log_id,
             user_id=user_id,
             status=status,
             reason=reason,

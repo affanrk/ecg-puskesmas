@@ -9,7 +9,7 @@ class PatientRepository:
         self.reader = PatientReader(db)
         self.writer = PatientWriter(db)
 
-    def find_by_user_id(self, user_id: int):
+    def find_by_user_id(self, user_id: str):
         return self.reader.find_by_user_id(user_id)
 
     def find_by_nik(self, nik: str):
@@ -21,5 +21,5 @@ class PatientRepository:
     def update_by_user_id(self, *args, **kwargs):
         return self.writer.update_by_user_id(*args, **kwargs)
 
-    def get(self, id: int):
+    def get(self, id: str):
         return self.reader.get(id)

@@ -27,7 +27,6 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    full_name: Optional[str] = None
     password: str
     role: Optional[str] = "user"
     source: Optional[str] = "WEB"
@@ -93,7 +92,7 @@ class UserApprovalUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    id: int
+    id: str
     is_active: bool
     role: str
     is_patient: bool

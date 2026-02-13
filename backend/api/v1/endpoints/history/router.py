@@ -51,7 +51,7 @@ def _map_session_to_response(
 
 @router.get("/calendar", response_model=CalendarResponse)
 async def get_calendar_view(
-    user_id: Optional[int] = Query(None, description="Filter by User ID"),
+    user_id: Optional[str] = Query(None, description="Filter by User ID"),
     year: Optional[int] = Query(None),
     month: Optional[int] = Query(None),
     day: Optional[int] = Query(None),
@@ -80,7 +80,7 @@ async def get_calendar_view(
 
 @router.get("/stats", response_model=ClassificationStatsResponse)
 async def get_history_stats(
-    user_id: Optional[int] = Query(None, description="Filter by User ID"),
+    user_id: Optional[str] = Query(None, description="Filter by User ID"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
     return session_repo.get_classification_stats(user_id)
@@ -91,7 +91,7 @@ async def get_recording_history(
     device_id: Optional[str] = Query(
         None, description="Filter by device ID", max_length=50
     ),
-    user_id: Optional[int] = Query(None, description="Filter by User ID"),
+    user_id: Optional[str] = Query(None, description="Filter by User ID"),
     search: Optional[str] = Query(
         None, description="Search by name, username, or device", max_length=100
     ),
@@ -122,7 +122,7 @@ async def get_recording_history(
 
 @router.get("/recent", response_model=List[SessionResponse])
 async def get_recent_history(
-    user_id: int = Query(..., description="User ID is required"),
+    user_id: str = Query(..., description="User ID is required"),
     limit: int = Query(10, le=20, description="Maximum results"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
@@ -153,7 +153,7 @@ async def get_device_history(
 
 @router.get("/user/{user_id}", response_model=List[SessionResponse])
 async def get_user_history(
-    user_id: int,
+    user_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):

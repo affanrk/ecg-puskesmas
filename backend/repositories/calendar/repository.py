@@ -18,7 +18,7 @@ class CalendarRepository:
 
     def get_nodes(
         self,
-        user_id: Optional[int] = None,
+        user_id: Optional[str] = None,
         year: Optional[int] = None,
         month: Optional[int] = None,
         day: Optional[int] = None,

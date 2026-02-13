@@ -73,9 +73,10 @@ async def get_current_user(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         username: str = payload.get("sub")
+        sid: str = payload.get("sid")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(email=username)
+        token_data = TokenData(email=username, sid=sid)
     except JWTError:
         raise credentials_exception
 
@@ -83,6 +84,14 @@ async def get_current_user(
 
     if not user:
         raise credentials_exception
+
+    # Enforce single session
+    if user.current_session_id and token_data.sid != user.current_session_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired: User logged in from another device",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")

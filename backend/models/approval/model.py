@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, String, ForeignKey, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from ..base import Base
@@ -9,12 +9,12 @@ class TbRLogApproval(Base):
     __tablename__ = "tb_r_log_approval"
 
     id = Column(
-        String(50),
+        String(30),
         primary_key=True,
-        comment="Primary key (UUID)",
+        comment="Custom Primary key (APP + YYYYMMDD + 6-digit seq)",
     )
     user_id = Column(
-        Integer,
+        String(30),
         ForeignKey("tb_m_user.id", ondelete="CASCADE"),
         nullable=False,
         comment="User whose profile is being approved/rejected",

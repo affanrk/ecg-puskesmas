@@ -7,10 +7,9 @@ class TbMUser(Base, AuditMixin):
 
     __tablename__ = "tb_m_user"
     id = Column(
-        Integer,
+        String(30),
         primary_key=True,
-        autoincrement=True,
-        comment="Primary key for the user",
+        comment="Custom Primary key for the user (USR + YYYYMMDD + 6-digit seq)",
     )
     username = Column(
         String(50),
@@ -65,6 +64,12 @@ class TbMUser(Base, AuditMixin):
     )
     last_login_source = Column(
         String(50), nullable=True, comment="Platform of last login (WEB, MOBILE)"
+    )
+
+    current_session_id = Column(
+        String(100),
+        nullable=True,
+        comment="Current active session ID (for single login enforcement)",
     )
 
     patient_profile = relationship(

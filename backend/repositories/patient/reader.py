@@ -9,7 +9,7 @@ class PatientReader(BaseRepository[TbMPatient]):
     def __init__(self, db: Session):
         super().__init__(TbMPatient, db)
 
-    def find_by_user_id(self, user_id: int) -> Optional[TbMPatient]:
+    def find_by_user_id(self, user_id: str) -> Optional[TbMPatient]:
         try:
             return self.get_by(user_id=user_id)
         except Exception as e:

@@ -87,7 +87,7 @@ def get_approval_logs(
 
 @router.post("/update-status/{user_id}", response_model=UserResponse)
 def update_user_status(
-    user_id: int,
+    user_id: str,
     status_in: UserApprovalUpdate,
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Text, ForeignKey
+from sqlalchemy import Column, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from ..base import Base, AuditMixin
 
@@ -7,13 +7,12 @@ class TbMPatient(Base, AuditMixin):
 
     __tablename__ = "tb_m_patient"
     id = Column(
-        Integer,
+        String(30),
         primary_key=True,
-        autoincrement=True,
-        comment="Primary key for the patient",
+        comment="Custom Primary key for the patient (PAT + YYYYMMDD + 6-digit seq)",
     )
     user_id = Column(
-        Integer,
+        String(30),
         ForeignKey("tb_m_user.id", ondelete="CASCADE"),
         unique=True,
         nullable=False,
