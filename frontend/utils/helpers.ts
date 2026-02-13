@@ -55,20 +55,17 @@ export function calculateAge(birthDateString: string | null | undefined): number
 import { useStore } from '@/store/useStore';
 
 export function getApiUrl(): string {
-    // Try to get from store first (Runtime Config)
     try {
         const storeApiUrl = useStore.getState().apiUrl;
         if (storeApiUrl && !storeApiUrl.includes('localhost:8080')) {
             return storeApiUrl;
         }
     } catch {
-        // Store might not be initialized yet
     }
 
     let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     
     url = url.replace(/\/$/, '');
-    
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }

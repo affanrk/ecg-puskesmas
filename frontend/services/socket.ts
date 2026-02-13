@@ -25,10 +25,13 @@ class WebSocketService {
     private pingTimeout: NodeJS.Timeout | null = null;
 
     private getWsUrl(): string {
-        // Try store first
-        const storeWsUrl = useStore.getState().wsUrl;
-        if (storeWsUrl && !storeWsUrl.includes('localhost:8080')) {
-            return storeWsUrl;
+        try {
+            const storeWsUrl = useStore.getState().wsUrl;
+            if (storeWsUrl && !storeWsUrl.includes('localhost:8080')) {
+                return storeWsUrl;
+            }
+        } catch {
+            
         }
 
         const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
 import AuthGuard from "@/components/shared/AuthGuard";
 import ToastContainer from "@/components/shared/ToastContainer";
 import RuntimeConfig from "@/components/shared/RuntimeConfig";
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
   title: "ECG Live Platform",
   description: "Real-time ECG monitoring system",
 };
+
+export const dynamic = 'force-dynamic';
 
 export default function RootLayout({
   children,
