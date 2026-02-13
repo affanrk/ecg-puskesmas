@@ -44,7 +44,7 @@ def create_patient_profile(
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
-@router.put("/", response_model=UserResponse)
+@router.put("", response_model=UserResponse)
 def update_user_profile(
     profile_in: PatientUpdate,
     current_user: TbMUser = Depends(get_current_user),
