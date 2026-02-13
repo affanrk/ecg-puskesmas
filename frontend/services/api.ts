@@ -1,12 +1,6 @@
 import axiosInstance from './axiosInstance';
 import { getApiUrl } from '../utils/helpers';
 
-declare global {
-    interface Window {
-        __ENV__?: Record<string, string>;
-    }
-}
-
 export interface HistoryFilters {
     [key: string]: string | number | boolean | undefined;
 }

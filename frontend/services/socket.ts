@@ -5,12 +5,6 @@ import { EVENTS } from '@/config/constants';
 import { useStore, Device } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 
-declare global {
-    interface Window {
-        __ENV__?: Record<string, string>;
-    }
-}
-
 type SocketMessage =
     | { type: 'ping' | 'pong' }
     | { type: 'device_list_update'; devices: Device[] }
@@ -35,12 +29,8 @@ class WebSocketService {
         const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
         const port = '8080';
         const defaultUrl = `${protocol}//${host}:${port}/ws`;
-        let finalUrl;
-        if (typeof window !== 'undefined' && window.__ENV__) {
-            finalUrl = window.__ENV__.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
-        } else {
-            finalUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
-        }
+        let finalUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+
         if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
             finalUrl = finalUrl.replace('ws://', 'wss://');
         }
