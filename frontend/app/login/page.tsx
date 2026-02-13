@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
@@ -9,7 +10,7 @@ import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/utils/helpers';
 import { reconnectWebSocket } from '@/services/socket';
 
-export default function LoginPage() {
+function LoginContent() {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,16 @@ export default function LoginPage() {
     const [serverError, setServerError] = useState('');
     const [showErrorEffect, setShowErrorEffect] = useState(false);
     const { show: toast } = useToast();
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const reason = searchParams.get('reason');
+        if (reason === 'expired') {
+            setServerError('Your session has expired because you logged in from another device.');
+            toast('Session expired: Logged in from another device', 'error');
+            triggerErrorEffect();
+        }
+    }, [searchParams, toast]);
 
     const validateField = (field: string, value: string) => {
         let error = "";
@@ -250,5 +261,17 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+            </div>
+        }>
+            <LoginContent />
+        </Suspense>
     );
 }
