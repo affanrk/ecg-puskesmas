@@ -49,13 +49,13 @@ Initiates a new recording session where the backend begins saving incoming MQTT 
     {
       "type": "start_recording",
       "device_id": "string",
-      "user_id": 123,
+      "user_id": "USR20260213000001",
       "source": "WEB" 
     }
     ```
 *   **Fields:**
     *   `device_id`: Target device.
-    *   `user_id`: Numeric ID of the patient (alternatively use `subject_id`).
+    *   `user_id`: Sequential String ID of the user (e.g., USR...).
     *   `source`: `"WEB"` or `"MOBILE"`. Controls which database table stores the raw data.
 *   **Success Response:** `state_update` (is_recording: true).
 
@@ -128,7 +128,7 @@ Sent whenever a device's recording mode changes.
   "is_recording": true,
   "status_message": "Recording...",
   "recording_id": "uuid",
-  "subject_id": "123"
+  "subject_id": "3201234567890001"
 }
 ```
 
@@ -201,7 +201,21 @@ Sent when a command fails or an internal server error occurs.
 
 ---
 
-## 5. Classification Categories
+## 5. Security & Session Management
+
+### Authentication
+Connections must provide a valid JWT in the query string or during the initial handshake (if implemented by the client).
+`ws://server/api/v1/ws?token=YOUR_JWT_TOKEN`
+
+### Last Login Wins (Session Enforcement)
+The platform enforces a single active session per user.
+1.  **Session ID (`sid`):** Every JWT contains a unique `sid` claim.
+2.  **Enforcement:** When a user logs in from a new location, the `current_session_id` in the database is updated.
+3.  **Automatic Disconnect:** If the WebSocket server detects a heartbeat or command from a connection whose `sid` does not match the current database value, the connection is immediately terminated with an "Unauthorized: Session Expired" error.
+
+---
+
+## 6. Classification Categories
 The `classification` field in `live_result` will return one of:
 *   `Normal`
 *   `Abnormal`
