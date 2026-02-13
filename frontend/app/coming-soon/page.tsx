@@ -3,8 +3,8 @@
 import { useEffect, useState, ElementType } from 'react';
 import { useRouter } from 'next/navigation';
 import { Clock, Shield, Stethoscope, User } from 'lucide-react';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
 interface UserData {
     name: string;
@@ -45,7 +45,6 @@ export default function ComingSoonPage() {
     };
 
     const role = user?.role?.toLowerCase() || 'user';
-
     const config: Record<string, RoleConfig> = {
         admin: {
             title: "Administrator",
@@ -84,7 +83,6 @@ export default function ComingSoonPage() {
             shadow: "shadow-amber-100"
         }
     };
-
     const current = config[role] || config.user;
     const Icon = current.icon;
 
@@ -92,15 +90,12 @@ export default function ComingSoonPage() {
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
             <div className="max-w-md w-full text-center space-y-8 bg-white p-10 rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">
                 <div className={clsx("absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-50", current.bg)}></div>
-                
                 <div className="relative z-10">
                     <div className={clsx("w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg", current.bg, current.shadow)}>
                         <Icon className={clsx("w-10 h-10", current.color)} />
                     </div>
-                    
                     <h1 className="text-3xl font-bold text-slate-800 tracking-tight">{current.title}</h1>
                     <p className="text-brand-600 font-bold text-sm mt-2">{current.sub}</p>
-                    
                     <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 mt-8 mb-8 text-center">
                         <p className="text-slate-600 font-semibold">Coming Soon</p>
                         <p className="text-sm text-slate-500 mt-2 font-medium leading-relaxed">
@@ -108,7 +103,6 @@ export default function ComingSoonPage() {
                         </p>
                     </div>
                 </div>
-
                 <div className="relative z-10 pt-4">
                     <button 
                         onClick={() => setShowLogoutConfirm(true)}
@@ -118,7 +112,6 @@ export default function ComingSoonPage() {
                     </button>
                 </div>
             </div>
-
             <ConfirmationModal
                 isOpen={showLogoutConfirm}
                 onClose={() => setShowLogoutConfirm(false)}

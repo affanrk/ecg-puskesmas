@@ -38,7 +38,6 @@ export default function CalendarHeader({
     const [yearOpen, setYearOpen] = useState(false);
     const monthRef = useRef<HTMLDivElement>(null);
     const yearRef = useRef<HTMLDivElement>(null);
-
     const months = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -55,11 +54,9 @@ export default function CalendarHeader({
 
     const getStatusColor = (node?: CalendarNode) => {
         if (!node || !node.classifications) return null;
-        
         const hasHigh = filters.highRisk && (node.classifications['Sangat Berpotensi Aritmia'] || 0) > 0;
         const hasPotential = filters.potential && (node.classifications['Berpotensi Aritmia'] || 0) > 0;
         const hasAbnormal = filters.abnormal && (node.classifications['Abnormal'] || 0) > 0;
-
         if (hasHigh) return 'bg-rose-500';
         if (hasPotential) return 'bg-orange-500';
         if (hasAbnormal) return 'bg-slate-500';
@@ -72,7 +69,6 @@ export default function CalendarHeader({
                 <div className="flex items-center gap-2 text-blue-600">
                     <CalendarIcon size={20} className="2xl:w-6 2xl:h-6" strokeWidth={2.5} />
                 </div>
-                
                 <div className="flex items-center gap-3 sm:gap-4 2xl:gap-6 flex-1 sm:flex-none justify-center">
                     <button 
                         onClick={onToday}
@@ -80,7 +76,6 @@ export default function CalendarHeader({
                     >
                         Today
                     </button>
-
                     <div className="flex items-center bg-slate-50 p-1 2xl:p-1.5 rounded-md border border-slate-100 sm:ml-1">
                         <button onClick={onPrev} className="p-1 sm:p-1 2xl:p-1.5 rounded-md hover:bg-white hover:shadow-sm text-slate-500 transition-all active:scale-90">
                             <ChevronLeft size={14} className="2xl:w-5 2xl:h-5" strokeWidth={2.5} />
@@ -91,7 +86,6 @@ export default function CalendarHeader({
                     </div>
                 </div>
             </div>
-
             <div className="flex-1 flex items-center justify-between px-3 sm:px-5 2xl:px-8 h-full min-w-0">
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative" ref={monthRef}>
@@ -106,7 +100,6 @@ export default function CalendarHeader({
                                 <ChevronDown size={12} strokeWidth={3} className={clsx("2xl:w-4 2xl:h-4 transition-transform duration-300", monthOpen && "rotate-180")} />
                             </div>
                         </button>
-
                         {monthOpen && (
                             <div className="absolute top-full left-0 mt-2 w-48 sm:w-56 2xl:w-64 bg-white border border-slate-100 rounded-md shadow-2xl shadow-slate-200/50 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top">
                                 <div className="grid grid-cols-1 gap-0.5 px-2 max-h-[60vh] overflow-y-auto">
@@ -117,7 +110,6 @@ export default function CalendarHeader({
                                         const node = monthNodes.find(n => n.value === idx + 1);
                                         const statusColor = getStatusColor(node);
                                         const isSelected = currentDate.getMonth() === idx;
-
                                         return (
                                             <button
                                                 key={m}
@@ -141,7 +133,6 @@ export default function CalendarHeader({
                             </div>
                         )}
                     </div>
-
                     <div className="relative" ref={yearRef}>
                         <button 
                             onClick={() => setYearOpen(!yearOpen)}
@@ -154,7 +145,6 @@ export default function CalendarHeader({
                                 <ChevronDown size={12} strokeWidth={3} className={clsx("2xl:w-4 2xl:h-4 transition-transform duration-300", yearOpen && "rotate-180")} />
                             </div>
                         </button>
-
                         {yearOpen && (
                             <div className="absolute top-full left-0 mt-2 w-32 sm:w-40 2xl:w-48 bg-white border border-slate-100 rounded-md shadow-2xl shadow-slate-200/50 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top">
                                 <div className="grid grid-cols-1 gap-0.5 px-2">
@@ -164,7 +154,6 @@ export default function CalendarHeader({
                                     {yearNodes.sort((a,b) => b.value - a.value).map((node) => {
                                         const statusColor = getStatusColor(node);
                                         const isSelected = currentDate.getFullYear() === node.value;
-
                                         return (
                                             <button
                                                 key={node.value}
@@ -189,7 +178,6 @@ export default function CalendarHeader({
                         )}
                     </div>
                 </div>
-
                 <div className="flex items-center justify-center bg-slate-100/80 p-1 2xl:p-1.5 rounded-lg border border-slate-200/50 relative overflow-hidden">
                     <div 
                         className={clsx(
@@ -197,7 +185,6 @@ export default function CalendarHeader({
                             view === 'month' ? "left-1" : "left-[calc(50%+1px)]"
                         )}
                     />
-                    
                     <button
                         onClick={() => onViewChange('month')}
                         className={clsx(

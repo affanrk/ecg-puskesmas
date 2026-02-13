@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { CONFIG } from '@/config/constants';
 
 export interface User {
-    id?: number;
+    id?: string;
     username: string;
     email?: string;
     role: string;
@@ -82,7 +82,6 @@ interface AppState {
         second: number | null;
         data: AnalysisResult | null;
     };
-
     user: User | null;
     devices: Device[];
     liveData: AnalysisResult[];
@@ -90,7 +89,6 @@ interface AppState {
     ecgBuffer: EcgSample[];
     performance: PerformanceMetrics;
     visibleLeads: { leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean };
-
     setDeviceId: (id: string | null) => void;
     setDevices: (devices: Device[]) => void;
     setRecording: (isRecording: boolean) => void;
@@ -134,7 +132,6 @@ export const useStore = create<AppState>((set, get) => ({
         second: null,
         data: null
     },
-
     user: null,
     devices: [],
     liveData: [],
@@ -154,7 +151,6 @@ export const useStore = create<AppState>((set, get) => ({
         avF: true,
         v1: true
     },
-
     setDeviceId: (id) => set((state) => ({
         currentDeviceId: id, 
         isRecording: false, 
@@ -168,15 +164,12 @@ export const useStore = create<AppState>((set, get) => ({
         accumulatedTime: state.accumulatedTime,
         ecgBuffer: []
     })),
-
     setDevices: (devices) => set({ devices }),
-    
     setRecording: (isRecording) => set((state) => {
         if (!isRecording) {
             const cleanLiveData = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
             const segmentDuration = state.recordingStartTime ? (Date.now() - state.recordingStartTime) / 1000 : 0;
             const finalAccumulated = state.accumulatedTime + segmentDuration;
-            
             return { 
                 isRecording, 
                 liveData: cleanLiveData, 
@@ -185,19 +178,16 @@ export const useStore = create<AppState>((set, get) => ({
                 recordingSeconds: Math.floor(finalAccumulated)
             };
         }
-        
         const newLiveData = [...state.liveData.filter(r => r.recording_id !== 'placeholder-live')];
         newLiveData.unshift({
             timestamp: new Date().toISOString(),
             device_id: state.currentDeviceId || 'unknown',
-            subject_id: state.user?.nik || (state.user?.id ? String(state.user.id) : "-"),
+            subject_id: state.user?.nik || state.user?.id || "-",
             patient_name: state.user?.full_name || state.user?.username || "-",
             classification: "Recording...",
             recording_id: 'placeholder-live'
         });
-        
         const startTime = state.isRecording ? state.recordingStartTime : Date.now();
-        
         return { 
             isRecording, 
             isSessionActive: true, 
@@ -205,43 +195,33 @@ export const useStore = create<AppState>((set, get) => ({
             recordingStartTime: startTime
         };
     }),
-    
     setIsConnected: (connected) => set({ isConnected: connected }),
-    
     updateTimer: () => {
         const state = get();
         if (!state.isRecording || !state.recordingStartTime) return;
-        
         const currentSegment = (Date.now() - state.recordingStartTime) / 1000;
         const total = state.accumulatedTime + currentSegment;
         const totalRounded = Math.floor(total);
-        
         if (totalRounded !== state.recordingSeconds) {
             set({ recordingSeconds: totalRounded });
         }
     },
-    
     setUser: (user) => set(() => user ? { user, recordingSeconds: 0, accumulatedTime: 0 } : { user: null, liveData: [], archiveData: [], recordingSeconds: 0, isRecording: false, bpm: '--' }),
-    
     setArchiveData: (data) => set(() => ({ archiveData: data.filter(r => r.classification !== 'Recording...') })),
-    
     addLiveResult: (result) => set((state) => {
         if (!result || !result.recording_id || result.classification === 'Recording...') return state;
         const clean = state.liveData.filter(r => r.recording_id !== 'placeholder-live');
         if (clean.some(item => item.recording_id === result.recording_id)) return state;
-        
         const resultWithTime = {
             ...result,
             timestamp: result.changed_dt || result.timestamp || new Date().toISOString()
         };
-
         const newLive = [resultWithTime, ...clean].slice(0, 200);
-        
         if (state.isRecording) {
             newLive.unshift({ 
                 timestamp: new Date().toISOString(), 
                 device_id: state.currentDeviceId || 'unknown', 
-                subject_id: state.user?.nik || (state.user?.id ? String(state.user.id) : "-"), 
+                subject_id: state.user?.nik || state.user?.id || "-", 
                 patient_name: state.user?.full_name || state.user?.username || "-", 
                 classification: "Recording...", 
                 recording_id: 'placeholder-live' 
@@ -249,17 +229,13 @@ export const useStore = create<AppState>((set, get) => ({
         }
         return { liveData: newLive, archiveData: [resultWithTime, ...state.archiveData] };
     }),
-    
     pushEcgData: (data) => set((state) => {
         const limit = CONFIG.MAX_DATA_POINTS * 2; 
         const newBuffer = [...state.ecgBuffer, ...data].slice(-limit);
         return { ecgBuffer: newBuffer };
     }),
-    
     setLivePage: (page) => set({ livePage: page }),
-    
     setBpm: (bpm) => set({ bpm }),
-    
     updatePerformance: (latency, jitter, loss) => set((state) => ({
         performance: {
             latency, jitter, loss,
@@ -267,23 +243,17 @@ export const useStore = create<AppState>((set, get) => ({
             jitterHistory: state.performanceTrackingEnabled ? [...state.performance.jitterHistory, jitter].slice(-50) : state.performance.jitterHistory
         }
     })),
-    
     setPerformanceTrackingEnabled: (enabled) => set({ performanceTrackingEnabled: enabled }),
-    
     setIsSidebarPinned: (pinned) => set({ isSidebarPinned: pinned }),
-    
     setCalendarSelection: (selection) => set((state) => ({
         calendarSelection: { ...state.calendarSelection, ...selection }
     })),
-
     setSelectedResult: (result) => set((state) => ({
         selectedResult: { ...state.selectedResult, ...result }
     })),
-    
     setVisibleLeads: (leads) => set((state) => ({ 
         visibleLeads: { ...state.visibleLeads, ...leads } 
     })),
-
     resetSession: () => set({  
         liveData: [], 
         archiveData: [], 

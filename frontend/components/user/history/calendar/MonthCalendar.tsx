@@ -20,15 +20,13 @@ interface MonthCalendarProps {
 
 export default function MonthCalendar({ year, month, nodes, onDateClick, onViewChange, selectedDate, filters }: MonthCalendarProps) {
     const monthIndex = month - 1;
-    
+    const today = new Date();
     const calendarCells = useMemo(() => {
         const firstDayOfMonth = new Date(year, monthIndex, 1);
         const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
         const startDay = firstDayOfMonth.getDay();
-        
         const cells = [];
         const prevMonthLastDate = new Date(year, monthIndex, 0).getDate();
-        
         for (let i = startDay - 1; i >= 0; i--) {
             cells.push({ day: prevMonthLastDate - i, type: 'prev' as const, date: new Date(year, monthIndex - 1, prevMonthLastDate - i) });
         }
@@ -43,8 +41,6 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
         return cells;
     }, [year, monthIndex, nodes]);
 
-    const today = new Date();
-
     return (
         <div className="flex flex-col h-full bg-white select-none overflow-hidden">
             <div className="flex-1 overflow-auto">
@@ -54,26 +50,20 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
                             <div key={wd} className="text-center py-2 text-[10px] font-black text-slate-400 tracking-[0.2em]">{wd}</div>
                         ))}
                     </div>
-                    
                     <div className="grid grid-cols-7 grid-rows-6 flex-1 divide-x divide-slate-100 divide-y divide-slate-100 border-b border-slate-100">
                         {calendarCells.map((cell, idx) => {
                             const isCurrentMonth = cell.type === 'current';
                             const isToday = cell.date.getDate() === today.getDate() && cell.date.getMonth() === today.getMonth() && cell.date.getFullYear() === today.getFullYear();
                             const isSelected = cell.date.getDate() === selectedDate.getDate() && cell.date.getMonth() === selectedDate.getMonth() && cell.date.getFullYear() === selectedDate.getFullYear();
-
                             let totalActiveCount = 0;
                             let priorityEvent = null;
-
                             if (isCurrentMonth && cell.dayNodes) {
                                 const dayNode = cell.dayNodes[0]; 
-                                
                                 if (dayNode && dayNode.classifications) {
                                     const highCount = filters.highRisk ? (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) : 0;
                                     const potentialCount = filters.potential ? (dayNode.classifications['Berpotensi Aritmia'] || 0) : 0;
                                     const abnormalCount = filters.abnormal ? (dayNode.classifications['Abnormal'] || 0) : 0;
-
                                     totalActiveCount = dayNode.count - (dayNode.classifications['Normal'] || 0);
-
                                     if (highCount > 0) {
                                         priorityEvent = { color: 'bg-rose-500 shadow-rose-100', label: 'Sangat Berpotensi', count: highCount };
                                     } else if (potentialCount > 0) {
@@ -83,7 +73,6 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
                                     }
                                 }
                             }
-
                             return (
                                 <div 
                                     key={idx} 
@@ -103,14 +92,12 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
                                             <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 shadow-[2px_0_8px_rgba(59,130,246,0.3)] z-20" />
                                         </>
                                     )}
-
                                     <div className="flex justify-center sm:justify-start mb-2 relative z-10">
                                         <span className={clsx("text-sm lg:text-base 2xl:text-lg font-bold w-7 h-7 sm:w-9 sm:h-9 2xl:w-10 2xl:h-10 flex items-center justify-center rounded-md transition-all", 
                                             isToday ? "bg-blue-600 text-white shadow-lg shadow-blue-100" : isCurrentMonth ? "text-slate-700 group-hover:bg-slate-100" : "text-slate-300")}>
                                             {cell.day}
                                         </span>
                                     </div>
-
                                     <div className="mt-auto flex flex-col gap-1.5 2xl:gap-2 overflow-hidden">
                                         {priorityEvent && (
                                             <div className={clsx(
@@ -122,7 +109,6 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
                                                 <span className="lg:hidden">{priorityEvent.label.includes('Sangat') ? 'High' : 'Risk'}</span>
                                             </div>
                                         )}
-                                        
                                         {totalActiveCount > 0 && (
                                             <div className={clsx(
                                                 "px-2 py-1 lg:px-2.5 lg:py-1.5 rounded-md font-black text-slate-500 bg-white border border-slate-100 truncate mx-0.5 shadow-sm group-hover:border-slate-200 transition-all",

@@ -12,7 +12,6 @@ interface StatsPanelProps {
 
 export default function StatsPanel({ className }: StatsPanelProps) {
     const { recordingSeconds, bpm } = useStore();
-
     const cardBase = "bg-white p-4 h-full flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 border-none group";
 
     return (
@@ -21,7 +20,6 @@ export default function StatsPanel({ className }: StatsPanelProps) {
                 <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-rose-900 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Heart size={60} strokeWidth={1} />
                 </div>
-                
                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
                     <div className="flex flex-col items-center gap-1">
                         <span className="text-6xl font-black text-rose-600 tracking-tighter tabular-nums leading-none drop-shadow-sm">{bpm}</span>
@@ -33,12 +31,10 @@ export default function StatsPanel({ className }: StatsPanelProps) {
                     </div>
                 </div>
             </div>
-
             <div className={cardBase}>
                 <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                     <Timer size={60} strokeWidth={1} />
                 </div>
-
                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
                     <span className="text-3xl font-black text-slate-800 tracking-tight tabular-nums font-mono leading-none drop-shadow-sm">
                         {formatDuration(recordingSeconds)}

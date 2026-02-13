@@ -6,13 +6,10 @@ import { Sparkles, Brain } from 'lucide-react';
 
 export default function AIAnalysisCard() {
     const liveData = useStore((state) => state.liveData);
-
     let prediction: { classification: string; confidence: number } | null = null;
-
     if (liveData && liveData.length > 0) {
         const latest = liveData[0];
         const result = (latest.classification === 'Recording...' && liveData[1]) ? liveData[1] : latest;
-
         if (result && result.classification !== 'Recording...') {
             prediction = {
                 classification: result.classification,
@@ -20,7 +17,6 @@ export default function AIAnalysisCard() {
             };
         }
     }
-
     const isAbnormal = prediction && ['Abnormal', 'Aritmia', 'Berpotensi'].some(x => prediction.classification.includes(x));
     const confidencePct = prediction ? Math.round(prediction.confidence * 100) : 0;
     const isWaiting = !prediction;
@@ -33,7 +29,6 @@ export default function AIAnalysisCard() {
             <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-slate-900 pointer-events-none transition-transform group-hover:scale-110 duration-700">
                 <Brain size={60} strokeWidth={1} />
             </div>
-
             <div className="relative z-10 flex flex-col items-center justify-center text-center w-full">
                 <h3 className={clsx(
                     "text-xl font-black tracking-tight leading-tight transition-colors duration-500 mb-4 w-full break-words px-2 uppercase",
@@ -41,7 +36,6 @@ export default function AIAnalysisCard() {
                 )}>
                     {prediction ? prediction.classification : "Scanning"}
                 </h3>
-
                 <div className="w-full px-2">
                     {!isWaiting ? (
                         <div className="flex flex-col items-center gap-2">

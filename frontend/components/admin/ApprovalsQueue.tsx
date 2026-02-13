@@ -8,13 +8,12 @@ interface ApprovalsQueueProps {
     users: User[];
     searchTerm: string;
     dateRange: { start: string, end: string };
-    onApprove: (id: number, name: string) => void;
-    onReject: (id: number, name: string) => void;
+    onApprove: (id: string, name: string) => void;
+    onReject: (id: string, name: string) => void;
     onViewDetails: (user: User) => void;
 }
 
 export default function ApprovalsQueue({ users, searchTerm, dateRange, onApprove, onReject, onViewDetails }: ApprovalsQueueProps) {
-    // The 'users' array is already filtered by the backend via AdminConsole API calls
     const displayUsers = users;
 
     if (displayUsers.length === 0) {
@@ -43,7 +42,6 @@ export default function ApprovalsQueue({ users, searchTerm, dateRange, onApprove
                         <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center text-slate-500 text-2xl font-black shrink-0 border border-slate-200 group-hover:from-rose-50 group-hover:to-rose-100 group-hover:text-rose-600 group-hover:border-rose-200 transition-all">
                             {user.username.substring(0, 2).toUpperCase()}
                         </div>
-                        
                         <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
@@ -58,7 +56,6 @@ export default function ApprovalsQueue({ users, searchTerm, dateRange, onApprove
                                     <Clock size={10} /> Pending
                                 </div>
                             </div>
-
                             <div className="mt-4 grid grid-cols-2 gap-y-3 gap-x-4">
                                 <div className="space-y-1">
                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID (NIK)</p>
@@ -77,7 +74,6 @@ export default function ApprovalsQueue({ users, searchTerm, dateRange, onApprove
                             </div>
                         </div>
                     </div>
-
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                         <div className="flex flex-col">
                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Created At</span>

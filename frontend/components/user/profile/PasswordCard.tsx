@@ -40,7 +40,6 @@ export default function PasswordCard({
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                 <KeyRound size={100} strokeWidth={1} />
             </div>
-
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-md flex items-center justify-center shadow-sm border border-rose-100/50">
@@ -51,7 +50,6 @@ export default function PasswordCard({
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Password Protection</p>
                     </div>
                 </div>
-
                 {!isChangingPassword && (
                     <button
                         onClick={() => setIsChangingPassword(true)}
@@ -61,7 +59,6 @@ export default function PasswordCard({
                     </button>
                 )}
             </div>
-
             <div className="flex-1 flex flex-col min-h-0 w-full relative z-10">
                 {!isChangingPassword ? (
                     <div className="flex-1 flex items-center justify-center animate-in fade-in duration-500">
@@ -110,7 +107,6 @@ export default function PasswordCard({
                                 />
                             </div>
                         </div>
-
                         <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
                             <button
                                 type="button"

@@ -14,7 +14,6 @@ interface PerformanceChartProps {
 
 export default function PerformanceChart({ data, color, label, maxPoints = 50, suggestedMax = 100 }: PerformanceChartProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    
     const { initChart, destroyChart } = usePerformanceChart({
         data,
         color,
@@ -25,12 +24,9 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
 
     useEffect(() => {
         if (!canvasRef.current) return;
-
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
-
         initChart(ctx);
-
         return () => {
             destroyChart();
         };
@@ -38,7 +34,6 @@ export default function PerformanceChart({ data, color, label, maxPoints = 50, s
 
     return (
         <div className="h-full w-full relative">
-            {/* Subtle grid background */}
             <div className="absolute inset-0 opacity-30 pointer-events-none" 
                 style={{
                     backgroundImage: `linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)`,

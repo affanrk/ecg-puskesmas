@@ -18,6 +18,23 @@ interface CalendarSidebarProps {
     nodes: CalendarNode[];
 }
 
+function FilterItem({ label, color, checked, onClick }: { label: string, color: string, checked: boolean, onClick: () => void }) {
+    return (
+        <button 
+            onClick={onClick}
+            className="w-full flex items-center gap-3 p-2 2xl:p-3 rounded-md hover:bg-slate-50 cursor-pointer transition-all group text-left border border-transparent hover:border-slate-100/50"
+        >
+            <div className={clsx(
+                "w-4 h-4 2xl:w-6 2xl:h-6 rounded-sm border flex items-center justify-center transition-all shrink-0", 
+                checked ? `${color} border-transparent shadow-sm` : "border-slate-200 bg-white"
+            )}>
+                {checked && <Check size={12} className="text-white 2xl:w-4 2xl:h-4" strokeWidth={4} />}
+            </div>
+            <span className={clsx("text-[11px] 2xl:text-base font-bold transition-colors", checked ? "text-slate-700" : "text-slate-400")}>{label}</span>
+        </button>
+    );
+}
+
 export default function CalendarSidebar({ 
     currentDate, 
     onDateSelect,
@@ -29,6 +46,9 @@ export default function CalendarSidebar({
     const currentYearVal = currentDate.getFullYear();
     const currentMonthVal = currentDate.getMonth();
     const [miniDate, setMiniDate] = useState(new Date(currentYearVal, currentMonthVal, 1));
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 4;
+    const maxYear = currentYear;
 
     useEffect(() => {
         setMiniDate(new Date(currentYearVal, currentMonthVal, 1));
@@ -39,10 +59,6 @@ export default function CalendarSidebar({
             onMiniDateChange(miniDate);
         }
     }, [miniDate, onMiniDateChange]);
-
-    const currentYear = new Date().getFullYear();
-    const minYear = currentYear - 4;
-    const maxYear = currentYear;
 
     const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
     const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
@@ -67,7 +83,6 @@ export default function CalendarSidebar({
         const daysInMonth = getDaysInMonth(year, month);
         const startDay = getFirstDayOfMonth(year, month);
         const today = new Date();
-        
         const days = [];
         for (let i = 0; i < startDay; i++) {
             days.push(<div key={`empty-${i}`} className="w-7 h-7 2xl:w-10 2xl:h-10" />);
@@ -75,9 +90,7 @@ export default function CalendarSidebar({
         for (let i = 1; i <= daysInMonth; i++) {
             const isSelected = currentDate.getDate() === i && currentDate.getMonth() === month && currentDate.getFullYear() === year;
             const isToday = today.getDate() === i && today.getMonth() === month && today.getFullYear() === year;
-
             const dayNodes = nodes.filter(n => n.value === i);
-            
             let indicatorColor = null;
             if (dayNodes.length > 0) {
                 const dayNode = dayNodes[0];
@@ -85,13 +98,11 @@ export default function CalendarSidebar({
                     const hasHigh = filters.highRisk && (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) > 0;
                     const hasPotential = filters.potential && (dayNode.classifications['Berpotensi Aritmia'] || 0) > 0;
                     const hasAbnormal = filters.abnormal && (dayNode.classifications['Abnormal'] || 0) > 0;
-
                     if (hasHigh) indicatorColor = 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]';
                     else if (hasPotential) indicatorColor = 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.4)]';
                     else if (hasAbnormal) indicatorColor = 'bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.4)]';
                 }
             }
-
             days.push(
                 <button
                     key={i}
@@ -142,7 +153,6 @@ export default function CalendarSidebar({
                     {renderMiniCalendar()}
                 </div>
             </div>
-
             <div className="flex flex-col gap-2 2xl:gap-4">
                 <span className="text-[9px] 2xl:text-xs font-black text-slate-400 uppercase tracking-[0.2em] px-1">Filter Klinis</span>
                 <div className="space-y-1 2xl:space-y-2">
@@ -151,7 +161,6 @@ export default function CalendarSidebar({
                     <FilterItem label="Abnormal" color="bg-slate-500" checked={filters.abnormal} onClick={() => onFilterChange({...filters, abnormal: !filters.abnormal})} />
                 </div>
             </div>
-
             <div className="bg-blue-50/50 border border-blue-100/50 p-3 2xl:p-4 flex flex-col gap-1.5 2xl:gap-2 mt-auto">
                 <div className="flex items-center gap-2 text-blue-600">
                     <ShieldAlert size={16} className="2xl:w-5 2xl:h-5" strokeWidth={2.5} />
@@ -162,22 +171,5 @@ export default function CalendarSidebar({
                 </p>
             </div>
         </div>
-    );
-}
-
-function FilterItem({ label, color, checked, onClick }: { label: string, color: string, checked: boolean, onClick: () => void }) {
-    return (
-        <button 
-            onClick={onClick}
-            className="w-full flex items-center gap-3 p-2 2xl:p-3 rounded-md hover:bg-slate-50 cursor-pointer transition-all group text-left border border-transparent hover:border-slate-100/50"
-        >
-            <div className={clsx(
-                "w-4 h-4 2xl:w-6 2xl:h-6 rounded-sm border flex items-center justify-center transition-all shrink-0", 
-                checked ? `${color} border-transparent shadow-sm` : "border-slate-200 bg-white"
-            )}>
-                {checked && <Check size={12} className="text-white 2xl:w-4 2xl:h-4" strokeWidth={4} />}
-            </div>
-            <span className={clsx("text-[11px] 2xl:text-base font-bold transition-colors", checked ? "text-slate-700" : "text-slate-400")}>{label}</span>
-        </button>
     );
 }

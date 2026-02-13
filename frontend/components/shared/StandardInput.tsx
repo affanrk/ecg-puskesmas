@@ -29,7 +29,6 @@ export default function StandardInput({
 }: InputProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
-    
     const isPasswordType = type === "password";
     const inputType = isPasswordType ? (showPassword ? "text" : "password") : type;
 
@@ -41,7 +40,6 @@ export default function StandardInput({
             )}>
                 {label}
             </label>
-            
             <div className="relative">
                 <input 
                     type={inputType} 
@@ -59,7 +57,6 @@ export default function StandardInput({
                         disabled && "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none"
                     )}
                 />
-                
                 {isPasswordType && !disabled && (
                     <button
                         type="button"
@@ -71,7 +68,6 @@ export default function StandardInput({
                     </button>
                 )}
             </div>
-            
             {errorMessage && (
                 <div className="flex items-center gap-1.5 mt-1 ml-1 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
                     <AlertCircle size={12} strokeWidth={3} />

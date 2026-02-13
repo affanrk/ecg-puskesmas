@@ -41,10 +41,8 @@ export function useDeviceManager() {
         }
         
         sendJson({ type: "unsubscribe" });
-        
         setDeviceId(null); 
         setBpm('--');
-        
         toast("Disconnected from device");
     };
 

@@ -21,23 +21,24 @@ export default function RecentAnalysisTable({
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const containerRef = useRef<HTMLDivElement>(null);
+    const totalPages = Math.max(1, Math.ceil(recentRecords.length / rowsPerPage));
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        return recentRecords.slice(startIndex, startIndex + rowsPerPage);
+    }, [recentRecords, currentPage, rowsPerPage]);
 
     useEffect(() => {
         if (!containerRef.current) return;
-
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
                 const headerHeight = 60; 
                 const footerHeight = 60;
                 const availableHeight = height - headerHeight - footerHeight;
-                
                 const idealRows = 10;
                 const is2xl = window.innerWidth >= 1536;
                 const rowHeight = is2xl ? 52 : 48;
-                
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
-                
                 if (calculatedRows >= idealRows) {
                     setRowsPerPage(idealRows);
                 } else {
@@ -45,17 +46,9 @@ export default function RecentAnalysisTable({
                 }
             }
         });
-
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
-
-    const paginatedData = useMemo(() => {
-        const startIndex = (currentPage - 1) * rowsPerPage;
-        return recentRecords.slice(startIndex, startIndex + rowsPerPage);
-    }, [recentRecords, currentPage, rowsPerPage]);
-
-    const totalPages = Math.max(1, Math.ceil(recentRecords.length / rowsPerPage));
 
     const formatDateTime = (isoString: string) => {
         if (!isoString) return { date: '-', time: '' };
@@ -78,7 +71,6 @@ export default function RecentAnalysisTable({
                         <p className="text-[10px] 2xl:text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Last 10 Analysis</p>
                     </div>
                 </div>
-                
                 <button 
                     onClick={loadDashboardData}
                     disabled={loading}
@@ -93,7 +85,6 @@ export default function RecentAnalysisTable({
                     <RefreshCcw size={12} strokeWidth={3} className={clsx(loading && "animate-spin text-teal-500")} />
                 </button>
             </div>
-            
             <div ref={containerRef} className="flex-1 overflow-hidden relative z-10 bg-white">
                 {loading ? (
                     <div className="h-full w-full flex flex-col items-center justify-center gap-4 opacity-40">
@@ -124,7 +115,6 @@ export default function RecentAnalysisTable({
                                     const isPotential = cls.includes('berpotensi') || cls.includes('potential');
                                     const isAbnormal = cls.includes('abnormal');
                                     const isNormal = cls.includes('normal');
-
                                     return (
                                         <tr key={idx} className={clsx(
                                             "hover:bg-slate-50/50 transition-colors group h-[48px] 2xl:h-[52px]",
@@ -164,7 +154,6 @@ export default function RecentAnalysisTable({
                     </div>
                 )}
             </div>
-
             <div className="px-8 py-4 border-t border-slate-50 bg-white flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-2">
                     <span className="text-[9px] 2xl:text-[10px] font-black uppercase tracking-widest text-slate-400">Page {currentPage} of {totalPages}</span>

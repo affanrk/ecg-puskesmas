@@ -23,8 +23,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             isMounted.current = true;
             connectWebSocket();
         }
-
-        // Strict separation: Admins should not be in the user dashboard area
         if (user && user.role === 'admin') {
             router.replace('/admin/approvals');
         }
@@ -40,7 +38,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [isRecording, updateTimer]);
 
-    // Prevent rendering dashboard content for admin users
     if (user && user.role === 'admin') {
         return null;
     }
@@ -48,7 +45,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">
             <Sidebar />
-
             <div 
                 className={clsx(
                     "flex-1 flex flex-col min-w-0 bg-white shadow-2xl relative z-10 overflow-hidden transition-all duration-300 ease-in-out",

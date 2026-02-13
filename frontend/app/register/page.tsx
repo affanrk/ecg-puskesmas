@@ -5,24 +5,21 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { UserPlus, User, Mail, Check, AlertCircle, Eye, EyeOff, Sparkles, ShieldCheck, Stethoscope, Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useToast } from '@/hooks/useToast';
-import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
+import { useToast } from '@/hooks/useToast';
+import { getApiUrl } from '@/utils/helpers';
 
 export default function RegisterPage() {
     const router = useRouter();
     const { show: toast } = useToast();
-
     const [formData, setFormData] = useState({
         username: '',
         email: '',
         password: '',
         confirmPassword: ''
     });
-
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showPwdHint, setShowPwdHint] = useState(false);
-
     const [checks, setChecks] = useState({
         length: false,
         upper: false,
@@ -33,7 +30,6 @@ export default function RegisterPage() {
         username: false,
         email: false
     });
-
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
     const [success, setSuccess] = useState(false);
@@ -67,10 +63,8 @@ export default function RegisterPage() {
     const handleFieldChange = (field: string, value: string) => {
         const newFormData = { ...formData, [field]: value };
         setFormData(newFormData);
-
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
-
         if (field === 'password') {
             const confirmErr = validateField('confirmPassword', formData.confirmPassword);
             setErrors(prev => ({ ...prev, confirmPassword: confirmErr }));
@@ -86,7 +80,6 @@ export default function RegisterPage() {
         const pwd = formData.password;
         const usernameRegex = /^[a-zA-Z0-9_-]{3,}$/;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
         setChecks({
             length: pwd.length >= 8,
             upper: /[A-Z]/.test(pwd),
@@ -101,14 +94,12 @@ export default function RegisterPage() {
 
     const isFormValid = Object.values(checks).every(Boolean);
     const pwdStrengthCount = [checks.length, checks.upper, checks.number, checks.special].filter(Boolean).length;
-    
     const getStrengthLabel = () => {
         if (pwdStrengthCount === 0) return { label: 'Enter Password', color: 'text-slate-400' };
         if (pwdStrengthCount <= 2) return { label: 'Weak', color: 'text-rose-500' };
         if (pwdStrengthCount === 3) return { label: 'Good', color: 'text-amber-500' };
         return { label: 'Secure', color: 'text-emerald-600' };
     };
-    
     const strengthInfo = getStrengthLabel();
 
     const handleFocus = () => {
@@ -118,19 +109,15 @@ export default function RegisterPage() {
     const handleRegister = async (e: FormEvent) => {
         e.preventDefault();
         setServerError('');
-
         const newErrors: Record<string, string> = {
             username: !formData.username ? "Required" : validateField('username', formData.username),
             email: !formData.email ? "Required" : validateField('email', formData.email),
             password: !formData.password ? "Required" : validateField('password', formData.password),
             confirmPassword: !formData.confirmPassword ? "Required" : validateField('confirmPassword', formData.confirmPassword)
         };
-
         if (Object.values(newErrors).some(e => e) || !isFormValid) {
             setErrors(newErrors);
-            
             let msg = "Please correct the highlighted errors.";
-            
             if (Object.values(newErrors).some(e => e === "Required")) {
                 msg = "Please fill in all required fields.";
             } else if (newErrors.username) {
@@ -144,15 +131,12 @@ export default function RegisterPage() {
             } else if (!isFormValid) {
                 msg = "Please meet all password security requirements.";
             }
-
             setServerError(msg);
             triggerErrorEffect();
             return;
         }
-
         setLoading(true);
         const API_BASE_URL = getApiUrl();
-
         try {
             await axios.post(`${API_BASE_URL}/auth/register`, {
                 username: formData.username.trim(),
@@ -160,7 +144,6 @@ export default function RegisterPage() {
                 password: formData.password,
                 role: 'user'
             });
-
             setSuccess(true);
             toast("Account created successfully!", "success");
             setTimeout(() => {
@@ -181,12 +164,9 @@ export default function RegisterPage() {
 
     return (
         <div className="flex min-h-screen bg-white overflow-hidden font-sans">
-            
-            {/* Left Side: Medical Branding */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-brand-600 auth-split-bg medical-grid-pattern items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-brand-900/30 mix-blend-multiply"></div>
                 <div className="absolute top-20 right-20 w-64 h-64 bg-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
-                
                 <div className="relative z-10 text-center text-white px-12 max-w-lg">
                     <div className="mb-6 flex justify-center">
                         <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30">
@@ -211,20 +191,15 @@ export default function RegisterPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Right Side: Register Form */}
             <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-6 lg:p-8 bg-slate-50 lg:bg-white custom-scrollbar">
                 <div className={clsx(
                     "w-full max-w-[450px] mx-auto my-auto bg-white lg:bg-transparent p-6 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform"
                 )}>
-                    
                     <div className="mb-6">
                         <h1 className="text-2xl font-black text-slate-900 tracking-tight">Create Account</h1>
                         <p className="text-slate-400 font-medium mt-1.5 text-sm">Enter your details to register</p>
                     </div>
-
                     <form onSubmit={handleRegister} className="space-y-4">
-
                         {serverError && (
                              <div className={clsx(
                                  "py-2.5 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-3 animate-in fade-in slide-in-from-top-1",
@@ -234,9 +209,7 @@ export default function RegisterPage() {
                                 <span className="text-xs font-bold">{serverError}</span>
                             </div>
                         )}
-
                         <div className="space-y-3">
-                            {/* Username */}
                             <div className="group space-y-1">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Username</label>
                                 <div className="relative">
@@ -258,8 +231,6 @@ export default function RegisterPage() {
                                 </div>
                                 {errors.username && <span className="text-[10px] font-bold text-rose-500 ml-1">{errors.username}</span>}
                             </div>
-
-                            {/* Email */}
                             <div className="group space-y-1">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Email</label>
                                 <div className="relative">
@@ -281,8 +252,6 @@ export default function RegisterPage() {
                                 </div>
                                 {errors.email && <span className="text-[10px] font-bold text-rose-500 ml-1">{errors.email}</span>}
                             </div>
-
-                            {/* Password Group - Expanded */}
                             <div className="space-y-3">
                                 <div className="group space-y-1 relative">
                                     <div className="flex justify-between items-end px-1">
@@ -291,7 +260,6 @@ export default function RegisterPage() {
                                             {formData.password ? strengthInfo.label : ''}
                                         </span>
                                     </div>
-                                    
                                     <div className="relative">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
                                             <Lock className={clsx("w-4 h-4 transition-colors", errors.password ? "text-rose-400" : "text-slate-400 group-focus-within:text-brand-500")} />
@@ -318,8 +286,6 @@ export default function RegisterPage() {
                                         >
                                             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
-
-                                        {/* Dynamic Hint Popover */}
                                         <div className={clsx(
                                             "absolute left-0 bottom-[calc(100%+8px)] w-full bg-slate-900 text-white p-3 rounded-xl shadow-2xl transition-all duration-300 z-50 pointer-events-none origin-bottom",
                                             showPwdHint ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-2 scale-95"
@@ -338,12 +304,9 @@ export default function RegisterPage() {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {/* Arrow */}
                                             <div className="absolute -bottom-1.5 left-8 w-3 h-3 bg-slate-900 rotate-45"></div>
                                         </div>
                                     </div>
-
-                                    {/* Enhanced Progress Bar */}
                                     <div className="flex gap-1 h-1 mt-1.5 px-1">
                                         {[1, 2, 3, 4].map((step) => (
                                             <div 
@@ -358,8 +321,6 @@ export default function RegisterPage() {
                                         ))}
                                     </div>
                                 </div>
-
-                                {/* Confirm Password */}
                                 <div className="group space-y-1">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide ml-1">Confirm Password</label>
                                     <div className="relative">
@@ -382,8 +343,6 @@ export default function RegisterPage() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Submit */}
                         <div className="pt-2">
                             <button
                                 type="submit"
@@ -414,7 +373,6 @@ export default function RegisterPage() {
                             </button>
                         </div>
                     </form>
-
                     <div className="mt-6 text-center">
                         <p className="text-xs font-medium text-slate-500">
                             Already have an account? 

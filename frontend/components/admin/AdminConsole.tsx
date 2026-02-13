@@ -41,29 +41,17 @@ export default function AdminConsole() {
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [refreshKey, setRefreshKey] = useState(0); 
-    
-    const [rejectingUser, setRejectingUser] = useState<{ id: number, name: string } | null>(null);
-    const [approvingUser, setApprovingUser] = useState<{ id: number, name: string } | null>(null);
+    const [rejectingUser, setRejectingUser] = useState<{ id: string, name: string } | null>(null);
+    const [approvingUser, setApprovingUser] = useState<{ id: string, name: string } | null>(null);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
-    
     const showToast = useToast((state) => state.show);
-    
     const dateInputRef = useRef<HTMLInputElement>(null);
     const fpRef = useRef<FlatpickrInstance | null>(null);
     const fetchIdRef = useRef(0);
-    const lastFetchedRef = useRef(""); // To prevent double calls on identical states
+    const lastFetchedRef = useRef("");
 
     const isFilterActive = searchTerm !== '' || startDate !== '' || endDate !== '';
-
-    const resetFilters = () => {
-        setSearchTerm('');
-        setDebouncedSearch('');
-        setStartDate('');
-        setEndDate('');
-        if (fpRef.current) fpRef.current.clear(false);
-        showToast("Filters cleared", "success");
-    };
 
     useEffect(() => {
         if (searchTerm === debouncedSearch) return;
@@ -79,16 +67,11 @@ export default function AdminConsole() {
         const currentParams = JSON.stringify({
             debouncedSearch, startDate, endDate, approvalType, activeView, refreshKey
         });
-
-        // Skip if params haven't changed (standard behavior for hydration/strict mode)
         if (lastFetchedRef.current === currentParams) return;
-        
         const currentFetchId = ++fetchIdRef.current;
-        
         const loadData = async () => {
             setLoading(true);
             lastFetchedRef.current = currentParams;
-            
             try {
                 const filters = {
                     search: debouncedSearch,
@@ -98,7 +81,6 @@ export default function AdminConsole() {
                     is_operator: approvalType === 'operator' ? true : undefined,
                     is_doctor: approvalType === 'doctor' ? true : undefined,
                 };
-
                 let data;
                 if (activeView === 'queue') {
                     if (approvalType === 'patient') {
@@ -115,13 +97,12 @@ export default function AdminConsole() {
                 if (currentFetchId === fetchIdRef.current) {
                     console.error("Fetch error:", error);
                     showToast(`Failed to load ${activeView}`, "error");
-                    lastFetchedRef.current = ""; // Allow retry on error
+                    lastFetchedRef.current = "";
                 }
             } finally {
                 if (currentFetchId === fetchIdRef.current) setLoading(false);
             }
         };
-
         loadData();
     }, [debouncedSearch, startDate, endDate, approvalType, activeView, refreshKey, showToast]);
 
@@ -159,6 +140,15 @@ export default function AdminConsole() {
         }
     }, [startDate, endDate]);
 
+    const resetFilters = () => {
+        setSearchTerm('');
+        setDebouncedSearch('');
+        setStartDate('');
+        setEndDate('');
+        if (fpRef.current) fpRef.current.clear(false);
+        showToast("Filters cleared", "success");
+    };
+
     const handleRefresh = () => {
         setRefreshKey(prev => prev + 1);
         if (activeView === 'queue') {
@@ -168,7 +158,7 @@ export default function AdminConsole() {
         }
     };
 
-    const handleActionSuccess = (userId: number, message: string) => {
+    const handleActionSuccess = (userId: string, message: string) => {
         showToast(message, "success");
         setPendingUsers(prev => prev.filter(u => u.id !== userId));
         setApprovingUser(null);
@@ -209,14 +199,12 @@ export default function AdminConsole() {
                         </div>
                     </div>
                     <div className="flex items-center bg-slate-100 p-1 rounded-xl relative w-[260px] h-[40px]">
-                        {/* Sliding Background */}
                         <div 
                             className={clsx(
                                 "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-lg shadow-sm transition-all duration-300 ease-out z-0",
                                 activeView === 'queue' ? "left-1" : "left-[calc(50%+1px)]"
                             )}
                         />
-                        
                         <button 
                             onClick={() => setActiveView('queue')} 
                             className={clsx(
@@ -242,7 +230,6 @@ export default function AdminConsole() {
                     <span className="text-[10px] font-black uppercase tracking-widest pr-1">Sync</span>
                 </button>
             </div>
-
             <div className="h-[64px] shrink-0 border-b border-slate-100 flex items-center justify-between px-8 bg-slate-50/50">
                 <div className="flex items-center gap-8 h-full">
                     <button onClick={() => setApprovalType('patient')} className={clsx("text-[10px] font-black uppercase tracking-[0.2em] transition-all relative h-full flex items-center", approvalType === 'patient' ? "text-rose-600" : "text-slate-400 hover:text-slate-600")}>Patients {approvalType === 'patient' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500 rounded-full" />}</button>
@@ -255,7 +242,6 @@ export default function AdminConsole() {
                     <div className="relative group"><Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-rose-500 transition-colors" /><input type="text" placeholder="Search Name or NIK..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-md text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm" /></div>
                 </div>
             </div>
-
             <div className={clsx("flex-1 p-4 lg:p-8 bg-slate-50/30 min-h-0", activeView === 'queue' ? "overflow-y-auto custom-scrollbar" : "flex flex-col overflow-hidden")}>
                 {loading && (activeView === 'queue' ? pendingUsers.length === 0 : logs.length === 0) ? (
                     <div className="h-full w-full flex flex-col items-center justify-center py-20">
@@ -276,7 +262,6 @@ export default function AdminConsole() {
                     </div>
                 )}
             </div>
-
             {selectedUser && <UserDetailModal user={selectedUser} onClose={() => setSelectedUser(null)} onApprove={(id, name) => setApprovingUser({ id, name })} onReject={(id, name) => { setRejectingUser({ id, name }); setRejectionReason(''); }} />}
             {approvingUser && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">

@@ -29,12 +29,10 @@ export default function Sidebar() {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
-
     const isPatient = !!user?.is_patient;
     const isActivated = user?.is_activated === 1;
     const isAccessAllowed = isPatient && isActivated;
     const isAdmin = user?.role === 'admin';
-    
     const navItems = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
         { name: 'Classifier', href: '/classifier', icon: BrainCircuit, allowed: isAccessAllowed },
@@ -56,7 +54,6 @@ export default function Sidebar() {
             >
                 {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-
             <aside 
                 className={clsx(
                     "fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-200 z-[60] transition-all duration-300 ease-in-out flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]",
@@ -74,7 +71,6 @@ export default function Sidebar() {
                         <ChevronsRight size={16} className="text-slate-400 absolute opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
                     </div>
                 )}
-
                 <div className="h-[72px] flex items-center gap-3 px-6 border-b border-slate-100/50 bg-white shrink-0 relative overflow-hidden group-hover:bg-slate-50/30 transition-colors">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-50/50 to-transparent pointer-events-none" />
                     <div className="relative w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-md flex items-center justify-center shadow-lg shadow-teal-500/20 ring-4 ring-teal-50 shrink-0">
@@ -85,10 +81,8 @@ export default function Sidebar() {
                         <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest leading-none mt-1 whitespace-nowrap">Medical Platform</span>
                     </div>
                 </div>
-
                 <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
                     <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Main Menu</p>
-                    
                     {navItems.map((item) => (
                         <div key={item.href} className="relative group">
                             {item.allowed ? (
@@ -111,7 +105,6 @@ export default function Sidebar() {
                                     <item.icon size={20} className="shrink-0" />
                                     <span className={clsx("truncate font-medium transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>{item.name}</span>
                                     <Lock size={14} className={clsx("absolute right-4 text-slate-300 shrink-0 transition-opacity", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")} />
-                                    
                                     <div className="hidden lg:group-hover:block absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 pointer-events-none shadow-xl border border-slate-700">
                                         {!isActivated ? (user?.is_activated === 0 && user?.nik ? "Awaiting admin approval" : "Complete profile to unlock") : "Access restricted"}
                                         <div className="absolute top-1/2 -left-1 w-2 h-2 bg-slate-800 transform -translate-y-1/2 rotate-45 border-l border-b border-slate-700"></div>
@@ -120,9 +113,7 @@ export default function Sidebar() {
                             )}
                         </div>
                     ))}
-
                     <div className="my-6 border-t border-slate-100/80 mx-2" />
-
                     {isAdmin && (
                         <>
                             <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Administration</p>
@@ -143,9 +134,7 @@ export default function Sidebar() {
                             <div className="my-6 border-t border-slate-100/80 mx-2" />
                         </>
                     )}
-
                     <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", (!isSidebarPinned && !isHovered) && "opacity-0")}>Settings</p>
-                    
                     <Link 
                         href="/profile" 
                         className={clsx(
@@ -164,7 +153,6 @@ export default function Sidebar() {
                         )}
                     </Link>
                 </nav>
-
                 <div className="p-4 border-t border-slate-100 bg-white shrink-0 flex flex-col gap-2">
                     <button 
                         onClick={() => setShowLogoutConfirm(true)}
@@ -175,7 +163,6 @@ export default function Sidebar() {
                         </div>
                         <span className={clsx("truncate transition-opacity duration-200", (!isSidebarPinned && !isHovered) ? "opacity-0" : "opacity-100")}>Sign Out</span>
                     </button>
-
                     <button 
                         onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                         className={clsx(
@@ -195,14 +182,12 @@ export default function Sidebar() {
                     </button>
                 </div>
             </aside>
-
             {isMobileOpen && (
                 <div 
                     className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-30 lg:hidden animate-in fade-in"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
-
             <ConfirmationModal
                 isOpen={showLogoutConfirm}
                 onClose={() => setShowLogoutConfirm(false)}

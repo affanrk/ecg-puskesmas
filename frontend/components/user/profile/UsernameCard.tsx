@@ -40,7 +40,6 @@ export default function UsernameCard({
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-900 pointer-events-none transition-transform duration-700">
                 <UserCircle2 size={100} strokeWidth={1} />
             </div>
-
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10 shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shadow-sm border border-blue-100/50">
@@ -51,7 +50,6 @@ export default function UsernameCard({
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">System Identifier</p>
                     </div>
                 </div>
-
                 {!isEditingUsername && (
                     <button
                         onClick={() => setIsEditingUsername(true)}
@@ -61,7 +59,6 @@ export default function UsernameCard({
                     </button>
                 )}
             </div>
-
             <div className="flex-1 flex flex-col min-h-0 w-full relative z-10">
                 {isEditingUsername ? (
                     <div className="flex-1 flex flex-col w-full animate-in fade-in duration-300">
@@ -72,7 +69,6 @@ export default function UsernameCard({
                                 onChange={() => { }}
                                 disabled={true}
                             />
-
                             <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 text-[10px] text-blue-700 flex gap-3 leading-relaxed">
                                 <div className="shrink-0 mt-1 w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                                 <div>
@@ -80,7 +76,6 @@ export default function UsernameCard({
                                     Modifying your username will update your login credentials immediately.
                                 </div>
                             </div>
-
                             <StandardInput
                                 label="New Username"
                                 value={securityForm.new_username}
@@ -89,7 +84,6 @@ export default function UsernameCard({
                                 errorMessage={errors.new_username}
                             />
                         </div>
-
                         <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0">
                             <button
                                 onClick={handleCancelUsername}

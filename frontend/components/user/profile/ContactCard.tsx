@@ -42,8 +42,8 @@ export default function ContactCard({
     loading
 }: ContactCardProps) {
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const canEditMedical = !isLocked || isEditingMedical;
     const historyRef = useRef<HTMLDivElement>(null);
+    const canEditMedical = !isLocked || isEditingMedical;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -60,7 +60,6 @@ export default function ContactCard({
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
                 <HeartPulse size={100} strokeWidth={1} />
             </div>
-
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-md flex items-center justify-center shadow-sm border border-teal-100/50">
@@ -71,7 +70,6 @@ export default function ContactCard({
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Medical History & Contact</p>
                     </div>
                 </div>
-
                 {isLocked && !isEditingMedical && (
                     <button 
                         onClick={() => setIsEditingMedical(true)} 
@@ -81,12 +79,9 @@ export default function ContactCard({
                     </button>
                 )}
             </div>
-
             <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
-                {/* Improved Medical History Picker: Custom Dropdown */}
                 <div className="space-y-2 relative" ref={historyRef}>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Medical History / Risk Factors</label>
-                    
                     <button
                         type="button"
                         disabled={!canEditMedical}
@@ -112,7 +107,6 @@ export default function ContactCard({
                         </div>
                         <ChevronDown size={14} className={clsx("text-slate-400 transition-transform duration-300", isHistoryOpen && "rotate-180")} strokeWidth={3} />
                     </button>
-
                     {isHistoryOpen && canEditMedical && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-md shadow-2xl z-50 py-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top">
                             {['Normal', 'Hipertensi', 'Penyakit Jantung'].map((option) => {
@@ -138,7 +132,6 @@ export default function ContactCard({
                         </div>
                     )}
                 </div>
-                
                 <StandardInput 
                     label="Phone Number" 
                     value={medicalForm.contact_number} 
@@ -147,7 +140,6 @@ export default function ContactCard({
                     placeholder="+62..." 
                     errorMessage={errors.contact_number} 
                 />
-                
                 <div className="flex-1">
                     <StandardInput 
                         label="Residential Address" 
@@ -156,27 +148,25 @@ export default function ContactCard({
                         disabled={!canEditMedical} 
                         placeholder="Street, City, Zip Code..." 
                     />
-                                </div>
-                            </div>
-                
-                                        {isEditingMedical && (
-                                            <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
-                                                <button 
-                                                    onClick={handleCancelMedical} 
-                                                    className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"
-                                                >
-                                                    Discard
-                                                </button>
-                                                <button 
-                                                    onClick={onSaveProfileClick} 
-                                                    disabled={loading} 
-                                                    className="flex-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
-                                                >
-                                                    <CheckCircle2 size={16} strokeWidth={2.5} /> Save Updates
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
-                            
+                </div>
+            </div>
+            {isEditingMedical && (
+                <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
+                    <button 
+                        onClick={handleCancelMedical} 
+                        className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98]"
+                    >
+                        Discard
+                    </button>
+                    <button 
+                        onClick={onSaveProfileClick} 
+                        disabled={loading} 
+                        className="flex-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5"
+                    >
+                        <CheckCircle2 size={16} strokeWidth={2.5} /> Save Updates
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}

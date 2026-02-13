@@ -23,11 +23,9 @@ export default function DistributionChart({ stats, isVertical = false }: Distrib
         if (l === 'abnormal') return '#94a3b8';
         if (l === 'berpotensi aritmia') return '#f97316';
         if (l === 'sangat berpotensi aritmia') return '#ef4444';
-        
         if (l.includes('sangat')) return '#ef4444';
         if (l.includes('berpotensi')) return '#f97316';
         if (l.includes('aritmia')) return '#f43f5e';
-        
         return '#94a3b8';
     };
 
@@ -109,7 +107,7 @@ export default function DistributionChart({ stats, isVertical = false }: Distrib
                 )}
                 {totalProcessed > 0 ? (
                     <div className="w-full h-full z-10 animate-in fade-in zoom-in-95 duration-700">
-                        <Doughnut data={chartData} options={chartOptions} />
+                        < Doughnut data={chartData} options={chartOptions} />
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center gap-4 opacity-30 py-8">

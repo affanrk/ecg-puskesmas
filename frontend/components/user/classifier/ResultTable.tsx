@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 import { useToast } from '@/hooks/useToast';
 import { useStore, AnalysisResult } from '@/store/useStore';
-import { useSearchParams } from 'next/navigation';
 import ClassifierToolbar from './ClassifierToolbar';
 import ClassifierTable from './ClassifierTable';
 import ClassifierPagination from './ClassifierPagination';
@@ -13,24 +13,20 @@ export default function ResultTable() {
     const { user, archiveData, setArchiveData } = useStore();
     const { show: toast } = useToast();
     const searchParams = useSearchParams();
-    
     const [loading, setLoading] = useState(true);
     const [limit, setLimit] = useState<number | ''>('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedRecord, setSelectedRecord] = useState<AnalysisResult | null>(null);
     const [rowsPerPage, setRowsPerPage] = useState(10);
-    
     const isFetching = useRef(false);
 
     const loadHistory = useCallback(async (showToast = false) => {
         if (!user?.id || isFetching.current) return;
-        
         isFetching.current = true;
         setLoading(true);
         try {
             const requestLimit = limit === '' ? undefined : (limit > 200 ? 200 : limit);
-
             const data = await api.fetchHistory({
                 limit: requestLimit,
                 start_date: dateRange.start,
@@ -60,14 +56,14 @@ export default function ResultTable() {
         loadHistory();
     }, [loadHistory]);
 
-    const totalPages = Math.ceil(archiveData.length / rowsPerPage) || 1;
-    const paginatedData = archiveData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
-    const isFilterActive = dateRange.start.length > 0 || limit !== '';
-
     const clearFilters = () => {
         setLimit('');
         setDateRange({ start: '', end: '' });
     };
+
+    const totalPages = Math.ceil(archiveData.length / rowsPerPage) || 1;
+    const paginatedData = archiveData.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+    const isFilterActive = dateRange.start.length > 0 || limit !== '';
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden">
@@ -82,7 +78,6 @@ export default function ResultTable() {
                     loadHistory={loadHistory}
                     loading={loading}
                 />
-
                 <ClassifierTable
                     loading={loading}
                     data={paginatedData}
@@ -90,7 +85,6 @@ export default function ResultTable() {
                     setSelectedRecord={setSelectedRecord}
                     setRowsPerPage={setRowsPerPage}
                 />
-
                 <ClassifierPagination
                     currentPage={currentPage}
                     totalPages={totalPages}

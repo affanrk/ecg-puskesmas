@@ -1,17 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import axiosInstance from '@/services/axiosInstance';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
-import { getApiUrl } from '@/services/api';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();
     const { show: toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'medical' | 'security'>('medical');
-
     const [medicalForm, setMedicalForm] = useState({
         full_name: '',
         nik: '',
@@ -22,21 +20,17 @@ export function useProfileManager() {
         address: '',
         medical_history: 'Normal'
     });
-
     const [securityForm, setSecurityForm] = useState({
         new_username: '',
         current_password: '',
         new_password: '',
         confirm_password: ''
     });
-
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [rejectionReason, setRejectionReason] = useState<string | null>(null);
-
     const [isEditingMedical, setIsEditingMedical] = useState(false);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
-
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean;
         type: 'identity' | 'medical' | 'username' | 'password' | null;
@@ -119,7 +113,6 @@ export function useProfileManager() {
     const runFullMedicalValidation = () => {
         const newErrors: Record<string, string> = {};
         const isLocked = user?.is_patient;
-
         if (!isLocked) {
             if (!/^\d{16}$/.test(medicalForm.nik)) newErrors.nik = "Must be exactly 16 digits";
             if (medicalForm.full_name.length < 2) newErrors.full_name = "Name too short";
@@ -127,11 +120,9 @@ export function useProfileManager() {
             else if (new Date(medicalForm.dob) > new Date()) newErrors.dob = "Cannot be in future";
             if (!medicalForm.pob) newErrors.pob = "Place of Birth required";
         }
-
         if (medicalForm.contact_number && !/^\+?[\d\s\-\(\)]{10,20}$/.test(medicalForm.contact_number)) {
             newErrors.contact_number = "Invalid phone format";
         }
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -151,7 +142,6 @@ export function useProfileManager() {
     const handleApiError = (err: unknown, defaultField?: string) => {
         const fieldErrors: Record<string, string> = {};
         const apiErr = err as { response?: { status: number; data: { detail: string | Array<{ loc: string[]; msg: string }> } } };
-        
         if (apiErr.response?.status === 400 || apiErr.response?.status === 422) {
             const detail = apiErr.response.data.detail;
             if (typeof detail === 'string') {
@@ -173,9 +163,6 @@ export function useProfileManager() {
 
     const executeSaveProfile = async () => {
         setLoading(true);
-        const API_URL = getApiUrl();
-        const token = localStorage.getItem('ecg_token');
-
         const payload = {
             ...medicalForm,
             full_name: medicalForm.full_name || null,
@@ -186,11 +173,8 @@ export function useProfileManager() {
             contact_number: medicalForm.contact_number || null,
             medical_history: medicalForm.medical_history || null
         };
-
         try {
-            const res = await axios.put(`${API_URL}/auth/profile`, payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axiosInstance.put('/profile', payload);
             setUser(res.data);
             toast("Profile updated successfully!", "success");
             setIsEditingMedical(false);
@@ -204,13 +188,8 @@ export function useProfileManager() {
 
     const executeChangeUsername = async () => {
         setLoading(true);
-        const API_URL = getApiUrl();
-        const token = localStorage.getItem('ecg_token');
-
         try {
-            const res = await axios.put(`${API_URL}/auth/change-username`, { new_username: securityForm.new_username }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await axiosInstance.put('/auth/change-username', { new_username: securityForm.new_username });
             setUser(res.data);
             toast("Username updated!", "success");
             setIsEditingUsername(false);
@@ -224,15 +203,10 @@ export function useProfileManager() {
 
     const executeChangePassword = async () => {
         setLoading(true);
-        const API_URL = getApiUrl();
-        const token = localStorage.getItem('ecg_token');
-
         try {
-            await axios.put(`${API_URL}/auth/change-password`, {
+            await axiosInstance.put('/auth/change-password', {
                 current_password: securityForm.current_password,
                 new_password: securityForm.new_password
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
             toast("Password changed successfully!", "success");
             setSecurityForm(p => ({ ...p, current_password: '', new_password: '', confirm_password: '' }));
@@ -264,7 +238,6 @@ export function useProfileManager() {
 
     const onSaveProfileClick = () => {
         if (!runFullMedicalValidation()) return;
-
         if (!user?.is_patient) {
             setConfirmState({
                 isOpen: true,
@@ -304,12 +277,10 @@ export function useProfileManager() {
     const onUpdatePasswordClick = () => {
         const pwdError = validateField('new_password', securityForm.new_password);
         const confirmError = validateField('confirm_password', securityForm.confirm_password);
-
         if (pwdError || confirmError) {
             setErrors({ new_password: pwdError, confirm_password: confirmError });
             return;
         }
-
         setConfirmState({
             isOpen: true,
             type: 'password',

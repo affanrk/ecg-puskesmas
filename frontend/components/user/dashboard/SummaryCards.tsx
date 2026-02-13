@@ -20,9 +20,7 @@ interface SummaryCardsProps {
 
 export default function SummaryCards({ lastResult, lastResultTime }: SummaryCardsProps) {
     const { user } = useStore();
-    
     if (!user) return null;
-
     const isNormal = lastResult?.classification === 'Normal';
     const cardClass = "bg-white px-8 pt-6 pb-6 2xl:px-10 2xl:pt-8 2xl:pb-8 transition-all duration-500 relative overflow-hidden group h-full w-full flex flex-col";
 
@@ -31,7 +29,6 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
             <div className="absolute -right-2 -bottom-2 opacity-[0.02] text-slate-900 pointer-events-none transition-transform duration-700 group-hover:scale-110">
                 <User size={100} strokeWidth={1} />
             </div>
-
             <div className="relative z-10 space-y-4 2xl:space-y-5">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 2xl:w-14 2xl:h-14 bg-slate-50 text-slate-400 rounded-md flex items-center justify-center shadow-inner border border-slate-100 shrink-0">
@@ -46,9 +43,7 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                         </p>
                     </div>
                 </div>
-
                 <div className="h-px bg-slate-50 w-full" />
-
                 <div className="grid grid-cols-1 gap-2 2xl:gap-3">
                     <div className="flex items-center justify-between p-2 2xl:p-3 rounded-md bg-slate-50/50 border border-slate-100/50 group-hover:bg-white transition-colors duration-500">
                         <div className="flex items-center gap-3">
@@ -71,7 +66,6 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                             </span>
                         </div>
                     </div>
-
                     <div className="flex items-center justify-between p-2 2xl:p-3 rounded-md bg-slate-50/50 border border-slate-100/50 group-hover:bg-white transition-colors duration-500">
                         <div className="flex items-center gap-3">
                             <div className="w-7 h-7 2xl:w-10 2xl:h-10 bg-blue-500 text-white rounded flex items-center justify-center shadow-sm">

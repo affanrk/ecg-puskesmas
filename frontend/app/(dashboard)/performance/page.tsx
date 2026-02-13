@@ -1,24 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useStore } from '@/store/useStore';
-import PerformanceChart from '@/components/user/performance/PerformanceChart';
 import { Wifi, AlertTriangle, Zap, Server } from 'lucide-react';
 import clsx from 'clsx';
+import { useStore } from '@/store/useStore';
+import PerformanceChart from '@/components/user/performance/PerformanceChart';
 
 export default function PerformancePage() {
     const { performance, setPerformanceTrackingEnabled } = useStore();
+    const cardClass = "bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-500";
 
     useEffect(() => {
         setPerformanceTrackingEnabled(true);
         return () => setPerformanceTrackingEnabled(false);
     }, [setPerformanceTrackingEnabled]);
 
-    const cardClass = "bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-5 flex flex-col justify-between relative overflow-hidden transition-all duration-500";
-
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-white relative">
-            {/* Header Area */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 p-4 lg:p-5 2xl:px-8 2xl:py-6">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 sm:w-10 sm:h-10 2xl:w-12 2xl:h-12 bg-white rounded-md flex items-center justify-center shadow-lg shadow-teal-500/10 border border-slate-100">
@@ -34,17 +32,13 @@ export default function PerformancePage() {
                     </div>
                 </div>
             </div>
-
             <div className="flex-1 min-h-0 overflow-y-auto px-4 lg:px-5 2xl:px-8 pb-4 lg:pb-5 2xl:pb-8">
                 <div className="flex flex-col gap-6 w-full min-h-full">
-                    {/* Real-time Stats Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 h-40">
-                        {/* Latency Card */}
                         <div className={cardClass}>
                             <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
                                 <Wifi size={80} strokeWidth={1} />
                             </div>
-                            
                             <div className="relative z-10 flex items-center justify-between h-full">
                                 <div>
                                     <div className="flex items-center gap-2 mb-0.5">
@@ -66,13 +60,10 @@ export default function PerformancePage() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Jitter Card */}
                         <div className={cardClass}>
                             <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-blue-900 pointer-events-none transition-transform duration-700">
                                 <Zap size={90} strokeWidth={1} />
                             </div>
-                            
                             <div className="relative z-10 flex items-center justify-between h-full">
                                 <div>
                                     <div className="flex items-center gap-2 mb-0.5">
@@ -91,13 +82,10 @@ export default function PerformancePage() {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Packet Loss Card */}
                         <div className={clsx(cardClass, performance.loss > 0 && "border-rose-100 bg-rose-50/10")}>
                             <div className="absolute top-0 right-0 p-3 opacity-[0.03] text-rose-900 pointer-events-none transition-transform duration-700">
                                 <AlertTriangle size={90} strokeWidth={1} />
                             </div>
-                            
                             <div className="relative z-10 flex items-center justify-between h-full">
                                 <div>
                                     <div className="flex items-center gap-2 mb-0.5">
@@ -123,10 +111,7 @@ export default function PerformancePage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Charts Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[320px] shrink-0">
-                        {/* Latency Chart */}
                         <div className="bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden transition-all duration-500">
                             <div className="flex justify-between items-center mb-4 relative z-10">
                                 <div className="flex items-center gap-3">
@@ -155,8 +140,6 @@ export default function PerformancePage() {
                                 />
                             </div>
                         </div>
-
-                        {/* Jitter Chart */}
                         <div className="bg-white rounded-md shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col relative overflow-hidden transition-all duration-500">
                             <div className="flex justify-between items-center mb-4 relative z-10">
                                 <div className="flex items-center gap-3">
@@ -186,8 +169,6 @@ export default function PerformancePage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Bottom Spacer */}
                     <div className="h-6 shrink-0" />
                 </div>
             </div>

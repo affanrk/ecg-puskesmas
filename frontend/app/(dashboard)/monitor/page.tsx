@@ -19,7 +19,6 @@ export default function MonitorPage() {
                                 onToggleLead={(key) => setVisibleLeads({ [key]: !visibleLeads[key] })}
                             />
                         </div>
-
                         <div className="col-span-12 lg:col-span-2 flex flex-col gap-px h-full min-h-0 bg-slate-200">
                             <div className="flex-[3] min-h-0 bg-white">
                                 <StatsPanel className="grid-cols-1 grid-rows-2 h-full" variant="minimal" />

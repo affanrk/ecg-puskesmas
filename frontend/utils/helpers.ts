@@ -10,7 +10,6 @@ export function formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    
     if (h > 0) {
         return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     }
@@ -43,16 +42,28 @@ export function calculateAge(birthDateString: string | null | undefined): number
     const today = new Date();
     const birthDate = new Date(birthDateString);
     if (isNaN(birthDate.getTime())) return "";
-    
     let age = today.getFullYear() - birthDate.getFullYear();
     const m = today.getMonth() - birthDate.getMonth();
-    
     if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
         age--;
     }
-    
     if (age < 0) return 0;
     if (age > 150) return "";
-    
     return age;
+}
+
+export function getApiUrl(): string {
+    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+    
+    if (typeof window !== 'undefined' && (window as any).__ENV__) {
+        url = (window as any).__ENV__.NEXT_PUBLIC_API_URL || url;
+    }
+    
+    url = url.replace(/\/$/, '');
+    
+    if (!url.endsWith('/api/v1')) {
+        url = `${url}/api/v1`;
+    }
+    
+    return url;
 }

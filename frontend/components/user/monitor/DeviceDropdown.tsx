@@ -11,10 +11,8 @@ export default function DeviceDropdown() {
     const { user, isConnected, isRecording } = useStore();
     const { devices, currentDeviceId, selectDevice, disconnectDevice } = useDeviceManager();
     const [isOpen, setIsOpen] = useState(false);
-    
     const [showConfirm, setShowConfirm] = useState(false);
     const [pendingAction, setPendingAction] = useState<{ type: 'switch' | 'disconnect', deviceId?: string } | null>(null);
-    
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -79,20 +77,16 @@ export default function DeviceDropdown() {
                             ? (currentDeviceId ? "bg-emerald-500 animate-pulse" : "bg-slate-300") 
                             : "bg-rose-400"
                     )}></div>
-                    
                     <div className="flex flex-col items-start justify-center">
                         <span className="text-[10px] font-black uppercase tracking-wider leading-none truncate max-w-[120px]">
                             {currentDeviceId || "Select Device"}
                         </span>
                     </div>
                 </div>
-                
                 <ChevronDown size={14} className={clsx("transition-transform duration-200 text-slate-300", isOpen && "rotate-180")} />
             </button>
-
             {isOpen && (
                 <div className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-bottom-2 overflow-hidden ring-1 ring-black/5">
-                    
                     {currentDeviceId && (
                         <div className="px-4 py-4 border-b border-slate-50 bg-emerald-50/30">
                             <div className="flex items-start justify-between mb-4">
@@ -109,7 +103,6 @@ export default function DeviceDropdown() {
                                     </div>
                                 </div>
                             </div>
-                            
                             <button 
                                 onClick={initiateDisconnect}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-rose-100 text-rose-600 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95"
@@ -118,12 +111,10 @@ export default function DeviceDropdown() {
                             </button>
                         </div>
                     )}
-
                     <div className="px-4 py-2.5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available Sources</p>
                         <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-2 py-0.5 rounded-md shadow-sm">{devices.length}</span>
                     </div>
-
                     <div className="max-h-60 overflow-y-auto custom-scrollbar p-1.5 space-y-0.5">
                         {devices.length === 0 ? (
                             <div className="px-4 py-8 text-center">
@@ -137,7 +128,6 @@ export default function DeviceDropdown() {
                             devices.map((device) => {
                                 const isSelected = currentDeviceId === device.id;
                                 if (isSelected) return null;
-
                                 return (
                                     <button
                                         key={device.id}
@@ -169,7 +159,6 @@ export default function DeviceDropdown() {
                             })
                         )}
                     </div>
-
                     <div className="px-4 py-3 border-t border-slate-50 bg-slate-50/30">
                         <div className="flex items-start gap-2 text-[10px] text-slate-400 leading-relaxed">
                             <Info size={12} className="shrink-0 mt-0.5 text-blue-400" />
@@ -178,7 +167,6 @@ export default function DeviceDropdown() {
                     </div>
                 </div>
             )}
-
             <ConfirmationModal
                 isOpen={showConfirm}
                 onClose={() => setShowConfirm(false)}

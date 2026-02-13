@@ -2,8 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useStore } from '@/store/useStore';
 import { Loader2 } from 'lucide-react';
+import { useStore } from '@/store/useStore';
 
 export default function Home() {
     const router = useRouter();
@@ -15,7 +15,6 @@ export default function Home() {
             router.replace('/login');
             return;
         }
-
         if (user) {
             if (user.role === 'admin') {
                 router.replace('/admin/approvals');

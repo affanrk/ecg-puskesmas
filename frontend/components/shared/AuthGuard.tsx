@@ -17,10 +17,8 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         const checkAuth = async () => {
             if (isMounted.current) return;
             isMounted.current = true;
-
             const token = localStorage.getItem('ecg_token');
             const isAuthPage = pathname === '/login' || pathname === '/register';
-
             if (!token) {
                 setAuthorized(false);
                 if (!isAuthPage) {
@@ -28,14 +26,12 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                 }
                 return;
             }
-
             try {
                 if (!storeUser) {
                     const userData = await api.fetchUserProfile(token);
                     setUser(userData);
                     localStorage.setItem('ecg_user', JSON.stringify(userData));
                 }
-
                 setAuthorized(true);
             } catch (error) {
                 console.error("Session verification failed:", error);
@@ -45,7 +41,6 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                 if (!isAuthPage) router.push('/login');
             }
         };
-
         checkAuth();
     }, [pathname, router, setUser, storeUser]);
 

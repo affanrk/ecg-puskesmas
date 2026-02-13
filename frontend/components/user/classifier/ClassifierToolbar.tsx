@@ -56,7 +56,6 @@ export default function ClassifierToolbar({
                 }
             }) as unknown as FlatpickrInstance;
         }
-
         return () => {
             if (fpRef.current) {
                 fpRef.current.destroy();
@@ -76,7 +75,6 @@ export default function ClassifierToolbar({
     }, [dateRange]);
 
     return (
-
         <div className="px-4 sm:px-6 py-2.5 2xl:py-3.5 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white/50 backdrop-blur-sm relative z-20 shrink-0">
             <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 flex-wrap">
                 <div className="relative w-full sm:w-48 group/limit shrink-0">
@@ -117,7 +115,6 @@ export default function ClassifierToolbar({
                         </div>
                     ) : null}
                 </div>
-
                 <div className="relative group/date w-full sm:w-56 shrink-0">
                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-hover/date:text-teal-500 transition-colors pointer-events-none z-10" />
                     <input
@@ -127,7 +124,6 @@ export default function ClassifierToolbar({
                         className="hidden"
                     />
                 </div>
-
                 <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                     <button
                         onClick={clearFilters}
@@ -142,7 +138,6 @@ export default function ClassifierToolbar({
                         <Trash2 className="w-3.5 h-3.5" />
                         <span>Reset</span>
                     </button>
-
                     <button
                         onClick={() => loadHistory(true)}
                         className="p-2.5 text-slate-400 hover:text-teal-600 transition-all rounded-md hover:bg-teal-50 border border-transparent hover:border-teal-100 ml-auto sm:ml-0"

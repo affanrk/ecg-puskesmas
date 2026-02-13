@@ -1,14 +1,13 @@
 'use client';
 
-import DashboardSummary from '@/components/user/dashboard/DashboardSummary';
-import { useStore } from '@/store/useStore';
 import Link from 'next/link';
 import { ShieldAlert, ArrowRight, Lock, Activity, FileCheck, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
+import DashboardSummary from '@/components/user/dashboard/DashboardSummary';
+import { useStore } from '@/store/useStore';
 
 export default function DashboardPage() {
     const { user } = useStore();
-    
     const isApproved = user?.status === 'APPROVED';
     const isPending = user?.status === 'QUEUE';
     const isRejected = user?.status === 'REJECTED';
@@ -22,7 +21,6 @@ export default function DashboardPage() {
                         <div className="w-full max-w-2xl bg-white rounded-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden relative animate-in fade-in zoom-in-95 duration-500 group">
                             <div className="absolute -top-24 -right-24 w-64 h-64 bg-slate-50 rounded-full blur-3xl opacity-60"></div>
                             <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-slate-50/50 to-transparent pointer-events-none"></div>
-
                             <div className="p-8 md:p-10 relative z-10">
                                 <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
                                     <div className="relative shrink-0">
@@ -36,7 +34,6 @@ export default function DashboardPage() {
                                             <ShieldAlert size={14} className={clsx(isPending && "animate-bounce")} />
                                         </div>
                                     </div>
-
                                     <div className="flex-1 space-y-4">
                                         <div>
                                             <div className={clsx(
@@ -50,7 +47,6 @@ export default function DashboardPage() {
                                                 {isRejected ? "Information Update Required" : isPending ? "Awaiting Admin Approval" : "Account Activation Required"}
                                             </h2>
                                         </div>
-                                        
                                         <p className="text-slate-500 text-sm md:text-base leading-relaxed font-medium">
                                             {isRejected 
                                                 ? "Your profile was not approved by the administrator. Please review the reason in your profile settings and update your information."
@@ -59,7 +55,6 @@ export default function DashboardPage() {
                                                 : "To access real-time telemetry and AI analysis, we need to verify your medical identity. This ensures full standard compliance and data security."
                                             }
                                         </p>
-
                                         <div className="pt-4 flex flex-col md:flex-row items-center gap-4">
                                             <Link 
                                                 href="/profile"
@@ -71,7 +66,6 @@ export default function DashboardPage() {
                                                 </span>
                                                 <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                                             </Link>
-
                                             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 px-4 py-2 bg-slate-50 rounded-md cursor-help hover:bg-slate-100 transition-colors">
                                                 <FileCheck size={14} className="text-teal-500" />
                                                 {isRejected ? "Revision Required" : isPending ? "Queue #Pending" : "Identity Verification Required"}
@@ -80,7 +74,6 @@ export default function DashboardPage() {
                                     </div>
                                 </div>
                             </div>
-
                             <div className="bg-slate-50 border-t border-slate-100 p-4 text-center md:text-left transition-colors group-hover:bg-teal-50/50">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start gap-2 group-hover:text-teal-600 transition-colors">
                                     <Stethoscope size={14} />
@@ -90,7 +83,6 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 )}
-
                 <div className={clsx(
                     "transition-all duration-700 ease-out h-full min-h-0",
                     isRestricted ? "filter blur-lg opacity-30 pointer-events-none scale-[0.98] grayscale-[0.5]" : "opacity-100 filter-none"

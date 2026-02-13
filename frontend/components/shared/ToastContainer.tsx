@@ -1,27 +1,14 @@
 'use client';
 
-import { useToast, Toast } from '@/hooks/useToast';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
-
-export default function ToastContainer() {
-    const { toasts, remove } = useToast();
-
-    return (
-        <div className="fixed top-6 right-6 z-[200] flex flex-col items-end pointer-events-none gap-3 overflow-visible">
-            {toasts.map((toast) => (
-                <ToastItem key={toast.id} toast={toast} onRemove={() => remove(toast.id)} />
-            ))}
-        </div>
-    );
-}
+import { useToast, Toast } from '@/hooks/useToast';
 
 function ToastItem({ toast, onRemove }: { toast: Toast, onRemove: () => void }) {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Trigger the entrance animation immediately on mount
         const timer = setTimeout(() => setIsVisible(true), 10);
         return () => clearTimeout(timer);
     }, []);
@@ -51,6 +38,18 @@ function ToastItem({ toast, onRemove }: { toast: Toast, onRemove: () => void }) 
             >
                 <X className="w-4 h-4" />
             </button>
+        </div>
+    );
+}
+
+export default function ToastContainer() {
+    const { toasts, remove } = useToast();
+
+    return (
+        <div className="fixed top-6 right-6 z-[200] flex flex-col items-end pointer-events-none gap-3 overflow-visible">
+            {toasts.map((toast) => (
+                <ToastItem key={toast.id} toast={toast} onRemove={() => remove(toast.id)} />
+            ))}
         </div>
     );
 }

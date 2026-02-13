@@ -27,7 +27,7 @@ export function useSessionManager() {
                 device_id: currentDeviceId,
                 user_id: user.id,
                 username: user.username,
-                subject_id: String(user.id)
+                subject_id: user.id
             };
             sendJson(payload);
         }

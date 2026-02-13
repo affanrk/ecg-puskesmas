@@ -18,7 +18,6 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
         gradient.addColorStop(0, color + '40');
         gradient.addColorStop(1, color + '00');
-
         const config: ChartConfiguration = {
             type: 'line',
             data: {
@@ -60,7 +59,6 @@ export function usePerformanceChart({ data, color, label, maxPoints, suggestedMa
                 }
             }
         };
-
         chartRef.current = new Chart(ctx, config);
     }, [color, label, maxPoints, suggestedMax]);
 

@@ -48,7 +48,6 @@ export default function FlatpickrInput({
                 }
             });
         }
-
         return () => {
             if (fpInstance.current) {
                 fpInstance.current.destroy();
@@ -67,14 +66,11 @@ export default function FlatpickrInput({
         if (fpInstance.current && fpInstance.current.altInput) {
              fpInstance.current.altInput.disabled = disabled;
              const altInput = fpInstance.current.altInput;
-             
              const baseClasses = "w-full px-4 py-3 rounded-xl border-2 text-xs font-bold transition-all duration-300 outline-none";
              const activeClasses = "border-slate-100 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/5 bg-slate-50/50 focus:bg-white text-slate-800 placeholder:text-slate-400";
              const disabledClasses = "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none";
              const errorClasses = "border-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 bg-rose-50/20 text-rose-900 placeholder:text-rose-300";
-
              altInput.className = baseClasses;
-
              if (disabled) {
                  altInput.classList.add(...disabledClasses.split(' '));
              } else if (errorMessage) {
@@ -105,7 +101,6 @@ export default function FlatpickrInput({
                     <span className="text-[10px] font-black uppercase tracking-wider">{errorMessage}</span>
                 </div>
             )}
-            
             <style jsx global>{`
                 .flatpickr-calendar {
                     z-index: 99999 !important;

@@ -25,18 +25,14 @@ export default function ClassifierTable({
 
     useEffect(() => {
         if (!containerRef.current) return;
-
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
                 const headerHeight = 60; 
                 const availableHeight = height - headerHeight;
-                
                 const idealRows = 10;
                 const rowHeight = 48; 
-                
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
-                
                 if (calculatedRows >= idealRows) {
                     setRowsPerPage(idealRows);
                 } else {
@@ -44,7 +40,6 @@ export default function ClassifierTable({
                 }
             }
         });
-
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, [setRowsPerPage]);
@@ -79,12 +74,10 @@ export default function ClassifierTable({
                                 const isSelected = selectedRecordId === rec.recording_id;
                                 const status = (rec.classification || '').toString();
                                 const cls = status.toLowerCase();
-                                
                                 const isHighRisk = cls.includes('sangat') || cls.includes('high');
                                 const isPotential = cls.includes('berpotensi') || cls.includes('potential');
                                 const isAbnormal = cls.includes('abnormal');
                                 const isNormal = cls.includes('normal');
-
                                 return (
                                     <tr
                                         key={rec.recording_id || `${rec.changed_dt}-${idx}`}

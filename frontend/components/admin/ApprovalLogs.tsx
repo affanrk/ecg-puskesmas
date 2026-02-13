@@ -7,7 +7,7 @@ import { formatDate } from '@/utils/helpers';
 
 export interface ApprovalLog {
     id: string;
-    user_id: number;
+    user_id: string;
     username: string;
     full_name: string;
     is_patient: boolean;
@@ -29,26 +29,20 @@ interface ApprovalLogsProps {
 
 export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, currentPage, setCurrentPage }: ApprovalLogsProps) {
     const containerRef = useRef<HTMLDivElement>(null);
+    const displayLogs = logs;
+    const totalPages = Math.ceil(displayLogs.length / rowsPerPage) || 1;
+    const paginatedLogs = displayLogs.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-    // Dynamic row calculation based on container height - Mimics ClassifierTable mechanism
     useEffect(() => {
         if (!containerRef.current) return;
-
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const height = entry.contentRect.height;
-                const headerHeight = 56; // Matching the h-[56px] in thead
+                const headerHeight = 56;
                 const availableHeight = height - headerHeight;
-                
-                // At 1080p, we want roughly 10 rows. 
-                // Row height is h-[52px].
                 const idealRows = 10;
                 const rowHeight = 52; 
-                
                 const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
-                
-                // If we have more space than 10 rows, we cap it at 10 to keep it "Clean" 
-                // but if we have less (lower resolution), we reduce it to fit.
                 if (calculatedRows >= idealRows) {
                     setRowsPerPage(idealRows);
                 } else {
@@ -56,16 +50,9 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                 }
             }
         });
-
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, [setRowsPerPage]);
-
-    // The 'logs' array is already filtered by the backend via AdminConsole API calls
-    const displayLogs = logs;
-
-    const totalPages = Math.ceil(displayLogs.length / rowsPerPage) || 1;
-    const paginatedLogs = displayLogs.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
     const onPageChange = (page: number) => {
         setCurrentPage(page);
@@ -74,8 +61,6 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
     return (
         <div className="flex flex-col h-full w-full overflow-hidden animate-in fade-in duration-500">
             <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
-                
-                {/* Table Container - Mimics ClassifierTable structure with ResizeObserver */}
                 <div ref={containerRef} className="flex-1 overflow-x-auto no-scrollbar relative z-10 overflow-y-hidden">
                     <table className="w-full text-left border-collapse table-fixed lg:table-auto h-full">
                         <thead className="bg-slate-50/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[56px]">
@@ -152,8 +137,6 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                         </tbody>
                     </table>
                 </div>
-
-                {/* Pagination Controls - Identical to ClassifierPagination */}
                 <div className="px-8 py-4 border-t border-slate-50 bg-white relative z-20 flex justify-between items-center shrink-0">
                     <div className="flex items-center gap-4">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">

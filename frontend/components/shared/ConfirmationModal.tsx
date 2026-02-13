@@ -36,12 +36,10 @@ export default function ConfirmationModal({
                     )}>
                         <AlertTriangle size={28} />
                     </div>
-                    
                     <h3 className="text-xl font-black text-slate-800 mb-2">{title}</h3>
                     <p className="text-sm text-slate-500 leading-relaxed mb-8 px-2">
                         {message}
                     </p>
-
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button 
                             onClick={onClose}

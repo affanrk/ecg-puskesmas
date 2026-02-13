@@ -4,9 +4,9 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
-import { getApiUrl } from '@/services/api';
 import clsx from 'clsx';
+import { useToast } from '@/hooks/useToast';
+import { getApiUrl } from '@/utils/helpers';
 
 export default function LoginPage() {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -16,7 +16,6 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [serverError, setServerError] = useState('');
     const [showErrorEffect, setShowErrorEffect] = useState(false);
-
     const { show: toast } = useToast();
 
     const validateField = (field: string, value: string) => {
@@ -32,7 +31,6 @@ export default function LoginPage() {
     const handleFieldChange = (field: string, value: string) => {
         if (field === 'usernameOrEmail') setUsernameOrEmail(value);
         else if (field === 'password') setPassword(value);
-
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
     };
@@ -49,13 +47,10 @@ export default function LoginPage() {
     const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
         setServerError('');
-
         const userErr = !usernameOrEmail ? "Required" : validateField('usernameOrEmail', usernameOrEmail);
         const passErr = !password ? "Required" : validateField('password', password);
-
         if (userErr || passErr) {
             setErrors({ usernameOrEmail: userErr, password: passErr });
-            
             let msg = "Please correct the errors.";
             if (userErr === "Required" || passErr === "Required") {
                 msg = "Please enter both username and password.";
@@ -64,39 +59,29 @@ export default function LoginPage() {
             } else if (passErr) {
                 msg = passErr;
             }
-
             setServerError(msg);
             triggerErrorEffect();
             return;
         }
-
         setLoading(true);
-
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
-
         const API_BASE_URL = getApiUrl();
-
         try {
             const response = await axios.post(`${API_BASE_URL}/auth/login`, {
                 username_or_email: usernameOrEmail,
                 password
             });
-
             const data = response.data;
-
             const userData = {
                 id: data.user_id,
                 username: data.user_name,
                 role: data.role,
                 is_patient: data.is_patient
             };
-
             localStorage.setItem('ecg_token', data.access_token);
             localStorage.setItem('ecg_user', JSON.stringify(userData));
-
             toast("Welcome back!", "success");
-
             setTimeout(() => {
                 if (data.role === 'admin') {
                     window.location.href = '/admin/approvals';
@@ -122,15 +107,10 @@ export default function LoginPage() {
 
     return (
         <div className="flex min-h-screen bg-white overflow-hidden font-sans">
-            
-            {/* Left Side: Medical Branding & Art */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-brand-600 auth-split-bg medical-grid-pattern items-center justify-center overflow-hidden">
-                {/* Decorative Elements */}
                 <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-brand-900/20"></div>
                 <div className="absolute -top-20 -left-20 w-96 h-96 bg-brand-400/20 rounded-full blur-3xl animate-pulse-slow"></div>
                 <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-3xl"></div>
-                
-                {/* Content */}
                 <div className="relative z-10 text-center text-white px-12 max-w-lg animate-float">
                     <div className="mb-8 flex justify-center">
                         <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl border border-white/20">
@@ -141,8 +121,6 @@ export default function LoginPage() {
                     <p className="text-brand-100 text-lg leading-relaxed font-medium">
                         Secure, real-time cardiac telemetry platform for healthcare professionals and patients.
                     </p>
-                    
-                    {/* Simulated ECG Line */}
                     <div className="mt-12 w-full h-24 relative opacity-50">
                         <svg viewBox="0 0 500 100" className="w-full h-full overflow-visible">
                             <path d="M0,50 L50,50 L60,20 L70,80 L80,50 L120,50 L130,20 L140,80 L150,50 L300,50 L310,10 L330,90 L350,50 L500,50" 
@@ -155,13 +133,10 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Right Side: Login Form */}
             <div className="w-full lg:w-1/2 h-screen overflow-y-auto flex flex-col p-8 lg:p-12 bg-slate-50 lg:bg-white relative custom-scrollbar">
                 <div className={clsx(
                     "w-full max-w-[420px] mx-auto my-auto bg-white lg:bg-transparent p-10 lg:p-0 rounded-3xl lg:rounded-none shadow-xl lg:shadow-none transition-transform",
                 )}>
-                    
                     <div className="mb-10">
                         <div className="flex items-center gap-3 mb-2 lg:hidden">
                             <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-600/20">
@@ -172,10 +147,7 @@ export default function LoginPage() {
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Welcome Back</h1>
                         <p className="text-slate-400 font-medium mt-2">Sign in to access your dashboard</p>
                     </div>
-
                     <form onSubmit={handleLogin} className="space-y-6">
-
-                        {/* Error Alert */}
                         {serverError && (
                             <div className={clsx(
                                 "py-3 px-4 bg-rose-50 border border-rose-100 rounded-2xl mb-4", 
@@ -187,8 +159,6 @@ export default function LoginPage() {
                                 </div>
                             </div>
                         )}
-
-                        {/* Inputs */}
                         <div className="space-y-5">
                             <div className="group space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Username or Email</label>
@@ -213,7 +183,6 @@ export default function LoginPage() {
                                 </div>
                                 {errors.usernameOrEmail && <span className="text-xs font-bold text-rose-500 block ml-1">{errors.usernameOrEmail}</span>}
                             </div>
-
                             <div className="group space-y-2">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Password</label>
                                 <div className="relative">
@@ -245,8 +214,6 @@ export default function LoginPage() {
                                 {errors.password && <span className="text-xs font-bold text-rose-500 block ml-1">{errors.password}</span>}
                             </div>
                         </div>
-
-                        {/* Submit */}
                         <div className="pt-2">
                             <button
                                 type="submit"
@@ -267,8 +234,6 @@ export default function LoginPage() {
                             </button>
                         </div>
                     </form>
-
-                    {/* Footer */}
                     <div className="mt-8 text-center">
                         <p className="text-sm font-medium text-slate-500">
                             Don&apos;t have an account? 

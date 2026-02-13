@@ -42,7 +42,6 @@ export default function IdentityCard({
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none transition-transform duration-700">
                 <Fingerprint size={100} strokeWidth={1} />
             </div>
-
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shadow-sm border border-blue-100/50">
@@ -53,7 +52,6 @@ export default function IdentityCard({
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Demographics & Verification</p>
                     </div>
                 </div>
-                
                 {isActivated ? (
                     <div className="flex flex-col items-end gap-1">
                         <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md flex items-center gap-1.5 border border-emerald-100 shadow-sm uppercase tracking-wider">
@@ -66,7 +64,6 @@ export default function IdentityCard({
                     </span>
                 )}
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 flex-1 content-start relative z-10">
                 <div className="space-y-1">
                     <StandardInput 
@@ -108,7 +105,6 @@ export default function IdentityCard({
                         errorMessage={errors.dob} 
                     />
                 </div>
-                
                 <div className="md:col-span-2 space-y-1">
                      <SelectInput 
                         label="Gender" 
@@ -119,7 +115,6 @@ export default function IdentityCard({
                     />
                 </div>
             </div>
-
             {!isLocked && (
                 <div className="pt-6 mt-6 flex justify-end border-t border-slate-50 relative z-10">
                     <button 

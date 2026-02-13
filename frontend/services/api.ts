@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axiosInstance from './axiosInstance';
+import { getApiUrl } from '../utils/helpers';
 
 declare global {
     interface Window {
@@ -10,22 +11,6 @@ export interface HistoryFilters {
     [key: string]: string | number | boolean | undefined;
 }
 
-export const getApiUrl = (): string => {
-    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-
-    if (typeof window !== 'undefined' && window.__ENV__) {
-        url = window.__ENV__.NEXT_PUBLIC_API_URL || url;
-    }
-
-    url = url.replace(/\/$/, '');
-
-    if (!url.endsWith('/api/v1')) {
-        url = `${url}/api/v1`;
-    }
-
-    return url;
-};
-
 export async function fetchHistory(filters: HistoryFilters = {}) {
     const params = new URLSearchParams();
     for (const key in filters) {
@@ -35,9 +20,8 @@ export async function fetchHistory(filters: HistoryFilters = {}) {
         }
     }
     params.append('t', Date.now().toString());
-
     try {
-        const response = await axios.get(`${getApiUrl()}/history`, { params });
+        const response = await axiosInstance.get('/history', { params });
         return response.data;
     } catch (error) {
         console.error("Fetch History Error:", error);
@@ -47,13 +31,11 @@ export async function fetchHistory(filters: HistoryFilters = {}) {
 
 export function downloadRecording(type: 'raw' | 'feature' | 'plot', recordingId: string) {
     if (!recordingId) return;
-
     const endpointMap: { [key: string]: string } = {
         'raw': 'raw',
         'feature': 'features',
         'plot': 'plot'
     };
-
     const endpoint = endpointMap[type] || type;
     const url = `${getApiUrl()}/export/${endpoint}/${recordingId}`;
     window.open(url, '_blank');
@@ -61,8 +43,8 @@ export function downloadRecording(type: 'raw' | 'feature' | 'plot', recordingId:
 
 export async function fetchUserProfile(token: string) {
     try {
-        const response = await axios.get(`${getApiUrl()}/auth/me`, {
-            headers: { Authorization: `Bearer ${token}` }
+        const response = await axiosInstance.get('/auth/me', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         return response.data;
     } catch (error) {
@@ -71,10 +53,10 @@ export async function fetchUserProfile(token: string) {
     }
 }
 
-export async function fetchStats(userId?: number) {
+export async function fetchStats(userId?: string) {
     try {
         const params = userId ? { user_id: userId } : {};
-        const response = await axios.get(`${getApiUrl()}/history/stats`, { params });
+        const response = await axiosInstance.get('/history/stats', { params });
         return response.data;
     } catch (error) {
         console.error("Fetch Stats Error:", error);
@@ -82,10 +64,10 @@ export async function fetchStats(userId?: number) {
     }
 }
 
-export async function fetchRecentHistory(userId: number, limit: number = 10) {
+export async function fetchRecentHistory(userId: string, limit: number = 10) {
     try {
         const params = { user_id: userId, limit };
-        const response = await axios.get(`${getApiUrl()}/history/recent`, { params });
+        const response = await axiosInstance.get('/history/recent', { params });
         return response.data;
     } catch (error) {
         console.error("Fetch Recent History Error:", error);
@@ -99,7 +81,7 @@ export async function fetchCalendar(filters: {
     day?: number;
     hour?: number;
     minute?: number;
-    user_id?: number;
+    user_id?: string;
 }) {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, val]) => {
@@ -107,97 +89,79 @@ export async function fetchCalendar(filters: {
             params.append(key, String(val));
         }
     });
-
     try {
-        const response = await axios.get(`${getApiUrl()}/history/calendar`, { params });
+        const response = await axiosInstance.get('/history/calendar', { params });
         return response.data;
-        } catch (error) {
-            console.error("Fetch Calendar Error:", error);
-            throw error;
-        }
+    } catch (error) {
+        console.error("Fetch Calendar Error:", error);
+        throw error;
     }
-    
-    export async function fetchPendingApprovals(filters: HistoryFilters = {}) {
-        const token = localStorage.getItem('ecg_token');
-        const params = new URLSearchParams();
-        Object.entries(filters).forEach(([key, val]) => {
-            if (val !== undefined && val !== null && val !== '') {
-                params.append(key, String(val));
-            }
+}
+
+export async function fetchPendingApprovals(filters: HistoryFilters = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+            params.append(key, String(val));
+        }
+    });
+    try {
+        const response = await axiosInstance.get('/admin/pending-approvals', { params });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Pending Approvals Error:", error);
+        throw error;
+    }
+}
+
+export async function updateUserStatus(userId: string, isActivated: number, reason?: string) {
+    try {
+        const response = await axiosInstance.post(`/admin/update-status/${userId}`, {
+            is_activated: isActivated,
+            reason: reason
         });
-
-        try {
-            const response = await axios.get(`${getApiUrl()}/admin/pending-approvals`, {
-                params,
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Fetch Pending Approvals Error:", error);
-            throw error;
-        }
+        return response.data;
+    } catch (error) {
+        console.error("Update User Status Error:", error);
+        throw error;
     }
-    
-    export async function updateUserStatus(userId: number, isActivated: number, reason?: string) {
-        const token = localStorage.getItem('ecg_token');
-        try {
-            const response = await axios.post(`${getApiUrl()}/admin/update-status/${userId}`, {
-                is_activated: isActivated,
-                reason: reason
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Update User Status Error:", error);
-            throw error;
-        }
-    }
+}
 
-    export async function fetchApprovalLogs(filters: HistoryFilters = {}) {
-        const token = localStorage.getItem('ecg_token');
-        const params = new URLSearchParams();
-        Object.entries(filters).forEach(([key, val]) => {
-            if (val !== undefined && val !== null && val !== '') {
-                params.append(key, String(val));
-            }
-        });
-
-        try {
-            const response = await axios.get(`${getApiUrl()}/admin/approval-logs`, {
-                params,
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Fetch Approval Logs Error:", error);
-            throw error;
+export async function fetchApprovalLogs(filters: HistoryFilters = {}) {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+            params.append(key, String(val));
         }
+    });
+    try {
+        const response = await axiosInstance.get('/admin/approval-logs', { params });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Approval Logs Error:", error);
+        throw error;
     }
+}
 
-    export async function fetchDetailedHealth() {
-        const token = localStorage.getItem('ecg_token');
-        try {
-            const response = await axios.get(`${getApiUrl()}/health/detailed`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            return response.data;
-        } catch (error) {
-            console.error("Fetch Health Error:", error);
-            throw error;
-        }
+export async function fetchDetailedHealth() {
+    try {
+        const response = await axiosInstance.get('/health/detailed');
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Health Error:", error);
+        throw error;
     }
-    
-    export const api = {
-        fetchHistory,
-        downloadRecording,
-        fetchUserProfile,
-        fetchStats,
-        fetchRecentHistory,
-        fetchCalendar,
-        fetchPendingApprovals,
-        updateUserStatus,
-        fetchApprovalLogs,
-        fetchDetailedHealth
-    };
-    
+}
+
+export const api = {
+    fetchHistory,
+    downloadRecording,
+    fetchUserProfile,
+    fetchStats,
+    fetchRecentHistory,
+    fetchCalendar,
+    fetchPendingApprovals,
+    updateUserStatus,
+    fetchApprovalLogs,
+    fetchDetailedHealth
+};

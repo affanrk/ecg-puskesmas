@@ -1,5 +1,6 @@
 'use client';
 
+import { AlertCircle } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import ProfileHeader from '@/components/user/profile/ProfileHeader';
 import IdentityCard from '@/components/user/profile/IdentityCard';
@@ -7,7 +8,6 @@ import ContactCard from '@/components/user/profile/ContactCard';
 import UsernameCard from '@/components/user/profile/UsernameCard';
 import PasswordCard from '@/components/user/profile/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
-import { AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
     const {
@@ -41,17 +41,16 @@ export default function ProfilePage() {
     } = useProfileManager();
 
     if (!user) return null;
-    const isActivated = user.status === 'APPROVED';
+    const isApproved = user.status === 'APPROVED';
     const isPending = user.status === 'QUEUE';
     const isRejected = user.status === 'REJECTED';
-    const isLocked = isActivated || isPending;
+    const isLocked = isApproved || isPending;
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden bg-white relative">
             <div className="flex-1 min-h-0 overflow-y-auto border-t border-slate-100 custom-scrollbar">
                 <div className="w-full min-h-full space-y-4 relative">
                     <div className="absolute inset-0 medical-grid-pattern opacity-20 pointer-events-none -z-10"></div>
-
                     <ConfirmationModal
                         isOpen={confirmState.isOpen}
                         onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
@@ -62,7 +61,6 @@ export default function ProfilePage() {
                         isDestructive={confirmState.isDestructive}
                         isLoading={loading}
                     />
-
                     { isRejected && rejectionReason && (
                         <div className="mx-4 mt-4 p-4 bg-rose-50 border border-rose-100 rounded-xl animate-in slide-in-from-top-2 duration-500">
                             <div className="flex items-start gap-3">
@@ -78,20 +76,18 @@ export default function ProfilePage() {
                             </div>
                         </div>
                     )}
-
                     <ProfileHeader
                         user={user}
                         isLocked={isLocked}
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                     />
-
                     <div className="w-full">
                         {activeTab === 'medical' && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
                                 <IdentityCard
                                     isLocked={isLocked}
-                                    isActivated={isActivated}
+                                    isActivated={isApproved}
                                     rejectionReason={rejectionReason}
                                     medicalForm={medicalForm}
                                     handleMedicalChange={handleMedicalChange}
@@ -113,7 +109,6 @@ export default function ProfilePage() {
                                 />
                             </div>
                         )}
-
                         {activeTab === 'security' && (
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch w-full animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
                                 <UsernameCard
@@ -142,7 +137,6 @@ export default function ProfilePage() {
                             </div>
                         )}
                     </div>
-
                     <div className="h-6 shrink-0" />
                 </div>
             </div>

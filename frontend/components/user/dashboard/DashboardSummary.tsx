@@ -17,7 +17,6 @@ export default function DashboardSummary() {
 
     const loadDashboardData = useCallback(async () => {
         if (!user?.id || isFetching.current) return; 
-
         isFetching.current = true;
         setLoading(true);
         try {
@@ -25,13 +24,11 @@ export default function DashboardSummary() {
                 api.fetchRecentHistory(user.id, 10), 
                 api.fetchStats(user.id)
             ]);
-            
             if (Array.isArray(historyData)) {
                 setRecentRecords(historyData);
             }
             if (statsData) {
                 const normalizedStats: Record<string, number> = {};
-                
                 if (statsData.classification_counts && Array.isArray(statsData.classification_counts)) {
                     statsData.classification_counts.forEach((item: { classification: string; count: number }) => {
                         if (item.classification && typeof item.count === 'number') {
@@ -41,17 +38,13 @@ export default function DashboardSummary() {
                 } else {
                     Object.assign(normalizedStats, statsData);
                 }
-
                 ['recording...', 'Recording...', 'recording', 'Recording'].forEach(key => {
                     delete normalizedStats[key];
                 });
-                
                 setStats(normalizedStats);
             }
-
             setHighlight(true);
             setTimeout(() => setHighlight(false), 1000);
-
         } catch (error) {
             console.error("Failed to load dashboard data:", error);
         } finally {
@@ -86,7 +79,6 @@ export default function DashboardSummary() {
                     highlight={highlight}
                 />
             </div>
-
             <div className="xl:col-span-5 flex flex-col min-h-0 h-full overflow-hidden">
                 <div className="flex-none min-h-0 flex flex-col overflow-hidden">
                     <SummaryCards 
