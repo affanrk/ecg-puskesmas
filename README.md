@@ -1,22 +1,39 @@
 # ECG Live Platform
 
-Real-time ECG monitoring and analysis system with ML classification.
+A professional medical ECG telemetry platform providing real-time monitoring, high-frequency signal analysis, and AI-assisted cardiac diagnostics.
 
-## Project Structure
+## 🚀 Key Features
 
-- **backend/**: FastAPI application (API, WebSocket, ML Inference).
-  - Contains `Dockerfile`, `.env` (moved from root).
-- **frontend/**: Next.js application (UI/UX, Real-time Charts).
-  - Contains `Dockerfile`.
-- **mosquitto/**: MQTT Broker configuration.
+- **Real-time Telemetry**: High-frequency ECG signal streaming via MQTT and WebSockets.
+- **AI Diagnostics**: Automated arrhythmia detection using an integrated ML model.
+- **Modern UI/UX**: Clean, professional interface with specialized cardiac visualization (Lead I, II, V1).
+- **Advanced Security**: 
+  - **Last Login Wins**: Enforced single-active session per user for data integrity.
+  - **Business Identity**: Sequential medical IDs (USR/PAT/APP) for professional record tracking.
+  - **User/Patient Separation**: Dedicated tables for authentication and clinical profile data.
+- **System Telemetry**: Real-time monitoring of network health, latency, and system performance.
+- **Admin Console**: Centralized approval queue for new medical profiles.
 
-## Prerequisites
+## 🏗️ Architecture
+
+- **Backend**: FastAPI (Python 3.12+)
+  - **Repositories**: Standardized data access layer with Reader/Writer separation.
+  - **Models**: SQLAlchemy with TSID/UUID primary keys for high-performance telemetry.
+  - **Messaging**: Mosquitto (MQTT) for signal ingestion and WebSockets for real-time UI updates.
+- **Frontend**: Next.js 15+ (TypeScript)
+  - **State Management**: Zustand for efficient real-time data handling.
+  - **Visualization**: Optimized Canvas-based ECG charting.
+  - **Services**: Centralized Axios instance with automated session enforcement interceptors.
+
+## 🛠️ Prerequisites
 
 - Docker & Docker Compose
+- Node.js 18+ (for local frontend development)
+- Python 3.12+ (for local backend development)
 
-## Quick Start (Docker)
+## 🚦 Quick Start (Docker)
 
-The easiest way to run the entire stack (PostgreSQL, Mosquitto, Backend, Frontend):
+The fastest way to deploy the complete stack (PostgreSQL, Mosquitto, Backend, Frontend):
 
 ```bash
 # Clone the repository
@@ -28,30 +45,28 @@ docker-compose up --build
 ```
 
 - **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:5000](http://localhost:5000)
-- **API Documentation**: [http://localhost:5000/docs](http://localhost:5000/docs)
+- **Backend API**: [http://localhost:8080](http://localhost:8080)
+- **API Docs**: [http://localhost:8080/docs](http://localhost:8080/docs)
 
-## Local Development Setup
+## 💻 Local Development
 
-If you prefer to run services manually without Docker:
-
-### 1. Backend (from project root)
+### Backend Setup
 
 ```bash
-# Activate venv
-# Windows
-.\backend\venv\Scripts\activate
-# Linux/macOS
-source backend/venv/bin/activate
+cd backend
+# Create and activate venv
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+source venv/bin/activate # Linux/macOS
 
 # Install dependencies
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 
-# Run module
+# Run application
 python main.py
 ```
 
-### 2. Frontend
+### Frontend Setup
 
 ```bash
 cd frontend
@@ -59,13 +74,18 @@ npm install
 npm run dev
 ```
 
-## Environment Variables
+## 📄 Documentation
 
-Configuration is handled via `.env` in the `backend/` directory for the server, and through `docker-compose.yml` build arguments for the frontend.
+- [MQTT Protocol](MQTT.md): Data pipe and payload specifications.
+- [WebSocket API](WEBSOCKET_API.md): Real-time command and event documentation.
+- [Design Document](DESIGN_DOCUMENT.md): System architecture and data flow.
+- [System Flows](SYSTEM_FLOWS.md): Detailed sequence diagrams for core processes.
 
-### Frontend (Baked into build)
-- `NEXT_PUBLIC_API_URL`: Backend API URL (default: `http://localhost:5000/api/v1`)
-- `NEXT_PUBLIC_WS_URL`: Backend WebSocket URL (default: `ws://localhost:5000/ws`)
+## 🔐 Environment Variables
+
+### Frontend
+- `NEXT_PUBLIC_API_URL`: Backend API URL (default: `http://localhost:8080/api/v1`)
+- `NEXT_PUBLIC_WS_URL`: Backend WebSocket URL (default: `ws://localhost:8080/ws`)
 
 ### Backend
-See `backend/.env-example` for available configuration.
+Configured via `backend/.env`. Refer to `backend/.env-example` for the full list of required keys (Database, MQTT, Security).
