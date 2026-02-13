@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -51,11 +52,13 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
 
-    user_repo.update_record_login(user.id, login_data.source)
+    session_id = str(uuid.uuid4())
+    user_repo.update_record_login(user.id, login_data.source, session_id=session_id)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires
+        data={"sub": user.email, "role": user.role, "sid": session_id},
+        expires_delta=access_token_expires,
     )
 
     return {

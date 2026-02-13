@@ -7,6 +7,7 @@ import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import Link from 'next/link';
+import { disconnectWebSocket } from '@/services/socket';
 
 export default function Header() {
     const pathname = usePathname();
@@ -27,6 +28,7 @@ export default function Header() {
     }, []);
 
     const handleLogout = () => {
+        disconnectWebSocket();
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         window.location.href = '/login';

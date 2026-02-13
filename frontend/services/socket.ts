@@ -44,6 +44,12 @@ class WebSocketService {
         if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
             finalUrl = finalUrl.replace('ws://', 'wss://');
         }
+
+        const token = typeof window !== 'undefined' ? localStorage.getItem('ecg_token') : null;
+        if (token) {
+            finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${token}`;
+        }
+
         return finalUrl;
     }
 
@@ -57,6 +63,21 @@ class WebSocketService {
         this.socket.onmessage = this.handleMessage.bind(this);
         this.socket.onclose = this.handleClose.bind(this);
         this.socket.onerror = this.handleError.bind(this);
+    }
+
+    public disconnect() {
+        this.stopHeartbeat();
+        if (this.socket) {
+            this.socket.onclose = null;
+            this.socket.close();
+            this.socket = null;
+        }
+        useStore.getState().setIsConnected(false);
+    }
+
+    public reconnect() {
+        this.disconnect();
+        setTimeout(() => this.connect(), 500);
     }
 
     private handleOpen() {
@@ -194,5 +215,7 @@ class WebSocketService {
 
 const wsService = new WebSocketService();
 export const connectWebSocket = () => wsService.connect();
+export const disconnectWebSocket = () => wsService.disconnect();
+export const reconnectWebSocket = () => wsService.reconnect();
 export const sendJson = (data: Record<string, unknown>) => wsService.sendJson(data);
 export default wsService;

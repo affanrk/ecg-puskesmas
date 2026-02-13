@@ -61,10 +61,9 @@ app.add_middleware(
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
-    logger.error(
-        f"[Exception] {exc.__class__.__name__}: {exc.message}",
-        extra={"details": exc.details},
-    )
+    error_details = f" | Details: {exc.details}" if exc.details else ""
+    logger.error(f"[Exception] {exc.__class__.__name__}: {exc.message}{error_details}")
+
     return JSONResponse(
         status_code=exc.status_code,
         content={

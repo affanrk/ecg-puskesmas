@@ -55,8 +55,8 @@ export function calculateAge(birthDateString: string | null | undefined): number
 export function getApiUrl(): string {
     let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     
-    if (typeof window !== 'undefined' && (window as any).__ENV__) {
-        url = (window as any).__ENV__.NEXT_PUBLIC_API_URL || url;
+    if (typeof window !== 'undefined' && (window as unknown as { __ENV__?: Record<string, string> }).__ENV__) {
+        url = (window as unknown as { __ENV__: Record<string, string> }).__ENV__.NEXT_PUBLIC_API_URL || url;
     }
     
     url = url.replace(/\/$/, '');

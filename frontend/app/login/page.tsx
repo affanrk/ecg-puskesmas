@@ -7,6 +7,7 @@ import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-re
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/utils/helpers';
+import { reconnectWebSocket } from '@/services/socket';
 
 export default function LoginPage() {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -79,9 +80,13 @@ export default function LoginPage() {
                 role: data.role,
                 is_patient: data.is_patient
             };
-            localStorage.setItem('ecg_token', data.access_token);
-            localStorage.setItem('ecg_user', JSON.stringify(userData));
-            toast("Welcome back!", "success");
+                        localStorage.setItem('ecg_token', data.access_token);
+                        localStorage.setItem('ecg_user', JSON.stringify(userData));
+            
+                        reconnectWebSocket();
+            
+                        toast("Welcome back!", "success");
+            
             setTimeout(() => {
                 if (data.role === 'admin') {
                     window.location.href = '/admin/approvals';
