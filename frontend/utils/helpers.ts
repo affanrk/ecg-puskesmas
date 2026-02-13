@@ -52,18 +52,9 @@ export function calculateAge(birthDateString: string | null | undefined): number
     return age;
 }
 
-import { useStore } from '@/store/useStore';
-
 export function getApiUrl(): string {
-    try {
-        const storeApiUrl = useStore.getState().apiUrl;
-        if (storeApiUrl && !storeApiUrl.includes('localhost:8080')) {
-            return storeApiUrl;
-        }
-    } catch {
-    }
-
-    let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+    const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
+    let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
     
     url = url.replace(/\/$/, '');
     if (!url.endsWith('/api/v1')) {

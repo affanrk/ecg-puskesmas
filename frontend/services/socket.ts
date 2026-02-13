@@ -25,20 +25,14 @@ class WebSocketService {
     private pingTimeout: NodeJS.Timeout | null = null;
 
     private getWsUrl(): string {
-        try {
-            const storeWsUrl = useStore.getState().wsUrl;
-            if (storeWsUrl && !storeWsUrl.includes('localhost:8080')) {
-                return storeWsUrl;
-            }
-        } catch {
-            
-        }
-
         const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
         const port = '8080';
         const defaultUrl = `${protocol}//${host}:${port}/ws`;
-        let finalUrl = process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+        
+        const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
+        let finalUrl = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+
         if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
             finalUrl = finalUrl.replace('ws://', 'wss://');
         }
