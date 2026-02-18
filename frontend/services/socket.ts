@@ -196,7 +196,14 @@ class WebSocketService {
                 break;
             case "error":
                 console.error("[WS] Server Error:", msg.message);
-                toast(msg.message, "error");
+                if (msg.message.toLowerCase().includes("session expired")) {
+                    localStorage.removeItem('ecg_token');
+                    localStorage.removeItem('ecg_user');
+                    store.setUser(null);
+                    window.location.href = '/login?reason=expired';
+                } else {
+                    toast(msg.message, "error");
+                }
                 break;
         }
     }

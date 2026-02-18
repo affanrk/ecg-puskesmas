@@ -206,14 +206,19 @@ Sent when a command fails or an internal server error occurs.
 ## 5. Security & Session Management
 
 ### Authentication
-Connections must provide a valid JWT in the query string or during the initial handshake (if implemented by the client).
+Connections **must** provide a valid JWT in the query string during the initial handshake. The server will reject any connection attempt without a valid token or with an `undefined`/`null` token string.
+
+**URL Format:**
 `ws://server/api/v1/ws?token=YOUR_JWT_TOKEN`
 
 ### Last Login Wins (Session Enforcement)
-The platform enforces a single active session per user.
-1.  **Session ID (`sid`):** Every JWT contains a unique `sid` claim.
-2.  **Enforcement:** When a user logs in from a new location, the `current_session_id` in the database is updated.
-3.  **Automatic Disconnect:** If the WebSocket server detects a heartbeat or command from a connection whose `sid` does not match the current database value, the connection is immediately terminated with an "Unauthorized: Session Expired" error.
+The platform enforces a single active session per user to ensure data integrity and security.
+1.  **Session ID (`sid`):** Every JWT contains a unique `sid` claim generated at login.
+2.  **Enforcement:** When a user logs in from a new device, tab, or platform (e.g., Mobile), the `current_session_id` in the database is updated, instantly invalidating all previous tokens.
+3.  **Automatic Termination:** If the WebSocket server receives a message or heartbeat from a connection whose `sid` no longer matches the database, it will:
+    *   Send an `error` message: `"Session expired: User logged in from another device"`.
+    *   Close the connection with code `4003`.
+    *   The frontend will automatically clear local storage and redirect the user to the login page.
 
 ---
 

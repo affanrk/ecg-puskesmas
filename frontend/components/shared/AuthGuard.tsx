@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
@@ -19,7 +19,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             const token = localStorage.getItem('ecg_token');
             
             if (!token) {
-                setAuthorized(false);
+                if (authorized) setAuthorized(false);
                 if (!isAuthPage) {
                     router.push('/login');
                 }
@@ -27,31 +27,28 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             }
 
             try {
-                if (storeUser) {
-                    setAuthorized(true);
-                    return;
-                }
-
                 const userData = await api.fetchUserProfile(token);
                 setUser(userData);
                 localStorage.setItem('ecg_user', JSON.stringify(userData));
-                setAuthorized(true);
+                if (!authorized) setAuthorized(true);
             } catch (error) {
                 console.error("Session verification failed:", error);
                 localStorage.removeItem('ecg_token');
                 localStorage.removeItem('ecg_user');
                 setUser(null);
-                setAuthorized(false);
-                if (!isAuthPage) router.push('/login');
+                if (authorized) setAuthorized(false);
+                if (!isAuthPage) router.push('/login?reason=expired');
             }
         };
 
         if (isAuthPage) {
-            setAuthorized(false);
+            if (authorized) {
+                Promise.resolve().then(() => setAuthorized(false));
+            }
         } else {
             checkAuth();
         }
-    }, [pathname, router, setUser, storeUser]);
+    }, [pathname, router, setUser, storeUser, authorized]);
 
     if (pathname === '/login' || pathname === '/register') {
         return <>{children}</>;
