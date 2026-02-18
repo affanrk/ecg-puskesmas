@@ -11,14 +11,13 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const { setUser, user: storeUser } = useStore();
     const [authorized, setAuthorized] = useState(false);
-    const isMounted = useRef(false);
 
     useEffect(() => {
+        const isAuthPage = pathname === '/login' || pathname === '/register';
+        
         const checkAuth = async () => {
-            if (isMounted.current) return;
-            isMounted.current = true;
             const token = localStorage.getItem('ecg_token');
-            const isAuthPage = pathname === '/login' || pathname === '/register';
+            
             if (!token) {
                 setAuthorized(false);
                 if (!isAuthPage) {
@@ -26,22 +25,32 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                 }
                 return;
             }
+
             try {
-                if (!storeUser) {
-                    const userData = await api.fetchUserProfile(token);
-                    setUser(userData);
-                    localStorage.setItem('ecg_user', JSON.stringify(userData));
+                if (storeUser) {
+                    setAuthorized(true);
+                    return;
                 }
+
+                const userData = await api.fetchUserProfile(token);
+                setUser(userData);
+                localStorage.setItem('ecg_user', JSON.stringify(userData));
                 setAuthorized(true);
             } catch (error) {
                 console.error("Session verification failed:", error);
                 localStorage.removeItem('ecg_token');
                 localStorage.removeItem('ecg_user');
+                setUser(null);
                 setAuthorized(false);
                 if (!isAuthPage) router.push('/login');
             }
         };
-        checkAuth();
+
+        if (isAuthPage) {
+            setAuthorized(false);
+        } else {
+            checkAuth();
+        }
     }, [pathname, router, setUser, storeUser]);
 
     if (pathname === '/login' || pathname === '/register') {

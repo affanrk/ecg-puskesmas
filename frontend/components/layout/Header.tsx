@@ -1,17 +1,19 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bell, User, ChevronDown, LogOut, Settings } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import Link from 'next/link';
 import { disconnectWebSocket } from '@/services/socket';
+import { api } from '@/services/api';
 
 export default function Header() {
     const pathname = usePathname();
-    const { user, isRecording } = useStore();
+    const router = useRouter();
+    const { user, isRecording, setUser } = useStore();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -27,11 +29,17 @@ export default function Header() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
         disconnectWebSocket();
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
-        window.location.href = '/login';
+        setUser(null);
+        router.push('/login');
     };
 
     const getPageTitle = (path: string) => {

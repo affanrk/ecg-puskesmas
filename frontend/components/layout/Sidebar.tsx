@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
@@ -23,9 +23,13 @@ import {
     ShieldCheck
 } from 'lucide-react';
 
+import { disconnectWebSocket } from '@/services/socket';
+import { api } from '@/services/api';
+
 export default function Sidebar() {
     const pathname = usePathname();
-    const { user, isSidebarPinned, setIsSidebarPinned } = useStore();
+    const router = useRouter();
+    const { user, isSidebarPinned, setIsSidebarPinned, setUser } = useStore();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
@@ -40,10 +44,17 @@ export default function Sidebar() {
         { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isAccessAllowed },
     ];
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
+        disconnectWebSocket();
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
-        window.location.href = '/login';
+        setUser(null);
+        router.push('/login');
     };
 
     return (

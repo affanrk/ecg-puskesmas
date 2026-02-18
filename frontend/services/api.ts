@@ -137,6 +137,16 @@ export async function fetchApprovalLogs(filters: HistoryFilters = {}) {
     }
 }
 
+export async function logout() {
+    try {
+        const response = await axiosInstance.post('/auth/logout');
+        return response.data;
+    } catch (error) {
+        console.error("Logout Error:", error);
+        throw error;
+    }
+}
+
 export async function fetchDetailedHealth() {
     try {
         const response = await axiosInstance.get('/health/detailed');
@@ -157,5 +167,6 @@ export const api = {
     fetchPendingApprovals,
     updateUserStatus,
     fetchApprovalLogs,
+    logout,
     fetchDetailedHealth
 };

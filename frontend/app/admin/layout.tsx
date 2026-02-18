@@ -8,11 +8,13 @@ import clsx from 'clsx';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { api } from '@/services/api';
+import { disconnectWebSocket } from '@/services/socket';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { user } = useStore();
+    const { user, setUser } = useStore();
     const { show: toast } = useToast();
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,10 +26,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
     }, [user, router, toast]);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            await api.logout();
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
+        disconnectWebSocket();
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
-        window.location.href = '/login';
+        setUser(null);
+        router.push('/login');
     };
 
     if (user && user.role !== 'admin') {

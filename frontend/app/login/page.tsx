@@ -2,13 +2,15 @@
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
 import { getApiUrl } from '@/utils/helpers';
 import { reconnectWebSocket } from '@/services/socket';
+import { api } from '@/services/api';
+import { useStore } from '@/store/useStore';
 
 function LoginContent() {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -19,7 +21,9 @@ function LoginContent() {
     const [serverError, setServerError] = useState('');
     const [showErrorEffect, setShowErrorEffect] = useState(false);
     const { show: toast } = useToast();
+    const setUser = useStore((state) => state.setUser);
     const searchParams = useSearchParams();
+    const router = useRouter();
 
     useEffect(() => {
         const reason = searchParams.get('reason');
@@ -85,26 +89,24 @@ function LoginContent() {
                 password
             });
             const data = response.data;
-            const userData = {
-                id: data.user_id,
-                username: data.user_name,
-                role: data.role,
-                is_patient: data.is_patient
-            };
-                        localStorage.setItem('ecg_token', data.access_token);
-                        localStorage.setItem('ecg_user', JSON.stringify(userData));
             
-                        reconnectWebSocket();
+            // Save token immediately so fetchUserProfile can use it
+            localStorage.setItem('ecg_token', data.access_token);
+
+            // Fetch the FULL profile to get is_activated, status, etc.
+            const fullProfile = await api.fetchUserProfile(data.access_token);
             
-                        toast("Welcome back!", "success");
+            localStorage.setItem('ecg_user', JSON.stringify(fullProfile));
+            setUser(fullProfile);
             
-            setTimeout(() => {
-                if (data.role === 'admin') {
-                    window.location.href = '/admin/approvals';
-                } else {
-                    window.location.href = '/dashboard';
-                }
-            }, 500);
+            reconnectWebSocket();
+            toast("Welcome back!", "success");
+            
+            if (data.role === 'admin') {
+                router.push('/admin/approvals');
+            } else {
+                router.push('/dashboard');
+            }
         } catch (err: unknown) {
             triggerErrorEffect();
             console.error(err);
