@@ -10,18 +10,35 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
     waves_info = {}
 
     try:
-        signals, rpeaks_info = nk.ecg_peaks(signal, sampling_rate=sampling_rate)
+        signal = np.nan_to_num(signal, nan=0.0, posinf=0.0, neginf=0.0)
 
-        if len(rpeaks_info.get("ECG_R_Peaks", [])) == 0:
+        if np.ptp(signal) < 0.01:
+            logger.warning("[DSP] Signal is flat or too weak. Skipping peak detection.")
+            return {}, {}
+
+        _, rpeaks_info = nk.ecg_peaks(signal, sampling_rate=sampling_rate)
+
+        r_peaks = rpeaks_info.get("ECG_R_Peaks", [])
+        if len(r_peaks) == 0:
             logger.warning("[DSP] No R-peaks detected.")
             return {}, {}
+
+        r_peaks = _clean_array(r_peaks)
+        r_peaks = np.array([x for x in r_peaks if 0 <= x < len(signal)])
+        rpeaks_info["ECG_R_Peaks"] = r_peaks
+
+        if len(r_peaks) < 3:
+            logger.warning(
+                f"[DSP] Too few R-peaks ({len(r_peaks)}) for reliable delineation."
+            )
+            return rpeaks_info, {}
 
     except Exception as e:
         logger.error(f"[DSP] R-Peak detection failed: {e}")
         return {}, {}
 
     try:
-        signals, waves_info = nk.ecg_delineate(
+        _, waves_info = nk.ecg_delineate(
             signal, rpeaks_info, sampling_rate=sampling_rate, method="dwt"
         )
     except Exception as e:
@@ -29,7 +46,7 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
             f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}"
         )
         try:
-            signals, waves_info = nk.ecg_delineate(
+            _, waves_info = nk.ecg_delineate(
                 signal, rpeaks_info, sampling_rate=sampling_rate, method="peak"
             )
         except Exception as e2:
@@ -89,16 +106,24 @@ def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, 
 
 
 def _clean_array(arr) -> np.ndarray:
+    if arr is None:
+        return np.array([], dtype=int)
+
+    if isinstance(arr, (int, float, np.number)):
+        arr = [arr]
+
     cleaned = []
     for x in arr:
         try:
             if pd.isna(x):
                 continue
-            if isinstance(x, (int, float, np.number)):
-                if not np.isfinite(x):
-                    continue
-                cleaned.append(int(x))
-        except Exception:
+
+            val = float(x)
+            if not np.isfinite(val):
+                continue
+
+            cleaned.append(int(val))
+        except (ValueError, TypeError):
             continue
 
     return np.array(cleaned, dtype=int)

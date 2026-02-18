@@ -27,7 +27,7 @@ class ApplicationState:
         logger.info("[Lifecycle] Starting ECG Live Platform")
 
         loop = asyncio.get_running_loop()
-        logger.info(f"Event Loop: {type(loop).__name__}")
+        logger.info(f"[Lifecycle] Event Loop: {type(loop).__name__}")
         if "Proactor" in type(loop).__name__:
             logger.warning(
                 "[Lifecycle] Running on ProactorEventLoop. MQTT may fail on Windows."
@@ -176,15 +176,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 async def startup_for_testing():
 
-    logger.info("Starting in TEST mode...")
+    logger.info("[Lifecycle] Starting in TEST mode...")
 
     Base.metadata.create_all(bind=engine)
     ml_engine_service.load_model()
 
-    logger.info("Test environment ready")
+    logger.info("[Lifecycle] Test environment ready")
 
 
 async def shutdown_for_testing():
 
     ml_engine_service.shutdown()
-    logger.info("Test environment cleaned up")
+    logger.info("[Lifecycle] Test environment cleaned up")

@@ -44,7 +44,7 @@ class UserWriter(BaseRepository[TbMUser]):
     ):
         try:
             logger.debug(
-                f"Updating login record for user {user_id}. Source: {source}, Session: {session_id}"
+                f"[User] Updating login record for user {user_id}. Source: {source}, Session: {session_id}"
             )
 
             values = {
@@ -65,11 +65,13 @@ class UserWriter(BaseRepository[TbMUser]):
             self.db.execute(stmt)
             self.db.commit()
             logger.debug(
-                f"Successfully updated session state for user {user_id} (Session: {session_id})"
+                f"[User] Successfully updated session state for user {user_id} (Session: {session_id})"
             )
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to update login record for user {user_id}: {e}")
+            logger.error(
+                f"[User] Failed to update login record for user {user_id}: {e}"
+            )
 
     def update_username(self, user_id: str, new_username: str) -> Optional[TbMUser]:
         try:

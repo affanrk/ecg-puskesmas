@@ -42,18 +42,20 @@ class WebSocketHandler:
                 db_user.current_session_id and db_user.current_session_id != self.sid
             ):
                 logger.warning(
-                    f"Session expired for user {self.user_id}. Kicking WebSocket."
+                    f"[WS] Session expired for user {self.user_id}. Kicking WebSocket."
                 )
                 return False
             return True
         except Exception as e:
-            logger.error(f"Error verifying session in WebSocket: {e}")
+            logger.error(f"[WS] Error verifying session in WebSocket: {e}")
             return True
 
     async def handle_message(self, message: dict):
 
         if not await self.verify_session():
-            logger.warning(f"Unauthorized message attempt from User ID {self.user_id}")
+            logger.warning(
+                f"[WS] Unauthorized message attempt from User ID {self.user_id}"
+            )
             await self.websocket.send_json(
                 {
                     "type": WSMessageType.ERROR.value,
@@ -116,7 +118,7 @@ class WebSocketHandler:
                     {"device_id": device_id, "data": {"bpm": bpm}},
                 )
         except Exception as e:
-            logger.error(f"[WS] Failed to calculate live BPM for {device_id}: {e}")
+            logger.warning(f"[WS] Failed to calculate live BPM for {device_id}: {e}")
 
     async def _handle_subscribe(self, message: dict):
 
@@ -230,6 +232,15 @@ class WebSocketHandler:
     async def cleanup(self):
 
         if self.current_device_id:
+            state = device_state_manager.get_state(self.current_device_id)
+            if state.is_recording and state.subject_id == str(self.user_id):
+                logger.info(
+                    f"[WS] User {self.user_id} disconnected during active recording on {self.current_device_id}. Stopping recording."
+                )
+                await device_watchdog_service.force_cancel_recording(
+                    self.current_device_id
+                )
+
             unlocked = device_state_manager.unsubscribe_from_device(self.websocket)
             if unlocked:
                 await device_state_manager.notify_device_list_update()

@@ -121,7 +121,7 @@ class MQTTClientService:
                 gap = actual_start - (state.last_packet_num + 1)
 
                 if gap > buffer_limit or gap < 0:
-                    logger.error(
+                    logger.warning(
                         f"[MQTT] Sequence break for {device_id} (Gap: {gap}). "
                         f"Expected {state.last_packet_num + 1}, got {actual_start}. "
                         "Resetting connection state."
@@ -178,7 +178,7 @@ class MQTTClientService:
                         )
                         state.last_packet_num = p_end
                     elif is_full:
-                        logger.error(
+                        logger.warning(
                             f"[MQTT] Data buffer full for {device_id}. Sequence broken. "
                             f"Expected {state.last_packet_num + 1}, got {p_start}. "
                             "Resetting connection."

@@ -14,7 +14,7 @@ class PerformanceWriter(BaseRepository[TbRPerformanceLog]):
     def bulk_insert_logs(self, logs: List[dict]) -> int:
         count = self.bulk_insert_dicts(logs)
         if count > 0:
-            logger.info(f"Bulk inserted {count} performance log entries")
+            logger.debug(f"[Performance] Bulk inserted {count} performance log entries")
         return count
 
     def delete_old_logs(self, days: int = 30) -> int:
@@ -26,7 +26,9 @@ class PerformanceWriter(BaseRepository[TbRPerformanceLog]):
                 .delete(synchronize_session=False)
             )
             self.db.commit()
-            logger.info(f"Deleted {count} old performance logs older than {days} days")
+            logger.info(
+                f"[Performance] Deleted {count} old performance logs older than {days} days"
+            )
             return count
         except Exception as e:
             self.db.rollback()

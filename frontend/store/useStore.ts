@@ -67,7 +67,6 @@ interface AppState {
     recordingSeconds: number;
     recordingStartTime: number | null;
     accumulatedTime: number;
-    livePage: number;
     bpm: number | string;
     performanceTrackingEnabled: boolean;
     isSidebarPinned: boolean;
@@ -98,7 +97,6 @@ interface AppState {
     setArchiveData: (data: AnalysisResult[]) => void;
     addLiveResult: (result: AnalysisResult) => void;
     pushEcgData: (data: EcgSample[]) => void;
-    setLivePage: (page: number) => void;
     setBpm: (bpm: number | string) => void;
     updatePerformance: (l: number, j: number, p: number) => void;
     setPerformanceTrackingEnabled: (enabled: boolean) => void;
@@ -117,7 +115,6 @@ export const useStore = create<AppState>((set, get) => ({
     recordingSeconds: 0,
     recordingStartTime: null,
     accumulatedTime: 0,
-    livePage: 1,
     bpm: '--',
     performanceTrackingEnabled: false,
     isSidebarPinned: true,
@@ -208,7 +205,19 @@ export const useStore = create<AppState>((set, get) => ({
     },
     setUser: (user) => set(() => {
         if (!user) {
-            return { user: null, liveData: [], archiveData: [], recordingSeconds: 0, accumulatedTime: 0, isRecording: false, bpm: '--' };
+            return { 
+                user: null, 
+                currentDeviceId: null,
+                liveData: [], 
+                archiveData: [], 
+                ecgBuffer: [], 
+                recordingSeconds: 0, 
+                accumulatedTime: 0, 
+                recordingStartTime: null,
+                isRecording: false, 
+                isSessionActive: false,
+                bpm: '--'
+            };
         }
         return { user };
     }),
@@ -239,7 +248,6 @@ export const useStore = create<AppState>((set, get) => ({
         const newBuffer = [...state.ecgBuffer, ...data].slice(-limit);
         return { ecgBuffer: newBuffer };
     }),
-    setLivePage: (page) => set({ livePage: page }),
     setBpm: (bpm) => set({ bpm }),
     updatePerformance: (latency, jitter, loss) => set((state) => ({
         performance: {
@@ -263,7 +271,6 @@ export const useStore = create<AppState>((set, get) => ({
         liveData: [], 
         archiveData: [], 
         ecgBuffer: [], 
-        livePage: 1, 
         isRecording: false, 
         isSessionActive: false, 
         recordingSeconds: 0,

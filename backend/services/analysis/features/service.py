@@ -109,12 +109,12 @@ class FeatureExtractor:
         r_onsets = waves.get("ECG_R_Onsets", [])
         q_peaks = waves.get("ECG_Q_Peaks", [])
 
-        if len(p_onsets) == 0 or (len(r_onsets) == 0 and len(q_peaks) == 0):
+        if len(p_onsets) == 0 or len(r_onsets) == 0 or len(q_peaks) == 0:
             return 0.0
 
-        min_len = min(len(p_onsets), len(r_onsets), len(q_peaks))
+        max_idx = min(len(r_onsets), len(p_onsets), len(q_peaks)) - 1
         pr_intervals = []
-        for i in range(min_len - 1):
+        for i in range(max_idx):
             if r_onsets[i] < p_onsets[i]:
                 pr_samples = q_peaks[i] - p_onsets[i]
             else:
@@ -123,11 +123,13 @@ class FeatureExtractor:
             pr_ms = (pr_samples / sampling_rate) * 1000.0
             pr_intervals.append(pr_ms)
 
-        return (
-            float(np.mean([x for x in pr_intervals if not pd.isna(x)]))
-            if pr_intervals
-            else 0.0
-        )
+        sum_val, count_val = 0.0, 0.0
+        for val in pr_intervals:
+            if not pd.isna(val):
+                sum_val += val
+                count_val += 1
+
+        return float(sum_val / count_val) if count_val > 0 else 0.0
 
     def _calculate_qs_interval(self, waves: dict, sampling_rate: int) -> float:
 
@@ -137,9 +139,9 @@ class FeatureExtractor:
         if len(q_peaks) == 0 or len(s_peaks) == 0:
             return 0.0
 
-        min_len = min(len(q_peaks), len(s_peaks))
+        max_idx = min(len(q_peaks), len(s_peaks)) - 1
         qs_intervals = []
-        for i in range(min_len - 1):
+        for i in range(max_idx):
             if s_peaks[i] < q_peaks[i] and (i + 1) < len(s_peaks):
                 qs_samples = s_peaks[i + 1] - q_peaks[i]
             else:
@@ -148,11 +150,13 @@ class FeatureExtractor:
             qs_ms = (qs_samples / sampling_rate) * 1000.0
             qs_intervals.append(qs_ms)
 
-        return (
-            float(np.mean([x for x in qs_intervals if not pd.isna(x)]))
-            if qs_intervals
-            else 0.0
-        )
+        sum_val, count_val = 0.0, 0.0
+        for val in qs_intervals:
+            if not pd.isna(val):
+                sum_val += val
+                count_val += 1
+
+        return float(sum_val / count_val) if count_val > 0 else 0.0
 
     def _calculate_qt_intervals(
         self, waves: dict, rr_avg: float, sampling_rate: int
@@ -164,9 +168,9 @@ class FeatureExtractor:
         if len(r_onsets) == 0 or len(t_offsets) == 0:
             return 0.0, 0.0
 
-        min_len = min(len(r_onsets), len(t_offsets))
+        max_idx = min(len(t_offsets), len(r_onsets)) - 1
         qt_intervals = []
-        for i in range(min_len - 1):
+        for i in range(max_idx):
             if t_offsets[i] < r_onsets[i] and (i + 1) < len(t_offsets):
                 qt_samples = t_offsets[i + 1] - r_onsets[i]
             else:
@@ -175,10 +179,13 @@ class FeatureExtractor:
             qt_ms = (qt_samples / sampling_rate) * 1000.0
             qt_intervals.append(qt_ms)
 
-        if not qt_intervals:
-            return 0.0, 0.0
+        sum_val, count_val = 0.0, 0.0
+        for val in qt_intervals:
+            if not pd.isna(val):
+                sum_val += val
+                count_val += 1
 
-        qt_avg = float(np.mean([x for x in qt_intervals if not pd.isna(x)]))
+        qt_avg = float(sum_val / count_val) if count_val > 0 else 0.0
         qtc_avg = 0.0
         if rr_avg > 0:
             rr_seconds = rr_avg / 1000.0
@@ -198,9 +205,9 @@ class FeatureExtractor:
             if len(r_offsets) == 0 or len(t_offsets) == 0:
                 return 0.0
 
-            min_len = min(len(r_offsets), len(t_offsets))
+            max_idx = min(len(r_offsets), len(t_offsets)) - 1
             st_intervals = []
-            for i in range(min_len - 1):
+            for i in range(max_idx):
                 if t_offsets[i] < r_offsets[i] and (i + 1) < len(t_offsets):
                     st_samples = t_offsets[i + 1] - r_offsets[i]
                 else:
@@ -209,11 +216,13 @@ class FeatureExtractor:
                 st_ms = (st_samples / sampling_rate) * 1000.0
                 st_intervals.append(st_ms)
 
-            return (
-                float(np.mean([x for x in st_intervals if not pd.isna(x)]))
-                if st_intervals
-                else 0.0
-            )
+            sum_val, count_val = 0.0, 0.0
+            for val in st_intervals:
+                if not pd.isna(val):
+                    sum_val += val
+                    count_val += 1
+
+            return float(sum_val / count_val) if count_val > 0 else 0.0
 
         except Exception as e:
             logger.debug(f"[FeatureExtractor] ST segment extraction failed: {e}")

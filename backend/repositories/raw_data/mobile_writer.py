@@ -18,7 +18,9 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
             stmt = insert(TbREcgRawMobile)
             self.db.execute(stmt, data_list)
             self.db.commit()
-            logger.info(f"Bulk created {len(data_list)} MOBILE ECG samples")
+            logger.debug(
+                f"[RawData-Mobile] Bulk created {len(data_list)} MOBILE ECG samples"
+            )
             return len(data_list)
         except Exception as e:
             self.db.rollback()
@@ -34,11 +36,15 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
                 .delete(synchronize_session=False)
             )
             self.db.commit()
-            logger.info(f"Deleted {count} MOBILE samples for recording {recording_id}")
+            logger.info(
+                f"[RawData-Mobile] Deleted {count} MOBILE samples for recording {recording_id}"
+            )
             return count
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to delete MOBILE raw data for {recording_id}: {e}")
+            logger.error(
+                f"[RawData-Mobile] Failed to delete MOBILE raw data for {recording_id}: {e}"
+            )
             raise DatabaseException(
                 "Failed delete raw mobile", details={"error": str(e)}
             )

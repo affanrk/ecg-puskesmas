@@ -60,8 +60,9 @@ class RecordingStorageService:
             if rec_items:
                 self._insert_recording_batch(db, rec_items)
 
-            if perf_items:
-                self._insert_performance_batch(db, perf_items)
+            # Performance logs insertion disabled for now
+            # if perf_items:
+            #     self._insert_performance_batch(db, perf_items)
 
         except Exception as e:
             logger.error(f"[Storage] Batch insert failed: {str(e)}")

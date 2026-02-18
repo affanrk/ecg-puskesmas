@@ -27,7 +27,9 @@ class SessionWriter(BaseRepository[TbREcgSession]):
             classification_result=classification,
         )
         result = self.create(session)
-        logger.info(f"Created session {recording_id} for user {user_id} on {device_id}")
+        logger.info(
+            f"[Session] Created session {recording_id} for user {user_id} on {device_id}"
+        )
         return result
 
     def update_analysis_results(
@@ -41,7 +43,7 @@ class SessionWriter(BaseRepository[TbREcgSession]):
         session = self.get(recording_id)
         if not session:
             logger.warning(
-                f"Attempted to update results for non-existent session {recording_id}"
+                f"[Session] Attempted to update results for non-existent session {recording_id}"
             )
             return None
 
@@ -59,11 +61,15 @@ class SessionWriter(BaseRepository[TbREcgSession]):
         try:
             self.db.commit()
             self.db.refresh(session)
-            logger.info(f"Updated results for session {recording_id}: {classification}")
+            logger.info(
+                f"[Session] Updated results for session {recording_id}: {classification}"
+            )
             return session
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to update analysis for session {recording_id}: {e}")
+            logger.error(
+                f"[Session] Failed to update analysis for session {recording_id}: {e}"
+            )
             raise DatabaseException(f"Failed update results: {e}")
 
     def delete_zombie_sessions(self) -> int:
@@ -78,7 +84,7 @@ class SessionWriter(BaseRepository[TbREcgSession]):
             )
             self.db.commit()
             if count > 0:
-                logger.info(f"Cleaned up {count} zombie/incomplete sessions")
+                logger.info(f"[Session] Cleaned up {count} zombie/incomplete sessions")
             return count
         except Exception as e:
             self.db.rollback()

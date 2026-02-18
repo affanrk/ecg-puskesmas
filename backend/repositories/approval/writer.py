@@ -23,5 +23,7 @@ class ApprovalWriter(BaseRepository[TbRLogApproval]):
         self.db.add(log)
         self.db.commit()
         self.db.refresh(log)
-        logger.info(f"Created approval log for user {user_id} with status {status}")
+        logger.info(
+            f"[Approval] Created approval log for user {user_id} with status {status}"
+        )
         return log

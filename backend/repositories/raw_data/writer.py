@@ -18,7 +18,7 @@ class RawDataWriter(BaseRepository[TbREcgRawWeb]):
             stmt = insert(TbREcgRawWeb)
             self.db.execute(stmt, data_list)
             self.db.commit()
-            logger.info(f"Bulk created {len(data_list)} WEB ECG samples")
+            logger.debug(f"[RawData] Bulk created {len(data_list)} WEB ECG samples")
             return len(data_list)
         except Exception as e:
             self.db.rollback()
@@ -32,7 +32,9 @@ class RawDataWriter(BaseRepository[TbREcgRawWeb]):
                 .delete(synchronize_session=False)
             )
             self.db.commit()
-            logger.info(f"Deleted {count} WEB samples for recording {recording_id}")
+            logger.info(
+                f"[RawData] Deleted {count} WEB samples for recording {recording_id}"
+            )
             return count
         except Exception as e:
             self.db.rollback()

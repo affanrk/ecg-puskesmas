@@ -32,7 +32,9 @@ class DeviceStateManager:
 
         if device_id not in self.device_states:
             self.device_states[device_id] = DeviceState(device_id)
-            logger.info(f"Initialized new state for device: {device_id}")
+            logger.info(
+                f"[DeviceManager] Initialized new state for device: {device_id}"
+            )
         return self.device_states[device_id]
 
     def get_state_or_fail(self, device_id: str) -> DeviceState:
@@ -49,7 +51,7 @@ class DeviceStateManager:
 
         if device_id in self.device_states:
             del self.device_states[device_id]
-            logger.info(f"Removed device state: {device_id}")
+            logger.info(f"[DeviceManager] Removed device state: {device_id}")
         if device_id in self.websocket_connections:
             del self.websocket_connections[device_id]
         if device_id in self.ui_data_buffer:
@@ -86,14 +88,14 @@ class DeviceStateManager:
         self.broadcast_connections.discard(websocket)
 
     def subscribe_to_device(self, websocket: WebSocket, device_id: str) -> bool:
-
         state = self.get_state(device_id)
 
         if state.locked_by and state.locked_by != websocket:
             return False
 
-        state.locked_by = websocket
+        self.unsubscribe_from_device(websocket)
 
+        state.locked_by = websocket
         self.websocket_connections[device_id].add(websocket)
         self.ws_device_map[websocket] = device_id
 
@@ -133,7 +135,9 @@ class DeviceStateManager:
             try:
                 await ws.send_json(message)
             except Exception as e:
-                logger.debug(f"Failed to send to device subscriber: {e}")
+                logger.debug(
+                    f"[DeviceManager] Failed to send to device subscriber: {e}"
+                )
 
     async def broadcast_to_all(self, message: dict):
 
@@ -143,7 +147,7 @@ class DeviceStateManager:
             try:
                 await ws.send_json(message)
             except Exception as e:
-                logger.debug(f"Failed to broadcast: {e}")
+                logger.debug(f"[DeviceManager] Failed to broadcast: {e}")
 
     async def notify_device_list_update(self):
 
