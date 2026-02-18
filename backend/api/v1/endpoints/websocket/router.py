@@ -60,7 +60,7 @@ class WebSocketHandler:
                     "message": "Session expired: User logged in from another device",
                 }
             )
-            await self.websocket.close(code=4003)  # Custom code for session expired
+            await self.websocket.close(code=4003)
             return
 
         m_type = message.get("type")
@@ -83,9 +83,9 @@ class WebSocketHandler:
             await handler(message)
         elif m_type == WSMessageType.PING.value:
             await self.websocket.send_json({"type": WSMessageType.PONG.value})
+            logger.debug(f"[WS] Echoed PONG to {self.user_id}")
         elif m_type == WSMessageType.PONG.value:
-            # We already logged this at DEBUG level above, no further action needed
-            pass
+            logger.debug(f"[WS] Received PONG keep-alive from {self.user_id}")
         else:
             logger.warning(f"[WS] Unhandled message type: {m_type}")
 
@@ -248,7 +248,6 @@ async def websocket_endpoint(
     client_host = websocket.client.host if websocket.client else "unknown"
     logger.info(f"[WS] Connection attempt from {client_host}")
 
-    # Authentication
     if not token:
         logger.warning(f"[WS] Connection rejected: Missing token from {client_host}")
         await websocket.send_json(
@@ -274,7 +273,6 @@ async def websocket_endpoint(
             )
             raise JWTError("User not found or inactive")
 
-        # Initial session check
         if db_user.current_session_id and db_user.current_session_id != sid:
             logger.warning(f"[WS] Connection rejected: Session expired for {email}")
             await websocket.send_json({"type": "error", "message": "Session expired"})
