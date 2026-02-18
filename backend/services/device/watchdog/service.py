@@ -56,8 +56,8 @@ class DeviceWatchdogService:
                 )
 
             if time_since_last_seen > DEVICE_TIMEOUT_SECONDS:
-                logger.warning(
-                    f"[Watchdog] Device {device_id} timed out ({time_since_last_seen:.1f}s since last seen)"
+                logger.info(
+                    f"[Watchdog] Device {device_id} timed out ({time_since_last_seen:.1f}s inactivity). Cleaning up."
                 )
                 was_recording_active = state.is_recording
                 await device_state_manager.broadcast_to_device(
@@ -188,12 +188,12 @@ class DeviceWatchdogService:
         await device_state_manager.notify_state_update(device_id)
 
     async def force_disconnect_device(self, device_id: str):
+        logger.info(f"[Watchdog] Forcefully disconnecting device {device_id}")
         state = device_state_manager.get_state_or_fail(device_id)
         if state.is_recording:
             await self._cancel_device_recording(device_id, "Forced disconnection")
         await self._cleanup_device(device_id)
         await device_state_manager.notify_device_list_update()
-        logger.info(f"[Watchdog] Forcefully disconnected device {device_id}")
 
 
 device_watchdog_service = DeviceWatchdogService()

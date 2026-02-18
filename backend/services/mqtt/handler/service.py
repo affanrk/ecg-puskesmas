@@ -213,6 +213,10 @@ class MQTTDataHandler:
         await recording_storage_service.flush_all_buffers()
 
         old_id = state.recording_id
+        logger.info(
+            f"[MQTT] Segment complete for {state.device_id}. Triggering analysis for {old_id}"
+        )
+
         asyncio.create_task(
             ml_engine_service.trigger_analysis(
                 old_id, state.subject_id, state.device_id
@@ -227,6 +231,9 @@ class MQTTDataHandler:
         state.segment_count += 1
         state.status_message = f"Recording (Seg {state.segment_count})..."
         await device_state_manager.notify_state_update(state.device_id)
+        logger.info(
+            f"[MQTT] Started new segment {state.segment_count} for {state.device_id}: {new_id}"
+        )
 
     def _create_session(self, rec_id: str, dev_id: str, pat_id: str, source: str):
         db = SessionLocal()

@@ -4,6 +4,7 @@ from models.session import TbREcgSession
 from core.exceptions import DatabaseException
 from utils import ECGClassification
 from repositories.base import BaseRepository
+from utils import logger
 
 
 class SessionWriter(BaseRepository[TbREcgSession]):
@@ -25,7 +26,9 @@ class SessionWriter(BaseRepository[TbREcgSession]):
             created_by=created_by,
             classification_result=classification,
         )
-        return self.create(session)
+        result = self.create(session)
+        logger.info(f"Created session {recording_id} for user {user_id} on {device_id}")
+        return result
 
     def update_analysis_results(
         self,
@@ -37,6 +40,9 @@ class SessionWriter(BaseRepository[TbREcgSession]):
     ) -> Optional[TbREcgSession]:
         session = self.get(recording_id)
         if not session:
+            logger.warning(
+                f"Attempted to update results for non-existent session {recording_id}"
+            )
             return None
 
         session.classification_result = classification
@@ -53,9 +59,11 @@ class SessionWriter(BaseRepository[TbREcgSession]):
         try:
             self.db.commit()
             self.db.refresh(session)
+            logger.info(f"Updated results for session {recording_id}: {classification}")
             return session
         except Exception as e:
             self.db.rollback()
+            logger.error(f"Failed to update analysis for session {recording_id}: {e}")
             raise DatabaseException(f"Failed update results: {e}")
 
     def delete_zombie_sessions(self) -> int:
@@ -69,7 +77,10 @@ class SessionWriter(BaseRepository[TbREcgSession]):
                 .delete(synchronize_session=False)
             )
             self.db.commit()
+            if count > 0:
+                logger.info(f"Cleaned up {count} zombie/incomplete sessions")
             return count
         except Exception as e:
             self.db.rollback()
+            logger.error(f"Failed to cleanup zombie sessions: {e}")
             raise DatabaseException("Failed delete zombie", details={"error": str(e)})

@@ -56,7 +56,9 @@ Initiates a new recording session where the backend begins saving incoming MQTT 
 *   **Fields:**
     *   `device_id`: Target device.
     *   `user_id`: Sequential String ID of the user (e.g., USR...).
-    *   `source`: `"WEB"` or `"MOBILE"`. Controls which database table stores the raw data.
+    *   `source`: `"WEB"` or `"MOBILE"`. Controls the target storage:
+        *   `WEB` -> `tb_r_ecg_raw_web`
+        *   `MOBILE` -> `tb_r_ecg_raw_mobile`
 *   **Success Response:** `state_update` (is_recording: true).
 
 ### Stop Recording

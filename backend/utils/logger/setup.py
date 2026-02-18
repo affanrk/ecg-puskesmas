@@ -1,10 +1,10 @@
 import logging
 import sys
-import os
 import time
 from typing import Optional
 from pathlib import Path
 
+from core import settings
 from utils.constants import LOG_FORMAT, LOG_DATE_FORMAT
 
 
@@ -79,7 +79,7 @@ def setup_logger(
     logging.setLoggerClass(ContextLogger)
     logger = logging.getLogger(name)
 
-    log_level = (level or os.getenv("LOG_LEVEL", "INFO")).upper()
+    log_level = (level or settings.LOG_LEVEL).upper()
 
     logger.setLevel(getattr(logging, log_level))
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, BigInteger
+from sqlalchemy import Column, Integer, String, Float, BigInteger, Index
 from ..base import Base, AuditMixin
 
 
@@ -26,3 +26,5 @@ class TbRPerformanceLog(Base, AuditMixin):
     packet_counter = Column(
         BigInteger, comment="Cumulative packet counter for the device"
     )
+
+    __table_args__ = (Index("idx_perf_device_dt", "device_id", "created_dt"),)

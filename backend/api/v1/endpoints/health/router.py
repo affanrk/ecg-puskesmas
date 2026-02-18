@@ -151,5 +151,8 @@ async def cleanup_old_performance_logs(
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
 ):
     deleted_count = perf_repo.delete_old_logs(days=days)
+    logger.info(
+        f"Manual performance log cleanup triggered: {deleted_count} records removed"
+    )
 
     return {"deleted_count": deleted_count, "cutoff_days": days}

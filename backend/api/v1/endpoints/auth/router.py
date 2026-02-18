@@ -16,6 +16,7 @@ from schemas.user import (
     UserPasswordUpdate,
 )
 from models import TbMUser
+from utils import logger
 
 router = APIRouter()
 
@@ -25,13 +26,19 @@ def register(
     user_in: UserCreate, user_repo: UserRepository = Depends(get_user_repository)
 ):
     if user_repo.find_by_email(email=user_in.email):
+        logger.warning(f"Registration failed: Email {user_in.email} already exists")
         raise HTTPException(status_code=400, detail="Email already registered")
 
     if user_repo.find_by_username(username=user_in.username):
+        logger.warning(
+            f"Registration failed: Username {user_in.username} already taken"
+        )
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user_in.role = "user"
-    return user_repo.create(user_in)
+    user = user_repo.create(user_in)
+    logger.info(f"New user registered: {user.username} ({user.email})")
+    return user
 
 
 @router.post("/login", response_model=Token)
@@ -41,6 +48,7 @@ def login(
     user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
 
     if not user or not verify_password(login_data.password, user.hashed_password):
+        logger.warning(f"Login failed for identifier: {login_data.username_or_email}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
@@ -48,6 +56,7 @@ def login(
         )
 
     if not user.is_active:
+        logger.warning(f"Login attempt for deactivated account: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
@@ -61,6 +70,7 @@ def login(
         expires_delta=access_token_expires,
     )
 
+    logger.info(f"User logged in: {user.username} from {login_data.source}")
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -69,6 +79,18 @@ def login(
         "user_name": user.username,
         "is_patient": user.is_patient,
     }
+
+
+@router.post("/logout", response_model=MessageResponse)
+def logout(
+    current_user: TbMUser = Depends(get_current_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    user_repo.update_record_login(
+        current_user.id, current_user.last_login_source, session_id=None
+    )
+    logger.info(f"User logged out: {current_user.username}")
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/me", response_model=UserResponse)
@@ -83,9 +105,14 @@ def update_user_username(
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     if user_repo.find_by_username(username_in.new_username):
+        logger.warning(f"Username change failed: {username_in.new_username} is taken")
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    return user_repo.update_username(current_user.id, username_in.new_username)
+    user = user_repo.update_username(current_user.id, username_in.new_username)
+    logger.info(
+        f"User {current_user.id} changed username to @{username_in.new_username}"
+    )
+    return user
 
 
 @router.put("/change-password", response_model=MessageResponse)
@@ -95,7 +122,11 @@ def update_user_password(
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     if not verify_password(password_in.current_password, current_user.hashed_password):
+        logger.warning(
+            f"Password change failed for user {current_user.username}: Incorrect current password"
+        )
         raise HTTPException(status_code=400, detail="Incorrect current password")
 
     user_repo.update_password(current_user.id, password_in.new_password)
+    logger.info(f"User {current_user.username} successfully changed their password")
     return {"message": "Password updated successfully"}

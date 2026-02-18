@@ -39,15 +39,12 @@ class MQTTClientService:
 
         async with aiomqtt.Client(**config) as client:
             self.client = client
-            logger.debug(
+            logger.info(
                 f"[MQTT] Successfully connected to broker: {config['hostname']}:{config['port']}"
             )
 
             await client.subscribe(MQTT_TOPIC_PATTERN, qos=MQTT_QOS)
             logger.info(f"[MQTT] Connected & subscribed to {MQTT_TOPIC_PATTERN}")
-            logger.debug(
-                f"[MQTT] Subscribed to topic pattern: {MQTT_TOPIC_PATTERN} with QoS {MQTT_QOS}"
-            )
 
             async for message in client.messages:
                 await self._handle_message(message)
@@ -83,23 +80,15 @@ class MQTTClientService:
 
         buffer_limit = 20
         try:
-            logger.debug(
-                f"[MQTT] Received message on topic: {message.topic}, payload size: {len(message.payload)} bytes"
-            )
-
             if message.retain:
                 return
 
             payload = orjson.loads(message.payload)
-
             device_id = payload.get("id")
-            logger.debug(
-                f"[MQTT] Processing payload from {device_id} on topic {message.topic}. Keys: {list(payload.keys())}"
-            )
 
             if not device_id:
                 logger.warning(
-                    f"[MQTT] Received packet without device ID. Payload: {payload}"
+                    f"[MQTT] Received packet without device ID from topic {message.topic}"
                 )
                 return
 
@@ -107,18 +96,15 @@ class MQTTClientService:
 
             if not device_state_manager.has_device(device_id):
                 should_update_list = True
-
                 device_state_manager.get_state(device_id)
                 logger.info(f"[MQTT] New device detected: {device_id}")
             else:
-
                 state = device_state_manager.get_state(device_id)
                 if not state.is_connected:
                     should_update_list = True
-                    logger.debug(f"[MQTT] Device re-connected: {device_id}")
+                    logger.info(f"[MQTT] Device re-connected: {device_id}")
 
             if should_update_list:
-                logger.debug(f"[MQTT] Triggering device list update for {device_id}")
                 await device_state_manager.notify_device_list_update()
 
             device_id, samples, end_counter, packet_format, sampling_rate = (
@@ -136,9 +122,9 @@ class MQTTClientService:
 
                 if gap > buffer_limit or gap < 0:
                     logger.error(
-                        f"[MQTT] Large data jump detected for {device_id} (Gap: {gap}). "
+                        f"[MQTT] Sequence break for {device_id} (Gap: {gap}). "
                         f"Expected {state.last_packet_num + 1}, got {actual_start}. "
-                        "Disconnecting to preserve data authenticity."
+                        "Resetting connection state."
                     )
                     state.packet_buffer.clear()
                     state.reset_recording_state()
@@ -193,9 +179,9 @@ class MQTTClientService:
                         state.last_packet_num = p_end
                     elif is_full:
                         logger.error(
-                            f"[MQTT] Data sequence broken for {device_id}. "
+                            f"[MQTT] Data buffer full for {device_id}. Sequence broken. "
                             f"Expected {state.last_packet_num + 1}, got {p_start}. "
-                            "Disconnecting to preserve data authenticity."
+                            "Resetting connection."
                         )
                         state.packet_buffer.clear()
                         state.reset_recording_state()
@@ -210,9 +196,13 @@ class MQTTClientService:
                         break
 
         except orjson.JSONDecodeError:
-            logger.warning("[MQTT] Invalid JSON in message")
+            logger.warning(
+                f"[MQTT] Invalid JSON payload received on topic {message.topic}"
+            )
         except Exception as e:
-            logger.error(f"[MQTT] Message handling error: {e}")
+            logger.error(
+                f"[MQTT] Unexpected error handling message on {message.topic}: {e}"
+            )
 
     def is_connected(self) -> bool:
 

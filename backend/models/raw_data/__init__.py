@@ -1,3 +1,3 @@
-from .model import TbREcgRaw
+from .model import TbREcgRawWeb, TbREcgRawMobile
 
-__all__ = ["TbREcgRaw"]
+__all__ = ["TbREcgRawWeb", "TbREcgRawMobile"]

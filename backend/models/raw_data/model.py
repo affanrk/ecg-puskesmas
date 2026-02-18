@@ -1,11 +1,20 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, BigInteger, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    BigInteger,
+    ForeignKey,
+    Index,
+)
 from sqlalchemy.orm import relationship
 from ..base import Base
 
 
-class TbREcgRaw(Base):
+class TbREcgRawWeb(Base):
 
-    __tablename__ = "tb_r_ecg_raw"
+    __tablename__ = "tb_r_ecg_raw_web"
     id = Column(
         BigInteger,
         primary_key=True,
@@ -43,6 +52,8 @@ class TbREcgRaw(Base):
     raw_v1 = Column(Integer, nullable=True, comment="Raw ADC value for V1")
 
     session = relationship("TbREcgSession", back_populates="raw_data")
+
+    __table_args__ = (Index("idx_raw_web_recording_dt", "recording_id", "created_dt"),)
 
 
 class TbREcgRawMobile(Base):
@@ -85,3 +96,7 @@ class TbREcgRawMobile(Base):
     raw_v1 = Column(Integer, nullable=True, comment="Raw ADC value for V1")
 
     session = relationship("TbREcgSession", back_populates="raw_data_mobile")
+
+    __table_args__ = (
+        Index("idx_raw_mobile_recording_dt", "recording_id", "created_dt"),
+    )

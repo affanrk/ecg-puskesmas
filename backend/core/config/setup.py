@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     )
     ENVIRONMENT: str = "development"
     TIMEZONE: str = "Asia/Jakarta"
+    LOG_LEVEL: str = "INFO"
 
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
     ALGORITHM: str = "HS256"
@@ -31,7 +32,9 @@ class Settings(BaseSettings):
         return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
 
     model_config = {
-        "env_file": os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
+        "env_file": os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env"
+        ),
         "env_file_encoding": "utf-8",
         "extra": "ignore",
     }

@@ -53,6 +53,7 @@ class WebSocketHandler:
     async def handle_message(self, message: dict):
 
         if not await self.verify_session():
+            logger.warning(f"Unauthorized message attempt from User ID {self.user_id}")
             await self.websocket.send_json(
                 {
                     "type": WSMessageType.ERROR.value,
@@ -63,6 +64,13 @@ class WebSocketHandler:
             return
 
         m_type = message.get("type")
+        if m_type in [WSMessageType.PING.value, WSMessageType.PONG.value]:
+            logger.debug(f"[WS] Received {m_type.upper()} from {self.user_id}")
+        elif m_type == WSMessageType.CALCULATE_LIVE_BPM.value:
+            logger.debug(f"[WS] Received calculation request from {self.user_id}")
+        else:
+            logger.info(f"[WS] Received {m_type} from User ID {self.user_id}")
+
         handlers = {
             WSMessageType.SUBSCRIBE.value: self._handle_subscribe,
             WSMessageType.UNSUBSCRIBE.value: self._handle_unsubscribe,
@@ -75,6 +83,11 @@ class WebSocketHandler:
             await handler(message)
         elif m_type == WSMessageType.PING.value:
             await self.websocket.send_json({"type": WSMessageType.PONG.value})
+        elif m_type == WSMessageType.PONG.value:
+            # We already logged this at DEBUG level above, no further action needed
+            pass
+        else:
+            logger.warning(f"[WS] Unhandled message type: {m_type}")
 
     async def _handle_calculate_live_bpm(self, message: dict):
 
@@ -82,6 +95,9 @@ class WebSocketHandler:
         data = message.get("data")
 
         if not device_id or not data or not isinstance(data, list):
+            logger.warning(
+                f"[WS] Invalid live BPM calculation request from {self.user_id}"
+            )
             return
 
         try:
@@ -100,7 +116,7 @@ class WebSocketHandler:
                     {"device_id": device_id, "data": {"bpm": bpm}},
                 )
         except Exception as e:
-            logger.error(f"Failed to calculate live BPM: {e}")
+            logger.error(f"[WS] Failed to calculate live BPM for {device_id}: {e}")
 
     async def _handle_subscribe(self, message: dict):
 
@@ -111,6 +127,7 @@ class WebSocketHandler:
         success = device_state_manager.subscribe_to_device(self.websocket, device_id)
         if success:
             self.current_device_id = device_id
+            logger.info(f"[WS] User {self.user_id} subscribed to device {device_id}")
 
             await self.websocket.send_json(
                 {
@@ -134,7 +151,9 @@ class WebSocketHandler:
 
             await device_state_manager.notify_device_list_update()
         else:
-
+            logger.warning(
+                f"[WS] User {self.user_id} failed to subscribe to busy device {device_id}"
+            )
             await self.websocket.send_json(
                 {
                     "type": WSMessageType.ERROR.value,
@@ -145,6 +164,9 @@ class WebSocketHandler:
     async def _handle_unsubscribe(self, message: dict):
 
         if self.current_device_id:
+            logger.info(
+                f"[WS] User {self.user_id} unsubscribed from {self.current_device_id}"
+            )
             unlocked = device_state_manager.unsubscribe_from_device(self.websocket)
             self.current_device_id = None
             if unlocked:
@@ -157,8 +179,14 @@ class WebSocketHandler:
         source = message.get("source", "WEB")
 
         if not device_id or not user_id:
+            logger.warning(
+                f"[WS] Missing params for start_recording: device={device_id}, user={user_id}"
+            )
             return
 
+        logger.info(
+            f"[WS] User {self.user_id} starting recording on {device_id} (Source: {source})"
+        )
         recording_id = str(uuid.uuid4())
         try:
             self.session_repo.create_session(
@@ -174,8 +202,9 @@ class WebSocketHandler:
             state.status_message = "Recording..."
 
             await device_state_manager.notify_state_update(device_id)
+            logger.info(f"[WS] Recording started: {recording_id}")
         except DatabaseException as e:
-            logger.error(f"Failed to create session in DB: {e}", exc_info=True)
+            logger.error(f"[WS] Failed to create session in DB: {e}")
             await self.websocket.send_json(
                 {
                     "type": WSMessageType.ERROR.value,
@@ -183,7 +212,7 @@ class WebSocketHandler:
                 }
             )
         except Exception as e:
-            logger.error(f"Failed to start recording: {e}", exc_info=True)
+            logger.error(f"[WS] Unexpected error starting recording: {e}")
             await self.websocket.send_json(
                 {
                     "type": WSMessageType.ERROR.value,
@@ -195,6 +224,7 @@ class WebSocketHandler:
 
         device_id = message.get("device_id")
         if device_id:
+            logger.info(f"[WS] User {self.user_id} stopping recording on {device_id}")
             await device_watchdog_service.force_cancel_recording(device_id)
 
     async def cleanup(self):
@@ -215,9 +245,12 @@ async def websocket_endpoint(
 ):
 
     await websocket.accept()
+    client_host = websocket.client.host if websocket.client else "unknown"
+    logger.info(f"[WS] Connection attempt from {client_host}")
 
     # Authentication
     if not token:
+        logger.warning(f"[WS] Connection rejected: Missing token from {client_host}")
         await websocket.send_json(
             {"type": "error", "message": "Missing authentication token"}
         )
@@ -236,18 +269,25 @@ async def websocket_endpoint(
 
         db_user = u_repo.find_by_identifier(email)
         if not db_user or not db_user.is_active:
+            logger.warning(
+                f"[WS] Connection rejected: User inactive or not found ({email})"
+            )
             raise JWTError("User not found or inactive")
 
         # Initial session check
         if db_user.current_session_id and db_user.current_session_id != sid:
+            logger.warning(f"[WS] Connection rejected: Session expired for {email}")
             await websocket.send_json({"type": "error", "message": "Session expired"})
             await websocket.close(code=4003)
             return
 
         user_id = db_user.id
+        logger.info(
+            f"[WS] User {user_id} (@{db_user.username}) authenticated successfully"
+        )
 
     except JWTError as e:
-        logger.error(f"WebSocket auth failed: {e}")
+        logger.error(f"[WS] Auth failed for {client_host}: {e}")
         await websocket.send_json(
             {"type": "error", "message": "Invalid or expired token"}
         )
@@ -267,13 +307,9 @@ async def websocket_endpoint(
             data = await websocket.receive_json()
             await handler.handle_message(data)
     except WebSocketDisconnect:
-        logger.info(
-            f"[WebSocket] Client {websocket.client.host}:{websocket.client.port} disconnected."
-        )
+        logger.info(f"[WS] User {user_id} disconnected from {client_host}")
     except Exception as e:
-        logger.error(
-            f"[WebSocket] Unexpected error in websocket_endpoint: {e}", exc_info=True
-        )
+        logger.error(f"[WS] Unexpected error for User {user_id}: {e}", exc_info=True)
         try:
             await websocket.send_json(
                 {"type": "error", "message": "An unexpected server error occurred."}

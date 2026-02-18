@@ -85,4 +85,7 @@ Use this to reduce network overhead by sending multiple samples in one packet.
 2.  **Calibrated Values:** The backend uses `cal_mv` fields for real-time visualization and AI analysis. Ensure your conversion logic from ADC to mV is correct before publishing.
 3.  **Timestamps:** If `ts_us` is not provided, the backend will use the server's arrival time, which may introduce jitter.
 4.  **Packet Loss:** The `counter` / `cnt` field is used by the backend to calculate the "Packet Loss %" shown on the dashboard. Ensure it increments by 1 (or by batch size) for every publish.
-5.  **Session Association:** Incoming MQTT data is only saved to the database if an active recording session is found for the `device_id`. The backend automatically associates data with the `user_id` (String format: `USR...`) and `subject_id` (NIK string) provided during the WebSocket `start_recording` command.
+5.  **Session Association:** Incoming MQTT data is only saved to the database if an active recording session is found for the `device_id`. The backend automatically routes data to the correct time-series table based on the session's source:
+    *   `tb_r_ecg_raw_web`: Primary storage for web-initiated sessions.
+    *   `tb_r_ecg_raw_mobile`: Specialized storage for mobile-initiated telemetry.
+    *   Association is based on the `user_id` (Sequential ID: `USR...`) and `subject_id` (NIK string) provided during the WebSocket `start_recording` command.

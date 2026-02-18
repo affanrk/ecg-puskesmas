@@ -1,9 +1,10 @@
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import insert
-from models.raw_data.model import TbREcgRawMobile
+from models import TbREcgRawMobile
 from repositories.base import BaseRepository
 from core.exceptions import DatabaseException
+from utils import logger
 
 
 class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
@@ -17,6 +18,7 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
             stmt = insert(TbREcgRawMobile)
             self.db.execute(stmt, data_list)
             self.db.commit()
+            logger.info(f"Bulk created {len(data_list)} MOBILE ECG samples")
             return len(data_list)
         except Exception as e:
             self.db.rollback()
@@ -32,9 +34,11 @@ class MobileRawDataWriter(BaseRepository[TbREcgRawMobile]):
                 .delete(synchronize_session=False)
             )
             self.db.commit()
+            logger.info(f"Deleted {count} MOBILE samples for recording {recording_id}")
             return count
         except Exception as e:
             self.db.rollback()
+            logger.error(f"Failed to delete MOBILE raw data for {recording_id}: {e}")
             raise DatabaseException(
                 "Failed delete raw mobile", details={"error": str(e)}
             )

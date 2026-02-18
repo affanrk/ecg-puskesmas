@@ -12,6 +12,7 @@ from repositories.patient import PatientRepository
 from schemas.patient import PatientUpdate, PatientCreate
 from schemas.user import UserResponse
 from models import TbMUser
+from utils import logger
 
 router = APIRouter()
 
@@ -25,21 +26,35 @@ def create_patient_profile(
 ):
     try:
         if patient_repo.find_by_user_id(current_user.id):
+            logger.warning(
+                f"Attempted to create duplicate profile for User ID: {current_user.id}"
+            )
             raise HTTPException(
                 status_code=400, detail="Patient profile already exists"
             )
 
-        patient_repo.create_profile(profile_in, current_user.id, source="WEB")
+        patient_repo.create_profile(
+            profile_in, current_user.id, source=profile_in.source
+        )
         updated_user = user_repo.find_by_id(current_user.id)
+        logger.info(
+            f"Successfully created patient profile for User ID: {current_user.id}"
+        )
         return updated_user
     except IntegrityError as e:
         error_msg = str(e.orig).lower() if hasattr(e, "orig") else str(e)
+        logger.error(
+            f"Integrity error during patient creation for {current_user.id}: {error_msg}"
+        )
         if "nik" in error_msg:
             raise HTTPException(
                 status_code=400, detail="NIK already registered to another user"
             )
         raise HTTPException(status_code=400, detail="Database integrity error")
     except Exception as e:
+        logger.error(
+            f"Unexpected error during patient creation for {current_user.id}: {str(e)}"
+        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
@@ -56,18 +71,30 @@ def update_user_profile(
         updated_user = user_repo.find_by_id(current_user.id)
 
         if not updated_user:
+            logger.error(f"User not found after profile update: {current_user.id}")
             raise HTTPException(status_code=404, detail="User not found")
+
+        logger.info(f"Successfully updated profile for User ID: {current_user.id}")
         return updated_user
     except DataError as e:
         error_msg = str(e.orig).lower() if hasattr(e, "orig") else str(e)
+        logger.error(
+            f"Data format error during profile update for {current_user.id}: {error_msg}"
+        )
         raise HTTPException(status_code=400, detail=f"Data format error: {error_msg}")
     except IntegrityError as e:
         error_msg = str(e.orig).lower() if hasattr(e, "orig") else str(e)
+        logger.error(
+            f"Integrity error during profile update for {current_user.id}: {error_msg}"
+        )
         if "nik" in error_msg:
             raise HTTPException(
                 status_code=400, detail="NIK already registered to another user"
             )
         raise HTTPException(status_code=400, detail="Database integrity error")
     except Exception as e:
+        logger.error(
+            f"Unexpected error during profile update for {current_user.id}: {str(e)}"
+        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

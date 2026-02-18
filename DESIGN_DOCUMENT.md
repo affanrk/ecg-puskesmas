@@ -172,7 +172,7 @@ CREATE TABLE tb_r_ecg_session (
 );
 
 -- Signal Data (Web/Desktop)
-CREATE TABLE tb_r_ecg_raw (
+CREATE TABLE tb_r_ecg_raw_web (
     id              BIGSERIAL PRIMARY KEY,
     recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
     
@@ -225,3 +225,20 @@ CREATE TABLE tb_t_raw_buffer (
 *   **Audit Fields**: `created_by`, `created_dt`, `changed_by`, `changed_dt`
 *   **Business Keys**: `_no` or `_code` suffix
 *   **Table Prefixes**: `TB_M_` (Master), `TB_R_` (Transaction), `TB_T_` (Temporary)
+
+## 5. Indexing & Optimization Strategies
+
+To maintain high performance during national-scale telemetry ingestion, the following indexing strategies are applied:
+
+1.  **Composite Time-Series Indexes**:
+    *   `idx_raw_web_recording_dt` on `tb_r_ecg_raw_web(recording_id, created_dt)`: Optimized for sequential signal retrieval and plotting.
+    *   `idx_raw_mobile_recording_dt` on `tb_r_ecg_raw_mobile(recording_id, created_dt)`: Optimized for mobile platform signal retrieval.
+    *   `idx_perf_device_dt` on `tb_r_performance_log(device_id, created_dt)`: Optimized for real-time monitoring and historical performance analysis.
+
+2.  **Lookup & Relationship Indexes**:
+    *   `unique_user_sid`: Enforces single-session logic on `tb_m_user(current_session_id)`.
+    *   `idx_patient_user`: Linked index between authentication and clinical profiles.
+    *   `idx_session_recording`: Primary identifier for recording sessions and AI classification results.
+
+3.  **Audit & Lifecycle Indexes**:
+    *   All tables include indexes on `created_dt` and `changed_dt` to support administrative reporting and automated cleanup workers.

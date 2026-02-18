@@ -1,4 +1,5 @@
 from typing import Optional
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError, DataError
@@ -8,6 +9,7 @@ from core.exceptions import DatabaseException
 from core.security import get_password_hash
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
+from utils import logger
 
 
 class UserWriter(BaseRepository[TbMUser]):
@@ -41,16 +43,33 @@ class UserWriter(BaseRepository[TbMUser]):
         self, user_id: str, source: str, session_id: Optional[str] = None
     ):
         try:
-            db_user = self.get(user_id)
-            if db_user:
-                db_user.last_login_dt = func.now()
-                db_user.last_login_source = source
-                if session_id:
-                    db_user.current_session_id = session_id
-                self.db.commit()
-        except Exception:
+            logger.debug(
+                f"Updating login record for user {user_id}. Source: {source}, Session: {session_id}"
+            )
+
+            values = {
+                "current_session_id": session_id,
+                "changed_dt": TbMUser.changed_dt,
+                "changed_by": TbMUser.changed_by,
+            }
+
+            if session_id:
+                values["last_login_dt"] = func.now()
+                values["last_login_source"] = source
+            else:
+                values["last_login_dt"] = TbMUser.last_login_dt
+                values["last_login_source"] = TbMUser.last_login_source
+
+            stmt = update(TbMUser).where(TbMUser.id == user_id).values(**values)
+
+            self.db.execute(stmt)
+            self.db.commit()
+            logger.debug(
+                f"Successfully updated session state for user {user_id} (Session: {session_id})"
+            )
+        except Exception as e:
             self.db.rollback()
-            pass
+            logger.error(f"Failed to update login record for user {user_id}: {e}")
 
     def update_username(self, user_id: str, new_username: str) -> Optional[TbMUser]:
         try:
@@ -59,6 +78,7 @@ class UserWriter(BaseRepository[TbMUser]):
                 return None
 
             db_user.username = new_username
+            db_user.changed_by = "USER"
             self.db.commit()
             self.db.refresh(db_user)
             return db_user
@@ -78,6 +98,7 @@ class UserWriter(BaseRepository[TbMUser]):
                 return None
 
             db_user.hashed_password = get_password_hash(new_password)
+            db_user.changed_by = "USER"
             self.db.commit()
             self.db.refresh(db_user)
             return db_user

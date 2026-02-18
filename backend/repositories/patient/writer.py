@@ -6,6 +6,7 @@ from schemas.patient import PatientUpdate, PatientCreate
 from core.exceptions import DatabaseException
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
+from utils import logger
 
 
 class PatientWriter(BaseRepository[TbMPatient]):
@@ -49,15 +50,18 @@ class PatientWriter(BaseRepository[TbMPatient]):
 
             self.db.commit()
             self.db.refresh(patient)
+            logger.info(f"Created patient profile {patient_id} for User {user_id}")
             return patient
         except IntegrityError as e:
             self.db.rollback()
+            logger.error(f"Integrity error creating patient for {user_id}: {e}")
             raise DatabaseException(
                 "Patient profile creation failed: Integrity Error",
                 details={"error": str(e)},
             )
         except Exception as e:
             self.db.rollback()
+            logger.error(f"Failed to create patient for {user_id}: {e}")
             raise DatabaseException(
                 f"Failed to create patient profile for user {user_id}",
                 details={"error": str(e)},
@@ -77,6 +81,7 @@ class PatientWriter(BaseRepository[TbMPatient]):
                     id=patient_id, user_id=user_id, status="QUEUE", created_by=source
                 )
                 self.db.add(patient)
+                logger.info(f"Initiated new patient record for user {user_id}")
             else:
                 patient.status = "QUEUE"
 
@@ -102,12 +107,15 @@ class PatientWriter(BaseRepository[TbMPatient]):
 
             self.db.commit()
             self.db.refresh(patient)
+            logger.info(f"Updated patient profile for user {user_id}")
             return patient
-        except (IntegrityError, DataError):
+        except (IntegrityError, DataError) as e:
             self.db.rollback()
+            logger.error(f"Data error updating patient for {user_id}: {e}")
             raise
         except Exception as e:
             self.db.rollback()
+            logger.error(f"Unexpected error updating patient for {user_id}: {e}")
             raise DatabaseException(
                 f"Failed to update patient profile for User ID {user_id}",
                 details={"error": str(e)},

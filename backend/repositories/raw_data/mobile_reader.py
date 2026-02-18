@@ -1,6 +1,6 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models.raw_data.model import TbREcgRawMobile
+from models import TbREcgRawMobile
 from repositories.base import BaseRepository
 from core.exceptions import DatabaseException
 

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 
 
 class Token(BaseModel):
@@ -11,6 +11,11 @@ class Token(BaseModel):
     full_name: Optional[str] = None
     is_patient: bool
 
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
+
 
 class TokenData(BaseModel):
     email: Optional[str] = None
@@ -18,11 +23,21 @@ class TokenData(BaseModel):
     role: Optional[str] = None
     sid: Optional[str] = None
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
 
 class UserLogin(BaseModel):
     username_or_email: str
     password: str
     source: Optional[str] = "WEB"
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
     @field_validator("username_or_email", mode="before")
     @classmethod

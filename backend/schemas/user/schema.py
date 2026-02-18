@@ -1,12 +1,17 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, EmailStr, field_validator, Field
+from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
 import re
 
 
 class UserBase(BaseModel):
     email: EmailStr
     username: str
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     @field_validator("email", mode="before")
     @classmethod
@@ -111,5 +116,7 @@ class UserResponse(UserBase):
     address: Optional[str] = None
     contact_number: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )

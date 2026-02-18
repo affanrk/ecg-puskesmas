@@ -82,6 +82,7 @@ class RecordingStorageService:
         for item in valid_items:
             source = item.pop("source", "WEB")
             if source == "MOBILE":
+                item["created_by"] = "MOBILE"
                 mobile_items.append(item)
             else:
                 web_items.append(item)

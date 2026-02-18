@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from models import TbRLogApproval
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
+from utils import logger
 
 
 class ApprovalWriter(BaseRepository[TbRLogApproval]):
@@ -22,4 +23,5 @@ class ApprovalWriter(BaseRepository[TbRLogApproval]):
         self.db.add(log)
         self.db.commit()
         self.db.refresh(log)
+        logger.info(f"Created approval log for user {user_id} with status {status}")
         return log

@@ -32,7 +32,7 @@ class DeviceStateManager:
 
         if device_id not in self.device_states:
             self.device_states[device_id] = DeviceState(device_id)
-            logger.debug(f"Created new state for device: {device_id}")
+            logger.info(f"Initialized new state for device: {device_id}")
         return self.device_states[device_id]
 
     def get_state_or_fail(self, device_id: str) -> DeviceState:
@@ -49,6 +49,7 @@ class DeviceStateManager:
 
         if device_id in self.device_states:
             del self.device_states[device_id]
+            logger.info(f"Removed device state: {device_id}")
         if device_id in self.websocket_connections:
             del self.websocket_connections[device_id]
         if device_id in self.ui_data_buffer:
@@ -147,7 +148,7 @@ class DeviceStateManager:
     async def notify_device_list_update(self):
 
         device_list = self.get_all_device_summaries()
-        logger.debug(
+        logger.info(
             f"[DeviceStateManager] Broadcasting device list update to {len(self.broadcast_connections)} clients. Devices: {len(device_list)}"
         )
         await self.broadcast_to_all(

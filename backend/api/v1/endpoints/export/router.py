@@ -22,6 +22,7 @@ async def export_raw_ecg_data(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
+    logger.info(f"Raw data export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     db = SessionLocal()
@@ -34,6 +35,7 @@ async def export_raw_ecg_data(
         rows = raw_repo.find_by_recording_id(recording_id)
 
         if not rows:
+            logger.warning(f"No raw data found for Recording ID: {recording_id}")
             raise RecordingNotFoundException(recording_id)
 
         df = pd.DataFrame(
@@ -57,12 +59,15 @@ async def export_raw_ecg_data(
         csv_data = df.to_csv(index=False)
         filename = f"ecg_raw_{recording_id}.csv"
 
+        logger.info(f"Successfully generated CSV for Recording ID: {recording_id}")
         return StreamingResponse(
             iter([csv_data]),
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-
+    except Exception as e:
+        logger.error(f"Failed to export raw data for {recording_id}: {str(e)}")
+        raise
     finally:
         db.close()
 
@@ -72,11 +77,12 @@ async def export_analysis_features(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
+    logger.info(f"Features export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
 
     feature_data = {
         "recording_id": recording_id,
-        "patient_id": session.patient_id,
+        "user_id": session.user_id,
         "timestamp": session.created_dt.isoformat(),
         "classification": session.classification_result,
         "confidence": session.confidence_score,
@@ -94,6 +100,7 @@ async def export_analysis_features(
     csv_data = df.to_csv(index=False)
     filename = f"ecg_features_{recording_id}.csv"
 
+    logger.info(f"Successfully generated features CSV for Recording ID: {recording_id}")
     return StreamingResponse(
         iter([csv_data]),
         media_type="text/csv",
@@ -106,6 +113,7 @@ async def export_ecg_chart(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
 ):
+    logger.info(f"ECG plot export requested for Recording ID: {recording_id}")
     session_repo.find_by_recording_id_or_fail(recording_id)
 
     loop = asyncio.get_running_loop()
@@ -116,6 +124,7 @@ async def export_ecg_chart(
         )
 
         if not buf:
+            logger.warning(f"Insufficient data to generate plot for {recording_id}")
             raise HTTPException(
                 status_code=404,
                 detail="Could not generate plot. Data may be insufficient.",
@@ -123,6 +132,7 @@ async def export_ecg_chart(
 
         filename = f"ecg_chart_{recording_id}.png"
 
+        logger.info(f"Successfully generated plot for Recording ID: {recording_id}")
         return StreamingResponse(
             buf,
             media_type="image/png",
@@ -130,9 +140,10 @@ async def export_ecg_chart(
         )
 
     except RecordingNotFoundException:
+        logger.error(f"Recording not found for plot: {recording_id}")
         raise
     except Exception as e:
-        logger.error(f"[Export] Plot generation failed: {e}")
+        logger.error(f"[Export] Plot generation failed for {recording_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate plot")
 
 

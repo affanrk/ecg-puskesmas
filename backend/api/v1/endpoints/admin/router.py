@@ -10,6 +10,7 @@ from repositories.approval import ApprovalRepository
 from schemas.user import UserResponse, UserApprovalUpdate
 from schemas.approval import ApprovalLogResponse
 from models import TbMUser
+from utils import logger
 
 router = APIRouter()
 
@@ -27,7 +28,6 @@ def get_pending_approvals(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-
     return user_repo.list_pending_approval(
         skip=skip,
         limit=limit,
@@ -53,7 +53,6 @@ def get_approval_logs(
     admin: TbMUser = Depends(get_admin_user),
     approval_repo: ApprovalRepository = Depends(get_approval_repository),
 ):
-
     logs = approval_repo.list_logs(
         skip=skip,
         limit=limit,
@@ -92,10 +91,16 @@ def update_user_status(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-
     user = user_repo.update_activation_status(
         user_id, status_in.is_activated, status_in.reason
     )
     if not user:
+        logger.warning(
+            f"Admin {admin.username} attempted to update non-existent user {user_id}"
+        )
         raise HTTPException(status_code=404, detail="User not found")
+
+    logger.info(
+        f"Admin {admin.username} updated status for user {user_id} to {status_in.is_activated}"
+    )
     return user

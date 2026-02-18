@@ -9,16 +9,19 @@ A professional medical ECG telemetry platform providing real-time monitoring, hi
 - **Modern UI/UX**: Clean, professional interface with specialized cardiac visualization (Lead I, II, V1).
 - **Advanced Security**: 
   - **Last Login Wins**: Enforced single-active session per user for data integrity.
+  - **Traceable Activity**: Unique `X-Request-ID` assigned to every request for precise audit trailing.
   - **Business Identity**: Sequential medical IDs (USR/PAT/APP) for professional record tracking.
   - **User/Patient Separation**: Dedicated tables for authentication and clinical profile data.
 - **System Telemetry**: Real-time monitoring of network health, latency, and system performance.
+- **Enhanced Observability**: Professional-grade logging with clean separation between operational milestones (INFO) and technical details (DEBUG).
 - **Admin Console**: Centralized approval queue for new medical profiles.
 
 ## 🏗️ Architecture
 
 - **Backend**: FastAPI (Python 3.12+)
   - **Repositories**: Standardized data access layer with Reader/Writer separation.
-  - **Models**: SQLAlchemy with TSID/UUID primary keys for high-performance telemetry.
+  - **Data Routing**: Dual-table architecture for raw data (`tb_r_ecg_raw_web` vs `tb_r_ecg_raw_mobile`) ensuring clean platform separation.
+  - **Models**: SQLAlchemy with TSID/UUID primary keys and composite indexes for high-performance telemetry.
   - **Messaging**: Mosquitto (MQTT) for signal ingestion and WebSockets for real-time UI updates.
 - **Frontend**: Next.js 15+ (TypeScript)
   - **State Management**: Zustand for efficient real-time data handling.

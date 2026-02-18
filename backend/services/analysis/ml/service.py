@@ -60,10 +60,12 @@ class MLEngineService:
             self.model = tf.keras.models.load_model(model_path)
 
             self.is_loaded = True
-            logger.info(f"[ML Engine] Model loaded successfully from {model_dir}")
+            logger.info(
+                f"[ML Engine] AI Model and Scaler loaded successfully from {model_dir}"
+            )
 
         except Exception as e:
-            logger.error(f"[ML Engine] Failed to load model: {e}")
+            logger.error(f"[ML Engine] Critical error loading AI models: {e}")
             self.is_loaded = False
 
     def shutdown(self):
@@ -78,7 +80,7 @@ class MLEngineService:
 
         try:
             logger.info(
-                f"[ML Engine] Starting analysis for recording {recording_id} (Device: {device_id})"
+                f"[ML Engine] Received analysis trigger for recording {recording_id} (Device: {device_id})"
             )
 
             loop = asyncio.get_running_loop()
@@ -92,8 +94,13 @@ class MLEngineService:
 
             if result:
                 await self._broadcast_result(device_id, result)
+                logger.info(
+                    f"[ML Engine] Analysis complete and broadcasted for {recording_id}"
+                )
         except Exception as e:
-            logger.error(f"[ML Engine] trigger_analysis failed for {recording_id}: {e}")
+            logger.error(
+                f"[ML Engine] Failed to trigger analysis for {recording_id}: {e}"
+            )
 
     def _analyze_recording(
         self, recording_id: str, subject_id: str, device_id: str
@@ -102,7 +109,9 @@ class MLEngineService:
         db = SessionLocal()
 
         try:
-
+            logger.debug(
+                f"[ML Engine] Processing classification for recording {recording_id}"
+            )
             raw_data = self._fetch_raw_data(db, recording_id)
 
             features = self._extract_features_from_data(raw_data, device_id)
@@ -112,8 +121,8 @@ class MLEngineService:
             self._save_results(db, recording_id, classification, confidence, features)
 
             logger.info(
-                f"[ML Engine] Analysis result for {recording_id}: {classification} "
-                f"(BPM: {int(features['bpm'])}, Confidence: {confidence:.2%})"
+                f"[ML Engine] Successfully classified {recording_id} as '{classification}' "
+                f"(BPM: {int(features['bpm'])}, confidence: {confidence:.2%})"
             )
 
             return {

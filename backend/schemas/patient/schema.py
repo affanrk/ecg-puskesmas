@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 import re
 
 
@@ -13,6 +13,11 @@ class PatientBase(BaseModel):
     address: Optional[str] = None
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
 
     @field_validator("full_name")
     @classmethod
@@ -59,7 +64,14 @@ class PatientBase(BaseModel):
 
 
 class PatientCreate(PatientBase):
-    pass
+    full_name: str
+    nik: str
+    pob: str
+    dob: date
+    gender: str
+    address: str
+    contact_number: str
+    source: Optional[str] = "WEB"
 
 
 class PatientUpdate(PatientBase):
@@ -69,6 +81,3 @@ class PatientUpdate(PatientBase):
 class PatientResponse(PatientBase):
     id: str
     user_id: str
-
-    class Config:
-        from_attributes = True

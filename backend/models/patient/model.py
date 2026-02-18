@@ -19,22 +19,22 @@ class TbMPatient(Base, AuditMixin):
         comment="Foreign key to the user",
     )
     full_name = Column(
-        String(100), index=True, nullable=True, comment="Full name of the patient"
+        String(100), index=True, nullable=False, comment="Full name of the patient"
     )
     nik = Column(
         String(20),
         unique=True,
         index=True,
-        nullable=True,
+        nullable=False,
         comment="Nomor Induk Kependudukan (Patient ID)",
     )
-    pob = Column(String(100), nullable=True, comment="Place of birth")
-    dob = Column(Date, nullable=True, comment="Date of birth")
+    pob = Column(String(100), nullable=False, comment="Place of birth")
+    dob = Column(Date, nullable=False, comment="Date of birth")
     gender = Column(
-        String(10), nullable=True, comment="Gender (L for Male, P for Female)"
+        String(10), nullable=False, comment="Gender (L for Male, P for Female)"
     )
-    address = Column(String(255), nullable=True, comment="Residential address")
-    contact_number = Column(String(20), nullable=True, comment="Contact phone number")
+    address = Column(String(255), nullable=False, comment="Residential address")
+    contact_number = Column(String(20), nullable=False, comment="Contact phone number")
     medical_history = Column(
         Text, nullable=True, comment="Text field for medical history notes"
     )

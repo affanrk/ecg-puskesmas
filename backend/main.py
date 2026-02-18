@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 import uvicorn
+import uuid
 
 from core import settings
 from core.events import lifespan
@@ -62,10 +63,38 @@ app.add_middleware(
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    import time
+
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = (time.time() - start_time) * 1000
+    formatted_process_time = "{0:.2f}".format(process_time)
+    logger.info(
+        f"RID: {request.state.request_id if hasattr(request.state, 'request_id') else 'N/A'} | "
+        f"{request.method} {request.url.path} | "
+        f"Status: {response.status_code} | "
+        f"Time: {formatted_process_time}ms"
+    )
+    return response
+
+
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     error_details = f" | Details: {exc.details}" if exc.details else ""
-    logger.error(f"[Exception] {exc.__class__.__name__}: {exc.message}{error_details}")
+    logger.error(
+        f"[Exception] {request.method} {request.url.path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
+    )
 
     return JSONResponse(
         status_code=exc.status_code,
@@ -84,7 +113,9 @@ async def app_exception_handler(request: Request, exc: AppException):
 async def generic_exception_handler(request: Request, exc: Exception):
     error_msg = str(exc)
     tb = traceback.format_exc()
-    logger.error(f"[Unhandled Exception] {error_msg}\n{tb}")
+    logger.error(
+        f"[Unhandled Exception] {request.method} {request.url.path} -> {error_msg}\n{tb}"
+    )
     return JSONResponse(
         status_code=500,
         content={
@@ -128,7 +159,7 @@ async def chrome_devtools_json():
 
 
 if __name__ == "__main__":
-    logger.info(f"[Config] Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    logger.info(f"[Config] Environment: {settings.ENVIRONMENT}")
     logger.info(f"[Config] API Port: {settings.FLASK_PORT}")
     logger.info(f"[Config] Database: {settings.DATABASE_HOST}:{settings.DATABASE_PORT}")
     logger.info(f"[Config] MQTT Broker: {settings.MQTT_BROKER}:{settings.MQTT_PORT}")
@@ -137,7 +168,7 @@ if __name__ == "__main__":
         app=app,
         host="0.0.0.0",
         port=settings.FLASK_PORT,
-        log_level="debug",
+        log_level=settings.LOG_LEVEL.lower(),
         loop="asyncio",
         reload=True,
     )
