@@ -30,6 +30,14 @@ export default function Header() {
     }, []);
 
     const handleLogout = async () => {
+        if (isRecording && user?.id) {
+            const { currentDeviceId } = useStore.getState();
+            if (currentDeviceId) {
+                const { sendJson } = await import('@/services/socket');
+                sendJson({ type: "stop_recording", device_id: currentDeviceId });
+            }
+        }
+
         try {
             await api.logout();
         } catch (e) {

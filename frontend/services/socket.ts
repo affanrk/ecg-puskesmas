@@ -197,6 +197,11 @@ class WebSocketService {
             case "error":
                 console.error("[WS] Server Error:", msg.message);
                 if (msg.message.toLowerCase().includes("session expired")) {
+                    const { isRecording, currentDeviceId } = store;
+                    if (isRecording && currentDeviceId) {
+                        this.sendJson({ type: "stop_recording", device_id: currentDeviceId });
+                    }
+                    
                     localStorage.removeItem('ecg_token');
                     localStorage.removeItem('ecg_user');
                     store.setUser(null);

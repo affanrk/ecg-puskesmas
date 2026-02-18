@@ -38,6 +38,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [isRecording, updateTimer]);
 
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isRecording) {
+                e.preventDefault();
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isRecording]);
+
     if (user && user.role === 'admin') {
         return null;
     }

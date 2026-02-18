@@ -90,10 +90,8 @@ function LoginContent() {
             });
             const data = response.data;
             
-            // Save token immediately so fetchUserProfile can use it
             localStorage.setItem('ecg_token', data.access_token);
 
-            // Fetch the FULL profile to get is_activated, status, etc.
             const fullProfile = await api.fetchUserProfile(data.access_token);
             
             localStorage.setItem('ecg_user', JSON.stringify(fullProfile));

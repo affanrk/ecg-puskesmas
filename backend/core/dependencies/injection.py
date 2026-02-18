@@ -85,7 +85,6 @@ async def get_current_user(
     if not user:
         raise credentials_exception
 
-    # Enforce single session
     if user.current_session_id and token_data.sid != user.current_session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

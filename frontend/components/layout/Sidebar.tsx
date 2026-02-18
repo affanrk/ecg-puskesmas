@@ -23,13 +23,13 @@ import {
     ShieldCheck
 } from 'lucide-react';
 
-import { disconnectWebSocket } from '@/services/socket';
+import { disconnectWebSocket, sendJson } from '@/services/socket';
 import { api } from '@/services/api';
 
 export default function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, isSidebarPinned, setIsSidebarPinned, setUser } = useStore();
+    const { user, isSidebarPinned, setIsSidebarPinned, setUser, isRecording } = useStore();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
@@ -45,6 +45,13 @@ export default function Sidebar() {
     ];
 
     const handleLogout = async () => {
+        if (isRecording && user?.id) {
+            const { currentDeviceId } = useStore.getState();
+            if (currentDeviceId) {
+                sendJson({ type: "stop_recording", device_id: currentDeviceId });
+            }
+        }
+
         try {
             await api.logout();
         } catch (e) {

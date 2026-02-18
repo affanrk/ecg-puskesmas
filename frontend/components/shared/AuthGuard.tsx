@@ -15,6 +15,13 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     useEffect(() => {
         const isAuthPage = pathname === '/login' || pathname === '/register';
         
+        if (storeUser && !isAuthPage) {
+            if (!authorized) {
+                Promise.resolve().then(() => setAuthorized(true));
+            }
+            return;
+        }
+
         const checkAuth = async () => {
             const token = localStorage.getItem('ecg_token');
             
@@ -48,7 +55,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         } else {
             checkAuth();
         }
-    }, [pathname, router, setUser, storeUser, authorized]);
+    }, [pathname, router, setUser, authorized, storeUser]);
 
     if (pathname === '/login' || pathname === '/register') {
         return <>{children}</>;

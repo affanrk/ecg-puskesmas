@@ -206,7 +206,12 @@ export const useStore = create<AppState>((set, get) => ({
             set({ recordingSeconds: totalRounded });
         }
     },
-    setUser: (user) => set(() => user ? { user, recordingSeconds: 0, accumulatedTime: 0 } : { user: null, liveData: [], archiveData: [], recordingSeconds: 0, isRecording: false, bpm: '--' }),
+    setUser: (user) => set(() => {
+        if (!user) {
+            return { user: null, liveData: [], archiveData: [], recordingSeconds: 0, accumulatedTime: 0, isRecording: false, bpm: '--' };
+        }
+        return { user };
+    }),
     setArchiveData: (data) => set(() => ({ archiveData: data.filter(r => r.classification !== 'Recording...') })),
     addLiveResult: (result) => set((state) => {
         if (!result || !result.recording_id || result.classification === 'Recording...') return state;
