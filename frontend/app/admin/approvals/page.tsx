@@ -1,7 +1,7 @@
 'use client';
 
-import AdminConsole from '@/components/admin/AdminConsole';
+import UserApprovals from '@/components/admin/UserApprovals';
 
 export default function AdminApprovalsPage() {
-    return <AdminConsole />;
+    return <UserApprovals />;
 }

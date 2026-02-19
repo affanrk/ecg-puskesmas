@@ -25,6 +25,13 @@ export function formatDate(isoString: string | null | undefined): string {
     });
 }
 
+export function formatDateShort(isoString: string | null | undefined): string {
+    if (!isoString) return "-";
+    return new Date(isoString).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric'
+    });
+}
+
 export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number) {
     let timeout: NodeJS.Timeout;
     return function executedFunction(...args: Parameters<T>) {
@@ -55,15 +62,14 @@ export function calculateAge(birthDateString: string | null | undefined): number
 export function getApiUrl(): string {
     const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
     let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
-    
+
     url = url.replace(/\/$/, '');
-    
+
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
         const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https://' : 'http://';
         url = `${protocol}${url}`;
     }
-    
-    // Auto-upgrade to https if page is https and url is http (and not localhost)
+
     if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
         url = url.replace('http://', 'https://');
     }
@@ -71,6 +77,6 @@ export function getApiUrl(): string {
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }
-    
+
     return url;
 }

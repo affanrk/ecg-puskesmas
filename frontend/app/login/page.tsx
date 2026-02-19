@@ -101,7 +101,7 @@ function LoginContent() {
             toast("Welcome back!", "success");
             
             if (data.role === 'admin') {
-                router.push('/admin/approvals');
+                router.push('/admin/dashboard');
             } else {
                 router.push('/dashboard');
             }

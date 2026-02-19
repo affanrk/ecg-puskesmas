@@ -13,7 +13,7 @@ type SocketMessage =
     | { type: 'live_result'; device_id: string; classification: string; confidence?: number; recording_id?: string }
     | { type: 'state_update'; device_id?: string; is_recording: boolean }
     | { type: 'performance_update'; device_id?: string; latency_ms: number; jitter_ms: number; packet_loss_pct: number }
-    | { type: 'live_metrics_update'; device_id?: string; data: { bpm: number } }
+    | { type: 'calculate_live_bpm'; device_id?: string; data: { bpm: number } }
     | { type: 'device_disconnected'; device_id: string }
     | { type: 'error'; message: string };
 
@@ -29,7 +29,7 @@ class WebSocketService {
         const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
         const port = '8080';
         const defaultUrl = `${protocol}//${host}:${port}/ws`;
-        
+
         const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
         let finalUrl = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
 
@@ -139,7 +139,7 @@ class WebSocketService {
             return;
         }
         if ('device_id' in msg && msg.device_id) {
-            const isDataMessage = ['live_data', 'live_batch', 'live_result', 'live_metrics_update', 'performance_update'].includes(msg.type);
+            const isDataMessage = ['live_data', 'live_batch', 'live_result', 'calculate_live_bpm', 'performance_update'].includes(msg.type);
             if (isDataMessage) {
                 if (!store.currentDeviceId || msg.device_id !== store.currentDeviceId) return;
             } else {
@@ -175,7 +175,7 @@ class WebSocketService {
                 });
                 break;
             }
-            case "live_metrics_update": {
+            case "calculate_live_bpm": {
                 if (msg.data && typeof msg.data.bpm === 'number') {
                     store.setBpm(Math.round(msg.data.bpm));
                 }
@@ -201,7 +201,7 @@ class WebSocketService {
                     if (isRecording && currentDeviceId) {
                         this.sendJson({ type: "stop_recording", device_id: currentDeviceId });
                     }
-                    
+
                     localStorage.removeItem('ecg_token');
                     localStorage.removeItem('ecg_user');
                     store.setUser(null);

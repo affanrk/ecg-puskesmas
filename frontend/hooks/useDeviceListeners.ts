@@ -33,7 +33,7 @@ export function useDeviceListeners() {
                     setRecording(false); 
                     toast(`Recording PAUSED! Device ${disconnectedId} lost connection. Select another device to continue.`, "error");
                 } else {
-                    toast(`Device ${disconnectedId} disconnected`);
+                    toast(`Device ${disconnectedId} disconnected`, "warning");
                 }
             }
         };

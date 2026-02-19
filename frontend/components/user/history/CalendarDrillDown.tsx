@@ -124,7 +124,8 @@ export default function CalendarDrillDown() {
                 end_date: endDt,
                 limit: 200
             });
-            setDayResults(results);
+            const filteredResults = results.filter((r: AnalysisResult) => r.classification !== 'Unknown' && r.classification !== 'Insufficient Data');
+            setDayResults(filteredResults);
         } catch (error) {
             console.error(error);
             toast("Failed to load records", "error");

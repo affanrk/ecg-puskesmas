@@ -1,19 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { Bell, User, ChevronDown, LogOut, Settings } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { User, ChevronDown, LogOut, Settings } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import Link from 'next/link';
-import { disconnectWebSocket } from '@/services/socket';
-import { api } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Header() {
     const pathname = usePathname();
-    const router = useRouter();
-    const { user, isRecording, setUser } = useStore();
+    const { user, isRecording } = useStore();
+    const { logout } = useAuth();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -30,24 +29,7 @@ export default function Header() {
     }, []);
 
     const handleLogout = async () => {
-        if (isRecording && user?.id) {
-            const { currentDeviceId } = useStore.getState();
-            if (currentDeviceId) {
-                const { sendJson } = await import('@/services/socket');
-                sendJson({ type: "stop_recording", device_id: currentDeviceId });
-            }
-        }
-
-        try {
-            await api.logout();
-        } catch (e) {
-            console.error("Logout error:", e);
-        }
-        disconnectWebSocket();
-        localStorage.removeItem('ecg_token');
-        localStorage.removeItem('ecg_user');
-        setUser(null);
-        router.push('/login');
+        await logout();
     };
 
     const getPageTitle = (path: string) => {
@@ -63,7 +45,7 @@ export default function Header() {
         <>
             <header className="h-[64px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-50 sticky top-0">
                 <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
-                    <h2 className="text-lg font-black text-slate-800 tracking-tight hidden md:block">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight hidden md:block">
                         {getPageTitle(pathname)}
                     </h2>
                 </div>
@@ -74,10 +56,7 @@ export default function Header() {
                             <span className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Recording Live</span>
                         </div>
                     )}
-                    <button className="w-10 h-10 rounded-md bg-white border border-slate-200 text-slate-400 flex items-center justify-center hover:bg-slate-50 hover:text-teal-600 hover:border-teal-100 transition-all relative shadow-sm group">
-                        <Bell size={20} strokeWidth={2} />
-                        <span className="absolute top-2.5 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
-                    </button>
+
                     <div className="w-px h-8 bg-slate-200 hidden md:block" />
                     <div className="relative" ref={menuRef}>
                         <button

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import axiosInstance from '@/services/axiosInstance';
+import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 
@@ -171,11 +172,20 @@ export function useProfileManager() {
             dob: medicalForm.dob || null,
             address: medicalForm.address || null,
             contact_number: medicalForm.contact_number || null,
-            medical_history: medicalForm.medical_history || null
+            medical_history: medicalForm.medical_history || null,
+            source: 'WEB'
         };
         try {
-            const res = await axiosInstance.put('/profile', payload);
-            setUser(res.data);
+            const isFirstTime = !user?.is_patient;
+            let res;
+
+            if (isFirstTime) {
+                res = await api.createPatientProfile(payload);
+            } else {
+                res = await api.updatePatientProfile(payload);
+            }
+
+            setUser(res);
             toast("Profile updated successfully!", "success");
             setIsEditingMedical(false);
             setConfirmState(prev => ({ ...prev, isOpen: false }));
@@ -254,8 +264,8 @@ export function useProfileManager() {
                 isOpen: true,
                 type: 'medical',
                 title: isRejected ? 'Resubmit Profile' : 'Update Profile',
-                message: isRejected 
-                    ? 'Are you sure you want to resubmit your profile for administrative review?' 
+                message: isRejected
+                    ? 'Are you sure you want to resubmit your profile for administrative review?'
                     : 'Are you sure you want to update your contact and medical information?',
                 action: executeSaveProfile,
                 confirmText: isRejected ? 'Resubmit Now' : 'Save Changes'

@@ -16,7 +16,6 @@ export default function ProfilePage() {
         activeTab,
         setActiveTab,
         medicalForm,
-        setMedicalForm,
         securityForm,
         setSecurityForm,
         errors,
@@ -41,6 +40,7 @@ export default function ProfilePage() {
     } = useProfileManager();
 
     if (!user) return null;
+
     const isApproved = user.status === 'APPROVED';
     const isPending = user.status === 'QUEUE';
     const isRejected = user.status === 'REJECTED';
@@ -100,7 +100,7 @@ export default function ProfilePage() {
                                     isEditingMedical={isEditingMedical}
                                     setIsEditingMedical={setIsEditingMedical}
                                     medicalForm={medicalForm}
-                                    setMedicalForm={setMedicalForm}
+
                                     handleMedicalChange={handleMedicalChange}
                                     errors={errors}
                                     handleCancelMedical={handleCancelMedical}

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState, ElementType } from 'react';
-import { useRouter } from 'next/navigation';
 import { Clock, Shield, Stethoscope, User } from 'lucide-react';
 import clsx from 'clsx';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserData {
     name: string;
@@ -22,7 +22,7 @@ interface RoleConfig {
 }
 
 export default function ComingSoonPage() {
-    const router = useRouter();
+    const { logout } = useAuth();
     const [user, setUser] = useState<UserData | null>(null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -39,21 +39,7 @@ export default function ComingSoonPage() {
     }, []);
 
     const handleLogout = async () => {
-        try {
-            const { api } = await import('@/services/api');
-            await api.logout();
-        } catch (e) {
-            console.error("Logout error:", e);
-        }
-        
-        try {
-            const { disconnectWebSocket } = await import('@/services/socket');
-            disconnectWebSocket();
-        } catch (e) {}
-
-        localStorage.removeItem('ecg_token');
-        localStorage.removeItem('ecg_user');
-        router.push('/login');
+        await logout();
     };
 
     const role = user?.role?.toLowerCase() || 'user';
@@ -116,7 +102,7 @@ export default function ComingSoonPage() {
                     </div>
                 </div>
                 <div className="relative z-10 pt-4">
-                    <button 
+                    <button
                         onClick={() => setShowLogoutConfirm(true)}
                         className="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 px-6 rounded-xl transition-colors active:scale-[0.98] uppercase tracking-widest text-xs"
                     >

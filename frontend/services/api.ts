@@ -157,6 +157,26 @@ export async function fetchDetailedHealth() {
     }
 }
 
+export async function createPatientProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/auth/profile/patient', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Create Profile Error:", error);
+        throw error;
+    }
+}
+
+export async function updatePatientProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.put('/auth/profile', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        throw error;
+    }
+}
+
 export const api = {
     fetchHistory,
     downloadRecording,
@@ -168,5 +188,7 @@ export const api = {
     updateUserStatus,
     fetchApprovalLogs,
     logout,
-    fetchDetailedHealth
+    fetchDetailedHealth,
+    createPatientProfile,
+    updatePatientProfile
 };
