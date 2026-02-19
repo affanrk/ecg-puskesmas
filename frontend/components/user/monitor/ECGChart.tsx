@@ -75,7 +75,7 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
             line: {
                 borderWidth: 2,
                 tension: 0.35,
-                borderColor: '#0f172a', 
+                borderColor: '#0f172a',
             }
         }
     };
@@ -118,6 +118,7 @@ export default function ECGChart({ }: ECGChartProps) {
     const cursorRef = useRef(0);
     const bufferRef = useRef<{ leadI: number | null, leadII: number | null, leadIII: number | null, avF: number | null, v1: number | null }[]>([]);
     const currentSpsRef = useRef(100);
+    const accumulatedPointsRef = useRef(0);
     const lastFrameTimeRef = useRef(0);
     const isMounted = useRef(false);
     const { user, currentDeviceId, isRecording, ecgBuffer, isSessionActive, resetSession } = useStore();
@@ -129,7 +130,7 @@ export default function ECGChart({ }: ECGChartProps) {
         const syncPixels = () => {
             if (!containerRef.current || !isMounted.current) return;
             const parentHeight = Math.floor(containerRef.current.parentElement?.clientHeight || 0);
-            const reserved = 90; 
+            const reserved = 90;
             const available = parentHeight - reserved;
             const cH = Math.floor((available - 6) / 5);
             if (cH <= 0) return;
@@ -166,12 +167,12 @@ export default function ECGChart({ }: ECGChartProps) {
             isMounted.current = false;
             observer.disconnect();
         };
-    }, []); 
+    }, []);
 
     useEffect(() => {
         const totalPoints = CONFIG.MAX_DATA_POINTS;
         const initialData = new Array(totalPoints).fill(null);
-        const signalColor = '#0f172a'; 
+        const signalColor = '#0f172a';
         const createAndSetChart = (ref: React.RefObject<HTMLCanvasElement | null>, chartRef: React.MutableRefObject<Chart | null>) => {
             if (ref.current) {
                 const ctx = ref.current.getContext('2d');
@@ -214,18 +215,38 @@ export default function ECGChart({ }: ECGChartProps) {
             const now = performance.now();
             const deltaTime = (now - lastFrameTimeRef.current) / 1000;
             lastFrameTimeRef.current = now;
-            if (bufferRef.current.length === 0) return;
-            if (bufferRef.current.length > (currentSpsRef.current * 2)) {
-                bufferRef.current = [];
+
+            if (bufferRef.current.length === 0) {
+                accumulatedPointsRef.current = 0;
                 return;
             }
-            const dynamicEraseGap = Math.round((currentSpsRef.current / 100) * CONFIG.ERASE_GAP);
-            let targetPoints = currentSpsRef.current * deltaTime;
-            if (bufferRef.current.length > currentSpsRef.current * 0.2) {
-                targetPoints *= 1.2;
+
+            if (bufferRef.current.length > (currentSpsRef.current * 10)) {
+                bufferRef.current = [];
+                accumulatedPointsRef.current = 0;
+                return;
             }
-            const processLimit = Math.max(1, Math.ceil(targetPoints));
-            const pointsToProcess = bufferRef.current.splice(0, processLimit);
+
+            const dynamicEraseGap = Math.round((currentSpsRef.current / 100) * CONFIG.ERASE_GAP);
+
+            let speedMultiplier = 1.0;
+            const bufferSize = bufferRef.current.length;
+            const targetBuffer = currentSpsRef.current * 0.5;
+
+            if (bufferSize > targetBuffer * 2) speedMultiplier = 1.2;
+            else if (bufferSize > targetBuffer * 1.5) speedMultiplier = 1.1;
+            else if (bufferSize < targetBuffer * 0.5) speedMultiplier = 0.95;
+
+            accumulatedPointsRef.current += (currentSpsRef.current * deltaTime) * speedMultiplier;
+
+            const processLimit = Math.floor(accumulatedPointsRef.current);
+            if (processLimit <= 0) return;
+
+            const pointsToProcess = bufferRef.current.splice(0, Math.min(processLimit, bufferRef.current.length));
+            accumulatedPointsRef.current -= pointsToProcess.length;
+
+            if (pointsToProcess.length === 0) return;
+
             const charts = [
                 { chart: chartRefI.current, key: 'leadI' as const },
                 { chart: chartRefII.current, key: 'leadII' as const },
@@ -233,25 +254,39 @@ export default function ECGChart({ }: ECGChartProps) {
                 { chart: chartRefavF.current, key: 'avF' as const },
                 { chart: chartRefV1.current, key: 'v1' as const }
             ];
+
             let lastCursor = cursorRef.current;
-            const totalPoints = currentSpsRef.current * 5;
+            const totalPoints = Math.round(currentSpsRef.current * 5);
+
             for (let i = 0; i < pointsToProcess.length; i++) {
                 const data = pointsToProcess[i];
                 charts.forEach(({ chart, key }) => {
                     if (chart) {
                         const ds = chart.data.datasets[0].data;
                         ds[lastCursor] = data[key] ?? 0;
-                        for (let j = 1; j <= dynamicEraseGap; j++) ds[(lastCursor + j) % totalPoints] = null;
+
+                        for (let j = 1; j <= dynamicEraseGap; j++) {
+                            ds[(lastCursor + j) % totalPoints] = null;
+                        }
+
+                        if (chart.options.scales?.x?.max !== totalPoints) {
+                            if (chart.options.scales?.x) {
+                                chart.options.scales.x.max = totalPoints;
+                            }
+                        }
                     }
                 });
                 lastCursor = (lastCursor + 1) % totalPoints;
             }
+
             cursorRef.current = lastCursor;
+
             if (lastCursor % 50 === 0) {
                 charts.forEach(({ chart }) => {
                     if (chart) adjustScaleSingle(chart);
                 });
             }
+
             charts.forEach(({ chart }) => {
                 if (chart) chart.update('none');
             });
@@ -267,7 +302,7 @@ export default function ECGChart({ }: ECGChartProps) {
             cancelAnimationFrame(animationFrameId);
             [chartRefI, chartRefII, chartRefIII, chartRefavF, chartRefV1].forEach(ref => ref.current?.destroy());
         };
-    }, []); 
+    }, []);
 
     useEffect(() => {
         if (ecgBuffer.length === 0) {
@@ -355,7 +390,7 @@ export default function ECGChart({ }: ECGChartProps) {
                     ECG Digital Stream
                 </div>
             </div>
-            <div 
+            <div
                 ref={containerRef}
                 className="w-full flex-1 flex flex-col bg-white border-y border-slate-950 divide-y divide-slate-950 overflow-hidden shrink-0"
                 style={{ height: snappedHeight ? `${snappedHeight}px` : 'auto' }}
@@ -367,10 +402,10 @@ export default function ECGChart({ }: ECGChartProps) {
                     { id: 'avF', label: 'avF', ref: canvasRefavF },
                     { id: 'v1', label: 'V1', ref: canvasRefV1 }
                 ].map((lead) => (
-                    <div 
-                        key={lead.id} 
+                    <div
+                        key={lead.id}
                         className="relative w-full overflow-hidden bg-white flex-1"
-                        style={{ 
+                        style={{
                             ...medicalGridStyle,
                             height: canvasHeight ? `${canvasHeight}px` : 'auto'
                         }}
@@ -383,8 +418,8 @@ export default function ECGChart({ }: ECGChartProps) {
                                 {lead.label}
                             </div>
                         </div>
-                        <canvas 
-                            ref={lead.ref} 
+                        <canvas
+                            ref={lead.ref}
                             style={{ height: canvasHeight ? `${canvasHeight}px` : '100%' }}
                             className="w-full relative z-0 block"
                         ></canvas>
@@ -416,10 +451,10 @@ export default function ECGChart({ }: ECGChartProps) {
                                         disabled={!isRecording && !currentDeviceId}
                                         className={clsx(
                                             "flex items-center gap-2 px-4 py-1.5 rounded-md text-[10px] font-black shadow-lg transition-all active:scale-95 justify-center uppercase tracking-wider text-white",
-                                            isRecording 
-                                                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20" 
-                                                : (!currentDeviceId 
-                                                    ? "bg-slate-300 shadow-none cursor-not-allowed" 
+                                            isRecording
+                                                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
+                                                : (!currentDeviceId
+                                                    ? "bg-slate-300 shadow-none cursor-not-allowed"
                                                     : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20")
                                         )}
                                     >

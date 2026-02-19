@@ -38,7 +38,19 @@ export default function ComingSoonPage() {
         }
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            const { api } = await import('@/services/api');
+            await api.logout();
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
+        
+        try {
+            const { disconnectWebSocket } = await import('@/services/socket');
+            disconnectWebSocket();
+        } catch (e) {}
+
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         router.push('/login');
