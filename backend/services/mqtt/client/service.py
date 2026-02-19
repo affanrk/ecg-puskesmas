@@ -102,7 +102,7 @@ class MQTTClientService:
                 state = device_state_manager.get_state(device_id)
                 if not state.is_connected:
                     should_update_list = True
-                    logger.info(f"[MQTT] Device re-connected: {device_id}")
+                    logger.debug(f"[MQTT] Device re-connected: {device_id}")
 
             if should_update_list:
                 await device_state_manager.notify_device_list_update()

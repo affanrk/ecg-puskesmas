@@ -5,11 +5,11 @@ import re
 
 
 class PatientBase(BaseModel):
-    full_name: Optional[str] = None
-    nik: Optional[str] = None
-    pob: Optional[str] = None
-    dob: Optional[date] = None
-    gender: Optional[str] = None
+    full_name: str
+    nik: str
+    pob: str
+    dob: date
+    gender: str
     address: Optional[str] = None
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
@@ -64,13 +64,6 @@ class PatientBase(BaseModel):
 
 
 class PatientCreate(PatientBase):
-    full_name: str
-    nik: str
-    pob: str
-    dob: date
-    gender: str
-    address: str
-    contact_number: str
     source: Optional[str] = "WEB"
 
 

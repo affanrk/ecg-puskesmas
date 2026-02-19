@@ -6,8 +6,11 @@ from core import settings, verify_password, create_access_token
 from core.dependencies import (
     get_current_user,
     get_user_repository,
+    get_patient_repository,
 )
 from repositories.user import UserRepository
+from repositories.patient import PatientRepository
+from schemas.patient import PatientUpdate, PatientCreate
 from schemas.auth import Token, UserLogin, MessageResponse
 from schemas.user import (
     UserCreate,
@@ -99,6 +102,67 @@ def logout(
 @router.get("/me", response_model=UserResponse)
 def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/profile/patient", response_model=UserResponse)
+def create_patient_profile(
+    profile_in: PatientCreate,
+    current_user: TbMUser = Depends(get_current_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        if patient_repo.find_by_user_id(current_user.id):
+            logger.warning(
+                f"[Auth-Profile] Attempted to create duplicate profile for User ID: {current_user.id}"
+            )
+            raise HTTPException(
+                status_code=400, detail="Patient profile already exists"
+            )
+
+        patient_repo.create_profile(
+            profile_in, current_user.id, source=profile_in.source
+        )
+        updated_user = user_repo.find_by_id(current_user.id)
+        logger.info(
+            f"[Auth-Profile] Successfully created patient profile for User ID: {current_user.id}"
+        )
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"[Auth-Profile] Unexpected error during patient creation for {current_user.id}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put("/profile", response_model=UserResponse)
+def update_user_profile(
+    profile_in: PatientUpdate,
+    current_user: TbMUser = Depends(get_current_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        patient_repo.update_by_user_id(current_user.id, profile_in)
+        updated_user = user_repo.find_by_id(current_user.id)
+
+        if not updated_user:
+            logger.error(
+                f"[Auth-Profile] User not found after profile update: {current_user.id}"
+            )
+            raise HTTPException(status_code=404, detail="User not found")
+
+        logger.info(
+            f"[Auth-Profile] Successfully updated profile for User ID: {current_user.id}"
+        )
+        return updated_user
+    except Exception as e:
+        logger.error(
+            f"[Auth-Profile] Unexpected error during profile update for {current_user.id}: {str(e)}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.put("/change-username", response_model=UserResponse)

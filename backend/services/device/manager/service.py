@@ -32,7 +32,7 @@ class DeviceStateManager:
 
         if device_id not in self.device_states:
             self.device_states[device_id] = DeviceState(device_id)
-            logger.info(
+            logger.debug(
                 f"[DeviceManager] Initialized new state for device: {device_id}"
             )
         return self.device_states[device_id]
@@ -152,7 +152,7 @@ class DeviceStateManager:
     async def notify_device_list_update(self):
 
         device_list = self.get_all_device_summaries()
-        logger.info(
+        logger.debug(
             f"[DeviceStateManager] Broadcasting device list update to {len(self.broadcast_connections)} clients. Devices: {len(device_list)}"
         )
         await self.broadcast_to_all(
