@@ -9,7 +9,8 @@ import {
     Server,
     HardDrive,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    Activity
 } from 'lucide-react';
 import clsx from 'clsx';
 import { api } from '@/services/api';
@@ -23,46 +24,26 @@ function HealthCard({ title, subtitle, icon, isHealthy, color, value }: { title:
         rose: "bg-rose-50 text-rose-600 border-rose-100"
     };
     return (
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-rose-200 transition-all">
-            <div className="flex items-center justify-between mb-4">
-                <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center", colors[color])}>
+        <div className="bg-white p-4 lg:p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between group hover:border-rose-200 transition-all min-h-[115px]">
+            <div className="flex items-center justify-between mb-3">
+                <div className={clsx("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", colors[color])}>
                     {icon}
                 </div>
                 <div className={clsx(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                    "flex items-center gap-1.5 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border shrink-0",
                     isHealthy ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100 animate-pulse"
                 )}>
-                    {isHealthy ? <CheckCircle2 size={10} /> : <AlertCircle size={10} />}
+                    <span className={clsx("w-1 h-1 rounded-full", isHealthy ? "bg-emerald-500" : "bg-rose-500")} />
                     {isHealthy ? 'Healthy' : 'Error'}
                 </div>
             </div>
             <div>
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{title}</h4>
-                <p className="text-sm font-black text-slate-800 truncate mb-2">{subtitle}</p>
-                <div className="h-px w-full bg-slate-50 mb-3" />
-                <p className="text-xl font-black text-slate-700 tracking-tight">{value}</p>
+                <div className="flex justify-between items-baseline mb-0.5">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</h4>
+                    <p className="text-[10px] font-bold text-slate-300 truncate opacity-0 group-hover:opacity-100 transition-opacity">{subtitle}</p>
+                </div>
+                <p className="text-xl font-black text-slate-700 tracking-tight leading-none">{value}</p>
             </div>
-        </div>
-    );
-}
-
-function Metric({ badge, value, color }: { badge: string, value: number, color: 'slate' | 'rose' }) {
-    return (
-        <div className={clsx(
-            "px-4 py-2 border rounded-lg text-center min-w-[100px]",
-            color === 'slate' ? "bg-slate-50 border-slate-100" : "bg-rose-50 border-rose-100"
-        )}>
-            <span className={clsx("block text-[8px] font-black uppercase leading-none mb-1.5", color === 'slate' ? "text-slate-400" : "text-rose-400")}>{badge}</span>
-            <span className={clsx("text-lg font-black leading-none", color === 'slate' ? "text-slate-700" : "text-rose-600")}>{value}</span>
-        </div>
-    );
-}
-
-function PerformanceBox({ label, value, isWarning = false }: { label: string, value: string, isWarning?: boolean }) {
-    return (
-        <div className="p-4 bg-slate-50/50 rounded-lg border border-slate-100 group hover:bg-white hover:shadow-sm transition-all">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">{label}</span>
-            <p className={clsx("text-xl font-black tracking-tighter", isWarning ? "text-rose-500" : "text-slate-700")}>{value}</p>
         </div>
     );
 }
@@ -105,12 +86,16 @@ export default function SystemHealthPage() {
     const { components, buffers, performance } = healthData;
 
     return (
-        <div className="flex flex-col h-full w-full bg-white overflow-hidden relative">
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8 bg-slate-50/30">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+        <div className="flex flex-col h-full w-full bg-slate-50/50 p-5 lg:p-6 gap-4 overflow-hidden animate-in fade-in duration-500">
+            <div className="shrink-0">
+                <div className="flex items-center gap-2 mb-3">
+                    <Server size={14} className="text-slate-400" />
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Core Infrastructure</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
                     <HealthCard
                         title="PostgreSQL"
-                        subtitle="Database Latency"
+                        subtitle="Database Engine"
                         icon={<Database size={20} />}
                         isHealthy={components.database.status === 'healthy'}
                         color="indigo"
@@ -118,7 +103,7 @@ export default function SystemHealthPage() {
                     />
                     <HealthCard
                         title="Mosquitto"
-                        subtitle="MQTT Connection"
+                        subtitle="MQTT Broker"
                         icon={<Wifi size={20} />}
                         isHealthy={components.mqtt.status === 'connected'}
                         color="amber"
@@ -126,52 +111,86 @@ export default function SystemHealthPage() {
                     />
                     <HealthCard
                         title="AI Engine"
-                        subtitle="ECG Neural Model"
+                        subtitle="Neural Analysis"
                         icon={<Cpu size={20} />}
                         isHealthy={components.ml_model.status === 'loaded'}
                         color="rose"
                         value={components.ml_model.status === 'loaded' ? 'ACTIVE' : 'OFFLINE'}
                     />
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center text-teal-600">
-                                <HardDrive size={20} />
+                </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col">
+                <div className="flex items-center gap-2 mb-4">
+                    <Activity size={14} className="text-slate-400" />
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Data Stream Performance</h3>
+                </div>
+                <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 lg:p-8 flex flex-col justify-between overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 p-8 opacity-[0.02] text-slate-900 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+                        <Activity size={240} />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 relative z-10">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Global Latency</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-slate-800 tracking-tighter">{performance.avg_latency_ms?.toFixed(1) || 0}</span>
+                                <span className="text-sm font-bold text-slate-400 uppercase">ms</span>
                             </div>
-                            <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-tight">Stream Buffers</h3>
+                            <div className="pt-2 flex items-center gap-2 text-emerald-500">
+                                <CheckCircle2 size={12} />
+                                <span className="text-[10px] font-bold uppercase tracking-tight">Optimal Connection</span>
+                            </div>
                         </div>
-                        <div>
-                            <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                                <span>Sync Queue</span>
-                                <span>{buffers.recording_batch_size}</span>
+
+                        <div className="space-y-1 border-x border-slate-50 px-8">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Jitter Variance</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-5xl font-black text-slate-800 tracking-tighter">{performance.avg_jitter_ms?.toFixed(1) || 0}</span>
+                                <span className="text-sm font-bold text-slate-400 uppercase">ms</span>
                             </div>
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-teal-500 transition-all duration-1000"
-                                    style={{ width: `${Math.min(100, (buffers.recording_batch_size / 2000) * 100)}%` }}
-                                ></div>
+                            <p className="pt-2 text-[10px] font-bold text-slate-400 uppercase tracking-tight">Standard Deviation</p>
+                        </div>
+
+                        <div className="space-y-1 pl-8">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Packet Loss</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className={clsx("text-5xl font-black tracking-tighter", performance.avg_packet_loss_pct > 5 ? "text-rose-500" : "text-slate-800")}>
+                                    {performance.avg_packet_loss_pct?.toFixed(1) || 0}
+                                </span>
+                                <span className="text-sm font-bold text-slate-400 uppercase">%</span>
+                            </div>
+                            <div className={clsx("pt-2 flex items-center gap-2", performance.avg_packet_loss_pct > 5 ? "text-rose-500" : "text-emerald-500")}>
+                                {performance.avg_packet_loss_pct > 5 ? <AlertCircle size={12} /> : <CheckCircle2 size={12} />}
+                                <span className="text-[10px] font-bold uppercase tracking-tight">
+                                    {performance.avg_packet_loss_pct > 5 ? 'High Loss Detected' : 'Stable Delivery'}
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm sm:col-span-2 lg:col-span-3 xl:col-span-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white">
-                                    <Server size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">System Performance</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Real-time Node Metrics</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-4">
-                                <Metric badge="Connected" value={components.devices.active} color="slate" />
-                                <Metric badge="Streaming" value={components.devices.recording} color="rose" />
-                            </div>
+
+                    <div className="mt-auto pt-6 border-t border-slate-50 grid grid-cols-2 sm:grid-cols-4 gap-4 items-center">
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Nodes</span>
+                            <span className="text-2xl font-black text-slate-700 leading-none">{components.devices.active}</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <PerformanceBox label="System Latency" value={`${performance.avg_latency_ms?.toFixed(1) || 0}ms`} />
-                            <PerformanceBox label="Jitter Stability" value={`${performance.avg_jitter_ms?.toFixed(1) || 0}ms`} />
-                            <PerformanceBox label="Packet Loss" value={`${performance.avg_packet_loss_pct?.toFixed(1) || 0}%`} isWarning={performance.avg_packet_loss_pct > 5} />
+                        <div className="flex flex-col">
+                            <span className="text-[8px] font-black text-rose-400 uppercase tracking-widest mb-1">Live Streams</span>
+                            <span className="text-2xl font-black text-rose-600 leading-none">{components.devices.recording}</span>
+                        </div>
+                        <div className="sm:col-span-2 bg-slate-50/50 rounded-lg p-3 flex flex-col justify-center border border-slate-100/50">
+                            <div className="flex justify-between items-center mb-1.5">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                    <HardDrive size={10} /> Sync Queue
+                                </span>
+                                <span className="text-[9px] font-mono font-black text-slate-600">{buffers.recording_batch_size} pkts</span>
+                            </div>
+                            <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-teal-500 transition-all duration-1000 shadow-[0_0_8px_rgba(20,184,166,0.4)]"
+                                    style={{ width: `${Math.min(100, (buffers.recording_batch_size / 2000) * 100)}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -38,7 +38,7 @@ export default function Header() {
         if (path.includes('/history')) return 'Recording History';
         if (path.includes('/performance')) return 'Network Performance';
         if (path.includes('/profile')) return 'User Profile';
-        return 'Overview';
+        return 'System User';
     };
 
     return (

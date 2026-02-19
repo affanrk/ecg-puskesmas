@@ -103,10 +103,9 @@ export default function ApprovalsQueue({
                                         <div className="flex items-center justify-end gap-1.5">
                                             <button
                                                 onClick={() => onReject(user.id || "", user.full_name || user.username || "-")}
-                                                className="p-1.5 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-all active:scale-90"
-                                                title="Reject"
+                                                className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95 border border-rose-100/50"
                                             >
-                                                <UserX size={16} />
+                                                Reject
                                             </button>
                                             <button
                                                 onClick={() => onApprove(user.id || "", user.full_name || user.username || "-")}

@@ -55,10 +55,10 @@ export default function AdminHeader() {
     };
 
     const getPageTitle = (path: string) => {
-        if (path.includes('/admin/dashboard')) return 'Overview';
+        if (path.includes('/admin/dashboard')) return 'Dashboard Overview';
         if (path.includes('/admin/approvals')) return 'User Approvals';
         if (path.includes('/admin/health')) return 'System Health';
-        if (path.includes('/admin/profile')) return 'Profile';
+        if (path.includes('/admin/profile')) return 'Profile & Settings';
         return 'System Administration';
     };
 
@@ -123,8 +123,8 @@ export default function AdminHeader() {
                     <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
                         <div className={clsx(
                             "flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm transition-all",
-                            healthData.status === 'healthy' 
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                            healthData.status === 'healthy'
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                 : "bg-rose-500/10 text-rose-400 border-rose-500/20 animate-pulse"
                         )}>
                             {healthData.status === 'healthy' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}

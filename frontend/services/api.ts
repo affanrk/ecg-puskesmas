@@ -93,14 +93,8 @@ export async function fetchCalendar(filters: {
 }
 
 export async function fetchPendingApprovals(filters: HistoryFilters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== '') {
-            params.append(key, String(val));
-        }
-    });
     try {
-        const response = await axiosInstance.get('/admin/pending-approvals', { params });
+        const response = await axiosInstance.get('/admin/pending-approvals', { params: filters });
         return response.data;
     } catch (error) {
         console.error("Fetch Pending Approvals Error:", error);
@@ -122,14 +116,8 @@ export async function updateUserStatus(userId: string, isActivated: number, reas
 }
 
 export async function fetchApprovalLogs(filters: HistoryFilters = {}) {
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== '') {
-            params.append(key, String(val));
-        }
-    });
     try {
-        const response = await axiosInstance.get('/admin/approval-logs', { params });
+        const response = await axiosInstance.get('/admin/approval-logs', { params: filters });
         return response.data;
     } catch (error) {
         console.error("Fetch Approval Logs Error:", error);
