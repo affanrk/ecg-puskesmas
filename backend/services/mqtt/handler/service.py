@@ -161,7 +161,7 @@ class MQTTDataHandler:
 
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
-                    WSMessageType.LIVE_METRICS.value,
+                    WSMessageType.CALCULATE_LIVE_BPM.value,
                     {"device_id": state.device_id, "data": {"bpm": smoothed_bpm}},
                 )
 

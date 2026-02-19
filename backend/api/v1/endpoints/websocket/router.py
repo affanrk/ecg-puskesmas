@@ -114,7 +114,7 @@ class WebSocketHandler:
             if bpm and bpm > 0:
                 await device_state_manager.broadcast_to_device(
                     device_id,
-                    WSMessageType.LIVE_METRICS.value,
+                    WSMessageType.CALCULATE_LIVE_BPM.value,
                     {"device_id": device_id, "data": {"bpm": bpm}},
                 )
         except Exception as e:

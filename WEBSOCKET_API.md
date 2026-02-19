@@ -85,7 +85,7 @@ Requests the server to calculate BPM from a provided array of Lead II ECG sample
 *   **Fields:**
     *   `device_id`: Target device.
     *   `data`: An array of numeric values representing Lead II ECG samples.
-*   **Success Response:** `live_metrics_update` containing the calculated BPM.
+*   **Success Response:** `calculate_live_bpm` containing the calculated BPM.
 
 ### Pong (Heartbeat)
 Required response to server-initiated pings.
@@ -146,11 +146,11 @@ High-frequency real-time ECG samples for visualization.
 }
 ```
 
-### Live Metrics (BPM)
+### Calculate Live BPM (Metrics)
 Periodic Heart Rate updates calculated in real-time.
 ```json
 {
-  "type": "live_metrics_update",
+  "type": "calculate_live_bpm",
   "device_id": "string",
   "data": { "bpm": 72.5 }
 }
