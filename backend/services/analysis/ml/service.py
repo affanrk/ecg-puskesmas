@@ -199,9 +199,18 @@ class MLEngineService:
             return ECGClassification.UNKNOWN.value, 0.0
 
         try:
+            # Check if features are valid (e.g. at least some peaks detected)
+            # If BPM is 0, it means peak detection failed or signal is flat
+            if features.get("bpm", 0) <= 0 or features.get("rr_avg", 0) <= 0:
+                logger.warning(
+                    f"[ML Engine] Invalid features (BPM: {features.get('bpm')}, RR: {features.get('rr_avg')}). "
+                    "Returning UNKNOWN."
+                )
+                return ECGClassification.UNKNOWN.value, 0.0
 
             features_array = feature_extractor.features_to_array(features)
 
+            # Ensure no NaNs go into the model
             features_array = np.nan_to_num(features_array)
 
             normalized = self.scaler.transform(features_array)

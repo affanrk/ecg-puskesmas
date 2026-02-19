@@ -27,7 +27,7 @@ def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float
                 signal_norm, height=1.0, distance=int(sampling_rate * 0.25)
             )
 
-        if len(r_peaks) > 1:
+        if len(r_peaks) > 2:
             rr_intervals = np.diff(r_peaks) / sampling_rate
             avg_rr = np.median(rr_intervals)
             if avg_rr > 0:

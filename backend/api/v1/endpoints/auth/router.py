@@ -79,6 +79,7 @@ def login(
         "role": user.role,
         "user_id": user.id,
         "user_name": user.username,
+        "full_name": user.full_name,
         "is_patient": user.is_patient,
     }
 

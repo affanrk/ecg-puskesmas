@@ -85,10 +85,10 @@ async def get_current_user(
     if not user:
         raise credentials_exception
 
-    if user.current_session_id and token_data.sid != user.current_session_id:
+    if token_data.sid and token_data.sid != user.current_session_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Session expired: User logged in from another device",
+            detail="Session expired: User logged out or logged in from another device",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
