@@ -245,6 +245,7 @@ class WebSocketHandler:
             if unlocked:
                 await device_state_manager.notify_device_list_update()
         device_state_manager.unregister_broadcast_connection(self.websocket)
+        device_state_manager.unregister_user_connection(self.websocket)
 
 
 @router.websocket("/ws")
@@ -304,6 +305,7 @@ async def websocket_endpoint(
         return
 
     device_state_manager.register_broadcast_connection(websocket)
+    device_state_manager.register_user_connection(user_id, websocket)
 
     device_list = device_state_manager.get_all_device_summaries()
     await websocket.send_json(

@@ -10,6 +10,7 @@ from core.dependencies import (
 )
 from repositories.user import UserRepository
 from repositories.patient import PatientRepository
+from services.device import device_state_manager
 from schemas.patient import PatientUpdate, PatientCreate
 from schemas.auth import Token, UserLogin, MessageResponse
 from schemas.user import (
@@ -45,7 +46,7 @@ def register(
 
 
 @router.post("/login", response_model=Token)
-def login(
+async def login(
     login_data: UserLogin, user_repo: UserRepository = Depends(get_user_repository)
 ):
     user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
@@ -68,6 +69,8 @@ def login(
 
     session_id = str(uuid.uuid4())
     user_repo.update_record_login(user.id, login_data.source, session_id=session_id)
+
+    await device_state_manager.kick_unauthorized_sessions(user.id, session_id)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

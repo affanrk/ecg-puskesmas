@@ -62,7 +62,7 @@ async def detailed_health_check(
 
     buffers = recording_storage_service.get_buffer_stats()
 
-    system_perf = perf_repo.get_system_health_summary()
+    system_perf = device_state_manager.get_memory_performance_summary()
 
     is_healthy = (
         components["database"]["status"] == "healthy"
