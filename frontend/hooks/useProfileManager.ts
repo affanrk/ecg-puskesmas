@@ -5,6 +5,7 @@ import axiosInstance from '@/services/axiosInstance';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
+import { parseApiError } from '@/utils/helpers';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();
@@ -19,7 +20,7 @@ export function useProfileManager() {
         gender: 'L',
         contact_number: '',
         address: '',
-        medical_history: 'Normal'
+        medical_history: ''
     });
     const [securityForm, setSecurityForm] = useState({
         new_username: '',
@@ -60,7 +61,7 @@ export function useProfileManager() {
                 gender: user.gender || 'L',
                 contact_number: user.contact_number || '',
                 address: user.address || '',
-                medical_history: user.medical_history || 'Normal'
+                medical_history: user.medical_history || ''
             });
             setSecurityForm(p => ({ ...p, new_username: user.username, current_password: '', new_password: '', confirm_password: '' }));
             setRejectionReason(user.rejection_reason || null);
@@ -141,24 +142,21 @@ export function useProfileManager() {
     }, [validateField]);
 
     const handleApiError = (err: unknown, defaultField?: string) => {
-        const fieldErrors: Record<string, string> = {};
-        const apiErr = err as { response?: { status: number; data: { detail: string | Array<{ loc: string[]; msg: string }> } } };
-        if (apiErr.response?.status === 400 || apiErr.response?.status === 422) {
-            const detail = apiErr.response.data.detail;
-            if (typeof detail === 'string') {
-                if (defaultField) fieldErrors[defaultField] = detail;
-                else if (detail.toLowerCase().includes('nik')) fieldErrors.nik = detail;
-                else toast(detail, "error");
-            } else if (Array.isArray(detail)) {
-                detail.forEach((e) => {
-                    const field = e.loc[e.loc.length - 1];
-                    fieldErrors[field] = e.msg;
-                });
+        const { message, fieldErrors, status } = parseApiError(err);
+        
+        if (status === 400 || status === 422) {
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...fieldErrors }));
+            } else if (message.toLowerCase().includes('nik')) {
+                setErrors(prev => ({ ...prev, nik: message }));
+            } else if (defaultField) {
+                setErrors(prev => ({ ...prev, [defaultField]: message }));
+            } else {
+                toast(message, "error");
             }
         } else {
-            toast("Failed to connect to server.", "error");
+            toast(message, "error");
         }
-        setErrors(prev => ({ ...prev, ...fieldErrors }));
         setConfirmState(prev => ({ ...prev, isOpen: false }));
     };
 

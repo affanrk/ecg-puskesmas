@@ -20,14 +20,14 @@ export default function DistributionChart({ stats, isVertical = false }: Distrib
     const getColorForLabel = (label: string) => {
         const l = label.toLowerCase();
         if (l === 'normal') return '#10b981';
-        if (l === 'abnormal') return '#8b5cf6'; // Purple-500
+        if (l === 'abnormal') return '#8b5cf6';
         if (l === 'berpotensi aritmia') return '#f97316';
         if (l === 'sangat berpotensi aritmia') return '#ef4444';
         if (l.includes('sangat')) return '#ef4444';
         if (l.includes('berpotensi')) return '#f97316';
         if (l.includes('aritmia')) return '#f43f5e';
-        if (l.includes('unknown') || l.includes('insufficient')) return '#cbd5e1'; // Slate-300
-        return '#94a3b8'; // Default
+        if (l.includes('unknown') || l.includes('insufficient')) return '#cbd5e1';
+        return '#94a3b8';
     };
 
     const chartData = {

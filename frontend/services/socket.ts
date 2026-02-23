@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/useToast';
 type SocketMessage =
     | { type: 'ping' | 'pong' }
     | { type: 'device_list_update'; devices: Device[] }
-    | { type: 'live_data'; device_id?: string; cal_lead_I: number; cal_lead_II: number; cal_lead_III: number; cal_avF: number; cal_v1: number; counter?: number }
     | { type: 'live_batch'; device_id?: string; samples: Array<{ i: number; ii: number; iii: number; avf: number; v1: number }>; counter?: number; sampling_rate?: number }
     | { type: 'live_result'; device_id: string; classification: string; confidence?: number; recording_id?: string }
     | { type: 'state_update'; device_id?: string; is_recording: boolean }
@@ -147,12 +146,6 @@ class WebSocketService {
             }
         }
         switch (msg.type) {
-            case "live_data": {
-                const point = { leadI: msg.cal_lead_I, leadII: msg.cal_lead_II, leadIII: msg.cal_lead_III, avF: msg.cal_avF, v1: msg.cal_v1, counter: msg.counter };
-                store.pushEcgData([point]);
-                globalEventBus.emit(EVENTS.CHART.ECG_DATA, point);
-                break;
-            }
             case "live_batch": {
                 if (msg.samples?.length) {
                     const batchData = msg.samples.map(s => ({

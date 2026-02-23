@@ -178,5 +178,48 @@ export const api = {
     logout,
     fetchDetailedHealth,
     createPatientProfile,
-    updatePatientProfile
+    updatePatientProfile,
+    fetchUsers,
+    createUser,
+    updateUser,
+    deleteUser
 };
+
+export async function fetchUsers(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/admin/users', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Users Error:", error);
+        throw error;
+    }
+}
+
+export async function createUser(data: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/admin/users', data);
+        return response.data;
+    } catch (error) {
+        console.error("Create User Error:", error);
+        throw error;
+    }
+}
+
+export async function updateUser(userId: string, data: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.put(`/admin/users/${userId}`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Update User Error:", error);
+        throw error;
+    }
+}
+
+export async function deleteUser(userId: string) {
+    try {
+        await axiosInstance.delete(`/admin/users/${userId}`);
+    } catch (error) {
+        console.error("Delete User Error:", error);
+        throw error;
+    }
+}

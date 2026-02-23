@@ -7,7 +7,7 @@ import { UserPlus, User, Mail, Check, AlertCircle, Eye, EyeOff, Sparkles, Shield
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
-import { getApiUrl } from '@/utils/helpers';
+import { getApiUrl, parseApiError } from '@/utils/helpers';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -151,12 +151,11 @@ export default function RegisterPage() {
             }, 1500);
         } catch (err: unknown) {
             triggerErrorEffect();
-            let msg = 'Registration failed.';
-            if (axios.isAxiosError(err) && err.response?.data?.detail) {
-                const detail = err.response.data.detail;
-                msg = Array.isArray(detail) ? detail[0].msg : detail;
+            const { message, fieldErrors } = parseApiError(err);
+            setServerError(message);
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...fieldErrors }));
             }
-            setServerError(msg);
         } finally {
             setLoading(false);
         }

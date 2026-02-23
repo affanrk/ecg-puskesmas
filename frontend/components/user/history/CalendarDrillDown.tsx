@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import { useStore, AnalysisResult } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
@@ -42,21 +42,29 @@ export default function CalendarDrillDown() {
         abnormal: true
     });
 
+    const isFetchingYear = useRef(false);
+    const isFetchingMonthChoices = useRef(false);
+    const isFetchingMonthData = useRef(false);
+
     const currentYear = currentDate.getFullYear();
     const currentMonth = currentDate.getMonth();
 
     const fetchYearData = useCallback(async () => {
-        if (!user?.id) return;
+        if (!user?.id || isFetchingYear.current) return;
+        isFetchingYear.current = true;
         try {
             const res = await api.fetchCalendar({ user_id: user.id });
             setYearNodes(res.nodes || []);
         } catch (error) {
             console.error("Failed to fetch year summary:", error);
+        } finally {
+            isFetchingYear.current = false;
         }
     }, [user?.id]);
 
     const fetchMonthChoices = useCallback(async () => {
-        if (!user?.id) return;
+        if (!user?.id || isFetchingMonthChoices.current) return;
+        isFetchingMonthChoices.current = true;
         try {
             const res = await api.fetchCalendar({
                 year: currentYear,
@@ -65,11 +73,14 @@ export default function CalendarDrillDown() {
             setMonthNodes(res.nodes || []);
         } catch (error) {
             console.error("Failed to fetch month summary:", error);
+        } finally {
+            isFetchingMonthChoices.current = false;
         }
     }, [currentYear, user?.id]);
 
     const fetchMonthData = useCallback(async () => {
-        if (!user?.id) return;
+        if (!user?.id || isFetchingMonthData.current) return;
+        isFetchingMonthData.current = true;
         setLoading(true);
         setCalendarNodes([]);
         try {
@@ -86,6 +97,7 @@ export default function CalendarDrillDown() {
             toast("Failed to load calendar data", "error");
         } finally {
             setLoading(false);
+            isFetchingMonthData.current = false;
         }
     }, [currentYear, currentMonth, user?.id, toast]);
 

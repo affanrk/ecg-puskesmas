@@ -8,7 +8,8 @@ import {
     LayoutDashboard,
     Activity,
     ShieldCheck,
-    UserCircle
+    UserCircle,
+    Users
 } from 'lucide-react';
 import SidebarContainer from './SidebarContainer';
 
@@ -19,6 +20,7 @@ export default function AdminSidebar() {
     const navItems = [
         { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { name: 'User Approvals', href: '/admin/approvals', icon: ShieldCheck },
+        { name: 'User Management', href: '/admin/users', icon: Users },
         { name: 'System Health', href: '/admin/health', icon: Activity },
     ];
 

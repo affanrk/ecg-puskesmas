@@ -79,7 +79,7 @@ export default function IdentityCard({
                     <StandardInput 
                         label="NIK (16 Digits)" 
                         value={medicalForm.nik} 
-                        onChange={(e) => handleMedicalChange('nik', e.target.value.replace(/\D/g,''))} 
+                        onChange={(e) => handleMedicalChange('nik', e.target.value.replace(/\D/g,'').slice(0, 16))} 
                         disabled={isLocked} 
                         placeholder="16-digit ID number" 
                         errorMessage={errors.nik} 

@@ -7,7 +7,7 @@ import axios from 'axios';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
-import { getApiUrl } from '@/utils/helpers';
+import { getApiUrl, parseApiError } from '@/utils/helpers';
 import { reconnectWebSocket } from '@/services/socket';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
@@ -107,15 +107,11 @@ function LoginContent() {
             }
         } catch (err: unknown) {
             triggerErrorEffect();
-            console.error(err);
-            let msg = 'Login failed.';
-            if (axios.isAxiosError(err) && err.response?.data?.detail) {
-                const detail = err.response.data.detail;
-                msg = Array.isArray(detail) ? detail[0].msg : detail;
-            } else if (err instanceof Error) {
-                msg = "Unable to connect to server. Please check your connection.";
+            const { message, fieldErrors } = parseApiError(err);
+            setServerError(message);
+            if (Object.keys(fieldErrors).length > 0) {
+                setErrors(prev => ({ ...prev, ...fieldErrors }));
             }
-            setServerError(msg);
         } finally {
             setLoading(false);
         }

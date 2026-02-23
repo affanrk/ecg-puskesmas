@@ -9,6 +9,9 @@ export interface User {
     email?: string;
     role: string;
     is_patient: boolean;
+    is_active: boolean;
+    is_doctor?: boolean;
+    is_operator?: boolean;
     is_activated: number;
     status?: string;
     rejection_reason?: string;
@@ -20,6 +23,8 @@ export interface User {
     medical_history?: string;
     address?: string;
     contact_number?: string;
+    created_dt?: string | Date;
+    changed_dt?: string | Date;
     [key: string]: unknown;
 }
 

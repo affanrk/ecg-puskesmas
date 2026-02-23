@@ -68,11 +68,12 @@ export default function ContactCard({
             <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
                 <div className="space-y-2">
                     <SelectInput
-                        label="Medical History / Risk Factors"
+                        label="Medical History"
                         value={medicalForm.medical_history}
                         onChange={(e) => handleMedicalChange('medical_history', e.target.value)}
                         disabled={!canEditMedical}
                         options={[
+                            { value: '', label: 'Select Condition (Optional)' },
                             { value: 'Normal', label: 'Normal' },
                             { value: 'Hipertensi', label: 'Hipertensi' },
                             { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
@@ -84,7 +85,7 @@ export default function ContactCard({
                     value={medicalForm.contact_number}
                     onChange={(e) => handleMedicalChange('contact_number', e.target.value)}
                     disabled={!canEditMedical}
-                    placeholder="+62..."
+                    placeholder="+62... (Optional)"
                     errorMessage={errors.contact_number}
                 />
                 <div className="flex-1">
@@ -93,7 +94,7 @@ export default function ContactCard({
                         value={medicalForm.address}
                         onChange={(e) => handleMedicalChange('address', e.target.value)}
                         disabled={!canEditMedical}
-                        placeholder="Street, City, Zip Code..."
+                        placeholder="Street, City, Zip Code... (Optional)"
                     />
                 </div>
             </div>

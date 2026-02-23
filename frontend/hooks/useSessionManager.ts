@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
@@ -7,6 +8,19 @@ import { useToast } from '@/hooks/useToast';
 export function useSessionManager() {
     const { isRecording, currentDeviceId, user } = useStore();
     const { show: toast } = useToast();
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isRecording) {
+                e.preventDefault();
+                e.returnValue = '';
+                return ''
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isRecording]);
 
     const toggleRecording = () => {
         if (!currentDeviceId) {

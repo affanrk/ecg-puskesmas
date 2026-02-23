@@ -7,10 +7,8 @@ import { Sparkles, Brain, AlertTriangle, CheckCircle2, Activity } from 'lucide-r
 export default function AIAnalysisCard() {
     const liveData = useStore((state) => state.liveData);
     
-    // Find the latest valid prediction
     let prediction: { classification: string; confidence: number } | null = null;
     if (liveData && liveData.length > 0) {
-        // Try to find the first non-placeholder result
         const validResult = liveData.find(r => r.classification !== 'Recording...' && r.classification !== 'Pending');
         if (validResult) {
             prediction = {

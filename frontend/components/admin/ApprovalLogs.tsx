@@ -60,7 +60,7 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden animate-in fade-in duration-500">
-            <div className="flex-1 bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
                 <div ref={containerRef} className="flex-1 overflow-x-auto no-scrollbar relative z-10 overflow-y-hidden">
                     <table className="w-full text-left border-collapse table-fixed lg:table-auto h-full">
                         <thead className="bg-slate-50/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
@@ -101,7 +101,7 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                                         </td>
                                         <td className="px-4 lg:px-6 whitespace-nowrap">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-rose-50 group-hover:text-rose-500 transition-colors">
+                                                <div className="w-7 h-7 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-rose-50 group-hover:text-rose-500 transition-colors">
                                                     <UserIcon size={14} />
                                                 </div>
                                                 <div className="flex flex-col leading-tight">
@@ -112,14 +112,14 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                                         </td>
                                         <td className="px-4 lg:px-6 whitespace-nowrap">
                                             <div className={clsx(
-                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter border shadow-sm transition-all",
-                                                log.status === 'APPROVED' ? "bg-emerald-500 text-white border-emerald-600" :
-                                                    log.status === 'REJECTED' ? "bg-rose-500 text-white border-rose-600" :
-                                                        "bg-amber-500 text-white border-amber-600"
+                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all",
+                                                log.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                                    log.status === 'REJECTED' ? "bg-rose-50 text-rose-600 border-rose-100" :
+                                                        "bg-amber-50 text-amber-600 border-amber-100"
                                             )}>
-                                                {log.status === 'APPROVED' && <CheckCircle2 size={10} />}
-                                                {log.status === 'REJECTED' && <XCircle size={10} />}
-                                                {log.status === 'QUEUE' && <Clock size={10} />}
+                                                {log.status === 'APPROVED' && <CheckCircle2 size={10} strokeWidth={3} />}
+                                                {log.status === 'REJECTED' && <XCircle size={10} strokeWidth={3} />}
+                                                {log.status === 'QUEUE' && <Clock size={10} strokeWidth={3} />}
                                                 {log.status}
                                             </div>
                                         </td>
@@ -151,14 +151,14 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                         <button
                             onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
                         >
                             <ChevronLeft className="w-4 h-4" strokeWidth={3} />
                         </button>
                         <button
                             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
                         >
                             <ChevronRight className="w-4 h-4" strokeWidth={3} />
                         </button>

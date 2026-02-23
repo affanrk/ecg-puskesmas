@@ -105,14 +105,21 @@ export default function ClassifierTable({
                                         </td>
                                         <td className="px-3 sm:px-4 lg:px-6 py-2 text-right whitespace-nowrap">
                                             <span className={clsx(
-                                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[9px] sm:text-[10px] 2xl:text-xs font-black uppercase tracking-[0.12em] transition-all border shadow-sm whitespace-nowrap max-w-full",
-                                                isHighRisk && "bg-rose-500 text-white border-rose-600",
-                                                isPotential && !isHighRisk && "bg-orange-500 text-white border-orange-600",
-                                                isAbnormal && !isHighRisk && !isPotential && "bg-slate-500 text-white border-slate-600",
-                                                isNormal && "bg-emerald-500 text-white border-emerald-600",
-                                                !isHighRisk && !isPotential && !isAbnormal && !isNormal && "bg-slate-50 text-slate-500 border-slate-100"
+                                                "inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[9px] sm:text-[10px] 2xl:text-xs font-black uppercase tracking-[0.12em] transition-all border whitespace-nowrap max-w-full",
+                                                isHighRisk && "bg-rose-50 text-rose-600 border-rose-100",
+                                                isPotential && !isHighRisk && "bg-orange-50 text-orange-600 border-orange-100",
+                                                isAbnormal && !isHighRisk && !isPotential && "bg-slate-50 text-slate-600 border-slate-100",
+                                                isNormal && "bg-emerald-50 text-emerald-600 border-emerald-100",
+                                                !isHighRisk && !isPotential && !isAbnormal && !isNormal && "bg-slate-50 text-slate-400 border-slate-100"
                                             )}>
-                                                <span className={clsx("w-1.5 h-1.5 rounded-full bg-white")}></span>
+                                                <span className={clsx(
+                                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                                    isHighRisk && "bg-rose-500",
+                                                    isPotential && !isHighRisk && "bg-orange-500",
+                                                    isAbnormal && !isHighRisk && !isPotential && "bg-slate-500",
+                                                    isNormal && "bg-emerald-500",
+                                                    !isHighRisk && !isPotential && !isAbnormal && !isNormal && "bg-slate-300"
+                                                )}></span>
                                                 {status}
                                                 {isHighRisk && <HeartPulse size={12} className="animate-pulse" />}
                                             </span>

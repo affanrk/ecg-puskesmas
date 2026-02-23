@@ -2,7 +2,19 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { ChevronDown, LogOut, Settings, ShieldCheck, RefreshCcw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { 
+    ChevronDown, 
+    LogOut, 
+    Settings, 
+    ShieldCheck, 
+    RefreshCcw, 
+    CheckCircle2, 
+    AlertCircle,
+    LayoutDashboard,
+    Activity,
+    Users,
+    UserCircle
+} from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
@@ -54,13 +66,16 @@ export default function AdminHeader() {
         }
     };
 
-    const getPageTitle = (path: string) => {
-        if (path.includes('/admin/dashboard')) return 'Dashboard Overview';
-        if (path.includes('/admin/approvals')) return 'User Approvals';
-        if (path.includes('/admin/health')) return 'System Health';
-        if (path.includes('/admin/profile')) return 'Profile & Settings';
-        return 'System Administration';
+    const getPageConfig = (path: string) => {
+        if (path.includes('/admin/dashboard')) return { title: 'Dashboard Overview', icon: LayoutDashboard };
+        if (path.includes('/admin/approvals')) return { title: 'User Approvals', icon: ShieldCheck };
+        if (path.includes('/admin/users')) return { title: 'User Management', icon: Users };
+        if (path.includes('/admin/health')) return { title: 'System Health', icon: Activity };
+        if (path.includes('/admin/profile')) return { title: 'Profile & Settings', icon: UserCircle };
+        return { title: 'System Administration', icon: ShieldCheck };
     };
+
+    const { title: pageTitle, icon: PageIcon } = getPageConfig(pathname);
 
     return (
         <>
@@ -68,10 +83,10 @@ export default function AdminHeader() {
                 <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-rose-500/10 rounded flex items-center justify-center text-rose-500">
-                            <ShieldCheck size={18} strokeWidth={2.5} />
+                            <PageIcon size={18} strokeWidth={2.5} />
                         </div>
                         <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] hidden md:block">
-                            {getPageTitle(pathname)}
+                            {pageTitle}
                         </h2>
                     </div>
                 </div>

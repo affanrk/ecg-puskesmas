@@ -32,7 +32,7 @@ export default function ApprovalsQueue({
 
     if (users.length === 0) {
         return (
-            <div className="h-full w-full flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50 animate-in fade-in duration-500">
+            <div className="h-full w-full flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-xl bg-white/50 animate-in fade-in duration-500">
                 <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-3">
                     <UserX size={24} />
                 </div>
@@ -46,7 +46,7 @@ export default function ApprovalsQueue({
 
     return (
         <div className="flex flex-col h-full w-full overflow-hidden animate-in fade-in duration-500">
-            <div className="flex-1 bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
                 <div className="flex-1 overflow-x-auto no-scrollbar">
                     <table className="w-full text-left border-collapse table-auto h-full">
                         <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
@@ -90,7 +90,7 @@ export default function ApprovalsQueue({
                                     </td>
                                     <td className="px-5 whitespace-nowrap">
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-sm text-[9px] font-black">{user.gender || 'U'}</span>
+                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md text-[9px] font-black">{user.gender || 'U'}</span>
                                             <span className="truncate max-w-[120px]">{user.pob || '---'}</span>
                                             <span className="text-slate-200">|</span>
                                             <span className="flex items-center gap-1"><Calendar size={10} className="text-slate-300" /> {user.dob ? String(user.dob) : '---'}</span>
@@ -127,21 +127,21 @@ export default function ApprovalsQueue({
                         </span>
                         <div className="h-4 w-px bg-slate-200"></div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                            <span className="text-rose-600">{users.length}</span> In Queue
+                            <span className="text-amber-600">{users.length}</span> In Queue
                         </span>
                     </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
                         >
                             <ChevronLeft className="w-4 h-4" strokeWidth={3} />
                         </button>
                         <button
                             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
                         >
                             <ChevronRight className="w-4 h-4" strokeWidth={3} />
                         </button>

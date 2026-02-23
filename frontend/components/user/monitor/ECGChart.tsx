@@ -322,9 +322,6 @@ export default function ECGChart({ }: ECGChartProps) {
     }, [currentDeviceId, isRecording, ecgBuffer.length]);
 
     useEffect(() => {
-        const handleData = (data: { leadI: number, leadII: number, leadIII: number, avF: number, v1: number, counter?: number }) => {
-            bufferRef.current.push(data);
-        };
         const handleBatch = (batch: { samples: { leadI: number, leadII: number, leadIII: number, avF: number, v1: number }[], counter?: number, sampling_rate?: number }) => {
             bufferRef.current.push(...batch.samples);
             if (batch.sampling_rate && batch.sampling_rate > 0) {
@@ -335,11 +332,9 @@ export default function ECGChart({ }: ECGChartProps) {
         const handleDisconnect = () => {
             bufferRef.current = [];
         };
-        globalEventBus.on(EVENTS.CHART.ECG_DATA, handleData);
         globalEventBus.on(EVENTS.CHART.ECG_BATCH, handleBatch);
         globalEventBus.on(EVENTS.DEVICE.DISCONNECTED, handleDisconnect);
         return () => {
-            globalEventBus.off(EVENTS.CHART.ECG_DATA, handleData);
             globalEventBus.off(EVENTS.CHART.ECG_BATCH, handleBatch);
             globalEventBus.off(EVENTS.DEVICE.DISCONNECTED, handleDisconnect);
         };

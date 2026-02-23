@@ -51,6 +51,14 @@ label {
     scrollbar-gutter: stable;
 }
 
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
 /* --- Flatpickr Override --- */
 .flatpickr-calendar { z-index: 9999 !important; }
 

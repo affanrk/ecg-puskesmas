@@ -35,7 +35,6 @@ export default function UserApprovals() {
     const [logs, setLogs] = useState<ApprovalLog[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Sync local loading to global store
     useEffect(() => {
         setAdminLoading(loading);
     }, [loading, setAdminLoading]);
@@ -130,7 +129,7 @@ export default function UserApprovals() {
                 dateFormat: 'Y-m-d',
                 altInput: true,
                 altFormat: 'j F Y',
-                altInputClass: "pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-md text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm cursor-pointer placeholder:text-slate-400 text-slate-700",
+                altInputClass: "pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm cursor-pointer placeholder:text-slate-400 text-slate-700",
                 onChange: (selectedDates, dateStr) => {
                     if (selectedDates.length === 2) {
                         const [start, end] = dateStr.split(' to ');
@@ -212,9 +211,8 @@ export default function UserApprovals() {
 
                 <div className="w-px h-6 bg-slate-200 shrink-0" />
 
-                {/* 2. Filters Zone (Expanded to Right) */}
                 <div className="flex-1 flex items-center justify-end gap-3 min-w-0">
-                    <button onClick={resetFilters} disabled={!isFilterActive} className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shrink-0", isFilterActive ? "bg-white border border-rose-200 text-rose-50 text-rose-500 hover:bg-rose-50 shadow-sm" : "text-slate-300 cursor-not-allowed border border-slate-100")}>
+                    <button onClick={resetFilters} disabled={!isFilterActive} className={clsx("flex items-center gap-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0", isFilterActive ? "bg-white border border-rose-200 text-rose-50 text-rose-500 hover:bg-rose-50 shadow-sm" : "text-slate-300 cursor-not-allowed border border-slate-100")}>
                         <Trash2 size={12} /> Reset
                     </button>
                     <div className="relative group/date shrink-0">
@@ -223,7 +221,7 @@ export default function UserApprovals() {
                     </div>
                     <div className="relative group shrink-0">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
-                        <input type="text" placeholder="Search by Name or NIK..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-md text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm" />
+                        <input type="text" placeholder="Search by Name or NIK..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm" />
                     </div>
                 </div>
             </div>
@@ -235,10 +233,10 @@ export default function UserApprovals() {
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
                     </div>
                 ) : approvalType !== 'patient' ? (
-                    <div className="h-full w-full flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50 animate-in fade-in duration-500">
+                    <div className="h-full w-full flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-200 rounded-xl bg-white/50 animate-in fade-in duration-500">
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-slate-300 mb-4"><ShieldCheck size={32} /></div>
                         <h3 className="text-lg font-black text-slate-800">Section Coming Soon</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{approvalType === 'operator' ? "Operator & Nurse" : "Heart Specialist"} module is under development</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{approvalType === 'operator' ? "Operator & Nurse" : "Specialist Doctor"} module is under development</p>
                     </div>
                 ) : adminViewMode === 'queue' ? (
                     <ApprovalsQueue

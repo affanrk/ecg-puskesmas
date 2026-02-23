@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 export function escapeHtml(text: string | null | undefined): string {
     if (text === null || text === undefined) return "-";
     const map: { [key: string]: string } = {
@@ -79,4 +81,53 @@ export function getApiUrl(): string {
     }
 
     return url;
+}
+
+export interface ParsedApiError {
+    message: string;
+    fieldErrors: Record<string, string>;
+    status?: number;
+}
+
+export function parseApiError(err: unknown): ParsedApiError {
+    const result: ParsedApiError = {
+        message: "An unexpected error occurred",
+        fieldErrors: {},
+    };
+
+    if (axios.isAxiosError(err) && err.response) {
+        result.status = err.response.status;
+        const data = err.response.data as {
+            error?: {
+                message: string;
+                details?: Array<{ loc: string[]; msg: string }>;
+            };
+            detail?: string | Array<{ loc: string[]; msg: string }>;
+        };
+
+        if (data.error) {
+            result.message = data.error.message || result.message;
+            if (data.error.details && Array.isArray(data.error.details)) {
+                data.error.details.forEach((e: { loc: string[]; msg: string }) => {
+                    const field = e.loc[e.loc.length - 1];
+                    result.fieldErrors[field] = e.msg;
+                });
+            }
+        }
+        else if (data.detail) {
+            if (typeof data.detail === 'string') {
+                result.message = data.detail;
+            } else if (Array.isArray(data.detail)) {
+                result.message = "Validation failed";
+                data.detail.forEach((e: { loc: string[]; msg: string }) => {
+                    const field = e.loc[e.loc.length - 1];
+                    result.fieldErrors[field] = e.msg;
+                });
+            }
+        }
+    } else if (err instanceof Error) {
+        result.message = err.message;
+    }
+
+    return result;
 }

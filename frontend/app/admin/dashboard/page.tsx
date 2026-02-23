@@ -7,11 +7,12 @@ import { api } from '@/services/api';
 import { ApprovalLog } from '@/components/admin/ApprovalLogs';
 import {
     Users,
-    ShieldAlert,
     Activity,
     Clock,
     CheckCircle2,
-    ArrowRight
+    ArrowRight,
+    UserCog,
+    HeartPulse
 } from 'lucide-react';
 import clsx from 'clsx';
 import { formatDateShort } from '@/utils/helpers';
@@ -19,6 +20,7 @@ import { formatDateShort } from '@/utils/helpers';
 export default function AdminDashboard() {
     const { user } = useStore();
     const [pendingCount, setPendingCount] = useState(0);
+    const [userCount, setUserCount] = useState(0);
     const [recentPending, setRecentPending] = useState<User[]>([]);
     const [recentLogs, setRecentLogs] = useState<ApprovalLog[]>([]);
     const [systemStatus, setSystemStatus] = useState<'healthy' | 'issues' | 'loading'>('loading');
@@ -36,6 +38,9 @@ export default function AdminDashboard() {
                 setRecentPending(pending || []);
                 const allPending = await api.fetchPendingApprovals({ limit: 100 });
                 setPendingCount(allPending?.length || 0);
+
+                const users = await api.fetchUsers({ limit: 100 });
+                setUserCount(users?.length || 0);
 
                 const logs = await api.fetchApprovalLogs({ limit: 5 });
                 setRecentLogs(logs || []);
@@ -80,7 +85,7 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 shrink-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 shrink-0">
                 <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-rose-100 transition-all">
                     <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-rose-600 group-hover:scale-110 transition-transform duration-500">
                         <Users size={80} />
@@ -94,8 +99,44 @@ export default function AdminDashboard() {
                                 Review <ArrowRight size={10} />
                             </Link>
                         </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending Verifications</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pending Queue</p>
                         <h3 className="text-3xl font-black text-slate-800 mt-1 tracking-tight">{loading ? '...' : pendingCount}</h3>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-blue-100 transition-all">
+                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-blue-600 group-hover:scale-110 transition-transform duration-500">
+                        <UserCog size={80} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-3">
+                                <UserCog size={20} />
+                            </div>
+                            <Link href="/admin/users" className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                Manage <ArrowRight size={10} />
+                            </Link>
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Accounts</p>
+                        <h3 className="text-3xl font-black text-slate-800 mt-1 tracking-tight">{loading ? '...' : userCount}</h3>
+                    </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-100 transition-all">
+                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-emerald-600 group-hover:scale-110 transition-transform duration-500">
+                        <HeartPulse size={80} />
+                    </div>
+                    <div className="relative z-10">
+                        <div className="flex justify-between items-start">
+                            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center mb-3">
+                                <HeartPulse size={20} />
+                            </div>
+                            <Link href="/admin/health" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                                Details <ArrowRight size={10} />
+                            </Link>
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Health</p>
+                        <h3 className="text-xl font-black text-slate-800 mt-2 tracking-tight uppercase">{loading ? '...' : systemStatus}</h3>
                     </div>
                 </div>
 
@@ -109,19 +150,6 @@ export default function AdminDashboard() {
                         </div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Recent Activity</p>
                         <h3 className="text-3xl font-black text-slate-800 mt-1 tracking-tight">{loading ? '...' : recentLogs.length}</h3>
-                    </div>
-                </div>
-
-                <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-amber-100 transition-all">
-                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-amber-600 group-hover:scale-110 transition-transform duration-500">
-                        <ShieldAlert size={80} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center mb-3">
-                            <ShieldAlert size={20} />
-                        </div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Security Status</p>
-                        <h3 className="text-xl font-black text-slate-800 mt-2 tracking-tight">Active</h3>
                     </div>
                 </div>
             </div>
@@ -192,7 +220,9 @@ export default function AdminDashboard() {
                                         <div key={log.id} className="pl-8 relative group">
                                             <div className={clsx(
                                                 "absolute left-[19px] top-1.5 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm z-10 transition-colors",
-                                                log.status === 'APPROVED' ? "bg-emerald-500 group-hover:bg-emerald-400" : "bg-rose-500 group-hover:bg-rose-400"
+                                                log.status === 'APPROVED' ? "bg-emerald-500 group-hover:bg-emerald-400" :
+                                                    log.status === 'QUEUE' ? "bg-amber-500 group-hover:bg-amber-400" :
+                                                        "bg-rose-500 group-hover:bg-rose-400"
                                             )} />
                                             <div>
                                                 <p className="text-xs text-slate-600 leading-relaxed">
@@ -200,7 +230,9 @@ export default function AdminDashboard() {
                                                     {' '}
                                                     <span className={clsx(
                                                         "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded mx-1 border",
-                                                        log.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                                                        log.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                                            log.status === 'QUEUE' ? "bg-amber-50 text-amber-600 border-amber-100" :
+                                                                "bg-rose-50 text-rose-600 border-rose-100"
                                                     )}>
                                                         {log.status}
                                                     </span>
