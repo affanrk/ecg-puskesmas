@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError, DataError
 
 from models import TbMPatient, TbMUser, TbRLogApproval
 from schemas.patient import PatientUpdate, PatientCreate
-from core.exceptions import DatabaseException
+from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
 from utils import logger
@@ -32,9 +32,16 @@ class PatientRepository(BaseRepository[TbMPatient]):
             )
 
     def create_profile(
-        self, patient_in: PatientCreate, user_id: str, source: str = "WEB"
+        self,
+        patient_in: PatientCreate,
+        user_id: str,
+        source: str = "WEB",
+        initial_status: str = "QUEUE",
     ) -> TbMPatient:
         try:
+            if self.find_by_nik(patient_in.nik):
+                raise DuplicateNIKException(nik=patient_in.nik)
+
             patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
             patient = TbMPatient(
                 id=patient_id,
@@ -47,7 +54,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 address=patient_in.address,
                 contact_number=patient_in.contact_number,
                 medical_history=patient_in.medical_history,
-                status="QUEUE",
+                status=initial_status,
                 created_by=source,
             )
             self.db.add(patient)
@@ -56,14 +63,21 @@ class PatientRepository(BaseRepository[TbMPatient]):
             log = TbRLogApproval(
                 id=log_id,
                 user_id=user_id,
-                status="QUEUE",
+                status=initial_status,
                 created_by=source,
+                reason=(
+                    "Auto-approved by Admin"
+                    if initial_status == "APPROVED" and source == "ADMIN"
+                    else None
+                ),
             )
             self.db.add(log)
 
             db_user = self.db.query(TbMUser).get(user_id)
             if db_user:
                 db_user.is_patient = True
+                db_user.is_operator = False
+                db_user.is_doctor = False
                 db_user.changed_by = source
 
             self.db.commit()
@@ -72,18 +86,17 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 f"[Patient] Created patient profile {patient_id} for User {user_id}"
             )
             return patient
+        except (DuplicateNIKException, AppException) as e:
+            self.db.rollback()
+            raise e
         except IntegrityError as e:
             self.db.rollback()
-            logger.error(
-                f"[Patient] Integrity error creating patient for {user_id}: {e}"
-            )
             raise DatabaseException(
                 "Patient profile creation failed: Integrity Error",
                 details={"error": str(e)},
             )
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[Patient] Failed to create patient for {user_id}: {e}")
             raise DatabaseException(
                 f"Failed to create patient profile for user {user_id}",
                 details={"error": str(e)},
@@ -96,6 +109,13 @@ class PatientRepository(BaseRepository[TbMPatient]):
             patient = self.get_by(user_id=user_id)
             update_data = profile_data.model_dump(exclude_unset=True)
             source = update_data.pop("source", "WEB")
+
+            if "nik" in update_data and update_data["nik"]:
+                new_nik = update_data["nik"]
+                if not patient or patient.nik != new_nik:
+                    existing_patient = self.find_by_nik(new_nik)
+                    if existing_patient and existing_patient.user_id != user_id:
+                        raise DuplicateNIKException(nik=new_nik)
 
             should_requeue = False
 
@@ -126,6 +146,8 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 if db_user.is_activated != 1:
                     db_user.is_activated = 0
                 db_user.is_patient = True
+                db_user.is_operator = False
+                db_user.is_doctor = False
 
             if should_requeue:
                 log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
@@ -143,15 +165,14 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 f"[Patient] Updated patient profile for user {user_id} (Status: {patient.status})"
             )
             return patient
-        except (IntegrityError, DataError) as e:
+        except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
-            logger.error(f"[Patient] Data error updating patient for {user_id}: {e}")
+            raise e
+        except (IntegrityError, DataError):
+            self.db.rollback()
             raise
         except Exception as e:
             self.db.rollback()
-            logger.error(
-                f"[Patient] Unexpected error updating patient for {user_id}: {e}"
-            )
             raise DatabaseException(
                 f"Failed to update patient profile for User ID {user_id}",
                 details={"error": str(e)},

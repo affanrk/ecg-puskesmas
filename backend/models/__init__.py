@@ -1,6 +1,7 @@
 from .base import Base, AuditMixin
 from .user import TbMUser
 from .patient import TbMPatient
+from .admin import TbMAdmin
 from .session import TbREcgSession
 from .raw_data import TbREcgRawWeb, TbREcgRawMobile
 from .performance import TbRPerformanceLog
@@ -11,6 +12,7 @@ __all__ = [
     "AuditMixin",
     "TbMUser",
     "TbMPatient",
+    "TbMAdmin",
     "TbREcgSession",
     "TbREcgRawWeb",
     "TbREcgRawMobile",

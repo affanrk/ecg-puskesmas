@@ -80,6 +80,14 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
+    admin_profile = relationship(
+        "TbMAdmin",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     sessions = relationship(
         "TbREcgSession",
         back_populates="user",

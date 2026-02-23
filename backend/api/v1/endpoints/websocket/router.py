@@ -177,17 +177,17 @@ class WebSocketHandler:
     async def _handle_start_recording(self, message: dict):
 
         device_id = message.get("device_id")
-        user_id = message.get("user_id") or message.get("subject_id")
+        user_id = self.user_id
         source = message.get("source", "WEB")
 
-        if not device_id or not user_id:
+        if not device_id:
             logger.warning(
-                f"[WS] Missing params for start_recording: device={device_id}, user={user_id}"
+                f"[WS] Missing device_id for start_recording from user {user_id}"
             )
             return
 
         logger.info(
-            f"[WS] User {self.user_id} starting recording on {device_id} (Source: {source})"
+            f"[WS] User {user_id} starting recording on {device_id} (Source: {source})"
         )
         recording_id = str(uuid.uuid4())
         try:

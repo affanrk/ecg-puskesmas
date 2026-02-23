@@ -96,6 +96,97 @@ class UserApprovalUpdate(BaseModel):
     reason: Optional[str] = Field(None, max_length=100)
 
 
+class UserAdminCreate(UserCreate):
+    is_active: Optional[bool] = True
+    is_activated: Optional[int] = 1
+    is_patient: Optional[bool] = False
+
+    full_name: Optional[str] = None
+    nik: Optional[str] = None
+    pob: Optional[str] = None
+    dob: Optional[date] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    contact_number: Optional[str] = None
+    medical_history: Optional[str] = None
+
+    @field_validator("nik")
+    @classmethod
+    def validate_nik(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            if not re.match(r"^\d{16}$", v):
+                raise ValueError("NIK must be exactly 16 digits")
+        return v
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if len(v) < 2:
+                raise ValueError("Full name must be at least 2 characters long")
+            if not re.match(r"^[a-zA-Z\s\.]+$", v):
+                raise ValueError("Full name contains invalid characters")
+        return v
+
+
+class UserAdminUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_patient: Optional[bool] = None
+
+    full_name: Optional[str] = None
+    nik: Optional[str] = None
+    pob: Optional[str] = None
+    dob: Optional[date] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    contact_number: Optional[str] = None
+    medical_history: Optional[str] = None
+
+    @field_validator("username")
+    @classmethod
+    def validate_username(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) < 3:
+            raise ValueError("Username must be at least 3 characters long")
+        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
+            raise ValueError(
+                "Username can only contain letters, numbers, underscores and hyphens"
+            )
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: Optional[EmailStr]) -> Optional[str]:
+        if v is None:
+            return v
+        return v.strip().lower()
+
+    @field_validator("nik")
+    @classmethod
+    def validate_nik(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            if not re.match(r"^\d{16}$", v):
+                raise ValueError("NIK must be exactly 16 digits")
+        return v
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            v = v.strip()
+            if len(v) < 2:
+                raise ValueError("Full name must be at least 2 characters long")
+            if not re.match(r"^[a-zA-Z\s\.]+$", v):
+                raise ValueError("Full name contains invalid characters")
+        return v
+
+
 class UserResponse(UserBase):
     id: str
     is_active: bool

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from typing import List, Optional, Tuple, Union
 
 from repositories.session import SessionRepository
@@ -6,8 +6,10 @@ from repositories.calendar import CalendarRepository
 from core.dependencies import (
     get_session_repository,
     get_calendar_repository,
+    get_current_user,
     DateRangeParams,
 )
+from core.exceptions import AppException
 from schemas.session import SessionResponse, ClassificationStatsResponse
 from schemas.calendar import CalendarResponse
 from utils import MAX_HISTORY_RESULTS
@@ -58,32 +60,44 @@ async def get_calendar_view(
     hour: Optional[int] = Query(None),
     minute: Optional[int] = Query(None),
     calendar_repo: CalendarRepository = Depends(get_calendar_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
+    try:
+        nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
 
-    level = "year"
-    if year is None:
         level = "year"
-    elif month is None:
-        level = "month"
-    elif day is None:
-        level = "day"
-    elif hour is None:
-        level = "hour"
-    elif minute is None:
-        level = "minute"
-    else:
-        level = "second"
+        if year is None:
+            level = "year"
+        elif month is None:
+            level = "month"
+        elif day is None:
+            level = "day"
+        elif hour is None:
+            level = "hour"
+        elif minute is None:
+            level = "minute"
+        else:
+            level = "second"
 
-    return CalendarResponse(level=level, nodes=nodes)
+        return CalendarResponse(level=level, nodes=nodes)
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/stats", response_model=ClassificationStatsResponse)
 async def get_history_stats(
     user_id: Optional[str] = Query(None, description="Filter by User ID"),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    return session_repo.get_classification_stats(user_id)
+    try:
+        return session_repo.get_classification_stats(user_id)
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("", response_model=List[SessionResponse])
@@ -103,21 +117,27 @@ async def get_recording_history(
         MAX_HISTORY_RESULTS, le=MAX_HISTORY_RESULTS, description="Maximum results"
     ),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    results = session_repo.search_sessions(
-        search_query=search,
-        device_id=device_id,
-        user_id=user_id,
-        classification=classification,
-        start_date=date_range.start_date,
-        end_date=date_range.end_date,
-        limit=limit,
-    )
+    try:
+        results = session_repo.search_sessions(
+            search_query=search,
+            device_id=device_id,
+            user_id=user_id,
+            classification=classification,
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+            limit=limit,
+        )
 
-    return [
-        _map_session_to_response(session, (full_name, username, nik))
-        for session, full_name, username, nik in results
-    ]
+        return [
+            _map_session_to_response(session, (full_name, username, nik))
+            for session, full_name, username, nik in results
+        ]
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/recent", response_model=List[SessionResponse])
@@ -125,19 +145,30 @@ async def get_recent_history(
     user_id: str = Query(..., description="User ID is required"),
     limit: int = Query(10, le=20, description="Maximum results"),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
-
-    return [_map_session_to_response(session, session.user) for session in sessions]
+    try:
+        sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
+        return [_map_session_to_response(session, session.user) for session in sessions]
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/{recording_id}", response_model=SessionResponse)
 async def get_recording_detail(
-    recording_id: str, session_repo: SessionRepository = Depends(get_session_repository)
+    recording_id: str,
+    session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    session = session_repo.find_by_recording_id_or_fail(recording_id)
-
-    return _map_session_to_response(session, session.user)
+    try:
+        session = session_repo.find_by_recording_id_or_fail(recording_id)
+        return _map_session_to_response(session, session.user)
+    except (HTTPException, AppException):
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/device/{device_id}", response_model=List[SessionResponse])
@@ -145,10 +176,15 @@ async def get_device_history(
     device_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    sessions = session_repo.list_by_device(device_id, limit=limit)
-
-    return [_map_session_to_response(session, session.user) for session in sessions]
+    try:
+        sessions = session_repo.list_by_device(device_id, limit=limit)
+        return [_map_session_to_response(session, session.user) for session in sessions]
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/user/{user_id}", response_model=List[SessionResponse])
@@ -156,7 +192,12 @@ async def get_user_history(
     user_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
-    sessions = session_repo.list_by_user(user_id, limit=limit)
-
-    return [_map_session_to_response(session, session.user) for session in sessions]
+    try:
+        sessions = session_repo.list_by_user(user_id, limit=limit)
+        return [_map_session_to_response(session, session.user) for session in sessions]
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")

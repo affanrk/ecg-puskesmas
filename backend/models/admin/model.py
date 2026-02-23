@@ -1,15 +1,15 @@
-from sqlalchemy import Column, String, Date, Text, ForeignKey
+from sqlalchemy import Column, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from ..base import Base, AuditMixin
 
 
-class TbMPatient(Base, AuditMixin):
+class TbMAdmin(Base, AuditMixin):
 
-    __tablename__ = "tb_m_patient"
+    __tablename__ = "tb_m_admin"
     id = Column(
         String(30),
         primary_key=True,
-        comment="Custom Primary key for the patient (PAT + YYYYMMDD + 6-digit seq)",
+        comment="Custom Primary key for the admin (ADM + YYYYMMDD + 6-digit seq)",
     )
     user_id = Column(
         String(30),
@@ -19,14 +19,14 @@ class TbMPatient(Base, AuditMixin):
         comment="Foreign key to the user",
     )
     full_name = Column(
-        String(100), index=True, nullable=False, comment="Full name of the patient"
+        String(100), index=True, nullable=False, comment="Full name of the admin"
     )
     nik = Column(
         String(20),
         unique=True,
         index=True,
         nullable=True,
-        comment="Nomor Induk Kependudukan (Patient ID)",
+        comment="Nomor Induk Kependudukan (Admin ID)",
     )
     pob = Column(String(100), nullable=False, comment="Place of birth")
     dob = Column(Date, nullable=False, comment="Date of birth")
@@ -35,15 +35,12 @@ class TbMPatient(Base, AuditMixin):
     )
     address = Column(String(255), nullable=False, comment="Residential address")
     contact_number = Column(String(20), nullable=False, comment="Contact phone number")
-    medical_history = Column(
-        Text, nullable=True, comment="Text field for medical history notes"
-    )
     status = Column(
         String(20),
         default="QUEUE",
         index=True,
         nullable=False,
-        comment="Patient status (QUEUE, APPROVED, REJECTED)",
+        comment="Admin status (QUEUE, APPROVED, REJECTED)",
     )
 
-    user = relationship("TbMUser", back_populates="patient_profile")
+    user = relationship("TbMUser", back_populates="admin_profile")

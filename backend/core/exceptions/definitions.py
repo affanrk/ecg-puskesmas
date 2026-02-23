@@ -86,6 +86,16 @@ class PatientNotFoundException(PatientException):
         )
 
 
+class DuplicateNIKException(PatientException):
+
+    def __init__(self, nik: str):
+        super().__init__(
+            message=f"NIK {nik} is already registered",
+            status_code=400,
+            details={"nik": nik},
+        )
+
+
 class AnalysisException(AppException):
 
     def __init__(self, message: str, details: Optional[dict] = None):

@@ -4,7 +4,8 @@ import asyncio
 import warnings
 import logging
 import traceback
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -89,12 +90,80 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    formatted_errors = []
+    for error in errors:
+        msg = error.get("msg")
+        if msg.startswith("Value error, "):
+            msg = msg.replace("Value error, ", "")
+
+        formatted_errors.append(
+            {
+                "loc": error.get("loc"),
+                "msg": msg,
+                "type": error.get("type"),
+            }
+        )
+
+    logger.warning(
+        f"[Validation Error] {request.method} {request.url.path} -> {formatted_errors}"
+    )
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "type": "ValidationError",
+                "message": "Validation failed",
+                "status_code": 422,
+                "details": formatted_errors,
+            }
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning(
+        f"[HTTP Exception] {request.method} {request.url.path} -> Status {exc.status_code}: {exc.detail}"
+    )
+
+    message = "An error occurred"
+    details = None
+
+    if isinstance(exc.detail, str):
+        message = exc.detail
+    elif isinstance(exc.detail, list):
+        message = "Validation failed"
+        details = exc.detail
+    elif isinstance(exc.detail, dict):
+        message = exc.detail.get("message", "An error occurred")
+        details = exc.detail.get("details", exc.detail)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "type": "HttpException",
+                "message": message,
+                "status_code": exc.status_code,
+                "details": details,
+            }
+        },
+    )
+
+
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     error_details = f" | Details: {exc.details}" if exc.details else ""
-    logger.error(
-        f"[Exception] {request.method} {request.url.path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
-    )
+    log_msg = f"[Exception] {request.method} {request.url.path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
+
+    if 400 <= exc.status_code < 500:
+        logger.warning(log_msg)
+    else:
+        logger.error(log_msg)
 
     return JSONResponse(
         status_code=exc.status_code,

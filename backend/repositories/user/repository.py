@@ -4,7 +4,14 @@ from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError, DataError
 
-from models import TbMUser, TbMPatient, TbRLogApproval
+from models import (
+    TbMUser,
+    TbMPatient,
+    TbRLogApproval,
+    TbREcgSession,
+    TbREcgRawWeb,
+    TbREcgRawMobile,
+)
 from schemas.user import UserCreate
 from core.exceptions import DatabaseException
 from core.security import get_password_hash
@@ -75,15 +82,48 @@ class UserRepository(BaseRepository[TbMUser]):
                 details={"error": str(e)},
             )
 
-    def list_all(self, skip: int = 0, limit: int = 100) -> List[TbMUser]:
+    def list_all(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        role: Optional[str] = None,
+        exclude_admins: bool = True,
+    ) -> List[TbMUser]:
         try:
-            return (
-                self.db.query(TbMUser)
-                .options(joinedload(TbMUser.patient_profile))
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
+            query = self.db.query(TbMUser).options(joinedload(TbMUser.patient_profile))
+
+            if exclude_admins:
+                query = query.filter(TbMUser.role != "admin")
+
+            if role:
+                if role == "patient":
+                    query = query.filter(TbMUser.is_patient)
+                elif role == "operator":
+                    query = query.filter(TbMUser.is_operator)
+                elif role == "doctor":
+                    query = query.filter(TbMUser.is_doctor)
+                elif role == "user":
+                    query = query.filter(
+                        TbMUser.role == "user",
+                        ~TbMUser.is_patient,
+                        ~TbMUser.is_operator,
+                        ~TbMUser.is_doctor,
+                    )
+                else:
+                    query = query.filter(TbMUser.role == role)
+
+            if search:
+                search_filter = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        TbMUser.username.ilike(search_filter),
+                        TbMUser.email.ilike(search_filter),
+                        TbMUser.id.ilike(search_filter),
+                    )
+                )
+
+            return query.offset(skip).limit(limit).all()
         except Exception as e:
             raise DatabaseException(
                 "Failed to list all users", details={"error": str(e)}
@@ -139,13 +179,25 @@ class UserRepository(BaseRepository[TbMUser]):
         try:
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
             hashed_password = get_password_hash(user_in.password)
+
+            is_patient = getattr(user_in, "is_patient", False)
+            is_doctor = getattr(user_in, "is_doctor", False)
+            is_operator = getattr(user_in, "is_operator", False)
+            is_active = 1 if getattr(user_in, "is_active", True) else 0
+
+            is_activated = getattr(user_in, "is_activated", 0)
+
             db_user = TbMUser(
                 id=user_id,
                 email=user_in.email,
                 username=user_in.username,
                 hashed_password=hashed_password,
                 role=user_in.role,
-                is_patient=False,
+                is_patient=is_patient,
+                is_doctor=is_doctor,
+                is_operator=is_operator,
+                is_active=is_active,
+                is_activated=is_activated,
                 created_by=user_in.source,
             )
             self.db.add(db_user)
@@ -245,6 +297,8 @@ class UserRepository(BaseRepository[TbMUser]):
             if patient:
                 patient.status = status
                 patient.changed_by = "ADMIN"
+                if status == "REJECTED":
+                    patient.nik = None
 
             log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
@@ -258,6 +312,8 @@ class UserRepository(BaseRepository[TbMUser]):
 
             if is_activated == 1:
                 db_user.is_patient = True
+                db_user.is_operator = False
+                db_user.is_doctor = False
 
             self.db.commit()
             self.db.refresh(db_user)
@@ -274,6 +330,25 @@ class UserRepository(BaseRepository[TbMUser]):
             obj = self.get(user_id)
             if not obj:
                 return False
+
+            sessions = (
+                self.db.query(TbREcgSession)
+                .filter(TbREcgSession.user_id == user_id)
+                .all()
+            )
+            for session in sessions:
+                self.db.query(TbREcgRawWeb).filter(
+                    TbREcgRawWeb.recording_id == session.recording_id
+                ).delete(synchronize_session=False)
+
+                self.db.query(TbREcgRawMobile).filter(
+                    TbREcgRawMobile.recording_id == session.recording_id
+                ).delete(synchronize_session=False)
+
+                self.db.delete(session)
+
+            self.db.flush()
+
             self.db.delete(obj)
             self.db.commit()
             return True

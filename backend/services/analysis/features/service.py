@@ -93,7 +93,6 @@ class FeatureExtractor:
 
         r_peaks_arr = rpeaks.get("ECG_R_Peaks", [])
 
-        # Increased to 3 to ensure we have at least 2 RR intervals for averaging
         if len(r_peaks_arr) < 3:
             return 0.0, 0.0
 

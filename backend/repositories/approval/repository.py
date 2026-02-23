@@ -12,7 +12,6 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
     def __init__(self, db: Session):
         super().__init__(TbRLogApproval, db)
 
-    # READ operations
     def list_logs(
         self,
         skip: int = 0,
@@ -58,7 +57,6 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
             .all()
         )
 
-    # WRITE operations
     def create_log(
         self, user_id: str, status: str, reason: str = None, source: str = "ADMIN"
     ) -> TbRLogApproval:

@@ -8,9 +8,10 @@ from repositories.session import SessionRepository
 from repositories.raw_data import RawDataRepository
 from repositories.raw_data.mobile_repository import RawDataMobileRepository
 from services import plot_generator
-from core.dependencies import get_session_repository
-from core import SessionLocal, RecordingNotFoundException
+from core.dependencies import get_session_repository, get_current_user
+from core import SessionLocal, RecordingNotFoundException, AppException
 from utils import logger
+from models import TbMUser
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ plot_executor = ThreadPoolExecutor(max_workers=2)
 async def export_raw_ecg_data(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
     logger.info(f"[Export] Raw data export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
@@ -35,9 +37,6 @@ async def export_raw_ecg_data(
         rows = raw_repo.find_by_recording_id(recording_id)
 
         if not rows:
-            logger.warning(
-                f"[Export] No raw data found for Recording ID: {recording_id}"
-            )
             raise RecordingNotFoundException(recording_id)
 
         df = pd.DataFrame(
@@ -69,8 +68,9 @@ async def export_raw_ecg_data(
             media_type="text/csv",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-    except Exception as e:
-        logger.error(f"[Export] Failed to export raw data for {recording_id}: {str(e)}")
+    except (HTTPException, AppException):
+        raise
+    except Exception:
         raise
     finally:
         db.close()
@@ -80,6 +80,7 @@ async def export_raw_ecg_data(
 async def export_analysis_features(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
     logger.info(f"[Export] Features export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
@@ -118,6 +119,7 @@ async def export_analysis_features(
 async def export_ecg_chart(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
     logger.info(f"[Export] ECG plot export requested for Recording ID: {recording_id}")
     session_repo.find_by_recording_id_or_fail(recording_id)
@@ -130,9 +132,6 @@ async def export_ecg_chart(
         )
 
         if not buf:
-            logger.warning(
-                f"[Export] Insufficient data to generate plot for {recording_id}"
-            )
             raise HTTPException(
                 status_code=404,
                 detail="Could not generate plot. Data may be insufficient.",
@@ -149,17 +148,17 @@ async def export_ecg_chart(
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
 
-    except RecordingNotFoundException:
-        logger.error(f"[Export] Recording not found for plot: {recording_id}")
+    except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"[Export] Plot generation failed for {recording_id}: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to generate plot")
 
 
 @router.get("/complete/{recording_id}")
 async def export_complete_package(
-    recording_id: str, session_repo: SessionRepository = Depends(get_session_repository)
+    recording_id: str,
+    session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
     raise HTTPException(
         status_code=501, detail="Complete package export not yet implemented"
@@ -171,5 +170,6 @@ async def export_batch_recordings(
     recording_ids: str,
     format: str = "csv",
     session_repo: SessionRepository = Depends(get_session_repository),
+    current_user: TbMUser = Depends(get_current_user),
 ):
     raise HTTPException(status_code=501, detail="Batch export not yet implemented")

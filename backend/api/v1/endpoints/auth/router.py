@@ -11,6 +11,7 @@ from core.dependencies import (
 from repositories.user import UserRepository
 from repositories.patient import PatientRepository
 from services.device import device_state_manager
+from core.exceptions.definitions import AppException
 from schemas.patient import PatientUpdate, PatientCreate
 from schemas.auth import Token, UserLogin, MessageResponse
 from schemas.user import (
@@ -30,13 +31,9 @@ def register(
     user_in: UserCreate, user_repo: UserRepository = Depends(get_user_repository)
 ):
     if user_repo.find_by_email(email=user_in.email):
-        logger.warning(f"Registration failed: Email {user_in.email} already exists")
         raise HTTPException(status_code=400, detail="Email already registered")
 
     if user_repo.find_by_username(username=user_in.username):
-        logger.warning(
-            f"Registration failed: Username {user_in.username} already taken"
-        )
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user_in.role = "user"
@@ -52,9 +49,6 @@ async def login(
     user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
 
     if not user or not verify_password(login_data.password, user.hashed_password):
-        logger.warning(
-            f"[Auth] Login failed for identifier: {login_data.username_or_email}"
-        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
@@ -62,7 +56,6 @@ async def login(
         )
 
     if not user.is_active:
-        logger.warning(f"[Auth] Login attempt for deactivated account: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
@@ -116,9 +109,6 @@ def create_patient_profile(
 ):
     try:
         if patient_repo.find_by_user_id(current_user.id):
-            logger.warning(
-                f"[Auth-Profile] Attempted to create duplicate profile for User ID: {current_user.id}"
-            )
             raise HTTPException(
                 status_code=400, detail="Patient profile already exists"
             )
@@ -131,12 +121,9 @@ def create_patient_profile(
             f"[Auth-Profile] Successfully created patient profile for User ID: {current_user.id}"
         )
         return updated_user
-    except HTTPException:
+    except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(
-            f"[Auth-Profile] Unexpected error during patient creation for {current_user.id}: {str(e)}"
-        )
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -152,19 +139,15 @@ def update_user_profile(
         updated_user = user_repo.find_by_id(current_user.id)
 
         if not updated_user:
-            logger.error(
-                f"[Auth-Profile] User not found after profile update: {current_user.id}"
-            )
             raise HTTPException(status_code=404, detail="User not found")
 
         logger.info(
             f"[Auth-Profile] Successfully updated profile for User ID: {current_user.id}"
         )
         return updated_user
-    except Exception as e:
-        logger.error(
-            f"[Auth-Profile] Unexpected error during profile update for {current_user.id}: {str(e)}"
-        )
+    except AppException:
+        raise
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -175,9 +158,6 @@ def update_user_username(
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     if user_repo.find_by_username(username_in.new_username):
-        logger.warning(
-            f"[Auth] Username change failed: {username_in.new_username} is taken"
-        )
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user = user_repo.update_username(current_user.id, username_in.new_username)
@@ -194,9 +174,6 @@ def update_user_password(
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     if not verify_password(password_in.current_password, current_user.hashed_password):
-        logger.warning(
-            f"[Auth] Password change failed for user {current_user.username}: Incorrect current password"
-        )
         raise HTTPException(status_code=400, detail="Incorrect current password")
 
     user_repo.update_password(current_user.id, password_in.new_password)

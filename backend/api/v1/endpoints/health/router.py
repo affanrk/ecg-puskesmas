@@ -16,10 +16,11 @@ from services import (
     device_state_manager,
 )
 from repositories.performance import PerformanceRepository
-from core.dependencies import get_performance_repository
+from core.dependencies import get_performance_repository, get_admin_user
 from core import engine
 from sqlalchemy import text
 from utils import logger
+from models import TbMUser
 
 router = APIRouter()
 
@@ -32,6 +33,7 @@ async def health_check():
 @router.get("/detailed", response_model=DetailedHealthCheckResponse)
 async def detailed_health_check(
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
+    admin: TbMUser = Depends(get_admin_user),
 ):
     components = {}
 
@@ -79,7 +81,7 @@ async def detailed_health_check(
 
 
 @router.get("/monitoring/devices", response_model=DeviceMonitoringResponse)
-async def get_device_monitoring():
+async def get_device_monitoring(admin: TbMUser = Depends(get_admin_user)):
     devices_status = []
 
     for device_id in device_state_manager.get_all_device_ids():
@@ -117,6 +119,7 @@ async def get_device_monitoring():
 async def get_performance_monitoring(
     hours: int = 24,
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
+    admin: TbMUser = Depends(get_admin_user),
 ):
     system_summary = perf_repo.get_system_health_summary()
 
@@ -136,7 +139,7 @@ async def get_performance_monitoring(
 
 
 @router.get("/monitoring/ml", response_model=MlMonitoringResponse)
-async def get_ml_monitoring():
+async def get_ml_monitoring(admin: TbMUser = Depends(get_admin_user)):
     model_info = ml_engine_service.get_model_info()
 
     return {
@@ -149,6 +152,7 @@ async def get_ml_monitoring():
 async def cleanup_old_performance_logs(
     days: int = 30,
     perf_repo: PerformanceRepository = Depends(get_performance_repository),
+    admin: TbMUser = Depends(get_admin_user),
 ):
     deleted_count = perf_repo.delete_old_logs(days=days)
     logger.info(
