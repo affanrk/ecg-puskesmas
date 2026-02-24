@@ -19,7 +19,7 @@ from schemas.user import (
 from schemas.patient import PatientUpdate, PatientCreate
 from schemas.approval import ApprovalLogResponse
 from core.exceptions import AppException, DuplicateNIKException
-from models import TbMUser
+from models import TbMUser, TbRLogApproval
 from utils import logger
 
 router = APIRouter()
@@ -114,7 +114,8 @@ def update_user_status(
         return user
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"Update user status failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -135,6 +136,7 @@ def create_user(
             if patient_repo.find_by_nik(user_in.nik):
                 raise HTTPException(status_code=400, detail="NIK is already registered")
 
+        user_in.source = "ADMIN"
         user = user_repo.create(user_in)
 
         if user.is_patient:
@@ -151,13 +153,27 @@ def create_user(
                     source="ADMIN",
                 )
 
-                initial_status = (
-                    "APPROVED" if getattr(user, "is_activated", 0) == 1 else "QUEUE"
+                is_activated = getattr(user, "is_activated", 0)
+                initial_status = "APPROVED" if is_activated == 1 else "QUEUE"
+                initial_reason = (
+                    "Auto-approved by Admin"
+                    if is_activated == 1
+                    else "Profile created by Admin"
                 )
 
                 patient_repo.create_profile(
                     patient_data, user.id, source="ADMIN", initial_status=initial_status
                 )
+
+                log = (
+                    patient_repo.db.query(TbRLogApproval)
+                    .filter_by(user_id=user.id)
+                    .order_by(TbRLogApproval.created_dt.desc())
+                    .first()
+                )
+                if log:
+                    log.reason = initial_reason
+                    patient_repo.db.commit()
 
             except ValidationError as e:
                 user_repo.delete(user.id)
@@ -233,15 +249,29 @@ def update_user(
 
         if "role" in update_data:
             new_role = update_data["role"]
+            is_currently_patient = target_user.is_patient
+
             if new_role == "doctor":
                 update_data["is_doctor"] = True
                 update_data["is_operator"] = False
                 update_data["is_patient"] = False
+                if is_currently_patient:
+                    user_repo.cleanup_patient_data(user_id)
+                    update_data["is_activated"] = 0
             elif new_role == "operator":
                 update_data["is_operator"] = True
                 update_data["is_doctor"] = False
                 update_data["is_patient"] = False
+                if is_currently_patient:
+                    user_repo.cleanup_patient_data(user_id)
+                    update_data["is_activated"] = 0
             elif new_role == "patient":
+                if not is_currently_patient:
+                    if not user_in.nik or not user_in.full_name:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Full name and NIK are required when converting a user to a patient",
+                        )
                 update_data["role"] = "user"
                 update_data["is_patient"] = True
                 update_data["is_doctor"] = False
@@ -250,6 +280,9 @@ def update_user(
                 update_data["is_patient"] = False
                 update_data["is_doctor"] = False
                 update_data["is_operator"] = False
+                if is_currently_patient:
+                    user_repo.cleanup_patient_data(user_id)
+                    update_data["is_activated"] = 0
 
         patient_fields = [
             "full_name",
@@ -264,10 +297,22 @@ def update_user(
         patient_data = {
             k: update_data.pop(k) for k in patient_fields if k in update_data
         }
+        patient_data["source"] = "ADMIN"
 
-        if patient_data:
-            patient_repo.update_by_user_id(user_id, PatientUpdate(**patient_data))
+        is_activated_val = update_data.get("is_activated")
+        activation_changing = (
+            is_activated_val is not None
+            and is_activated_val != target_user.is_activated
+        )
 
+        if (patient_data or activation_changing) and (
+            update_data.get("is_patient", target_user.is_patient)
+        ):
+            patient_repo.update_by_user_id(
+                user_id, PatientUpdate(**patient_data), admin_activated=is_activated_val
+            )
+
+        update_data["changed_by"] = "ADMIN"
         user = user_repo.update(user_id, update_data)
         logger.info(f"Admin {admin.username} updated user {user_id}")
         return user
@@ -283,7 +328,10 @@ def update_user(
         raise HTTPException(status_code=422, detail=formatted_errors)
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except DuplicateNIKException:
+        raise HTTPException(status_code=400, detail="NIK is already registered")
+    except Exception as e:
+        logger.error(f"Update user failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -308,5 +356,6 @@ def delete_user(
         return {"message": "User deleted successfully"}
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"Delete user failed: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

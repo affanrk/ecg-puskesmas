@@ -117,12 +117,23 @@ class BaseRepository(Generic[ModelType]):
             if not obj:
                 return None
 
+            has_changes = False
             for field, value in data.items():
-                if hasattr(obj, field):
-                    setattr(obj, field, value)
+                if field == "changed_by":
+                    continue
 
-            self.db.commit()
-            self.db.refresh(obj)
+                if hasattr(obj, field):
+                    current_val = getattr(obj, field)
+                    if current_val != value:
+                        setattr(obj, field, value)
+                        has_changes = True
+
+            if has_changes:
+                if "changed_by" in data:
+                    setattr(obj, "changed_by", data["changed_by"])
+                self.db.commit()
+                self.db.refresh(obj)
+
             return obj
         except Exception as e:
             self.db.rollback()

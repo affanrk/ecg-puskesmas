@@ -103,7 +103,11 @@ class PatientRepository(BaseRepository[TbMPatient]):
             )
 
     def update_by_user_id(
-        self, user_id: str, profile_data: PatientUpdate
+        self,
+        user_id: str,
+        profile_data: PatientUpdate,
+        admin_activated: Optional[int] = None,
+        reason: Optional[str] = None,
     ) -> Optional[TbMPatient]:
         try:
             patient = self.get_by(user_id=user_id)
@@ -117,53 +121,98 @@ class PatientRepository(BaseRepository[TbMPatient]):
                     if existing_patient and existing_patient.user_id != user_id:
                         raise DuplicateNIKException(nik=new_nik)
 
-            should_requeue = False
+            should_log = False
+            log_status = "QUEUE"
+            log_reason = reason
 
             if not patient:
-
                 patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
+
+                initial_status = "QUEUE"
+                if admin_activated == 1:
+                    initial_status = "APPROVED"
+                    log_reason = "Auto-approved by Admin"
+                elif source == "ADMIN":
+                    log_reason = "Profile created by Admin"
+                else:
+                    log_reason = "Profile created by User"
+
                 patient = TbMPatient(
-                    id=patient_id, user_id=user_id, status="QUEUE", created_by=source
+                    id=patient_id,
+                    user_id=user_id,
+                    status=initial_status,
+                    created_by=source,
                 )
                 self.db.add(patient)
                 logger.info(
-                    f"[Patient] Initiated new patient record for user {user_id}"
+                    "[Patient] Initiated new patient record for user %s (Status: %s)",
+                    user_id,
+                    initial_status,
                 )
-                should_requeue = True
+
+                should_log = True
+                log_status = initial_status
             else:
-                if patient.status == "REJECTED":
+                if admin_activated == 1 and patient.status != "APPROVED":
+                    patient.status = "APPROVED"
+                    log_status = "APPROVED"
+                    log_reason = "Auto-approved by Admin"
+                    should_log = True
+                elif patient.status == "REJECTED":
                     patient.status = "QUEUE"
-                    should_requeue = True
+                    log_status = "QUEUE"
+                    log_reason = (
+                        "Profile updated by Admin"
+                        if source == "ADMIN"
+                        else "Profile updated and resubmitted"
+                    )
+                    should_log = True
+                elif source == "ADMIN" and patient.status == "QUEUE" and not patient.id:
+                    log_reason = "Profile created by Admin"
+                    should_log = True
+                elif admin_activated == 0 and patient.status == "APPROVED":
+                    patient.status = "QUEUE"
+                    log_status = "QUEUE"
+                    log_reason = "Access revoked by Admin"
+                    should_log = True
 
+            has_changes = False
             for key, value in update_data.items():
-                setattr(patient, key, value)
+                if hasattr(patient, key):
+                    if getattr(patient, key) != value:
+                        setattr(patient, key, value)
+                        has_changes = True
 
-            patient.changed_by = source
+            if should_log or has_changes:
+                patient.changed_by = source
 
-            db_user = self.db.query(TbMUser).get(user_id)
-            if db_user:
-                db_user.changed_by = source
-                if db_user.is_activated != 1:
-                    db_user.is_activated = 0
-                db_user.is_patient = True
-                db_user.is_operator = False
-                db_user.is_doctor = False
+                db_user = self.db.query(TbMUser).get(user_id)
+                if db_user:
+                    db_user.changed_by = source
+                    if (
+                        admin_activated is not None
+                        and db_user.is_activated != admin_activated
+                    ):
+                        db_user.is_activated = admin_activated
 
-            if should_requeue:
-                log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
-                log = TbRLogApproval(
-                    id=log_id,
-                    user_id=user_id,
-                    status="QUEUE",
-                    created_by=source,
-                )
-                self.db.add(log)
+                    db_user.is_patient = True
+                    db_user.is_operator = False
+                    db_user.is_doctor = False
 
-            self.db.commit()
-            self.db.refresh(patient)
-            logger.info(
-                f"[Patient] Updated patient profile for user {user_id} (Status: {patient.status})"
-            )
+                if should_log:
+                    log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
+                    log = TbRLogApproval(
+                        id=log_id,
+                        user_id=user_id,
+                        status=log_status,
+                        reason=log_reason,
+                        created_by=source,
+                    )
+                    self.db.add(log)
+
+                self.db.commit()
+                self.db.refresh(patient)
+
             return patient
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()

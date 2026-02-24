@@ -9,8 +9,7 @@ from models import (
     TbMPatient,
     TbRLogApproval,
     TbREcgSession,
-    TbREcgRawWeb,
-    TbREcgRawMobile,
+    TbRPerformanceLog,
 )
 from schemas.user import UserCreate
 from core.exceptions import DatabaseException
@@ -325,31 +324,63 @@ class UserRepository(BaseRepository[TbMUser]):
                 details={"error": str(e)},
             )
 
+    def cleanup_patient_data(self, user_id: str):
+        try:
+            logger.info(f"[User] Cleaning up patient data for user {user_id}")
+
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(
+                    self.db.query(TbREcgSession.recording_id).filter(
+                        TbREcgSession.user_id == user_id
+                    )
+                )
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSession).filter(
+                TbREcgSession.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbRLogApproval).filter(
+                TbRLogApproval.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbMPatient).filter(TbMPatient.user_id == user_id).delete(
+                synchronize_session=False
+            )
+
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            raise DatabaseException(
+                f"Failed to cleanup patient data for user {user_id}",
+                details={"error": str(e)},
+            )
+
     def delete(self, user_id: str) -> bool:
         try:
             obj = self.get(user_id)
             if not obj:
                 return False
 
-            sessions = (
-                self.db.query(TbREcgSession)
-                .filter(TbREcgSession.user_id == user_id)
-                .all()
+            logger.info(
+                "[User] Initiating permanent deletion of user %s and associated bulk data",
+                user_id,
             )
-            for session in sessions:
-                self.db.query(TbREcgRawWeb).filter(
-                    TbREcgRawWeb.recording_id == session.recording_id
-                ).delete(synchronize_session=False)
 
-                self.db.query(TbREcgRawMobile).filter(
-                    TbREcgRawMobile.recording_id == session.recording_id
-                ).delete(synchronize_session=False)
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(
+                    self.db.query(TbREcgSession.recording_id).filter(
+                        TbREcgSession.user_id == user_id
+                    )
+                )
+            ).delete(synchronize_session=False)
 
-                self.db.delete(session)
-
-            self.db.flush()
+            self.db.query(TbREcgSession).filter(
+                TbREcgSession.user_id == user_id
+            ).delete(synchronize_session=False)
 
             self.db.delete(obj)
+
             self.db.commit()
             return True
         except Exception as e:

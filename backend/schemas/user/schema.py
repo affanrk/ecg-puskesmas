@@ -136,6 +136,7 @@ class UserAdminUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
     is_patient: Optional[bool] = None
+    is_activated: Optional[int] = None
 
     full_name: Optional[str] = None
     nik: Optional[str] = None
