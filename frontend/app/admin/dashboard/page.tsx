@@ -34,23 +34,19 @@ export default function AdminDashboard() {
         const loadData = async () => {
             setLoading(true);
             try {
-                const pending = await api.fetchPendingApprovals({ limit: 5 });
+                const [pending, allPending, users, logs, health] = await Promise.all([
+                    api.fetchPendingApprovals({ limit: 5 }),
+                    api.fetchPendingApprovals({ limit: 100 }),
+                    api.fetchUsers({ limit: 100 }),
+                    api.fetchApprovalLogs({ limit: 5 }),
+                    api.fetchDetailedHealth().catch(() => ({ status: 'issues' }))
+                ]);
+
                 setRecentPending(pending || []);
-                const allPending = await api.fetchPendingApprovals({ limit: 100 });
                 setPendingCount(allPending?.length || 0);
-
-                const users = await api.fetchUsers({ limit: 100 });
                 setUserCount(users?.length || 0);
-
-                const logs = await api.fetchApprovalLogs({ limit: 5 });
                 setRecentLogs(logs || []);
-
-                try {
-                    const health = await api.fetchDetailedHealth();
-                    setSystemStatus(health.status === 'healthy' ? 'healthy' : 'issues');
-                } catch {
-                    setSystemStatus('issues');
-                }
+                setSystemStatus(health.status === 'healthy' ? 'healthy' : 'issues');
 
             } catch (error) {
                 console.error("Dashboard load failed", error);
