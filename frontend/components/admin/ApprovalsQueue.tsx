@@ -77,12 +77,17 @@ export default function ApprovalsQueue({
                                 >
                                     <td className="px-5 whitespace-nowrap">
                                         <div className="flex items-center gap-2.5">
-                                            <div className="w-7 h-7 bg-slate-900 text-white rounded flex items-center justify-center text-[10px] font-black group-hover:bg-rose-600 transition-colors shadow-sm">
+                                            <div className="w-7 h-7 bg-slate-900 text-white rounded flex items-center justify-center text-[10px] font-black group-hover:bg-rose-600 transition-colors shadow-sm shrink-0">
                                                 {user.username.substring(0, 2).toUpperCase()}
                                             </div>
-                                            <span className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">
-                                                {user.full_name || user.username}
-                                            </span>
+                                            <div>
+                                                <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">
+                                                    {user.full_name || user.username}
+                                                </p>
+                                                <p className="text-[9px] font-bold text-slate-400 truncate max-w-[180px]">
+                                                    {user.full_name ? `@${user.username}` : user.email} {user.full_name ? `• ${user.email}` : ''}
+                                                </p>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-5 whitespace-nowrap text-[10px] font-mono font-black text-slate-500 group-hover:text-slate-700 transition-colors">

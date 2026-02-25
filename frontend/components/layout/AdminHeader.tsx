@@ -37,6 +37,7 @@ export default function AdminHeader() {
 
     const isApprovalsPage = pathname === '/admin/approvals';
     const isHealthPage = pathname === '/admin/health';
+    const isUsersPage = pathname === '/admin/users';
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -159,6 +160,19 @@ export default function AdminHeader() {
                             title="Refresh System Health"
                         >
                             <RefreshCcw size={12} className={clsx(adminLoading && "animate-spin")} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
+                        </button>
+                    </div>
+                )}
+
+                {isUsersPage && (
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
+                        <button
+                            onClick={handleRefresh}
+                            className="h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm"
+                            title="Refresh Users List"
+                        >
+                            <RefreshCcw size={12} />
                             <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
                         </button>
                     </div>

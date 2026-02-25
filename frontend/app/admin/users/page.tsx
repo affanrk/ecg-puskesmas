@@ -18,6 +18,8 @@ import EditUserModal from '@/components/admin/EditUserModal';
 import CreateUserModal from '@/components/admin/CreateUserModal';
 import { formatDateShort, parseApiError } from '@/utils/helpers';
 import { useToast } from '@/hooks/useToast';
+import { globalEventBus } from '@/services/events';
+import { EVENTS } from '@/config/constants';
 
 const UserTableRow = memo(({
     user,
@@ -35,9 +37,15 @@ const UserTableRow = memo(({
                     {user.username.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                    <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">{user.username}</p>
-                    <p className="text-[9px] font-bold text-slate-400">{user.email}</p>
+                    <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">{user.full_name || user.username}</p>
+                    <p className="text-[9px] font-bold text-slate-400">{user.full_name ? `@${user.username}` : '---'}</p>
                 </div>
+            </div>
+        </td>
+        <td className="px-5 whitespace-nowrap">
+            <div>
+                <p className="text-[10px] font-mono font-black text-slate-500 group-hover:text-slate-700 transition-colors">{user.nik || 'No NIK'}</p>
+                <p className="text-[9px] font-bold text-slate-400">{user.email}</p>
             </div>
         </td>
         <td className="px-5 whitespace-nowrap">
@@ -77,14 +85,14 @@ const UserTableRow = memo(({
             <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                     onClick={() => onEdit(user)}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] border border-blue-100/50"
+                    className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] border border-blue-100/50 cursor-pointer"
                     title="Edit User"
                 >
                     Edit
                 </button>
                 <button
                     onClick={() => onDelete(user)}
-                    className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-[0.98] border border-rose-100/50"
+                    className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-[0.98] border border-rose-100/50 cursor-pointer"
                     title="Delete User"
                 >
                     Delete
@@ -121,10 +129,11 @@ export default function UserManagementPage() {
         } catch (err) {
             const { message } = parseApiError(err);
             console.error(message);
+            showToast(message, "error");
         } finally {
             setIsLoading(false);
         }
-    }, [search, roleFilter]);
+    }, [search, roleFilter, showToast]);
 
     const handleCreate = useCallback(async (data: Record<string, unknown>) => {
         try {
@@ -142,6 +151,17 @@ export default function UserManagementPage() {
             return { success: false, message, fieldErrors: finalFieldErrors };
         }
     }, [showToast, fetchUsers]);
+
+    useEffect(() => {
+        const handleRefresh = () => {
+            fetchUsers();
+            showToast("User management list updated", "success");
+        };
+        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+        return () => {
+            globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+        };
+    }, [fetchUsers, showToast]);
 
     useEffect(() => {
         setIsLoading(true);
@@ -249,7 +269,7 @@ export default function UserManagementPage() {
 
                     <button
                         onClick={() => setIsCreatingUser(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 shrink-0"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
                     >
                         <Plus size={16} /> <span className="hidden sm:inline">New User</span>
                     </button>
@@ -278,7 +298,8 @@ export default function UserManagementPage() {
                             <table className="w-full text-left border-collapse table-auto h-full">
                                 <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
                                     <tr>
-                                        <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">User Identity</th>
+                                        <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Identity</th>
+                                        <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Credentials</th>
                                         <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Access</th>
                                         <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Status</th>
                                         <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Joined</th>

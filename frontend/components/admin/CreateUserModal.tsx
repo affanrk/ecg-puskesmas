@@ -138,7 +138,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                         </div>
                     )}
 
-                    <div className="pt-2 sticky bottom-0 bg-white py-2">
+                    <div className="pt-4 pb-6 -bottom-6 sticky bg-white z-10 border-t border-slate-50 mt-4">
                         {serverError && !Object.keys(errors).length && <p className="text-[10px] font-bold text-rose-500 text-center mb-2">{serverError}</p>}
                         <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                             {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><UserPlus size={16} /> Review & Create Account</>}

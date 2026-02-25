@@ -235,7 +235,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                         </div>
                     )}
 
-                    <div className="pt-2 sticky bottom-0 bg-white py-2">
+                    <div className="pt-4 pb-6 -bottom-6 sticky bg-white z-10 border-t border-slate-50 mt-4">
                         {serverError && !Object.keys(errors).length && <p className="text-[10px] font-bold text-rose-500 text-center mb-2">{serverError}</p>}
                         <button type="submit" disabled={loading} className={clsx("w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2", hasChanges ? "bg-slate-900 hover:bg-blue-600 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed")}>
                             {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save size={16} /> Update Account & Profile</>}
