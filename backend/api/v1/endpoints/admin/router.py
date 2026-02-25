@@ -115,7 +115,7 @@ def update_user_status(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Update user status failed: {e}")
+        logger.error(f"Unexpected system error in update_user_status: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -198,7 +198,7 @@ def create_user(
     except DuplicateNIKException:
         raise HTTPException(status_code=400, detail="NIK is already registered")
     except Exception as e:
-        logger.error(f"Create user failed: {e}")
+        logger.error(f"Unexpected system error in create_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -234,6 +234,9 @@ def update_user(
             )
 
         update_data = user_in.model_dump(exclude_unset=True)
+
+        if "is_active" in update_data:
+            update_data["is_active"] = 1 if update_data["is_active"] else 0
 
         if "username" in update_data:
             existing = user_repo.find_by_username(update_data["username"])
@@ -331,7 +334,7 @@ def update_user(
     except DuplicateNIKException:
         raise HTTPException(status_code=400, detail="NIK is already registered")
     except Exception as e:
-        logger.error(f"Update user failed: {e}")
+        logger.error(f"Unexpected system error in update_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

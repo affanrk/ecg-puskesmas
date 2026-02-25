@@ -18,18 +18,15 @@ class PatientRepository(BaseRepository[TbMPatient]):
         try:
             return self.get_by(user_id=user_id)
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to find patient profile for user ID {user_id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to find patient profile for user ID {user_id}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def find_by_nik(self, nik: str) -> Optional[TbMPatient]:
         try:
             return self.get_by(nik=nik)
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to find patient by NIK {nik}", details={"error": str(e)}
-            )
+            logger.error(f"Failed to find patient by NIK {nik}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_profile(
         self,
@@ -68,7 +65,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 reason=(
                     "Auto-approved by Admin"
                     if initial_status == "APPROVED" and source == "ADMIN"
-                    else None
+                    else "Waiting for Approval" if initial_status == "QUEUE" else None
                 ),
             )
             self.db.add(log)
@@ -91,16 +88,14 @@ class PatientRepository(BaseRepository[TbMPatient]):
             raise e
         except IntegrityError as e:
             self.db.rollback()
-            raise DatabaseException(
-                "Patient profile creation failed: Integrity Error",
-                details={"error": str(e)},
+            logger.error(
+                f"Integrity Error creating patient profile for user {user_id}: {e}"
             )
+            raise DatabaseException("Database operation failed")
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to create patient profile for user {user_id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Error creating patient profile for user {user_id}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_by_user_id(
         self,
@@ -131,7 +126,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 initial_status = "QUEUE"
                 if admin_activated == 1:
                     initial_status = "APPROVED"
-                    log_reason = "Auto-approved by Admin"
+                    log_reason = "Approved by Admin"
                 elif source == "ADMIN":
                     log_reason = "Profile created by Admin"
                 else:
@@ -156,7 +151,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 if admin_activated == 1 and patient.status != "APPROVED":
                     patient.status = "APPROVED"
                     log_status = "APPROVED"
-                    log_reason = "Auto-approved by Admin"
+                    log_reason = "Approved by Admin"
                     should_log = True
                 elif patient.status == "REJECTED":
                     patient.status = "QUEUE"
@@ -222,7 +217,5 @@ class PatientRepository(BaseRepository[TbMPatient]):
             raise
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to update patient profile for User ID {user_id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Error updating patient profile for User ID {user_id}: {e}")
+            raise DatabaseException("Database operation failed")

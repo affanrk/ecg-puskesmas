@@ -20,6 +20,7 @@ from core import (
     RecordingException,
     PatientException,
     AnalysisException,
+    DatabaseException,
 )
 from api.v1.router import api_router
 from api.v1.endpoints import websocket_router as ws_router
@@ -160,19 +161,27 @@ async def app_exception_handler(request: Request, exc: AppException):
     error_details = f" | Details: {exc.details}" if exc.details else ""
     log_msg = f"[Exception] {request.method} {request.url.path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
 
-    if 400 <= exc.status_code < 500:
-        logger.warning(log_msg)
-    else:
-        logger.error(log_msg)
+    if not isinstance(exc, DatabaseException):
+        if 400 <= exc.status_code < 500:
+            logger.warning(log_msg)
+        else:
+            logger.error(log_msg)
+
+    client_message = exc.message
+    client_details = exc.details
+
+    if isinstance(exc, DatabaseException):
+        client_message = "Database operation failed"
+        client_details = None
 
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "error": {
                 "type": exc.__class__.__name__,
-                "message": exc.message,
+                "message": client_message,
                 "status_code": exc.status_code,
-                "details": exc.details,
+                "details": client_details,
             }
         },
     )

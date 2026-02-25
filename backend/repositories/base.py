@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from core.exceptions import DatabaseException
+from utils import logger
 
 ModelType = TypeVar("ModelType")
 
@@ -19,10 +20,8 @@ class BaseRepository(Generic[ModelType]):
         try:
             return self.db.get(self.model, id)
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to get {self.model.__name__} with id {id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to get {self.model.__name__} with id {id}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_by(self, **filters) -> Optional[ModelType]:
 
@@ -32,10 +31,8 @@ class BaseRepository(Generic[ModelType]):
                 query = query.filter(getattr(self.model, field) == value)
             return query.first()
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to get {self.model.__name__} by {filters}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to get {self.model.__name__} by {filters}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_multi(
         self,
@@ -54,10 +51,8 @@ class BaseRepository(Generic[ModelType]):
 
             return query.offset(skip).limit(limit).all()
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to get multiple {self.model.__name__}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to get multiple {self.model.__name__}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def filter(
         self,
@@ -81,10 +76,8 @@ class BaseRepository(Generic[ModelType]):
 
             return query.offset(skip).limit(limit).all()
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to filter {self.model.__name__}",
-                details={"error": str(e), "filters": filters},
-            )
+            logger.error(f"Failed to filter {self.model.__name__} with {filters}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create(self, obj: ModelType) -> ModelType:
 
@@ -95,9 +88,8 @@ class BaseRepository(Generic[ModelType]):
             return obj
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to create {self.model.__name__}", details={"error": str(e)}
-            )
+            logger.error(f"Failed to create {self.model.__name__}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_from_dict(self, data: Dict[str, Any]) -> ModelType:
 
@@ -105,10 +97,8 @@ class BaseRepository(Generic[ModelType]):
             obj = self.model(**data)
             return self.create(obj)
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to create {self.model.__name__} from dict",
-                details={"error": str(e), "data": data},
-            )
+            logger.error(f"Failed to create {self.model.__name__} from dict: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update(self, id: Any, data: Dict[str, Any]) -> Optional[ModelType]:
 
@@ -137,10 +127,8 @@ class BaseRepository(Generic[ModelType]):
             return obj
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to update {self.model.__name__} with id {id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to update {self.model.__name__} with id {id}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete(self, id: Any) -> bool:
 
@@ -154,10 +142,8 @@ class BaseRepository(Generic[ModelType]):
             return True
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to delete {self.model.__name__} with id {id}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to delete {self.model.__name__} with id {id}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete_by(self, **filters) -> int:
 
@@ -171,10 +157,8 @@ class BaseRepository(Generic[ModelType]):
             return count
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to delete {self.model.__name__} by {filters}",
-                details={"error": str(e)},
-            )
+            logger.error(f"Failed to delete {self.model.__name__} by {filters}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def count(self, **filters) -> int:
 
@@ -185,9 +169,8 @@ class BaseRepository(Generic[ModelType]):
                     query = query.filter(getattr(self.model, field) == value)
             return query.count()
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to count {self.model.__name__}", details={"error": str(e)}
-            )
+            logger.error(f"Failed to count {self.model.__name__}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def exists(self, **filters) -> bool:
 
@@ -197,10 +180,10 @@ class BaseRepository(Generic[ModelType]):
                 query = query.filter(getattr(self.model, field) == value)
             return query.first() is not None
         except Exception as e:
-            raise DatabaseException(
-                f"Failed to check existence of {self.model.__name__}",
-                details={"error": str(e)},
+            logger.error(
+                f"Failed to check existence of {self.model.__name__} by {filters}: {e}"
             )
+            raise DatabaseException("Database operation failed")
 
     def bulk_create(self, objects: List[ModelType]) -> List[ModelType]:
 
@@ -210,10 +193,8 @@ class BaseRepository(Generic[ModelType]):
             return objects
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to bulk create {self.model.__name__}",
-                details={"error": str(e), "count": len(objects)},
-            )
+            logger.error(f"Failed to bulk create {self.model.__name__}: {e}")
+            raise DatabaseException("Database operation failed")
 
     def bulk_insert_dicts(self, data_list: List[Dict[str, Any]]) -> int:
 
@@ -226,7 +207,5 @@ class BaseRepository(Generic[ModelType]):
             return len(data_list)
         except Exception as e:
             self.db.rollback()
-            raise DatabaseException(
-                f"Failed to bulk insert {self.model.__name__}: {str(e)}",
-                details={"error": str(e), "count": len(data_list)},
-            )
+            logger.error(f"Failed to bulk insert {self.model.__name__}: {e}")
+            raise DatabaseException("Database operation failed")
