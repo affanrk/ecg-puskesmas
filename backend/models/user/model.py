@@ -88,6 +88,22 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
+    operator_profile = relationship(
+        "TbMOperator",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    doctor_profile = relationship(
+        "TbMDoctor",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     sessions = relationship(
         "TbREcgSession",
         back_populates="user",
@@ -104,40 +120,65 @@ class TbMUser(Base, AuditMixin):
     )
 
     @property
+    def active_profile(self):
+        return (
+            self.patient_profile
+            or self.operator_profile
+            or self.doctor_profile
+            or self.admin_profile
+        )
+
+    @property
     def full_name(self):
-        return self.patient_profile.full_name if self.patient_profile else None
+        return self.active_profile.full_name if self.active_profile else None
 
     @property
     def nik(self):
-        return self.patient_profile.nik if self.patient_profile else None
+        return self.active_profile.nik if self.active_profile else None
 
     @property
     def pob(self):
-        return self.patient_profile.pob if self.patient_profile else None
+        return self.active_profile.pob if self.active_profile else None
 
     @property
     def dob(self):
-        return self.patient_profile.dob if self.patient_profile else None
+        return self.active_profile.dob if self.active_profile else None
 
     @property
     def gender(self):
-        return self.patient_profile.gender if self.patient_profile else None
+        return self.active_profile.gender if self.active_profile else None
 
     @property
     def address(self):
-        return self.patient_profile.address if self.patient_profile else None
+        return self.active_profile.address if self.active_profile else None
 
     @property
     def contact_number(self):
-        return self.patient_profile.contact_number if self.patient_profile else None
+        return self.active_profile.contact_number if self.active_profile else None
 
     @property
     def medical_history(self):
         return self.patient_profile.medical_history if self.patient_profile else None
 
     @property
+    def str_number(self):
+        if self.operator_profile:
+            return self.operator_profile.str_number
+        if self.doctor_profile:
+            return self.doctor_profile.str_number
+        return None
+
+    @property
+    def sip_number(self):
+        return self.doctor_profile.sip_number if self.doctor_profile else None
+
+    @property
+    def specialty(self):
+        return self.doctor_profile.specialty if self.doctor_profile else None
+
+    @property
     def status(self):
-        return self.patient_profile.status if self.patient_profile else None
+        return self.active_profile.status if self.active_profile else None
 
     @property
     def rejection_reason(self):

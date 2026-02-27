@@ -7,6 +7,8 @@ from sqlalchemy.exc import IntegrityError, DataError
 from models import (
     TbMUser,
     TbMPatient,
+    TbMOperator,
+    TbMDoctor,
     TbRLogApproval,
     TbREcgSession,
     TbRPerformanceLog,
@@ -34,6 +36,12 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(f"Failed to find user by ID {user_id}: {e}")
             raise DatabaseException("Database operation failed")
+
+    def refresh_user(self, user: TbMUser):
+        try:
+            self.db.refresh(user)
+        except Exception:
+            self.db.expire(user)
 
     def find_by_email(self, email: str) -> Optional[TbMUser]:
         try:
@@ -179,6 +187,34 @@ class UserRepository(BaseRepository[TbMUser]):
             logger.error(f"Failed to list pending approval users: {e}")
             raise DatabaseException("Database operation failed")
 
+    def create_from_dict(self, data: dict) -> TbMUser:
+        try:
+            user_id = generate_custom_id("USR", "tb_m_user", self.db)
+            password = data.pop("password")
+            hashed_password = get_password_hash(password)
+
+            db_user = TbMUser(
+                id=user_id,
+                email=data.get("email"),
+                username=data.get("username"),
+                hashed_password=hashed_password,
+                role=data.get("role", "user"),
+                is_patient=data.get("is_patient", False),
+                is_doctor=data.get("is_doctor", False),
+                is_operator=data.get("is_operator", False),
+                is_active=data.get("is_active", 1),
+                is_activated=data.get("is_activated", 0),
+                created_by=data.get("source", "SYSTEM"),
+            )
+            self.db.add(db_user)
+            self.db.commit()
+            self.db.refresh(db_user)
+            return db_user
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Failed to create user from dict: {e}")
+            raise DatabaseException("Database operation failed")
+
     def create(self, user_in: UserCreate) -> TbMUser:
         try:
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
@@ -283,38 +319,45 @@ class UserRepository(BaseRepository[TbMUser]):
             raise DatabaseException("Database operation failed")
 
     def update_activation_status(
-        self, user_id: str, is_activated: int, reason: Optional[str] = None
+        self, user_id: str, admin_action: str, reason: Optional[str] = None
     ) -> Optional[TbMUser]:
         try:
             db_user = self.get(user_id)
             if not db_user:
                 return None
 
-            db_user.is_activated = is_activated
+            is_approving = admin_action.upper() == "APPROVE"
 
-            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
-            status = "APPROVED" if is_activated == 1 else "REJECTED"
+            db_user.is_activated = 1 if is_approving else 0
+            status = "APPROVED" if is_approving else "REJECTED"
 
-            if patient:
-                patient.status = status
-                patient.changed_by = "ADMIN"
-                if status == "REJECTED":
-                    patient.nik = None
+            log_reason = reason
+            if not log_reason and status == "APPROVED":
+                log_reason = "Approved by Admin"
+
+            profile = None
+            if db_user.is_patient:
+                profile = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            elif db_user.is_operator:
+                profile = self.db.query(TbMOperator).filter_by(user_id=user_id).first()
+            elif db_user.is_doctor:
+                profile = self.db.query(TbMDoctor).filter_by(user_id=user_id).first()
+
+            if profile:
+                profile.status = status
+                profile.changed_by = "ADMIN"
+                if status == "REJECTED" and hasattr(profile, "nik"):
+                    profile.nik = None
 
             log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
                 id=log_id,
                 user_id=user_id,
                 status=status,
-                reason=reason,
+                reason=log_reason,
                 created_by="ADMIN",
             )
             self.db.add(log)
-
-            if is_activated == 1:
-                db_user.is_patient = True
-                db_user.is_operator = False
-                db_user.is_doctor = False
 
             self.db.commit()
             self.db.refresh(db_user)

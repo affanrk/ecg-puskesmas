@@ -1,7 +1,13 @@
 from typing import Optional
 from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
-import re
+from ..validators import (
+    validate_full_name,
+    validate_nik,
+    validate_username,
+    validate_password,
+    sanitize_email,
+)
 
 
 class UserBase(BaseModel):
@@ -13,22 +19,8 @@ class UserBase(BaseModel):
         from_attributes=True,
     )
 
-    @field_validator("email", mode="before")
-    @classmethod
-    def trim_email(cls, v: str) -> str:
-        return v.strip().lower() if isinstance(v, str) else v
-
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 3:
-            raise ValueError("Username must be at least 3 characters long")
-        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
-            raise ValueError(
-                "Username can only contain letters, numbers, underscores and hyphens"
-            )
-        return v
+    _sanitize_email = field_validator("email", mode="before")(sanitize_email)
+    _validate_username = field_validator("username")(validate_username)
 
 
 class UserCreate(UserBase):
@@ -36,70 +28,30 @@ class UserCreate(UserBase):
     role: Optional[str] = "user"
     source: Optional[str] = "WEB"
 
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("Password must contain at least one number")
-        if not re.search(r"[!@#$%^&*(),.?:{}|<>]", v):
-            raise ValueError("Password must contain at least one special character")
-
-        return v
+    _validate_password = field_validator("password")(validate_password)
 
 
 class UserUsernameUpdate(BaseModel):
     new_username: str
 
-    @field_validator("new_username")
-    @classmethod
-    def validate_username(cls, v: str) -> str:
-        v = v.strip()
-        if len(v) < 3:
-            raise ValueError("Username must be at least 3 characters long")
-        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
-            raise ValueError(
-                "Username can only contain letters, numbers, underscores and hyphens"
-            )
-        return v
+    _validate_username = field_validator("new_username")(validate_username)
 
 
 class UserPasswordUpdate(BaseModel):
     current_password: str
     new_password: str
 
-    @field_validator("new_password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters long")
-
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("New password must contain at least one uppercase letter")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("New password must contain at least one lowercase letter")
-        if not re.search(r"\d", v):
-            raise ValueError("New password must contain at least one number")
-        if not re.search(r"[!@#$%^&*(),.?:{}|<>]", v):
-            raise ValueError("New password must contain at least one special character")
-        return v
+    _validate_password = field_validator("new_password")(validate_password)
 
 
 class UserApprovalUpdate(BaseModel):
-    is_activated: int
+    action: str
     reason: Optional[str] = Field(None, max_length=100)
 
 
 class UserAdminCreate(UserCreate):
-    is_active: Optional[bool] = True
-    is_activated: Optional[int] = 1
-    is_patient: Optional[bool] = False
+    account_status: Optional[str] = "ACTIVE"
+    activation_status: Optional[str] = "APPROVE"
 
     full_name: Optional[str] = None
     nik: Optional[str] = None
@@ -110,33 +62,16 @@ class UserAdminCreate(UserCreate):
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
 
-    @field_validator("nik")
-    @classmethod
-    def validate_nik(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            if not re.match(r"^\d{16}$", v):
-                raise ValueError("NIK must be exactly 16 digits")
-        return v
-
-    @field_validator("full_name")
-    @classmethod
-    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            v = v.strip()
-            if len(v) < 2:
-                raise ValueError("Full name must be at least 2 characters long")
-            if not re.match(r"^[a-zA-Z\s\.]+$", v):
-                raise ValueError("Full name contains invalid characters")
-        return v
+    _validate_nik = field_validator("nik")(validate_nik)
+    _validate_full_name = field_validator("full_name")(validate_full_name)
 
 
 class UserAdminUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     role: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_patient: Optional[bool] = None
-    is_activated: Optional[int] = None
+    account_status: Optional[str] = None
+    activation_status: Optional[str] = None
 
     full_name: Optional[str] = None
     nik: Optional[str] = None
@@ -147,19 +82,7 @@ class UserAdminUpdate(BaseModel):
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
 
-    @field_validator("username")
-    @classmethod
-    def validate_username(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
-        v = v.strip()
-        if len(v) < 3:
-            raise ValueError("Username must be at least 3 characters long")
-        if not re.match(r"^[a-zA-Z0-9_-]+$", v):
-            raise ValueError(
-                "Username can only contain letters, numbers, underscores and hyphens"
-            )
-        return v
+    _validate_username = field_validator("username")(validate_username)
 
     @field_validator("email")
     @classmethod
@@ -168,24 +91,8 @@ class UserAdminUpdate(BaseModel):
             return v
         return v.strip().lower()
 
-    @field_validator("nik")
-    @classmethod
-    def validate_nik(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            if not re.match(r"^\d{16}$", v):
-                raise ValueError("NIK must be exactly 16 digits")
-        return v
-
-    @field_validator("full_name")
-    @classmethod
-    def validate_full_name(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            v = v.strip()
-            if len(v) < 2:
-                raise ValueError("Full name must be at least 2 characters long")
-            if not re.match(r"^[a-zA-Z\s\.]+$", v):
-                raise ValueError("Full name contains invalid characters")
-        return v
+    _validate_nik = field_validator("nik")(validate_nik)
+    _validate_full_name = field_validator("full_name")(validate_full_name)
 
 
 class UserResponse(UserBase):
@@ -193,6 +100,8 @@ class UserResponse(UserBase):
     is_active: bool
     role: str
     is_patient: bool
+    is_operator: bool
+    is_doctor: bool
     is_activated: int
     status: Optional[str] = None
     rejection_reason: Optional[str] = None

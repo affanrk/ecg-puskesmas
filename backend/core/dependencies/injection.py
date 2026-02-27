@@ -9,6 +9,8 @@ from repositories.session import SessionRepository
 from repositories.performance import PerformanceRepository
 from repositories.user import UserRepository
 from repositories.patient import PatientRepository
+from repositories.operator import OperatorRepository
+from repositories.doctor import DoctorRepository
 from repositories.calendar import CalendarRepository
 from repositories.approval import ApprovalRepository
 from schemas.auth import TokenData
@@ -40,6 +42,16 @@ def get_user_repository(db: Session = Depends(get_db)):
 def get_patient_repository(db: Session = Depends(get_db)):
 
     return PatientRepository(db)
+
+
+def get_operator_repository(db: Session = Depends(get_db)):
+
+    return OperatorRepository(db)
+
+
+def get_doctor_repository(db: Session = Depends(get_db)):
+
+    return DoctorRepository(db)
 
 
 def get_approval_repository(db: Session = Depends(get_db)):
@@ -117,6 +129,80 @@ async def get_admin_user(
             detail="The user does not have enough privileges",
         )
     return current_user
+
+
+async def get_patient_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    if not current_user.is_patient and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. User is not a patient.",
+        )
+    return current_user
+
+
+async def get_operator_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    if not current_user.is_operator and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. User is not an operator.",
+        )
+    return current_user
+
+
+async def get_doctor_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    if not current_user.is_doctor and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. User is not a doctor.",
+        )
+    return current_user
+
+
+async def get_unassigned_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    if current_user.role != "admin" and (
+        current_user.is_patient or current_user.is_operator or current_user.is_doctor
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. User already has an assigned role.",
+        )
+    return current_user
+
+
+def enforce_data_access(user_id: str | None, current_user: TbMUser) -> str | None:
+    if (
+        current_user.role != "admin"
+        and not current_user.is_operator
+        and not current_user.is_doctor
+    ):
+        if user_id and user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to requested user data",
+            )
+        return current_user.id
+    return user_id
+
+
+def verify_session_access(session_user_id: str, current_user: TbMUser):
+    if (
+        current_user.role != "admin"
+        and not current_user.is_operator
+        and not current_user.is_doctor
+    ):
+        if session_user_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied to this recording",
+            )
 
 
 class DateRangeParams:

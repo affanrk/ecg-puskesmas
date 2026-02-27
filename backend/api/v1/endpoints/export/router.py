@@ -8,7 +8,11 @@ from repositories.session import SessionRepository
 from repositories.raw_data import RawDataRepository
 from repositories.raw_data.mobile_repository import RawDataMobileRepository
 from services import plot_generator
-from core.dependencies import get_session_repository, get_current_user
+from core.dependencies import (
+    get_session_repository,
+    get_current_user,
+    verify_session_access,
+)
 from core import SessionLocal, RecordingNotFoundException, AppException
 from utils import logger
 from models import TbMUser
@@ -26,6 +30,7 @@ async def export_raw_ecg_data(
 ):
     logger.info(f"[Export] Raw data export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
+    verify_session_access(session.user_id, current_user)
 
     db = SessionLocal()
     try:
@@ -84,6 +89,7 @@ async def export_analysis_features(
 ):
     logger.info(f"[Export] Features export requested for Recording ID: {recording_id}")
     session = session_repo.find_by_recording_id_or_fail(recording_id)
+    verify_session_access(session.user_id, current_user)
 
     feature_data = {
         "recording_id": recording_id,
@@ -122,7 +128,8 @@ async def export_ecg_chart(
     current_user: TbMUser = Depends(get_current_user),
 ):
     logger.info(f"[Export] ECG plot export requested for Recording ID: {recording_id}")
-    session_repo.find_by_recording_id_or_fail(recording_id)
+    session = session_repo.find_by_recording_id_or_fail(recording_id)
+    verify_session_access(session.user_id, current_user)
 
     loop = asyncio.get_running_loop()
 

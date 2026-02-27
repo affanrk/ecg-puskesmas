@@ -10,15 +10,17 @@ from ..validators import (
 )
 
 
-class PatientBase(BaseModel):
+class OperatorBase(BaseModel):
     full_name: str
     nik: str
     pob: str
     dob: date
     gender: str
+    str_number: str
+    operator_role: str
     address: Optional[str] = None
     contact_number: Optional[str] = None
-    medical_history: Optional[str] = None
+    work_location: Optional[str] = None
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -34,11 +36,11 @@ class PatientBase(BaseModel):
     _validate_gender = field_validator("gender")(validate_gender)
 
 
-class PatientCreate(PatientBase):
+class OperatorCreate(OperatorBase):
     source: Optional[str] = "WEB"
 
 
-class PatientUpdate(BaseModel):
+class OperatorUpdate(BaseModel):
     full_name: Optional[str] = None
     nik: Optional[str] = None
     pob: Optional[str] = None
@@ -46,7 +48,9 @@ class PatientUpdate(BaseModel):
     gender: Optional[str] = None
     address: Optional[str] = None
     contact_number: Optional[str] = None
-    medical_history: Optional[str] = None
+    str_number: Optional[str] = None
+    operator_role: Optional[str] = None
+    work_location: Optional[str] = None
     source: Optional[str] = "WEB"
 
     model_config = ConfigDict(
@@ -63,6 +67,6 @@ class PatientUpdate(BaseModel):
     _validate_gender = field_validator("gender")(validate_gender)
 
 
-class PatientResponse(PatientBase):
+class OperatorResponse(OperatorBase):
     id: str
     user_id: str

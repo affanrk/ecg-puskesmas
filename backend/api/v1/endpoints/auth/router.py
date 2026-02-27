@@ -7,12 +7,22 @@ from core.dependencies import (
     get_current_user,
     get_user_repository,
     get_patient_repository,
+    get_operator_repository,
+    get_doctor_repository,
+    get_patient_user,
+    get_operator_user,
+    get_doctor_user,
+    get_unassigned_user,
 )
 from repositories.user import UserRepository
 from repositories.patient import PatientRepository
+from repositories.operator import OperatorRepository
+from repositories.doctor import DoctorRepository
 from services.device import device_state_manager
 from core.exceptions.definitions import AppException
 from schemas.patient import PatientUpdate, PatientCreate
+from schemas.operator import OperatorUpdate, OperatorCreate
+from schemas.doctor import DoctorUpdate, DoctorCreate
 from schemas.auth import Token, UserLogin, MessageResponse
 from schemas.user import (
     UserCreate,
@@ -80,6 +90,8 @@ async def login(
         "user_name": user.username,
         "full_name": user.full_name,
         "is_patient": user.is_patient,
+        "is_operator": user.is_operator,
+        "is_doctor": user.is_doctor,
     }
 
 
@@ -103,7 +115,7 @@ def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
 @router.post("/profile/patient", response_model=UserResponse)
 def create_patient_profile(
     profile_in: PatientCreate,
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_unassigned_user),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
@@ -117,9 +129,6 @@ def create_patient_profile(
             profile_in, current_user.id, source=profile_in.source
         )
         updated_user = user_repo.find_by_id(current_user.id)
-        logger.info(
-            f"[Auth-Profile] Successfully created patient profile for User ID: {current_user.id}"
-        )
         return updated_user
     except (HTTPException, AppException):
         raise
@@ -127,10 +136,56 @@ def create_patient_profile(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.put("/profile", response_model=UserResponse)
-def update_user_profile(
+@router.post("/profile/operator", response_model=UserResponse)
+def create_operator_profile(
+    profile_in: OperatorCreate,
+    current_user: TbMUser = Depends(get_unassigned_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+):
+    try:
+        if operator_repo.find_by_user_id(current_user.id):
+            raise HTTPException(
+                status_code=400, detail="Operator profile already exists"
+            )
+
+        operator_repo.create_profile(
+            profile_in, current_user.id, source=profile_in.source
+        )
+        updated_user = user_repo.find_by_id(current_user.id)
+        return updated_user
+    except (HTTPException, AppException):
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post("/profile/doctor", response_model=UserResponse)
+def create_doctor_profile(
+    profile_in: DoctorCreate,
+    current_user: TbMUser = Depends(get_unassigned_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    doctor_repo: DoctorRepository = Depends(get_doctor_repository),
+):
+    try:
+        if doctor_repo.find_by_user_id(current_user.id):
+            raise HTTPException(status_code=400, detail="Doctor profile already exists")
+
+        doctor_repo.create_profile(
+            profile_in, current_user.id, source=profile_in.source
+        )
+        updated_user = user_repo.find_by_id(current_user.id)
+        return updated_user
+    except (HTTPException, AppException):
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put("/profile/patient", response_model=UserResponse)
+def update_patient_profile(
     profile_in: PatientUpdate,
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_patient_user),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
@@ -141,9 +196,48 @@ def update_user_profile(
         if not updated_user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        logger.info(
-            f"[Auth-Profile] Successfully updated profile for User ID: {current_user.id}"
-        )
+        return updated_user
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put("/profile/operator", response_model=UserResponse)
+def update_operator_profile(
+    profile_in: OperatorUpdate,
+    current_user: TbMUser = Depends(get_operator_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+):
+    try:
+        operator_repo.update_by_user_id(current_user.id, profile_in)
+        updated_user = user_repo.find_by_id(current_user.id)
+
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return updated_user
+    except AppException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put("/profile/doctor", response_model=UserResponse)
+def update_doctor_profile(
+    profile_in: DoctorUpdate,
+    current_user: TbMUser = Depends(get_doctor_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    doctor_repo: DoctorRepository = Depends(get_doctor_repository),
+):
+    try:
+        doctor_repo.update_by_user_id(current_user.id, profile_in)
+        updated_user = user_repo.find_by_id(current_user.id)
+
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
         return updated_user
     except AppException:
         raise

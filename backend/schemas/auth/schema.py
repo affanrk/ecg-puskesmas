@@ -1,5 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, field_validator, ConfigDict
+from ..validators import sanitize_string
 
 
 class Token(BaseModel):
@@ -10,6 +11,8 @@ class Token(BaseModel):
     user_name: str
     full_name: Optional[str] = None
     is_patient: bool
+    is_operator: bool
+    is_doctor: bool
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -39,10 +42,9 @@ class UserLogin(BaseModel):
         populate_by_name=True,
     )
 
-    @field_validator("username_or_email", mode="before")
-    @classmethod
-    def trim_input(cls, v: str) -> str:
-        return v.strip() if isinstance(v, str) else v
+    _sanitize_input = field_validator("username_or_email", mode="before")(
+        sanitize_string
+    )
 
 
 class MessageResponse(BaseModel):

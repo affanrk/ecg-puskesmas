@@ -103,13 +103,13 @@ def update_user_status(
 ):
     try:
         user = user_repo.update_activation_status(
-            user_id, status_in.is_activated, status_in.reason
+            user_id, status_in.action, status_in.reason
         )
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
         logger.info(
-            f"Admin {admin.username} updated status for user {user_id} to {status_in.is_activated}"
+            f"Admin {admin.username} performed action {status_in.action} for user {user_id}"
         )
         return user
     except (HTTPException, AppException):
@@ -137,7 +137,20 @@ def create_user(
                 raise HTTPException(status_code=400, detail="NIK is already registered")
 
         user_in.source = "ADMIN"
-        user = user_repo.create(user_in)
+
+        create_data = user_in.model_dump()
+        acc_status = create_data.pop("account_status", "ACTIVE")
+        act_status = create_data.pop("activation_status", "APPROVE")
+
+        create_data["is_active"] = 1 if acc_status.upper() == "ACTIVE" else 0
+        create_data["is_activated"] = 1 if act_status.upper() == "APPROVE" else 0
+
+        role = create_data.get("role", "user")
+        create_data["is_patient"] = role == "patient"
+        create_data["is_operator"] = role == "operator"
+        create_data["is_doctor"] = role == "doctor"
+
+        user = user_repo.create_from_dict(create_data)
 
         if user.is_patient:
             try:
@@ -235,8 +248,15 @@ def update_user(
 
         update_data = user_in.model_dump(exclude_unset=True)
 
-        if "is_active" in update_data:
-            update_data["is_active"] = 1 if update_data["is_active"] else 0
+        if "account_status" in update_data:
+            status_val = update_data.pop("account_status")
+            update_data["is_active"] = 1 if status_val.upper() == "ACTIVE" else 0
+
+        is_activated_val = None
+        activation_status = update_data.pop("activation_status", None)
+        if activation_status:
+            is_activated_val = 1 if activation_status.upper() == "APPROVE" else 0
+            update_data["is_activated"] = is_activated_val
 
         if "username" in update_data:
             existing = user_repo.find_by_username(update_data["username"])
@@ -302,17 +322,11 @@ def update_user(
         }
         patient_data["source"] = "ADMIN"
 
-        is_activated_val = update_data.get("is_activated")
-        activation_changing = (
-            is_activated_val is not None
-            and is_activated_val != target_user.is_activated
-        )
-
-        if (patient_data or activation_changing) and (
+        if (patient_data or activation_status) and (
             update_data.get("is_patient", target_user.is_patient)
         ):
             patient_repo.update_by_user_id(
-                user_id, PatientUpdate(**patient_data), admin_activated=is_activated_val
+                user_id, PatientUpdate(**patient_data), admin_action=activation_status
             )
 
         update_data["changed_by"] = "ADMIN"

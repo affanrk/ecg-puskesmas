@@ -38,34 +38,38 @@ class WebSocketHandler:
 
         try:
             db_user = self.user_repo.find_by_id(self.user_id)
-            if not db_user or (
-                db_user.current_session_id and db_user.current_session_id != self.sid
-            ):
-                logger.warning(
-                    f"[WS] Session expired for user {self.user_id}. Kicking WebSocket."
-                )
+            if not db_user or db_user.current_session_id != self.sid:
+                return False
+
+            self.user_repo.refresh_user(db_user)
+
+            if db_user.current_session_id != self.sid:
                 return False
             return True
         except Exception as e:
             logger.error(f"[WS] Error verifying session in WebSocket: {e}")
             return True
 
-    async def handle_message(self, message: dict):
+    async def handle_message(self, message: dict) -> bool:
+
+        m_type = message.get("type")
 
         if not await self.verify_session():
             logger.warning(
-                f"[WS] Unauthorized message attempt from User ID {self.user_id}"
+                f"[WS] Session mismatch or expired for User ID {self.user_id}. Kicking connection."
             )
-            await self.websocket.send_json(
-                {
-                    "type": WSMessageType.ERROR.value,
-                    "message": "Session expired: User logged in from another device",
-                }
-            )
-            await self.websocket.close(code=4003)
-            return
+            try:
+                await self.websocket.send_json(
+                    {
+                        "type": WSMessageType.ERROR.value,
+                        "message": "Session expired: User logged in from another device",
+                    }
+                )
+                await self.websocket.close(code=4003)
+            except Exception:
+                pass
+            return False
 
-        m_type = message.get("type")
         if m_type in [WSMessageType.PING.value, WSMessageType.PONG.value]:
             logger.debug(f"[WS] Received {m_type.upper()} from {self.user_id}")
         elif m_type == WSMessageType.CALCULATE_LIVE_BPM.value:
@@ -90,6 +94,8 @@ class WebSocketHandler:
             logger.debug(f"[WS] Received PONG keep-alive from {self.user_id}")
         else:
             logger.warning(f"[WS] Unhandled message type: {m_type}")
+
+        return True
 
     async def _handle_calculate_live_bpm(self, message: dict):
 
@@ -313,20 +319,27 @@ async def websocket_endpoint(
     )
 
     handler = WebSocketHandler(websocket, s_repo, u_repo, user_id, sid)
+
     try:
         while True:
+            if websocket.client_state.name == "DISCONNECTED":
+                break
             data = await websocket.receive_json()
-            await handler.handle_message(data)
+            is_valid = await handler.handle_message(data)
+            if not is_valid:
+                break
     except WebSocketDisconnect:
         logger.info(f"[WS] User {user_id} disconnected from {client_host}")
     except Exception as e:
-        logger.error(f"[WS] Unexpected error for User {user_id}: {e}", exc_info=True)
-        try:
-            await websocket.send_json(
-                {"type": "error", "message": "An unexpected server error occurred."}
+        if websocket.client_state.name != "DISCONNECTED":
+            logger.error(
+                f"[WS] Unexpected error for User {user_id}: {e}", exc_info=True
             )
-        except RuntimeError:
-
-            pass
+            try:
+                await websocket.send_json(
+                    {"type": "error", "message": "An unexpected server error occurred."}
+                )
+            except RuntimeError:
+                pass
     finally:
         await handler.cleanup()

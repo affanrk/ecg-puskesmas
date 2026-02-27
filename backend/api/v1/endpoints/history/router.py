@@ -8,6 +8,8 @@ from core.dependencies import (
     get_calendar_repository,
     get_current_user,
     DateRangeParams,
+    enforce_data_access,
+    verify_session_access,
 )
 from core.exceptions import AppException
 from schemas.session import SessionResponse, ClassificationStatsResponse
@@ -63,6 +65,7 @@ async def get_calendar_view(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        user_id = enforce_data_access(user_id, current_user)
         nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
 
         level = "year"
@@ -93,6 +96,7 @@ async def get_history_stats(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        user_id = enforce_data_access(user_id, current_user)
         return session_repo.get_classification_stats(user_id)
     except AppException:
         raise
@@ -120,6 +124,7 @@ async def get_recording_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        user_id = enforce_data_access(user_id, current_user)
         results = session_repo.search_sessions(
             search_query=search,
             device_id=device_id,
@@ -148,6 +153,7 @@ async def get_recent_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        user_id = enforce_data_access(user_id, current_user)
         sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
         return [_map_session_to_response(session, session.user) for session in sessions]
     except AppException:
@@ -164,6 +170,7 @@ async def get_recording_detail(
 ):
     try:
         session = session_repo.find_by_recording_id_or_fail(recording_id)
+        verify_session_access(session.user_id, current_user)
         return _map_session_to_response(session, session.user)
     except (HTTPException, AppException):
         raise
@@ -179,6 +186,16 @@ async def get_device_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        if (
+            current_user.role != "admin"
+            and not current_user.is_operator
+            and not current_user.is_doctor
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Standard users cannot query full device history",
+            )
+
         sessions = session_repo.list_by_device(device_id, limit=limit)
         return [_map_session_to_response(session, session.user) for session in sessions]
     except AppException:
@@ -195,6 +212,7 @@ async def get_user_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
+        user_id = enforce_data_access(user_id, current_user)
         sessions = session_repo.list_by_user(user_id, limit=limit)
         return [_map_session_to_response(session, session.user) for session in sessions]
     except AppException:
