@@ -3,10 +3,12 @@
 import { User } from '@/store/useStore';
 import { UserX, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDateShort } from '@/utils/helpers';
+import { useEffect, useRef } from 'react';
 
 interface ApprovalsQueueProps {
     users: User[];
     rowsPerPage: number;
+    setRowsPerPage: (count: number) => void;
     currentPage: number;
     setCurrentPage: (page: number) => void;
     searchTerm: string;
@@ -19,6 +21,7 @@ interface ApprovalsQueueProps {
 export default function ApprovalsQueue({
     users,
     rowsPerPage,
+    setRowsPerPage,
     currentPage,
     setCurrentPage,
     searchTerm,
@@ -27,8 +30,30 @@ export default function ApprovalsQueue({
     onReject,
     onViewDetails
 }: ApprovalsQueueProps) {
+    const containerRef = useRef<HTMLDivElement>(null);
     const totalPages = Math.ceil(users.length / rowsPerPage) || 1;
     const paginatedUsers = users.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const height = entry.contentRect.height;
+                const headerHeight = 48;
+                const availableHeight = height - headerHeight;
+                const idealRows = 10;
+                const rowHeight = 48;
+                const calculatedRows = Math.max(1, Math.floor(availableHeight / rowHeight));
+                if (calculatedRows >= idealRows) {
+                    setRowsPerPage(idealRows);
+                } else {
+                    setRowsPerPage(calculatedRows);
+                }
+            }
+        });
+        observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, [setRowsPerPage]);
 
     if (users.length === 0) {
         return (
@@ -47,7 +72,7 @@ export default function ApprovalsQueue({
     return (
         <div className="flex flex-col h-full w-full overflow-hidden animate-in fade-in duration-500">
             <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
-                <div className="flex-1 overflow-x-auto no-scrollbar">
+                <div ref={containerRef} className="flex-1 overflow-x-auto no-scrollbar overflow-y-hidden">
                     <table className="w-full text-left border-collapse table-auto h-full">
                         <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
                             <tr>

@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { validators } from '@/utils/validators';
 import { PatientIdentitySection } from './UserFormFields';
 import ReviewSummaryTable from './ReviewSummaryTable';
 
@@ -34,7 +35,8 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
 
     const [formData, setFormData] = useState({
         username: user.username || '', email: user.email || '', role: initialRole,
-        is_active: user.is_active, is_activated: user.is_activated, is_patient: user.is_patient,
+        account_status: user.is_active ? 'ACTIVE' : 'INACTIVE', 
+        activation_status: user.is_activated === 1 ? 'APPROVE' : 'REJECT',
         full_name: user.full_name || '', nik: user.nik || '', pob: user.pob || '', dob: user.dob || '',
         gender: user.gender || 'L', contact_number: user.contact_number || '', address: user.address || '', medical_history: user.medical_history || ''
     });
@@ -46,19 +48,19 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
             'username': { label: 'Username', value: user.username },
             'email': { label: 'Email', value: user.email },
             'role': { label: 'Role', value: initialRole },
-            'is_active': { label: 'Status', value: user.is_active ? 'Active' : 'Inactive' }
+            'account_status': { label: 'Status', value: user.is_active ? 'ACTIVE' : 'INACTIVE' }
         };
 
         const currentMap: Record<string, { label: string, value: string | number | boolean | null | undefined }> = {
             'username': { label: 'Username', value: formData.username },
             'email': { label: 'Email', value: formData.email },
             'role': { label: 'Role', value: formData.role },
-            'is_active': { label: 'Status', value: formData.is_active ? 'Active' : 'Inactive' }
+            'account_status': { label: 'Status', value: formData.account_status }
         };
 
         if (formData.role === 'patient') {
             Object.assign(initialMap, {
-                'is_activated': { label: 'Verification', value: user.is_activated === 1 ? 'Full Access' : 'Restricted' },
+                'activation_status': { label: 'Verification Status', value: user.is_activated === 1 ? 'FULL-ACCESS' : 'RESTRICTED' },
                 'full_name': { label: 'Full Name', value: user.full_name },
                 'nik': { label: 'NIK', value: user.nik },
                 'pob': { label: 'Place of Birth', value: user.pob },
@@ -69,7 +71,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 'medical_history': { label: 'Medical History', value: user.medical_history }
             });
             Object.assign(currentMap, {
-                'is_activated': { label: 'Verification', value: formData.is_activated === 1 ? 'Full Access' : 'Restricted' },
+                'activation_status': { label: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS' : 'RESTRICTED' },
                 'full_name': { label: 'Full Name', value: formData.full_name },
                 'nik': { label: 'NIK', value: formData.nik },
                 'pob': { label: 'Place of Birth', value: formData.pob },
@@ -102,8 +104,14 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     const hasChanges = useMemo(() => getChangedFields().length > 0, [getChangedFields]);
 
     const validateField = (field: string, value: string) => {
-        if (field === 'username' && value.length > 0 && value.length < 3) return "Min 3 characters";
-        if (field === 'email' && value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Invalid email format";
+        if (field === 'username' && value) {
+            const err = validators.username(value);
+            return err === 'Required' ? '' : err;
+        }
+        if (field === 'email' && value) {
+            const err = validators.email(value);
+            return err === 'Required' ? '' : err;
+        }
         return "";
     };
 
@@ -111,8 +119,8 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         setFormData(prev => {
             const newState = { ...prev, [field]: value };
             if (field === 'role') {
-                if (value === getInitialRole()) newState.is_activated = user.is_activated;
-                else if (user.is_patient && value !== 'patient') newState.is_activated = 0;
+                if (value === getInitialRole()) newState.activation_status = user.is_activated === 1 ? 'APPROVE' : 'REJECT';
+                else if (user.is_patient && value !== 'patient') newState.activation_status = 'REJECT';
                 setShowPatientForm(value === 'patient');
             }
             return newState;
@@ -128,10 +136,12 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         setServerError('');
 
         const isNewlyPatient = formData.role === 'patient' && !user.is_patient;
-        const payload: Partial<User> = {
-            username: formData.username, email: formData.email, role: formData.role,
-            is_active: formData.is_active, is_activated: formData.is_activated,
-            is_patient: formData.role === 'patient', is_doctor: formData.role === 'doctor', is_operator: formData.role === 'operator',
+        const payload: Record<string, unknown> = {
+            username: formData.username, 
+            email: formData.email, 
+            role: formData.role,
+            account_status: formData.account_status,
+            activation_status: formData.activation_status,
             ...((formData.role === 'patient' && (isNewlyPatient || showPatientForm)) && {
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
@@ -156,14 +166,28 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         e.preventDefault();
         const newErrors: Record<string, string> = {};
         if (!formData.username) newErrors.username = 'Required';
+        else {
+            const err = validators.username(formData.username);
+            if (err) newErrors.username = err;
+        }
+
         if (!formData.email) newErrors.email = 'Required';
+        else {
+            const err = validators.email(formData.email);
+            if (err) newErrors.email = err;
+        }
 
         if (formData.role === 'patient') {
-            if (!formData.full_name) newErrors.full_name = 'Required';
-            if (!formData.nik) newErrors.nik = 'Required';
-            else if (formData.nik.length !== 16) newErrors.nik = 'Must be 16 digits';
-            if (!formData.pob) newErrors.pob = 'Required';
-            if (!formData.dob) newErrors.dob = 'Required';
+            const nameErr = validators.name(formData.full_name);
+            if (nameErr) newErrors.full_name = nameErr;
+            
+            const nikErr = validators.nik(formData.nik);
+            if (nikErr) newErrors.nik = nikErr;
+            
+            if (validators.required(formData.pob)) newErrors.pob = 'Required';
+            
+            const dobErr = validators.dob(formData.dob);
+            if (dobErr) newErrors.dob = dobErr;
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -195,7 +219,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={[{ value: 'user', label: 'User (Standard Account)' }, { value: 'patient', label: 'Patient' }, { value: 'operator', label: 'Operator (Nurse / General Doctor)' }, { value: 'doctor', label: 'Specialist (Doctor Specialist)' }]} />
-                            <div className="flex items-end pb-1"><label className="flex items-center justify-between w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group"><span className="text-[10px] font-black text-slate-500 uppercase tracking-wide ml-1">Account Active</span><div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.is_active ? "bg-emerald-500" : "bg-slate-200")}><input type="checkbox" className="sr-only" checked={formData.is_active} onChange={e => handleFieldChange('is_active', e.target.checked)} /><div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.is_active && "translate-x-5")} /></div></label></div>
+                            <div className="flex items-end pb-1"><label className="flex items-center justify-between w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group"><span className="text-[10px] font-black text-slate-500 uppercase tracking-wide ml-1">Account Active</span><div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.account_status === 'ACTIVE' ? "bg-emerald-500" : "bg-slate-200")}><input type="checkbox" className="sr-only" checked={formData.account_status === 'ACTIVE'} onChange={e => handleFieldChange('account_status', e.target.checked ? 'ACTIVE' : 'INACTIVE')} /><div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.account_status === 'ACTIVE' && "translate-x-5")} /></div></label></div>
                         </div>
                     </div>
 

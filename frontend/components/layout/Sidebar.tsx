@@ -24,10 +24,10 @@ export default function Sidebar() {
     const isAdmin = user?.role === 'admin';
 
     const navItems = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, allowed: true },
-        { name: 'Classifier', href: '/classifier', icon: BrainCircuit, allowed: isAccessAllowed },
-        { name: 'History', href: '/history', icon: History, allowed: isAccessAllowed },
-        { name: 'Live Monitor', href: '/monitor', icon: Activity, allowed: isAccessAllowed },
+        { name: 'Dashboard', href: '/patient/dashboard', icon: LayoutDashboard, allowed: true },
+        { name: 'Classifier', href: '/patient/classifier', icon: BrainCircuit, allowed: isAccessAllowed },
+        { name: 'History', href: '/patient/history', icon: History, allowed: isAccessAllowed },
+        { name: 'Live Monitor', href: '/patient/monitor', icon: Activity, allowed: isAccessAllowed },
     ];
 
     const isVisible = (pinned: boolean) => clsx(
@@ -92,16 +92,16 @@ export default function Sidebar() {
 
             <p className={clsx("px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1 transition-opacity", !isSidebarPinned && "opacity-0 group-hover/sidebar:opacity-100")}>Settings</p>
             <Link
-                href="/profile"
+                href="/patient/profile"
                 className={clsx(
                     "flex items-center gap-3 px-4 py-3.5 rounded-md transition-all duration-200 font-bold text-sm w-full relative group",
-                    pathname === '/profile'
+                    pathname === '/patient/profile'
                         ? "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100"
                         : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                 )}
             >
-                {pathname === '/profile' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r-full" />}
-                <Settings size={20} strokeWidth={2} className={clsx("transition-colors shrink-0", pathname === '/profile' ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600")} />
+                {pathname === '/patient/profile' && <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-r-full" />}
+                <Settings size={20} strokeWidth={2} className={clsx("transition-colors shrink-0", pathname === '/patient/profile' ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600")} />
                 <span className={isVisible(isSidebarPinned)}>Profile & Settings</span>
                 {user && !isPatient && (
                     <span className={clsx("w-2 h-2 bg-amber-500 rounded-full ml-auto animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)] shrink-0 transition-opacity", !isSidebarPinned && "opacity-0 group-hover/sidebar:opacity-100")}></span>

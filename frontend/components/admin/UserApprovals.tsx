@@ -80,6 +80,20 @@ export default function UserApprovals() {
     }, [debouncedSearch, startDate, endDate, approvalType, adminViewMode]);
 
     useEffect(() => {
+        const totalQueuePages = Math.ceil(pendingUsers.length / rowsPerPage) || 1;
+        if (queuePage > totalQueuePages) {
+            setQueuePage(totalQueuePages);
+        }
+    }, [pendingUsers.length, rowsPerPage, queuePage]);
+
+    useEffect(() => {
+        const totalLogPages = Math.ceil(logs.length / rowsPerPage) || 1;
+        if (currentPage > totalLogPages) {
+            setCurrentPage(totalLogPages);
+        }
+    }, [logs.length, rowsPerPage, currentPage]);
+
+    useEffect(() => {
         const currentParams = JSON.stringify({
             debouncedSearch, startDate, endDate, approvalType, adminViewMode, refreshKey
         });
@@ -176,7 +190,7 @@ export default function UserApprovals() {
     const confirmApprove = async () => {
         if (!approvingUser) return;
         try {
-            await api.updateUserStatus(approvingUser.id, 1);
+            await api.updateUserStatus(approvingUser.id, 'APPROVE');
             handleActionSuccess(approvingUser.id, `User ${approvingUser.name} approved successfully`);
         } catch {
             showToast("Failed to approve user", "error");
@@ -187,7 +201,7 @@ export default function UserApprovals() {
         if (!rejectingUser) return;
         if (!rejectionReason.trim()) return showToast("Please provide a reason for rejection", "warning");
         try {
-            await api.updateUserStatus(rejectingUser.id, 0, rejectionReason);
+            await api.updateUserStatus(rejectingUser.id, 'REJECT', rejectionReason);
             handleActionSuccess(rejectingUser.id, `User ${rejectingUser.name} rejected with reason: ${rejectionReason}`);
         } catch {
             showToast("Failed to reject user", "error");
@@ -242,6 +256,7 @@ export default function UserApprovals() {
                     <ApprovalsQueue
                         users={pendingUsers}
                         rowsPerPage={rowsPerPage}
+                        setRowsPerPage={setRowsPerPage}
                         currentPage={queuePage}
                         setCurrentPage={setQueuePage}
                         searchTerm={searchTerm}

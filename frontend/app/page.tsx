@@ -10,16 +10,17 @@ export default function Home() {
     const { user } = useStore();
 
     useEffect(() => {
-        const token = localStorage.getItem('ecg_token');
-        if (!token) {
-            router.replace('/login');
-            return;
-        }
         if (user) {
             if (user.role === 'admin') {
                 router.replace('/admin/dashboard');
+            } else if (user.is_patient) {
+                router.replace('/patient/dashboard');
+            } else if (user.is_operator) {
+                router.replace('/operator/dashboard');
+            } else if (user.is_doctor) {
+                router.replace('/doctor/dashboard');
             } else {
-                router.replace('/dashboard');
+                router.replace('/onboarding');
             }
         }
     }, [user, router]);

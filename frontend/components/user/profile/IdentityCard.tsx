@@ -4,6 +4,7 @@ import { User, Info, Save, BadgeCheck, Fingerprint } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
+import { useStore } from '@/store/useStore';
 
 interface MedicalForm {
     full_name: string;
@@ -14,6 +15,10 @@ interface MedicalForm {
     contact_number: string;
     address: string;
     medical_history: string;
+    str_number: string;
+    sip_number: string;
+    specialty: string;
+    work_location: string;
 }
 
 interface IdentityCardProps {
@@ -37,6 +42,9 @@ export default function IdentityCard({
     onSaveProfileClick,
     loading
 }: IdentityCardProps) {
+    const { user } = useStore();
+    const roleTitle = user?.is_doctor ? "Doctor Specialist" : user?.is_operator ? "Medical Staff" : "Patient Identity";
+
     return (
         <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
             <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-slate-900 pointer-events-none transition-transform duration-700">
@@ -48,7 +56,7 @@ export default function IdentityCard({
                         <User size={18} strokeWidth={2} />
                     </div>
                     <div>
-                        <h2 className="text-base font-black text-slate-800 tracking-tight">Patient Identity</h2>
+                        <h2 className="text-base font-black text-slate-800 tracking-tight">{roleTitle}</h2>
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Demographics & Verification</p>
                     </div>
                 </div>
@@ -105,7 +113,7 @@ export default function IdentityCard({
                         errorMessage={errors.dob} 
                     />
                 </div>
-                <div className="md:col-span-2 space-y-1">
+                <div className="space-y-1">
                      <SelectInput 
                         label="Gender" 
                         value={medicalForm.gender} 
@@ -114,6 +122,30 @@ export default function IdentityCard({
                         options={[{ value: 'L', label: 'Male' }, { value: 'P', label: 'Female' }]}
                     />
                 </div>
+                {(user?.is_operator || user?.is_doctor) && (
+                    <div className="space-y-1">
+                        <StandardInput 
+                            label="STR Number" 
+                            value={medicalForm.str_number} 
+                            onChange={(e) => handleMedicalChange('str_number', e.target.value)} 
+                            disabled={isLocked} 
+                            placeholder="Surat Tanda Registrasi" 
+                            errorMessage={errors.str_number} 
+                        />
+                    </div>
+                )}
+                {user?.is_doctor && (
+                    <div className="space-y-1">
+                        <StandardInput 
+                            label="SIP Number" 
+                            value={medicalForm.sip_number} 
+                            onChange={(e) => handleMedicalChange('sip_number', e.target.value)} 
+                            disabled={isLocked} 
+                            placeholder="Surat Izin Praktik" 
+                            errorMessage={errors.sip_number} 
+                        />
+                    </div>
+                )}
             </div>
             {!isLocked && (
                 <div className="pt-6 mt-6 flex justify-end border-t border-slate-50 relative z-10">

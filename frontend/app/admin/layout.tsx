@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (user && user.role !== 'admin') {
             toast("Access denied. Admin only.", "error");
-            router.replace('/dashboard');
+            router.replace('/patient/dashboard');
         }
     }, [user, router, toast]);
 

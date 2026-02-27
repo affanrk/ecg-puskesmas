@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getApiUrl } from '../utils/helpers';
+import { useStore } from '@/store/useStore';
 
 const axiosInstance = axios.create({
     baseURL: getApiUrl(),
@@ -27,9 +28,8 @@ axiosInstance.interceptors.response.use(
         if (error.response?.status === 401) {
             localStorage.removeItem('ecg_token');
             localStorage.removeItem('ecg_user');
-            if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
-                window.location.href = '/login?reason=expired';
-            }
+            
+            useStore.getState().setUser(null);
         }
         return Promise.reject(error);
     }

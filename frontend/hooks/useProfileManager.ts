@@ -6,6 +6,7 @@ import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import { parseApiError } from '@/utils/helpers';
+import { validators } from '@/utils/validators';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();
@@ -20,7 +21,11 @@ export function useProfileManager() {
         gender: 'L',
         contact_number: '',
         address: '',
-        medical_history: ''
+        medical_history: '',
+        str_number: '',
+        sip_number: '',
+        specialty: '',
+        work_location: ''
     });
     const [securityForm, setSecurityForm] = useState({
         new_username: '',
@@ -61,7 +66,11 @@ export function useProfileManager() {
                 gender: user.gender || 'L',
                 contact_number: user.contact_number || '',
                 address: user.address || '',
-                medical_history: user.medical_history || ''
+                medical_history: user.medical_history || '',
+                str_number: user.str_number || '',
+                sip_number: user.sip_number || '',
+                specialty: user.specialty || '',
+                work_location: user.work_location || ''
             });
             setSecurityForm(p => ({ ...p, new_username: user.username, current_password: '', new_password: '', confirm_password: '' }));
             setRejectionReason(user.rejection_reason || null);
@@ -77,33 +86,35 @@ export function useProfileManager() {
         let error = "";
         switch (field) {
             case 'nik':
-                if (value.length > 0 && !/\d*$/.test(value)) return "Numbers only";
-                if (value.length > 0 && value.length < 16) return "Must be 16 digits";
-                if (value.length > 16) return "Max 16 digits";
+                error = validators.nik(value);
                 break;
             case 'full_name':
-                if (value.length > 0 && value.length < 2) error = "Name too short";
-                else if (value.length > 0 && !/^[a-zA-Z\s\.\']+$/.test(value)) error = "Invalid characters";
+                error = validators.name(value);
                 break;
             case 'pob':
-                if (value.length > 0 && value.length < 2) error = "Place of birth too short";
+                error = validators.required(value);
+                if (!error && value.length < 2) error = "Place of birth too short";
                 break;
             case 'dob':
-                if (value && new Date(value) > new Date()) error = "Cannot be in future";
+                error = validators.dob(value);
                 break;
             case 'contact_number':
-                if (value && !/^\+?[\d\s\-\(\)]*$/.test(value)) error = "Invalid characters";
+                error = validators.phone(value);
+                break;
+            case 'str_number':
+                error = validators.required(value);
+                break;
+            case 'sip_number':
+                error = validators.required(value);
+                break;
+            case 'specialty':
+                error = validators.required(value);
                 break;
             case 'new_username':
-                if (value.length > 0 && value.length < 3) return "Min 3 characters";
-                if (value.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(value)) return "Alphanumeric, _ or - only";
+                error = validators.username(value);
                 break;
             case 'new_password':
-                if (!value) return "";
-                if (value.length < 8) return "Min 8 characters";
-                if (!/[A-Z]/.test(value)) return "Need 1 uppercase letter";
-                if (!/\d/.test(value)) return "Need 1 number";
-                if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return "Need 1 symbol";
+                error = validators.password(value);
                 break;
             case 'confirm_password':
                 if (value && value !== securityForm.new_password) return "Passwords do not match";
@@ -116,15 +127,30 @@ export function useProfileManager() {
         const newErrors: Record<string, string> = {};
         const isLocked = user?.is_patient;
         if (!isLocked) {
-            if (!/^\d{16}$/.test(medicalForm.nik)) newErrors.nik = "Must be exactly 16 digits";
-            if (medicalForm.full_name.length < 2) newErrors.full_name = "Name too short";
-            if (!medicalForm.dob) newErrors.dob = "Date of Birth is required";
-            else if (new Date(medicalForm.dob) > new Date()) newErrors.dob = "Cannot be in future";
-            if (!medicalForm.pob) newErrors.pob = "Place of Birth required";
+            const nikErr = validators.nik(medicalForm.nik);
+            if (nikErr) newErrors.nik = nikErr;
+            
+            const nameErr = validators.name(medicalForm.full_name);
+            if (nameErr) newErrors.full_name = nameErr;
+            
+            const dobErr = validators.dob(medicalForm.dob);
+            if (dobErr) newErrors.dob = dobErr;
+            
+            if (validators.required(medicalForm.pob)) newErrors.pob = "Place of Birth required";
+
+            if (user?.is_operator) {
+                if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
+            }
+            if (user?.is_doctor) {
+                if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
+                if (validators.required(medicalForm.sip_number)) newErrors.sip_number = "Required";
+                if (validators.required(medicalForm.specialty)) newErrors.specialty = "Required";
+            }
         }
-        if (medicalForm.contact_number && !/^\+?[\d\s\-\(\)]{10,20}$/.test(medicalForm.contact_number)) {
-            newErrors.contact_number = "Invalid phone format";
-        }
+        
+        const phoneErr = validators.phone(medicalForm.contact_number);
+        if (phoneErr) newErrors.contact_number = phoneErr;
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -142,19 +168,13 @@ export function useProfileManager() {
     }, [validateField]);
 
     const handleApiError = (err: unknown, defaultField?: string) => {
-        const { message, fieldErrors, status } = parseApiError(err);
+        const { message, fieldErrors } = parseApiError(err);
         
-        if (status === 400 || status === 422) {
-            if (Object.keys(fieldErrors).length > 0) {
-                setErrors(prev => ({ ...prev, ...fieldErrors }));
-            } else if (message.toLowerCase().includes('nik')) {
-                setErrors(prev => ({ ...prev, nik: message }));
-            } else if (defaultField) {
-                setErrors(prev => ({ ...prev, [defaultField]: message }));
-            } else {
-                toast(message, "error");
-            }
-        } else {
+        if (Object.keys(fieldErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...fieldErrors }));
+        } else if (defaultField && message) {
+            setErrors(prev => ({ ...prev, [defaultField]: message }));
+        } else if (message) {
             toast(message, "error");
         }
         setConfirmState(prev => ({ ...prev, isOpen: false }));
@@ -162,25 +182,70 @@ export function useProfileManager() {
 
     const executeSaveProfile = async () => {
         setLoading(true);
-        const payload = {
-            ...medicalForm,
-            full_name: medicalForm.full_name || null,
-            nik: medicalForm.nik || null,
-            pob: medicalForm.pob || null,
-            dob: medicalForm.dob || null,
-            address: medicalForm.address || null,
-            contact_number: medicalForm.contact_number || null,
-            medical_history: medicalForm.medical_history || null,
-            source: 'WEB'
-        };
         try {
-            const isFirstTime = !user?.is_patient;
+            const isFirstTime = !user?.is_patient && !user?.is_operator && !user?.is_doctor;
             let res;
 
             if (isFirstTime) {
+                const payload = {
+                    ...medicalForm,
+                    full_name: medicalForm.full_name || null,
+                    nik: medicalForm.nik || null,
+                    pob: medicalForm.pob || null,
+                    dob: medicalForm.dob || null,
+                    address: medicalForm.address || null,
+                    contact_number: medicalForm.contact_number || null,
+                    medical_history: medicalForm.medical_history || null,
+                    source: 'WEB'
+                };
                 res = await api.createPatientProfile(payload);
             } else {
-                res = await api.updatePatientProfile(payload);
+                if (user?.is_patient) {
+                    const payload = {
+                        ...medicalForm,
+                        full_name: medicalForm.full_name || null,
+                        nik: medicalForm.nik || null,
+                        pob: medicalForm.pob || null,
+                        dob: medicalForm.dob || null,
+                        address: medicalForm.address || null,
+                        contact_number: medicalForm.contact_number || null,
+                        medical_history: medicalForm.medical_history || null,
+                        source: 'WEB'
+                    };
+                    res = await api.updatePatientProfile(payload);
+                } else if (user?.is_operator) {
+                    const payload = {
+                        ...medicalForm,
+                        full_name: medicalForm.full_name || null,
+                        nik: medicalForm.nik || null,
+                        pob: medicalForm.pob || null,
+                        dob: medicalForm.dob || null,
+                        address: medicalForm.address || null,
+                        contact_number: medicalForm.contact_number || null,
+                        str_number: medicalForm.str_number || null,
+                        work_location: medicalForm.work_location || null,
+                        source: 'WEB'
+                    };
+                    res = await api.updateOperatorProfile(payload);
+                } else if (user?.is_doctor) {
+                    const payload = {
+                        ...medicalForm,
+                        full_name: medicalForm.full_name || null,
+                        nik: medicalForm.nik || null,
+                        pob: medicalForm.pob || null,
+                        dob: medicalForm.dob || null,
+                        address: medicalForm.address || null,
+                        contact_number: medicalForm.contact_number || null,
+                        str_number: medicalForm.str_number || null,
+                        sip_number: medicalForm.sip_number || null,
+                        specialty: medicalForm.specialty || null,
+                        work_location: medicalForm.work_location || null,
+                        source: 'WEB'
+                    };
+                    res = await api.updateDoctorProfile(payload);
+                } else {
+                    throw new Error("No valid role found for update");
+                }
             }
 
             setUser(res);

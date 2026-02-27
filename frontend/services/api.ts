@@ -102,10 +102,10 @@ export async function fetchPendingApprovals(filters: HistoryFilters = {}) {
     }
 }
 
-export async function updateUserStatus(userId: string, isActivated: number, reason?: string) {
+export async function updateUserStatus(userId: string, action: 'APPROVE' | 'REJECT', reason?: string) {
     try {
         const response = await axiosInstance.post(`/admin/update-status/${userId}`, {
-            is_activated: isActivated,
+            action: action,
             reason: reason
         });
         return response.data;
@@ -157,33 +157,73 @@ export async function createPatientProfile(profileData: Record<string, unknown>)
 
 export async function updatePatientProfile(profileData: Record<string, unknown>) {
     try {
-        const response = await axiosInstance.put('/auth/profile', profileData);
+        const response = await axiosInstance.put('/auth/profile/patient', profileData);
         return response.data;
     } catch (error) {
-        console.error("Update Profile Error:", error);
+        console.error("Update Patient Profile Error:", error);
         throw error;
     }
 }
 
-export const api = {
-    fetchHistory,
-    downloadRecording,
-    fetchUserProfile,
-    fetchStats,
-    fetchRecentHistory,
-    fetchCalendar,
-    fetchPendingApprovals,
-    updateUserStatus,
-    fetchApprovalLogs,
-    logout,
-    fetchDetailedHealth,
-    createPatientProfile,
-    updatePatientProfile,
-    fetchUsers,
-    createUser,
-    updateUser,
-    deleteUser
-};
+export async function updateOperatorProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.put('/auth/profile/operator', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Update Operator Profile Error:", error);
+        throw error;
+    }
+}
+
+export async function updateDoctorProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.put('/auth/profile/doctor', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Update Doctor Profile Error:", error);
+        throw error;
+    }
+}
+
+export async function createOperatorProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/auth/profile/operator', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Create Operator Profile Error:", error);
+        throw error;
+    }
+}
+
+export async function createDoctorProfile(profileData: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/auth/profile/doctor', profileData);
+        return response.data;
+    } catch (error) {
+        console.error("Create Doctor Profile Error:", error);
+        throw error;
+    }
+}
+
+export async function register(data: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/auth/register', data);
+        return response.data;
+    } catch (error) {
+        console.error("Register Error:", error);
+        throw error;
+    }
+}
+
+export async function login(data: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/auth/login', data);
+        return response.data;
+    } catch (error) {
+        console.error("Login Error:", error);
+        throw error;
+    }
+}
 
 export async function fetchUsers(filters: HistoryFilters = {}) {
     try {
@@ -223,3 +263,29 @@ export async function deleteUser(userId: string) {
         throw error;
     }
 }
+
+export const api = {
+    login,
+    register,
+    fetchHistory,
+    downloadRecording,
+    fetchUserProfile,
+    fetchStats,
+    fetchRecentHistory,
+    fetchCalendar,
+    fetchPendingApprovals,
+    updateUserStatus,
+    fetchApprovalLogs,
+    logout,
+    fetchDetailedHealth,
+    createPatientProfile,
+    createOperatorProfile,
+    createDoctorProfile,
+    updatePatientProfile,
+    updateOperatorProfile,
+    updateDoctorProfile,
+    fetchUsers,
+    createUser,
+    updateUser,
+    deleteUser
+};

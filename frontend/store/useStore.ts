@@ -23,6 +23,10 @@ export interface User {
     medical_history?: string;
     address?: string;
     contact_number?: string;
+    str_number?: string;
+    sip_number?: string;
+    specialty?: string;
+    work_location?: string;
     created_dt?: string | Date;
     changed_dt?: string | Date;
     [key: string]: unknown;

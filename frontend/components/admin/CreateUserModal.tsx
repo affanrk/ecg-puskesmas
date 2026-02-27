@@ -6,6 +6,7 @@ import { User } from '@/store/useStore';
 import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { validators } from '@/utils/validators';
 import { PatientIdentitySection } from './UserFormFields';
 import ReviewSummaryTable from './ReviewSummaryTable';
 
@@ -21,23 +22,14 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     const [formData, setFormData] = useState({
-        username: '', email: '', password: '', role: 'user', is_active: true, is_activated: 0,
+        username: '', email: '', password: '', role: 'user', account_status: 'ACTIVE', activation_status: 'REJECT',
         full_name: '', nik: '', pob: '', dob: '', gender: 'L', contact_number: '', address: '', medical_history: ''
     });
 
     const validateField = (field: string, value: string) => {
-        if (field === 'username') {
-            if (value.length > 0 && value.length < 3) return "Min 3 characters";
-            if (value.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(value)) return "Alpha-numeric and _ - only";
-        } else if (field === 'email') {
-            if (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Invalid email format";
-        } else if (field === 'password') {
-            if (!value) return "";
-            if (value.length < 8) return "Min 8 characters";
-            if (!/[A-Z]/.test(value)) return "Need 1 uppercase letter";
-            if (!/\d/.test(value)) return "Need 1 number";
-            if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return "Need 1 symbol";
-        }
+        if (field === 'username') return validators.username(value);
+        if (field === 'email') return validators.email(value);
+        if (field === 'password' && value) return validators.password(value);
         return "";
     };
 
@@ -46,7 +38,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
             const newState = { ...prev, [field]: value };
 
             if (field === 'role' && value !== 'patient') {
-                newState.is_activated = 0;
+                newState.activation_status = 'REJECT';
             }
 
             return newState;
@@ -61,16 +53,18 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         setErrors({});
         setServerError('');
 
-        const isPatient = formData.role === 'patient';
-        const payload: Partial<User> & { password?: string } = {
-            username: formData.username, email: formData.email, password: formData.password, role: formData.role,
-            is_active: formData.is_active, is_activated: formData.is_activated, is_patient: isPatient,
-            is_doctor: formData.role === 'doctor', is_operator: formData.role === 'operator',
-            ...(isPatient && {
+        const payload: Record<string, unknown> = {
+            username: formData.username, 
+            email: formData.email, 
+            password: formData.password, 
+            role: formData.role,
+            account_status: formData.account_status,
+            activation_status: formData.activation_status,
+            ...(formData.role === 'patient') && {
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
                 contact_number: formData.contact_number || undefined, medical_history: formData.medical_history || undefined
-            })
+            }
         };
 
         const result = await onSave(payload);
@@ -86,16 +80,23 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         e.preventDefault();
         const newErrors: Record<string, string> = {};
         ['username', 'email', 'password'].forEach(f => {
-            const err = !formData[f as keyof typeof formData] ? "Required" : validateField(f, formData[f as keyof typeof formData] as string);
+            let err = "";
+            if (f === 'password' && !formData.password) err = "Required";
+            else err = validateField(f, formData[f as keyof typeof formData] as string);
             if (err) newErrors[f] = err;
         });
 
         if (formData.role === 'patient') {
-            if (!formData.full_name) newErrors.full_name = 'Required';
-            if (!formData.nik) newErrors.nik = 'Required';
-            else if (formData.nik.length !== 16) newErrors.nik = 'Must be 16 digits';
-            if (!formData.pob) newErrors.pob = 'Required';
-            if (!formData.dob) newErrors.dob = 'Required';
+            const nameErr = validators.name(formData.full_name);
+            if (nameErr) newErrors.full_name = nameErr;
+            
+            const nikErr = validators.nik(formData.nik);
+            if (nikErr) newErrors.nik = nikErr;
+            
+            if (validators.required(formData.pob)) newErrors.pob = 'Required';
+            
+            const dobErr = validators.dob(formData.dob);
+            if (dobErr) newErrors.dob = dobErr;
         }
 
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
@@ -151,9 +152,9 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                 message={<div className="space-y-4"><p className="text-sm text-slate-500 font-medium">Verify @{formData.username} information before finalizing.</p>
                     <ReviewSummaryTable data={[
                         { field: 'Username', value: formData.username }, { field: 'Email', value: formData.email },
-                        { field: 'Role', value: formData.role.toUpperCase() }, { field: 'Account Status', value: formData.is_active ? 'Active' : 'Inactive' },
+                        { field: 'Role', value: formData.role.toUpperCase() }, { field: 'Account Status', value: formData.account_status },
                         ...(formData.role === 'patient' ? [
-                            { field: 'Verification', value: formData.is_activated === 1 ? 'Full Access (Auto-Approved)' : 'Restricted (Queue)' },
+                            { field: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS (Auto-Approved)' : 'RESTRICTED (Queue)' },
                             { field: 'NIK', value: formData.nik },
                             { field: 'Full Name', value: formData.full_name }
                         ] : [])

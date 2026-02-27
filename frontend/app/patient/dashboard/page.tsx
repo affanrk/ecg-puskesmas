@@ -57,7 +57,7 @@ export default function DashboardPage() {
                                         </p>
                                         <div className="pt-4 flex flex-col md:flex-row items-center gap-4">
                                             <Link 
-                                                href="/profile"
+                                                href="/patient/profile"
                                                 className="relative overflow-hidden w-full md:w-auto bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-md font-bold text-sm transition-all shadow-xl shadow-slate-200 active:scale-[0.98] flex items-center justify-center gap-3 group/btn"
                                             >
                                                 <span className="relative z-10 flex items-center gap-2">

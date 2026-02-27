@@ -16,7 +16,7 @@ interface UserFormFieldsProps {
         contact_number: string;
         address: string;
         medical_history?: string;
-        is_activated?: number;
+        activation_status?: string;
     };
     errors: Record<string, string>;
     handleFieldChange: (field: string, value: string | number | boolean) => void;
@@ -29,6 +29,8 @@ export function PatientIdentitySection({
     handleFieldChange,
     showVerification = true
 }: UserFormFieldsProps) {
+    const isApproved = formData.activation_status === 'APPROVE';
+
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -112,14 +114,14 @@ export function PatientIdentitySection({
                             </span>
                             <p className="text-[9px] text-emerald-600/70 font-medium ml-1 mt-0.5">Automatically verify and approve this account</p>
                         </div>
-                        <div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.is_activated === 1 ? "bg-emerald-500" : "bg-slate-200")}>
+                        <div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", isApproved ? "bg-emerald-500" : "bg-slate-200")}>
                             <input
                                 type="checkbox"
                                 className="sr-only"
-                                checked={formData.is_activated === 1}
-                                onChange={(e) => handleFieldChange('is_activated', e.target.checked ? 1 : 0)}
+                                checked={isApproved}
+                                onChange={(e) => handleFieldChange('activation_status', e.target.checked ? 'APPROVE' : 'REJECT')}
                             />
-                            <div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.is_activated === 1 && "translate-x-5")} />
+                            <div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", isApproved && "translate-x-5")} />
                         </div>
                     </label>
                 </div>

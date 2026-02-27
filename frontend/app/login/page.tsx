@@ -35,13 +35,14 @@ function LoginContent() {
     }, [searchParams, toast]);
 
     const validateField = (field: string, value: string) => {
-        let error = "";
         if (field === 'usernameOrEmail') {
-            if (value.length > 0 && value.length < 3) error = "Username or email too short";
+            if (!value) return "Required";
+            if (value.length < 3) return "Username or email too short";
         } else if (field === 'password') {
-            if (value.length > 0 && value.length < 8) error = "Min 8 characters";
+            if (!value) return "Required";
+            if (value.length < 8) return "Min 8 characters";
         }
-        return error;
+        return "";
     };
 
     const handleFieldChange = (field: string, value: string) => {
@@ -63,8 +64,8 @@ function LoginContent() {
     const handleLogin = async (e: FormEvent) => {
         e.preventDefault();
         setServerError('');
-        const userErr = !usernameOrEmail ? "Required" : validateField('usernameOrEmail', usernameOrEmail);
-        const passErr = !password ? "Required" : validateField('password', password);
+        const userErr = validateField('usernameOrEmail', usernameOrEmail);
+        const passErr = validateField('password', password);
         if (userErr || passErr) {
             setErrors({ usernameOrEmail: userErr, password: passErr });
             let msg = "Please correct the errors.";
@@ -98,12 +99,18 @@ function LoginContent() {
             setUser(fullProfile);
             
             reconnectWebSocket();
-            toast("Welcome back!", "success");
+            toast(`Welcome, ${fullProfile.full_name || fullProfile.username}!`, "success");
             
-            if (data.role === 'admin') {
+            if (fullProfile.role === 'admin') {
                 router.push('/admin/dashboard');
+            } else if (fullProfile.is_patient) {
+                router.push('/patient/dashboard');
+            } else if (fullProfile.is_operator) {
+                router.push('/operator/dashboard');
+            } else if (fullProfile.is_doctor) {
+                router.push('/doctor/dashboard');
             } else {
-                router.push('/dashboard');
+                router.push('/onboarding');
             }
         } catch (err: unknown) {
             triggerErrorEffect();

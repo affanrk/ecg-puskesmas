@@ -100,19 +100,37 @@ export function parseApiError(err: unknown): ParsedApiError {
             result.status = err.response.status;
             const data = err.response.data as {
                 error?: {
+                    type?: string;
                     message: string;
-                    details?: Array<{ loc: string[]; msg: string }>;
+                    details?: unknown;
                 };
                 detail?: string | Array<{ loc: string[]; msg: string }>;
             };
 
             if (data.error) {
                 result.message = data.error.message || result.message;
+                
                 if (data.error.details && Array.isArray(data.error.details)) {
                     data.error.details.forEach((e: { loc: string[]; msg: string }) => {
                         const field = e.loc[e.loc.length - 1];
                         result.fieldErrors[field] = e.msg;
                     });
+                } else if (data.error.details && typeof data.error.details === 'object' && data.error.details !== null) {
+                    const keys = Object.keys(data.error.details);
+                    const details = data.error.details as Record<string, unknown>;
+                    if (keys.includes('nik')) {
+                        result.fieldErrors['nik'] = data.error.message;
+                        result.message = '';
+                    } else if (keys.includes('email')) {
+                        result.fieldErrors['email'] = data.error.message;
+                        result.message = '';
+                    } else if (keys.includes('username')) {
+                        result.fieldErrors['username'] = data.error.message;
+                        result.message = '';
+                    } else if (keys.length === 1 && typeof details[keys[0]] !== 'object') {
+                        result.fieldErrors[keys[0]] = data.error.message;
+                        result.message = '';
+                    }
                 }
             }
             else if (data.detail) {

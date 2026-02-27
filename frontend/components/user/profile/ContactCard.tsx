@@ -4,6 +4,7 @@ import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import clsx from 'clsx';
+import { useStore } from '@/store/useStore';
 
 interface MedicalForm {
     full_name: string;
@@ -14,6 +15,10 @@ interface MedicalForm {
     contact_number: string;
     address: string;
     medical_history: string;
+    str_number: string;
+    sip_number: string;
+    specialty: string;
+    work_location: string;
 }
 
 interface ContactCardProps {
@@ -39,6 +44,7 @@ export default function ContactCard({
     onSaveProfileClick,
     loading
 }: ContactCardProps) {
+    const { user } = useStore();
     const canEditMedical = !isLocked || isEditingMedical;
 
     return (
@@ -53,7 +59,7 @@ export default function ContactCard({
                     </div>
                     <div>
                         <h2 className="text-base font-black text-slate-800 tracking-tight">Clinical Details</h2>
-                        <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Medical History & Contact</p>
+                        <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Role Context & Contact</p>
                     </div>
                 </div>
                 {isLocked && !isEditingMedical && (
@@ -66,20 +72,53 @@ export default function ContactCard({
                 )}
             </div>
             <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
-                <div className="space-y-2">
-                    <SelectInput
-                        label="Medical History"
-                        value={medicalForm.medical_history}
-                        onChange={(e) => handleMedicalChange('medical_history', e.target.value)}
-                        disabled={!canEditMedical}
-                        options={[
-                            { value: '', label: 'Select Condition (Optional)' },
-                            { value: 'Normal', label: 'Normal' },
-                            { value: 'Hipertensi', label: 'Hipertensi' },
-                            { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
-                        ]}
-                    />
-                </div>
+                
+                {user?.is_patient && (
+                    <div className="space-y-2">
+                        <SelectInput
+                            label="Medical History"
+                            value={medicalForm.medical_history}
+                            onChange={(e) => handleMedicalChange('medical_history', e.target.value)}
+                            disabled={!canEditMedical}
+                            options={[
+                                { value: '', label: 'Select Condition (Optional)' },
+                                { value: 'Normal', label: 'Normal' },
+                                { value: 'Hipertensi', label: 'Hipertensi' },
+                                { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
+                            ]}
+                        />
+                    </div>
+                )}
+
+                {user?.is_doctor && (
+                    <div className="space-y-2">
+                        <SelectInput
+                            label="Medical Specialty"
+                            value={medicalForm.specialty}
+                            onChange={(e) => handleMedicalChange('specialty', e.target.value)}
+                            disabled={!canEditMedical}
+                            errorMessage={errors.specialty}
+                            options={[
+                                { value: '', label: 'Select Specialty' },
+                                { value: 'Sp.JP - Spesialis Jantung dan Pembuluh Darah', label: 'Sp.JP (Cardiologist)' },
+                                { value: 'Sp.PD - Spesialis Penyakit Dalam', label: 'Sp.PD (Internist)' }
+                            ]}
+                        />
+                    </div>
+                )}
+
+                {(user?.is_operator || user?.is_doctor) && (
+                    <div className="space-y-2">
+                        <StandardInput
+                            label="Work Location / Affiliation"
+                            value={medicalForm.work_location}
+                            onChange={(e) => handleMedicalChange('work_location', e.target.value)}
+                            disabled={!canEditMedical}
+                            placeholder="Hospital or Clinic name"
+                        />
+                    </div>
+                )}
+
                 <StandardInput
                     label="Phone Number"
                     value={medicalForm.contact_number}

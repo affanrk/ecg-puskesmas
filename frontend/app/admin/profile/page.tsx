@@ -13,7 +13,7 @@ import {
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import axiosInstance from '@/services/axiosInstance';
-import axios from 'axios';
+import { parseApiError } from '@/utils/helpers';
 import StandardInput from '@/components/shared/StandardInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
@@ -55,11 +55,8 @@ export default function AdminProfile() {
             toast("Username updated successfully", "success");
             setIsEditingUsername(false);
         } catch (error: unknown) {
-            let errorMsg = "Failed to update username";
-            if (axios.isAxiosError(error) && error.response?.data?.detail) {
-                errorMsg = error.response.data.detail;
-            }
-            toast(errorMsg, "error");
+            const { message } = parseApiError(error);
+            toast(message || "Failed to update username", "error");
             setUsername(user?.username || '');
         }
     };
@@ -87,11 +84,8 @@ export default function AdminProfile() {
             toast("Password changed successfully", "success");
             setPasswords({ current: '', new: '', confirm: '' });
         } catch (error: unknown) {
-            let errorMsg = "Failed to change password";
-            if (axios.isAxiosError(error) && error.response?.data?.detail) {
-                errorMsg = error.response.data.detail;
-            }
-            toast(errorMsg, "error");
+            const { message } = parseApiError(error);
+            toast(message || "Failed to change password", "error");
         } finally {
             setIsUpdatingPassword(false);
         }

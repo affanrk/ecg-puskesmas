@@ -22,6 +22,7 @@ class WebSocketService {
     private maxReconnectInterval = 30000;
     private pingInterval: NodeJS.Timeout | null = null;
     private pingTimeout: NodeJS.Timeout | null = null;
+    private isTerminated = false;
 
     private getWsUrl(): string {
         const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -50,6 +51,7 @@ class WebSocketService {
     }
 
     public connect() {
+        if (this.isTerminated) return;
         if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -71,12 +73,22 @@ class WebSocketService {
         useStore.getState().setIsConnected(false);
     }
 
+    public terminate() {
+        this.isTerminated = true;
+        this.disconnect();
+    }
+
     public reconnect() {
+        if (this.isTerminated) return;
         this.disconnect();
         setTimeout(() => this.connect(), 500);
     }
 
     private handleOpen() {
+        if (this.isTerminated) {
+            this.disconnect();
+            return;
+        }
         globalEventBus.emit(EVENTS.WS.CONNECTED);
         useStore.getState().setIsConnected(true);
         this.reconnectInterval = 2000;
@@ -84,6 +96,7 @@ class WebSocketService {
     }
 
     private handleMessage(event: MessageEvent) {
+        if (this.isTerminated) return;
         try {
             const msg = JSON.parse(event.data) as SocketMessage;
             this.processMessage(msg);
@@ -97,6 +110,9 @@ class WebSocketService {
         globalEventBus.emit(EVENTS.WS.DISCONNECTED);
         useStore.getState().setIsConnected(false);
         this.socket = null;
+        
+        if (this.isTerminated) return;
+
         setTimeout(() => this.connect(), this.reconnectInterval);
         this.reconnectInterval = Math.min(this.reconnectInterval * 2, this.maxReconnectInterval);
     }
@@ -192,13 +208,20 @@ class WebSocketService {
                 if (msg.message.toLowerCase().includes("session expired")) {
                     const { isRecording, currentDeviceId } = store;
                     if (isRecording && currentDeviceId) {
-                        this.sendJson({ type: "stop_recording", device_id: currentDeviceId });
+                        try {
+                            this.sendJson({ type: "stop_recording", device_id: currentDeviceId });
+                        } catch { }
                     }
 
                     localStorage.removeItem('ecg_token');
                     localStorage.removeItem('ecg_user');
                     store.setUser(null);
-                    window.location.href = '/login?reason=expired';
+                    this.terminate();
+                    
+                    if (typeof window !== 'undefined') {
+                        (window as { __is_logging_out?: boolean } & Window).__is_logging_out = true;
+                        window.location.replace('/login?reason=expired');
+                    }
                 } else {
                     toast(msg.message, "error");
                 }
@@ -218,6 +241,7 @@ class WebSocketService {
 const wsService = new WebSocketService();
 export const connectWebSocket = () => wsService.connect();
 export const disconnectWebSocket = () => wsService.disconnect();
+export const terminateWebSocket = () => wsService.terminate();
 export const reconnectWebSocket = () => wsService.reconnect();
 export const sendJson = (data: Record<string, unknown>) => wsService.sendJson(data);
 export default wsService;

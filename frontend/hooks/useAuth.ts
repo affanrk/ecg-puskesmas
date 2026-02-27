@@ -1,13 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
-import { disconnectWebSocket, sendJson } from '@/services/socket';
+import { terminateWebSocket, sendJson } from '@/services/socket';
 import { useCallback } from 'react';
 
 export function useAuth() {
-    const router = useRouter();
     const { user, setUser, isRecording } = useStore();
 
     const logout = useCallback(async () => {
@@ -28,13 +26,17 @@ export function useAuth() {
             console.error("[useAuth] Server-side logout error:", e);
         }
 
-        disconnectWebSocket();
+        terminateWebSocket();
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
         setUser(null);
 
-        router.push('/login');
-    }, [isRecording, router, setUser]);
+        if (typeof window !== 'undefined') {
+            (window as { __is_logging_out?: boolean } & Window).__is_logging_out = true;
+        }
+
+        window.location.replace('/login');
+    }, [isRecording, setUser]);
 
     return {
         user,

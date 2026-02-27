@@ -8,6 +8,7 @@ import Link from 'next/link';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
 import { getApiUrl, parseApiError } from '@/utils/helpers';
+import { validators, patterns } from '@/utils/validators';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -40,21 +41,17 @@ export default function RegisterPage() {
         let error = "";
         switch (field) {
             case 'username':
-                if (value.length > 0 && value.length < 3) error = "Min 3 characters";
-                else if (value.length > 0 && !/^[a-zA-Z0-9_-]+$/.test(value)) error = "Alpha-numeric and _ - only";
+                error = validators.username(value);
                 break;
             case 'email':
-                if (value.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Invalid email format";
+                error = validators.email(value);
                 break;
             case 'password':
-                if (!value) return "";
-                if (value.length < 8) return "Min 8 characters";
-                if (!/[A-Z]/.test(value)) return "Need 1 uppercase letter";
-                if (!/\d/.test(value)) return "Need 1 number";
-                if (!/[!@#$%^&*(),.?":{}|<>]/.test(value)) return "Need 1 symbol";
+                error = validators.password(value);
                 break;
             case 'confirmPassword':
                 if (value && value !== formData.password) error = "Passwords do not match";
+                else if (!value) error = "Required";
                 break;
         }
         return error;
@@ -78,17 +75,15 @@ export default function RegisterPage() {
 
     useEffect(() => {
         const pwd = formData.password;
-        const usernameRegex = /^[a-zA-Z0-9_-]{3,}$/;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         setChecks({
             length: pwd.length >= 8,
-            upper: /[A-Z]/.test(pwd),
-            lower: /[a-z]/.test(pwd),
-            number: /\d/.test(pwd),
-            special: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
+            upper: patterns.password.upper.test(pwd),
+            lower: patterns.password.lower.test(pwd),
+            number: patterns.password.number.test(pwd),
+            special: patterns.password.special.test(pwd),
             match: pwd.length > 0 && pwd === formData.confirmPassword,
-            username: usernameRegex.test(formData.username),
-            email: emailRegex.test(formData.email)
+            username: patterns.username.test(formData.username),
+            email: patterns.email.test(formData.email)
         });
     }, [formData]);
 
@@ -110,9 +105,9 @@ export default function RegisterPage() {
         e.preventDefault();
         setServerError('');
         const newErrors: Record<string, string> = {
-            username: !formData.username ? "Required" : validateField('username', formData.username),
-            email: !formData.email ? "Required" : validateField('email', formData.email),
-            password: !formData.password ? "Required" : validateField('password', formData.password),
+            username: validators.username(formData.username),
+            email: validators.email(formData.email),
+            password: validators.password(formData.password),
             confirmPassword: !formData.confirmPassword ? "Required" : validateField('confirmPassword', formData.confirmPassword)
         };
         if (Object.values(newErrors).some(e => e) || !isFormValid) {
