@@ -110,7 +110,7 @@ function LoginContent() {
             } else if (fullProfile.is_doctor) {
                 router.push('/doctor/dashboard');
             } else {
-                router.push('/onboarding');
+                router.push('/dashboard');
             }
         } catch (err: unknown) {
             triggerErrorEffect();

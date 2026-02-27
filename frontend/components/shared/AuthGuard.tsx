@@ -36,6 +36,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             const isOperator = userData.is_operator;
             const isDoctor = userData.is_doctor;
 
+            const isDashboardRoute = pathname === '/dashboard';
             const isOnboarding = pathname.startsWith('/onboarding');
             const isPatientRoute = pathname.startsWith('/patient');
             const isOperatorRoute = pathname.startsWith('/operator');
@@ -44,10 +45,10 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
 
             const hasRole = isPatient || isOperator || isDoctor || role === 'admin';
 
-            if (!hasRole && !isOnboarding) {
+            if (!hasRole && !isOnboarding && !isDashboardRoute) {
                 if (!redirectingRef.current) {
                     redirectingRef.current = true;
-                    router.replace('/onboarding');
+                    router.replace('/dashboard');
                 }
                 return false;
             }

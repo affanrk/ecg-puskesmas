@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Shield, User, Clock, Activity, ArrowRight, Stethoscope, LogOut } from 'lucide-react';
+import { Shield, User, Clock, Activity, ArrowRight, ArrowLeft, Stethoscope, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -72,6 +72,14 @@ export default function OnboardingPage() {
                     <span className="font-black text-xl text-slate-900 tracking-tight">ECG Platform</span>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => router.push('/dashboard')} 
+                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-200 transition-all group"
+                        title="Back to Dashboard"
+                    >
+                        <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
+                        <span className="hidden sm:inline">Back to Dashboard</span>
+                    </button>
                     <div className="flex items-center gap-3 bg-white/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/60 shadow-sm">
                         <div className="w-7 h-7 bg-brand-100 rounded-full flex items-center justify-center shrink-0">
                             <User size={14} className="text-brand-600" />
