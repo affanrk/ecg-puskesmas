@@ -50,6 +50,8 @@ def _map_session_to_response(
         avg_pr_ms=session.avg_pr_ms,
         avg_qs_ms=session.avg_qs_ms,
         avg_qtc_ms=session.avg_qtc_ms,
+        avg_st_ms=session.avg_st_ms,
+        rs_ratio_v1=session.rs_ratio_v1,
     )
 
 

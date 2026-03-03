@@ -177,6 +177,18 @@ class TbMUser(Base, AuditMixin):
         return self.doctor_profile.specialty if self.doctor_profile else None
 
     @property
+    def operator_role(self):
+        return self.operator_profile.operator_role if self.operator_profile else None
+
+    @property
+    def work_location(self):
+        if self.operator_profile:
+            return self.operator_profile.work_location
+        if self.doctor_profile:
+            return self.doctor_profile.work_location
+        return None
+
+    @property
     def status(self):
         return self.active_profile.status if self.active_profile else None
 

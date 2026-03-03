@@ -6,17 +6,23 @@ from core.dependencies import (
     get_user_repository,
     get_approval_repository,
     get_patient_repository,
+    get_operator_repository,
+    get_doctor_repository,
 )
 from repositories.user import UserRepository
 from repositories.approval import ApprovalRepository
 from repositories.patient import PatientRepository
+from repositories.operator import OperatorRepository
+from repositories.doctor import DoctorRepository
 from schemas.user import (
     UserResponse,
     UserApprovalUpdate,
     UserAdminUpdate,
     UserAdminCreate,
 )
-from schemas.patient import PatientUpdate, PatientCreate
+from schemas.patient import PatientUpdate
+from schemas.operator import OperatorUpdate
+from schemas.doctor import DoctorUpdate
 from schemas.approval import ApprovalLogResponse
 from core.exceptions import AppException, DuplicateNIKException
 from models import TbMUser, TbRLogApproval
@@ -125,20 +131,36 @@ def create_user(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+    doctor_repo: DoctorRepository = Depends(get_doctor_repository),
 ):
     try:
         if user_repo.find_by_username(user_in.username):
-            raise HTTPException(status_code=400, detail="Username is already taken")
+            raise HTTPException(status_code=400, detail={"message": "Username is already taken", "field": "username"})
         if user_repo.find_by_email(user_in.email):
-            raise HTTPException(status_code=400, detail="Email is already registered")
+            raise HTTPException(status_code=400, detail={"message": "Email is already registered", "field": "email"})
 
-        if user_in.nik:
-            if patient_repo.find_by_nik(user_in.nik):
-                raise HTTPException(status_code=400, detail="NIK is already registered")
+        nik_to_check = None
+        if user_in.patient_profile and user_in.patient_profile.nik:
+            nik_to_check = user_in.patient_profile.nik
+        elif user_in.operator_profile and user_in.operator_profile.nik:
+            nik_to_check = user_in.operator_profile.nik
+        elif user_in.doctor_profile and user_in.doctor_profile.nik:
+            nik_to_check = user_in.doctor_profile.nik
+
+        if nik_to_check:
+            if (
+                patient_repo.find_by_nik(nik_to_check)
+                or operator_repo.find_by_nik(nik_to_check)
+                or doctor_repo.find_by_nik(nik_to_check)
+            ):
+                raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
 
         user_in.source = "ADMIN"
 
-        create_data = user_in.model_dump()
+        create_data = user_in.model_dump(
+            exclude={"patient_profile", "operator_profile", "doctor_profile"}
+        )
         acc_status = create_data.pop("account_status", "ACTIVE")
         act_status = create_data.pop("activation_status", "APPROVE")
 
@@ -152,56 +174,77 @@ def create_user(
 
         user = user_repo.create_from_dict(create_data)
 
-        if user.is_patient:
-            try:
-                patient_data = PatientCreate(
-                    full_name=user_in.full_name,
-                    nik=user_in.nik,
-                    pob=user_in.pob,
-                    dob=user_in.dob,
-                    gender=user_in.gender,
-                    address=user_in.address,
-                    contact_number=user_in.contact_number,
-                    medical_history=user_in.medical_history,
-                    source="ADMIN",
-                )
+        try:
+            is_activated = getattr(user, "is_activated", 0)
+            initial_status = "APPROVED" if is_activated == 1 else "QUEUE"
+            initial_reason = (
+                "Auto-approved by Admin"
+                if is_activated == 1
+                else "Profile created by Admin"
+            )
 
-                is_activated = getattr(user, "is_activated", 0)
-                initial_status = "APPROVED" if is_activated == 1 else "QUEUE"
-                initial_reason = (
-                    "Auto-approved by Admin"
-                    if is_activated == 1
-                    else "Profile created by Admin"
-                )
-
+            if user.is_patient:
+                if not user_in.patient_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Patient profile is required"
+                    )
+                user_in.patient_profile.source = "ADMIN"
                 patient_repo.create_profile(
-                    patient_data, user.id, source="ADMIN", initial_status=initial_status
+                    user_in.patient_profile,
+                    user.id,
+                    source="ADMIN",
+                    initial_status=initial_status,
+                )
+            elif user.is_operator:
+                if not user_in.operator_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Operator profile is required"
+                    )
+                user_in.operator_profile.source = "ADMIN"
+                operator_repo.create_profile(
+                    user_in.operator_profile,
+                    user.id,
+                    source="ADMIN",
+                    initial_status=initial_status,
+                )
+            elif user.is_doctor:
+                if not user_in.doctor_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Doctor profile is required"
+                    )
+                user_in.doctor_profile.source = "ADMIN"
+                doctor_repo.create_profile(
+                    user_in.doctor_profile,
+                    user.id,
+                    source="ADMIN",
+                    initial_status=initial_status,
                 )
 
+            if user.is_patient or user.is_operator or user.is_doctor:
                 log = (
-                    patient_repo.db.query(TbRLogApproval)
+                    user_repo.db.query(TbRLogApproval)
                     .filter_by(user_id=user.id)
                     .order_by(TbRLogApproval.created_dt.desc())
                     .first()
                 )
                 if log:
                     log.reason = initial_reason
-                    patient_repo.db.commit()
+                    user_repo.db.commit()
 
-            except ValidationError as e:
-                user_repo.delete(user.id)
-                formatted_errors = []
-                for error in e.errors():
-                    msg = error.get("msg")
-                    if msg.startswith("Value error, "):
-                        msg = msg.replace("Value error, ", "")
-                    formatted_errors.append(
-                        {"loc": error.get("loc"), "msg": msg, "type": error.get("type")}
-                    )
-                raise HTTPException(status_code=422, detail=formatted_errors)
-            except Exception as e:
-                user_repo.delete(user.id)
-                raise e
+        except ValidationError as e:
+            user_repo.delete(user.id)
+            formatted_errors = []
+            for error in e.errors():
+                msg = error.get("msg")
+                if msg.startswith("Value error, "):
+                    msg = msg.replace("Value error, ", "")
+                formatted_errors.append(
+                    {"loc": error.get("loc"), "msg": msg, "type": error.get("type")}
+                )
+            raise HTTPException(status_code=422, detail=formatted_errors)
+        except Exception as e:
+            user_repo.delete(user.id)
+            raise e
 
         logger.info(f"Admin {admin.username} created user {user.username}")
         return user_repo.find_by_id(user.id)
@@ -209,7 +252,7 @@ def create_user(
     except (HTTPException, AppException):
         raise
     except DuplicateNIKException:
-        raise HTTPException(status_code=400, detail="NIK is already registered")
+        raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
     except Exception as e:
         logger.error(f"Unexpected system error in create_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -234,6 +277,8 @@ def update_user(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+    doctor_repo: DoctorRepository = Depends(get_doctor_repository),
 ):
     try:
         target_user = user_repo.find_by_id(user_id)
@@ -246,7 +291,10 @@ def update_user(
                 detail="Administrative accounts cannot be modified via this endpoint",
             )
 
-        update_data = user_in.model_dump(exclude_unset=True)
+        update_data = user_in.model_dump(
+            exclude_unset=True,
+            exclude={"patient_profile", "operator_profile", "doctor_profile"},
+        )
 
         if "account_status" in update_data:
             status_val = update_data.pop("account_status")
@@ -261,72 +309,84 @@ def update_user(
         if "username" in update_data:
             existing = user_repo.find_by_username(update_data["username"])
             if existing and existing.id != user_id:
-                raise HTTPException(status_code=400, detail="Username is already taken")
+                raise HTTPException(status_code=400, detail={"message": "Username is already taken", "field": "username"})
 
         if "email" in update_data:
             existing = user_repo.find_by_email(update_data["email"])
             if existing and existing.id != user_id:
                 raise HTTPException(
-                    status_code=400, detail="Email is already registered"
+                    status_code=400, detail={"message": "Email is already registered", "field": "email"}
                 )
 
         if "role" in update_data:
             new_role = update_data["role"]
             is_currently_patient = target_user.is_patient
+            is_currently_operator = target_user.is_operator
+            is_currently_doctor = target_user.is_doctor
 
             if new_role == "doctor":
+                if not is_currently_doctor and not user_in.doctor_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Doctor profile required"
+                    )
                 update_data["is_doctor"] = True
                 update_data["is_operator"] = False
                 update_data["is_patient"] = False
-                if is_currently_patient:
+                if is_currently_patient or is_currently_operator:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
             elif new_role == "operator":
+                if not is_currently_operator and not user_in.operator_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Operator profile required"
+                    )
                 update_data["is_operator"] = True
                 update_data["is_doctor"] = False
                 update_data["is_patient"] = False
-                if is_currently_patient:
+                if is_currently_patient or is_currently_doctor:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
             elif new_role == "patient":
-                if not is_currently_patient:
-                    if not user_in.nik or not user_in.full_name:
-                        raise HTTPException(
-                            status_code=400,
-                            detail="Full name and NIK are required when converting a user to a patient",
-                        )
+                if not is_currently_patient and not user_in.patient_profile:
+                    raise HTTPException(
+                        status_code=400, detail="Patient profile required"
+                    )
                 update_data["role"] = "user"
                 update_data["is_patient"] = True
                 update_data["is_doctor"] = False
                 update_data["is_operator"] = False
+                if is_currently_operator or is_currently_doctor:
+                    user_repo.cleanup_patient_data(user_id)
+                    update_data["is_activated"] = 0
             elif new_role == "user":
                 update_data["is_patient"] = False
                 update_data["is_doctor"] = False
                 update_data["is_operator"] = False
-                if is_currently_patient:
+                if is_currently_patient or is_currently_operator or is_currently_doctor:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
 
-        patient_fields = [
-            "full_name",
-            "nik",
-            "pob",
-            "dob",
-            "gender",
-            "address",
-            "contact_number",
-            "medical_history",
-        ]
-        patient_data = {
-            k: update_data.pop(k) for k in patient_fields if k in update_data
-        }
-        patient_data["source"] = "ADMIN"
+        is_patient = update_data.get("is_patient", target_user.is_patient)
+        is_operator = update_data.get("is_operator", target_user.is_operator)
+        is_doctor = update_data.get("is_doctor", target_user.is_doctor)
 
-        if (patient_data or activation_status) and (
-            update_data.get("is_patient", target_user.is_patient)
-        ):
+        if is_patient and (user_in.patient_profile or activation_status):
+            update_prof = user_in.patient_profile or PatientUpdate()
+            update_prof.source = "ADMIN"
             patient_repo.update_by_user_id(
-                user_id, PatientUpdate(**patient_data), admin_action=activation_status
+                user_id, update_prof, admin_action=activation_status
+            )
+        elif is_operator and (user_in.operator_profile or activation_status):
+            update_prof = user_in.operator_profile or OperatorUpdate()
+            update_prof.source = "ADMIN"
+            operator_repo.update_by_user_id(
+                user_id, update_prof, admin_action=activation_status
+            )
+        elif is_doctor and (user_in.doctor_profile or activation_status):
+            update_prof = user_in.doctor_profile or DoctorUpdate()
+            update_prof.source = "ADMIN"
+            doctor_repo.update_by_user_id(
+                user_id, update_prof, admin_action=activation_status
             )
 
         update_data["changed_by"] = "ADMIN"
@@ -346,7 +406,7 @@ def update_user(
     except (HTTPException, AppException):
         raise
     except DuplicateNIKException:
-        raise HTTPException(status_code=400, detail="NIK is already registered")
+        raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
     except Exception as e:
         logger.error(f"Unexpected system error in update_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

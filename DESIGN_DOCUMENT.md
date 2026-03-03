@@ -99,9 +99,14 @@ CREATE TABLE tb_m_user (
     email           VARCHAR(100) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
     role            VARCHAR(20) DEFAULT 'user', -- user, operator, doctor, admin
-    status          VARCHAR(20) DEFAULT 'QUEUE',-- QUEUE, APPROVED, REJECTED
-    is_active       INTEGER DEFAULT 1,
-    current_session_id VARCHAR(255),               -- For "Last Login Wins"
+    is_active       INTEGER DEFAULT 1,          -- 1: Active, 0: Inactive
+    is_activated    INTEGER DEFAULT 0,          -- 1: Approved, 0: Pending/Rejected
+    is_patient      BOOLEAN DEFAULT FALSE,
+    is_operator     BOOLEAN DEFAULT FALSE,
+    is_doctor       BOOLEAN DEFAULT FALSE,
+    current_session_id VARCHAR(100),            -- For "Last Login Wins"
+    last_login_dt   TIMESTAMP,
+    last_login_source VARCHAR(50),              -- WEB, MOBILE
     
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -112,15 +117,84 @@ CREATE TABLE tb_m_user (
 -- Patients (Clinical Profiles)
 CREATE TABLE tb_m_patient (
     id              VARCHAR(30) PRIMARY KEY,    -- PAT20260213000001
-    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id),
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     
     nik             VARCHAR(20) UNIQUE,
     full_name       VARCHAR(100),
+    pob             VARCHAR(100),               -- Place of Birth
     dob             DATE,
-    gender          VARCHAR(10),
-    address         VARCHAR(255),
+    gender          VARCHAR(20),
+    address         TEXT,
     contact_number  VARCHAR(20),
     medical_history TEXT,
+    status          VARCHAR(20) DEFAULT 'QUEUE',-- QUEUE, APPROVED, REJECTED
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP
+);
+
+-- Operators (Nurses / GP)
+CREATE TABLE tb_m_operator (
+    id              VARCHAR(30) PRIMARY KEY,    -- OPR...
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    
+    nik             VARCHAR(20) UNIQUE,
+    full_name       VARCHAR(100) NOT NULL,
+    pob             VARCHAR(100) NOT NULL,
+    dob             DATE NOT NULL,
+    gender          VARCHAR(10) NOT NULL,
+    address         VARCHAR(255),
+    contact_number  VARCHAR(20),
+    str_number      VARCHAR(50) NOT NULL,       -- Surat Tanda Registrasi
+    operator_role   VARCHAR(50) NOT NULL,
+    work_location   VARCHAR(100),
+    status          VARCHAR(20) DEFAULT 'QUEUE',
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP
+);
+
+-- Doctors (Specialists)
+CREATE TABLE tb_m_doctor (
+    id              VARCHAR(30) PRIMARY KEY,    -- DOC...
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    
+    nik             VARCHAR(20) UNIQUE,
+    full_name       VARCHAR(100) NOT NULL,
+    pob             VARCHAR(100) NOT NULL,
+    dob             DATE NOT NULL,
+    gender          VARCHAR(10) NOT NULL,
+    address         VARCHAR(255),
+    contact_number  VARCHAR(20),
+    str_number      VARCHAR(50) NOT NULL,
+    sip_number      VARCHAR(50) NOT NULL,       -- Surat Izin Praktik
+    specialty       VARCHAR(100) NOT NULL,
+    work_location   VARCHAR(100),
+    status          VARCHAR(20) DEFAULT 'QUEUE',
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP
+);
+
+-- Administrators
+CREATE TABLE tb_m_admin (
+    id              VARCHAR(30) PRIMARY KEY,    -- ADM...
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    
+    nik             VARCHAR(20) UNIQUE,
+    full_name       VARCHAR(100) NOT NULL,
+    pob             VARCHAR(100) NOT NULL,
+    dob             DATE NOT NULL,
+    gender          VARCHAR(10) NOT NULL,
+    address         VARCHAR(255) NOT NULL,
+    contact_number  VARCHAR(20) NOT NULL,
+    status          VARCHAR(20) DEFAULT 'QUEUE',
     
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -146,6 +220,17 @@ CREATE TABLE tb_m_devices (
 ### 3.2. Transaction Tables (`TB_R_`)
 
 ```sql
+-- Profile Approval Logs
+CREATE TABLE tb_r_log_approval (
+    id              VARCHAR(30) PRIMARY KEY,    -- APP...
+    user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    status          VARCHAR(20) NOT NULL,       -- QUEUE, APPROVED, REJECTED
+    reason          VARCHAR(100),               -- Reason notes
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Sessions (Recording Sessions)
 CREATE TABLE tb_r_ecg_session (
     recording_id    VARCHAR(50) PRIMARY KEY,    -- UUID
@@ -178,13 +263,15 @@ CREATE TABLE tb_r_ecg_raw_web (
     
     mv_lead_I       FLOAT,
     mv_lead_II      FLOAT,
+    mv_lead_III     FLOAT,
+    mv_avF          FLOAT,
     mv_v1           FLOAT,
     
     raw_lead_I      INTEGER,
     raw_lead_II     INTEGER,
     raw_v1          INTEGER,
     
-    created_by      VARCHAR(50),
+    created_by      VARCHAR(50) DEFAULT 'DEVICE',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -195,14 +282,33 @@ CREATE TABLE tb_r_ecg_raw_mobile (
     
     mv_lead_I       FLOAT,
     mv_lead_II      FLOAT,
+    mv_lead_III     FLOAT,
+    mv_avF          FLOAT,
     mv_v1           FLOAT,
     
     raw_lead_I      INTEGER,
     raw_lead_II     INTEGER,
     raw_v1          INTEGER,
     
-    created_by      VARCHAR(50),
+    created_by      VARCHAR(50) DEFAULT 'MOBILE',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Network & Device Performance Logs
+CREATE TABLE tb_r_performance_log (
+    id              BIGSERIAL PRIMARY KEY,
+    device_id       VARCHAR(50) NOT NULL,
+    recording_id    VARCHAR(50),
+    
+    latency_ms      FLOAT,
+    jitter_ms       FLOAT,
+    packet_loss_pct FLOAT,
+    packet_counter  BIGINT,
+    
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP
 );
 ```
 

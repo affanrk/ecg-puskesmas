@@ -24,6 +24,8 @@ class SessionResponse(BaseModel):
     avg_qtc_ms: Optional[float] = Field(
         None, description="Average corrected QT interval (ms)"
     )
+    avg_st_ms: Optional[float] = Field(None, description="Average ST interval (ms)")
+    rs_ratio_v1: Optional[float] = Field(None, description="RS ratio in V1")
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -42,6 +44,8 @@ class SessionResponse(BaseModel):
                 "avg_pr_ms": 160.0,
                 "avg_qs_ms": 80.0,
                 "avg_qtc_ms": 420.0,
+                "avg_st_ms": 120.0,
+                "rs_ratio_v1": 0.5,
             }
         },
     )

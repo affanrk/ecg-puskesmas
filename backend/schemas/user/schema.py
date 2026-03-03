@@ -1,13 +1,14 @@
 from typing import Optional
-from datetime import date, datetime
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
 from ..validators import (
-    validate_full_name,
-    validate_nik,
     validate_username,
     validate_password,
     sanitize_email,
 )
+from ..patient.schema import PatientCreate, PatientUpdate, PatientResponse
+from ..operator.schema import OperatorCreate, OperatorUpdate, OperatorResponse
+from ..doctor.schema import DoctorCreate, DoctorUpdate, DoctorResponse
 
 
 class UserBase(BaseModel):
@@ -53,17 +54,9 @@ class UserAdminCreate(UserCreate):
     account_status: Optional[str] = "ACTIVE"
     activation_status: Optional[str] = "APPROVE"
 
-    full_name: Optional[str] = None
-    nik: Optional[str] = None
-    pob: Optional[str] = None
-    dob: Optional[date] = None
-    gender: Optional[str] = None
-    address: Optional[str] = None
-    contact_number: Optional[str] = None
-    medical_history: Optional[str] = None
-
-    _validate_nik = field_validator("nik")(validate_nik)
-    _validate_full_name = field_validator("full_name")(validate_full_name)
+    patient_profile: Optional[PatientCreate] = None
+    operator_profile: Optional[OperatorCreate] = None
+    doctor_profile: Optional[DoctorCreate] = None
 
 
 class UserAdminUpdate(BaseModel):
@@ -73,14 +66,9 @@ class UserAdminUpdate(BaseModel):
     account_status: Optional[str] = None
     activation_status: Optional[str] = None
 
-    full_name: Optional[str] = None
-    nik: Optional[str] = None
-    pob: Optional[str] = None
-    dob: Optional[date] = None
-    gender: Optional[str] = None
-    address: Optional[str] = None
-    contact_number: Optional[str] = None
-    medical_history: Optional[str] = None
+    patient_profile: Optional[PatientUpdate] = None
+    operator_profile: Optional[OperatorUpdate] = None
+    doctor_profile: Optional[DoctorUpdate] = None
 
     _validate_username = field_validator("username")(validate_username)
 
@@ -90,9 +78,6 @@ class UserAdminUpdate(BaseModel):
         if v is None:
             return v
         return v.strip().lower()
-
-    _validate_nik = field_validator("nik")(validate_nik)
-    _validate_full_name = field_validator("full_name")(validate_full_name)
 
 
 class UserResponse(UserBase):
@@ -108,14 +93,9 @@ class UserResponse(UserBase):
     created_dt: datetime
     changed_dt: Optional[datetime] = None
 
-    full_name: Optional[str] = None
-    nik: Optional[str] = None
-    pob: Optional[str] = None
-    dob: Optional[date] = None
-    gender: Optional[str] = None
-    medical_history: Optional[str] = None
-    address: Optional[str] = None
-    contact_number: Optional[str] = None
+    patient_profile: Optional[PatientResponse] = None
+    operator_profile: Optional[OperatorResponse] = None
+    doctor_profile: Optional[DoctorResponse] = None
 
     model_config = ConfigDict(
         populate_by_name=True,
