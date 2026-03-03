@@ -30,9 +30,9 @@ graph LR
         MEM[(In-Memory<br/>Live State & Buffers)]
     end
 
-    IOT -->|MQTT (raw/ecg/+)| INGEST
+    IOT -->|MQTT raw/ecg/+| INGEST
     WEB -->|HTTP/REST| API
-    WEB <-->|WebSocket (/ws)| WS
+    WEB <-->|WebSocket /ws| WS
     
     INGEST -->|Update State| MEM
     INGEST -->|Live Batch| WS
