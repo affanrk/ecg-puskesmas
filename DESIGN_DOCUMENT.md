@@ -5,45 +5,48 @@
 This architecture is designed for National Scale implementation, separating concerns between Real-time Handling, Business Logic, and Heavy AI Processing.
 
 ```mermaid
-graph TD
+graph LR
     subgraph "Clients"
-        WEB[Web Dashboard<br/>Next.js]
-        IOT[ECG Devices<br/>IoT/MQTT]
+        WEB[Web Dashboard<br/>Next.js 15+]
+        IOT[ECG Devices & Mobile<br/>IoT/MQTT]
     end
 
     subgraph "Core Backend (FastAPI)"
-        API[API Gateway<br/>Auth, Users, History]
-        WS[WebSocket Gateway<br/>Real-time Streaming]
-        INGEST[Data Ingestion Service]
+        API[API Gateway<br/>Auth, Role Logic, Admin]
+        WS[WebSocket Manager<br/>Jitter Buffer & Sync]
+        INGEST[MQTT Client<br/>Data Ingestion]
+        ML_WORKER[Background Tasks<br/>ThreadPoolExecutor]
     end
 
-    subgraph "AI Microservice (Python)"
-        WORKER[AI Worker<br/>FastAPI/Celery]
-        MODEL[TensorFlow Model]
+    subgraph "AI Engine"
+        MODEL[TensorFlow/Keras<br/>Classification Model]
         FE[Feature Extractor<br/>NumPy/SciPy]
+        FILT[Butterworth Filter<br/>Real-time UI]
     end
 
     subgraph "Data Storage"
-        REDIS[(Redis<br/>Hot Data / Queue)]
-        PGSQL[(PostgreSQL<br/>Master Data)]
-        TSDB[(TimescaleDB<br/>Signal Data)]
+        PGSQL[(PostgreSQL<br/>Relational Data)]
+        TSDB[(Partitioned DB<br/>Raw Web & Mobile Data)]
+        MEM[(In-Memory<br/>Live State & Buffers)]
     end
 
-    IOT -->|MQTT/WS| WS
-    WEB -->|HTTP/WS| API
+    IOT -->|MQTT (raw/ecg/+)| INGEST
+    WEB -->|HTTP/REST| API
+    WEB <-->|WebSocket (/ws)| WS
     
-    WS --> INGEST
-    INGEST -->|1. Buffer| REDIS
-    INGEST -->|2. Batch Insert| TSDB
+    INGEST -->|Update State| MEM
+    INGEST -->|Live Batch| WS
+    INGEST -->|Flush Chunks| TSDB
     
-    INGEST -->|3. Analysis Job| REDIS
-    REDIS -->|Pop Job| WORKER
-    WORKER --> FE
+    WS -->|Verify Token/Role| API
+    
+    INGEST -->|Segment Complete| ML_WORKER
+    ML_WORKER -->|Fetch Data| TSDB
+    ML_WORKER --> FE
     FE --> MODEL
-    WORKER -->|Result| API
-    API -->|Save Result| PGSQL
-    API -->|Notify| WS
-    WS -->|Update UI| WEB
+    MODEL -->|Results| API
+    API -->|Save Session| PGSQL
+    ML_WORKER -->|Broadcast Result| WS
 ```
 
 ---
@@ -55,19 +58,17 @@ Using `TB_M_` (Master), `TB_R_` (Transaction), and `TB_T_` (Temporary/Queue) con
 ```mermaid
 erDiagram
     %% Master Tables
-    TB_M_FACILITIES ||--|{ TB_M_DEVICES : owns
-    TB_M_FACILITIES ||--|{ TB_R_SESSIONS : location
+    TB_M_USER ||--o| TB_M_PATIENT : has_profile
+    TB_M_USER ||--o| TB_M_OPERATOR : has_profile
+    TB_M_USER ||--o| TB_M_DOCTOR : has_profile
+    TB_M_USER ||--o| TB_M_ADMIN : has_profile
     
-    TB_M_USERS ||--|{ TB_R_SESSIONS : records_own_data
-    
-    TB_M_DEVICES ||--|{ TB_R_SESSIONS : used_in
+    TB_M_USER ||--|{ TB_R_ECG_SESSION : records_own_data
+    TB_M_USER ||--|{ TB_R_LOG_APPROVAL : has_approval_history
     
     %% Transaction Tables
-    TB_R_SESSIONS ||--|{ TB_R_AI_RESULTS : has_analysis
-    TB_R_SESSIONS ||--|{ TB_R_SIGNAL_DATA : has_raw_data
-    
-    %% Temporary Tables
-    TB_M_DEVICES ||--|{ TB_T_RAW_BUFFER : streams_to
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_WEB : has_raw_data_web
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_MOBILE : has_raw_data_mobile
 ```
 
 ---
@@ -77,24 +78,9 @@ erDiagram
 ### 3.1. Master Tables (`TB_M_`)
 
 ```sql
--- Facilities (Puskesmas / RS)
-CREATE TABLE tb_m_facilities (
-    id              CHAR(26) PRIMARY KEY,       -- TSID
-    facility_code   VARCHAR(20) UNIQUE NOT NULL,-- Business Key (ex: PKM-SBY-001)
-    name            VARCHAR(100) NOT NULL,
-    type            VARCHAR(20) NOT NULL,       -- PUSKESMAS, RSUD, KLINIK
-    address         TEXT,
-    
-    -- Audit Trail
-    created_by      CHAR(26) NOT NULL,
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
-    changed_dt      TIMESTAMP
-);
-
 -- Users (Central Identity & Authentication)
 CREATE TABLE tb_m_user (
-    id              VARCHAR(30) PRIMARY KEY,    -- USR20260213000001
+    id              VARCHAR(30) PRIMARY KEY,    -- USR + YYYYMMDD + 6-digit seq
     username        VARCHAR(50) UNIQUE NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
@@ -116,15 +102,15 @@ CREATE TABLE tb_m_user (
 
 -- Patients (Clinical Profiles)
 CREATE TABLE tb_m_patient (
-    id              VARCHAR(30) PRIMARY KEY,    -- PAT20260213000001
+    id              VARCHAR(30) PRIMARY KEY,    -- PAT + YYYYMMDD + seq
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     
     nik             VARCHAR(20) UNIQUE,
-    full_name       VARCHAR(100),
-    pob             VARCHAR(100),               -- Place of Birth
-    dob             DATE,
-    gender          VARCHAR(20),
-    address         TEXT,
+    full_name       VARCHAR(100) NOT NULL,
+    pob             VARCHAR(100) NOT NULL,
+    dob             DATE NOT NULL,
+    gender          VARCHAR(10) NOT NULL,       -- L/P
+    address         VARCHAR(255),
     contact_number  VARCHAR(20),
     medical_history TEXT,
     status          VARCHAR(20) DEFAULT 'QUEUE',-- QUEUE, APPROVED, REJECTED
@@ -137,7 +123,7 @@ CREATE TABLE tb_m_patient (
 
 -- Operators (Nurses / GP)
 CREATE TABLE tb_m_operator (
-    id              VARCHAR(30) PRIMARY KEY,    -- OPR...
+    id              VARCHAR(30) PRIMARY KEY,    -- OPR + YYYYMMDD + seq
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     
     nik             VARCHAR(20) UNIQUE,
@@ -148,7 +134,7 @@ CREATE TABLE tb_m_operator (
     address         VARCHAR(255),
     contact_number  VARCHAR(20),
     str_number      VARCHAR(50) NOT NULL,       -- Surat Tanda Registrasi
-    operator_role   VARCHAR(50) NOT NULL,
+    operator_role   VARCHAR(50) NOT NULL,       -- Nurse or General Practitioner
     work_location   VARCHAR(100),
     status          VARCHAR(20) DEFAULT 'QUEUE',
     
@@ -160,7 +146,7 @@ CREATE TABLE tb_m_operator (
 
 -- Doctors (Specialists)
 CREATE TABLE tb_m_doctor (
-    id              VARCHAR(30) PRIMARY KEY,    -- DOC...
+    id              VARCHAR(30) PRIMARY KEY,    -- DOC + YYYYMMDD + seq
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     
     nik             VARCHAR(20) UNIQUE,
@@ -184,7 +170,7 @@ CREATE TABLE tb_m_doctor (
 
 -- Administrators
 CREATE TABLE tb_m_admin (
-    id              VARCHAR(30) PRIMARY KEY,    -- ADM...
+    id              VARCHAR(30) PRIMARY KEY,    -- ADM + YYYYMMDD + seq
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     
     nik             VARCHAR(20) UNIQUE,
@@ -201,20 +187,6 @@ CREATE TABLE tb_m_admin (
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
-
--- Devices (IoT Hardware)
-CREATE TABLE tb_m_devices (
-    id              CHAR(26) PRIMARY KEY,
-    serial_number   VARCHAR(50) UNIQUE NOT NULL,
-    name            VARCHAR(50),
-    facility_id     CHAR(26) REFERENCES tb_m_facilities(id),
-    status          VARCHAR(20) DEFAULT 'ACTIVE',
-    
-    created_by      CHAR(26) NOT NULL,
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      CHAR(26),
-    changed_dt      TIMESTAMP
-);
 ```
 
 ### 3.2. Transaction Tables (`TB_R_`)
@@ -222,10 +194,10 @@ CREATE TABLE tb_m_devices (
 ```sql
 -- Profile Approval Logs
 CREATE TABLE tb_r_log_approval (
-    id              VARCHAR(30) PRIMARY KEY,    -- APP...
+    id              VARCHAR(30) PRIMARY KEY,    -- APP + YYYYMMDD + seq
     user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
     status          VARCHAR(20) NOT NULL,       -- QUEUE, APPROVED, REJECTED
-    reason          VARCHAR(100),               -- Reason notes
+    reason          VARCHAR(100),               -- Reason for rejection or approval notes
     
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -234,9 +206,8 @@ CREATE TABLE tb_r_log_approval (
 -- Sessions (Recording Sessions)
 CREATE TABLE tb_r_ecg_session (
     recording_id    VARCHAR(50) PRIMARY KEY,    -- UUID
-    device_id       VARCHAR(50) NOT NULL,
+    device_id       VARCHAR(50) NOT NULL,       -- ID of the device used
     user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id),
-    subject_id      VARCHAR(20),                -- NIK of the patient
     
     classification_result VARCHAR(50) DEFAULT 'Pending',
     confidence_score FLOAT,
@@ -250,7 +221,7 @@ CREATE TABLE tb_r_ecg_session (
     rs_ratio_v1     FLOAT,
     
     -- Audit Trail
-    created_by      VARCHAR(50) NOT NULL,
+    created_by      VARCHAR(50) NOT NULL,       -- e.g., WEB, ADMIN, MOBILE
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
@@ -293,44 +264,14 @@ CREATE TABLE tb_r_ecg_raw_mobile (
     created_by      VARCHAR(50) DEFAULT 'MOBILE',
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Network & Device Performance Logs
-CREATE TABLE tb_r_performance_log (
-    id              BIGSERIAL PRIMARY KEY,
-    device_id       VARCHAR(50) NOT NULL,
-    recording_id    VARCHAR(50),
-    
-    latency_ms      FLOAT,
-    jitter_ms       FLOAT,
-    packet_loss_pct FLOAT,
-    packet_counter  BIGINT,
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      VARCHAR(50),
-    changed_dt      TIMESTAMP
-);
-```
-
-### 3.3. Temporary Tables (`TB_T_`)
-
-```sql
--- Raw Ingestion Buffer (High Speed)
-CREATE TABLE tb_t_raw_buffer (
-    id              BIGSERIAL PRIMARY KEY,
-    device_sn       VARCHAR(50) NOT NULL,
-    payload_json    JSONB,
-    received_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_processed    BOOLEAN DEFAULT FALSE
-);
 ```
 
 ## 4. Key Naming Conventions
 
 *   **Primary Keys**: `id` or `[entity]_id`
 *   **Audit Fields**: `created_by`, `created_dt`, `changed_by`, `changed_dt`
-*   **Business Keys**: `_no` or `_code` suffix
-*   **Table Prefixes**: `TB_M_` (Master), `TB_R_` (Transaction), `TB_T_` (Temporary)
+*   **Business Keys**: Prefix + YYYYMMDD + 6-digit seq (e.g., `USR20240101000001`, `PAT...`, `DOC...`, `OPR...`, `ADM...`) or UUID (`recording_id`)
+*   **Table Prefixes**: `tb_m_` (Master), `tb_r_` (Transaction)
 
 ## 5. Indexing & Optimization Strategies
 
@@ -339,11 +280,10 @@ To maintain high performance during national-scale telemetry ingestion, the foll
 1.  **Composite Time-Series Indexes**:
     *   `idx_raw_web_recording_dt` on `tb_r_ecg_raw_web(recording_id, created_dt)`: Optimized for sequential signal retrieval and plotting.
     *   `idx_raw_mobile_recording_dt` on `tb_r_ecg_raw_mobile(recording_id, created_dt)`: Optimized for mobile platform signal retrieval.
-    *   `idx_perf_device_dt` on `tb_r_performance_log(device_id, created_dt)`: Optimized for real-time monitoring and historical performance analysis.
 
 2.  **Lookup & Relationship Indexes**:
     *   `unique_user_sid`: Enforces single-session logic on `tb_m_user(current_session_id)`.
-    *   `idx_patient_user`: Linked index between authentication and clinical profiles.
+    *   `idx_patient_user` / `idx_doctor_user` / `idx_operator_user` / `idx_admin_user`: Linked indexes between authentication and specific clinical profiles.
     *   `idx_session_recording`: Primary identifier for recording sessions and AI classification results.
 
 3.  **Audit & Lifecycle Indexes**:
