@@ -64,17 +64,17 @@ flowchart LR
 flowchart LR
     Start([User Logs In via /login]) --> FetchProf[Fetch Profile Info]
     FetchProf --> CheckRole{Has Assigned Role?}
-    CheckRole -- Yes --> Dashboard[Redirect to Specific Role Dashboard\n(e.g., /patient/dashboard)]
+    CheckRole -- Yes --> Dashboard["Redirect to Specific Role Dashboard\n(e.g., /patient/dashboard)"]
     CheckRole -- No --> ModuleSel[Redirect to /dashboard\nModule Selection]
     
     ModuleSel --> ClickECG[Click 'ECG Monitoring']
     ClickECG --> Onboarding[Redirect to /onboarding\nRole Selection]
     
     Onboarding --> ChooseRole[Select: Patient / Operator / Doctor]
-    ChooseRole --> ProfileForm[Fill details in /onboarding/{role}]
+    ChooseRole --> ProfileForm["Fill details in /onboarding/{role}"]
     ProfileForm --> Submit[Submit Profile Data]
     
-    Submit --> API_Profile[API: POST /api/v1/auth/profile/{role}]
+    Submit --> API_Profile["API: POST /api/v1/auth/profile/{role}"]
     API_Profile --> UpdateDB[(Database: Update TbMUser & Create Profile)]
     UpdateDB --> SetQueue[Set Initial Status: QUEUE]
     SetQueue --> PendingUI[Redirect to Dashboard:\nShow 'Awaiting Approval' State]
@@ -93,8 +93,8 @@ flowchart LR
     PendingList --> Review[Review User & Profile Details]
     Review --> Action{Approve or Reject?}
     
-    Action -- Approve --> API_Approve[API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'APPROVE'}]
-    Action -- Reject --> API_Reject[API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'REJECT'}]
+    Action -- Approve --> API_Approve["API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'APPROVE'}"]
+    Action -- Reject --> API_Reject["API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'REJECT'}"]
     
     API_Approve --> DB_Approve[(Update: is_activated=1,\nstatus=APPROVED)]
     API_Reject --> DB_Reject[(Update: is_activated=0,\nstatus=REJECTED)]
@@ -115,17 +115,17 @@ flowchart LR
 flowchart LR
     %% SWIMLANE: HARDWARE
     subgraph External [External / Hardware]
-        StartStream([Start: MQTT Pub\nTopic: raw/ecg/+])
+        StartStream([Start: MQTT Pub<br>Topic: raw/ecg/+])
     end
 
     %% SWIMLANE: BACKEND SERVICE
     subgraph Backend_Service [backend: services/mqtt/handler]
         direction TB
-        RecvMsg[/service.py: process_samples()/]
+        RecvMsg[/service.py: process_samples/]
         CheckSPS[Calculate True SPS]
-        Filt[[signal_processor.py:\napply_filters()]]
-        BPM["_calculate_live_bpm()"]
-        Perf["_broadcast_performance()"]
+        Filt[[signal_processor.py:<br>apply_filters]]
+        BPM[_calculate_live_bpm]
+        Perf[_broadcast_performance]
         
         RecvMsg --> CheckSPS
         CheckSPS --> Filt
@@ -140,17 +140,22 @@ flowchart LR
     %% SWIMLANE: FRONTEND
     subgraph Frontend [frontend: UI]
         direction TB
-        Batch -.->|WS| SocketRx[/services/socket.ts/]
-        LiveBPM -.->|WS| SocketRx
-        PerfWS -.->|WS| SocketRx
+        SocketRx[/services/socket.ts/]
+        EvBus[services/events.ts: eventBus.emit]
+        Chart[ECGChart.tsx - Chart.js]
+        BPMDisp[Dashboard UI - BPM]
+        ConnStat[ConnectionStatus.tsx - Jitter/Loss]
         
-        SocketRx --> EvBus[services/events.ts: eventBus.emit]
-        EvBus --> Chart["ECGChart.tsx (Chart.js)"]
-        EvBus --> BPMDisp["Dashboard UI (BPM)"]
-        EvBus --> ConnStat["ConnectionStatus.tsx (Jitter/Loss)"]
+        SocketRx --> EvBus
+        EvBus --> Chart
+        EvBus --> BPMDisp
+        EvBus --> ConnStat
     end
 
     StartStream --> RecvMsg
+    Batch -.->|WS| SocketRx
+    LiveBPM -.->|WS| SocketRx
+    PerfWS -.->|WS| SocketRx
 ```
 
 ---
@@ -164,14 +169,14 @@ flowchart LR
     subgraph Recording_Loop [backend: services/mqtt/handler]
         SampleIn([New Processed Sample]) --> CheckRec{state.is_recording?}
         CheckRec -- Yes --> Buffer[Append to: buffer_recording_batch]
-        Buffer --> SendProg[/Broadcast: 'progress_update'/]
+        Buffer --> SendProg[/Broadcast: 'progress_update'//]
         SendProg --> CheckSeg{Samples >= target_buffer_size?}
         
         CheckSeg -- No --> Continue([Wait for next sample])
         CheckSeg -- Yes --> CompleteSeg["_complete_segment()"]
         
         CompleteSeg --> Flush[Flush all buffers to DB]
-        Flush --> TrigML[Trigger: ml_engine.trigger_analysis(old_id)]
+        Flush --> TrigML["Trigger: ml_engine.trigger_analysis(old_id)"]
         TrigML --> NewSeg[Generate new UUID for next segment]
         NewSeg --> CreateDB[(SessionRepository.create_session)]
         CreateDB --> UpdateState[Update state.recording_id]
@@ -184,13 +189,13 @@ flowchart LR
         Fetch --> ExtFeature[[feature_extractor.py]]
         ExtFeature --> Model[[ML Model: Classification]]
         Model --> SaveRes[(SessionRepository.update_analysis_results)]
-        SaveRes --> BroadRes[/Broadcast: 'live_result'/]
+        SaveRes --> BroadRes[/Broadcast: 'live_result'//]
     end
 
     %% SWIMLANE: FRONTEND
     subgraph UI [frontend: AI Analysis]
         BroadRes -.->|WS| StoreUpdate[useStore: addLiveResult]
-        StoreUpdate --> ShowRes[/AIAnalysisCard: Render Classification/]
+        StoreUpdate --> ShowRes[/AIAnalysisCard: Render Classification//]
     end
 ```
 
@@ -243,23 +248,23 @@ flowchart LR
 ```mermaid
 flowchart LR
     %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: History Views]
-        CalLoad([Load Calendar]) --> ReqCal[/API: GET /history/calendar/]
-        StatsLoad([Load Stats]) --> ReqStats[/API: GET /history/stats/]
-        ListLoad([Load Table]) --> ReqList[/API: GET /history/]
-        RowClick([Click Row]) --> ReqDet[/API: GET /history/{recording_id}/]
+    subgraph UI ["frontend: History Views"]
+        CalLoad([Load Calendar]) --> ReqCal["/API: GET /history/calendar/"]
+        StatsLoad([Load Stats]) --> ReqStats["/API: GET /history/stats/"]
+        ListLoad([Load Table]) --> ReqList["/API: GET /history/"]
+        RowClick([Click Row]) --> ReqDet["/API: GET /history/{recording_id}/"]
     end
 
     %% SWIMLANE: BACKEND
-    subgraph API [backend: api/v1/endpoints/history]
-        ReqCal --> CalRepo[(CalendarRepository.get_nodes)]
-        ReqStats --> SessRepoStats[(SessionRepository.get_classification_stats)]
-        ReqList --> SessRepoList[(SessionRepository.search_sessions)]
-        ReqDet --> SessRepoDet[(SessionRepository.find_by_recording_id_or_fail)]
+    subgraph API ["backend: api/v1/endpoints/history"]
+        ReqCal --> CalRepo["(CalendarRepository.get_nodes)"]
+        ReqStats --> SessRepoStats["(SessionRepository.get_classification_stats)"]
+        ReqList --> SessRepoList["(SessionRepository.search_sessions)"]
+        ReqDet --> SessRepoDet["(SessionRepository.find_by_recording_id_or_fail)"]
     end
 
     %% SWIMLANE: RENDER
-    subgraph Render [frontend: UI Components]
+    subgraph Render ["frontend: UI Components"]
         CalRepo -.->|JSON Tree| CalComp[CalendarGrid.tsx]
         SessRepoStats -.->|JSON Stats| StatsComp[ClassificationStats.tsx]
         SessRepoList -.->|JSON List| TableComp[HistoryTable.tsx]
@@ -275,33 +280,33 @@ flowchart LR
 ```mermaid
 flowchart LR
     %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: services/api.ts]
+    subgraph UI ["frontend: services/api.ts"]
         Start([User Clicks Export]) --> Type{Export Type?}
-        Type -- Raw Data --> ReqRaw[/API: GET /export/raw/{id}/]
-        Type -- Feature Data --> ReqFeat[/API: GET /export/features/{id}/]
-        Type -- Visual Plot --> ReqPlot[/API: GET /export/plot/{id}/]
+        Type -- Raw Data --> ReqRaw["/API: GET /export/raw/{id}/"]
+        Type -- Feature Data --> ReqFeat["/API: GET /export/features/{id}/"]
+        Type -- Visual Plot --> ReqPlot["/API: GET /export/plot/{id}/"]
     end
 
     %% SWIMLANE: BACKEND
-    subgraph API [backend: api/v1/endpoints/export.py]
-        ReqRaw --> CheckSrc{Session created_by == 'MOBILE'?}
-        CheckSrc -- Yes --> MobRepo[(RawDataMobileRepository.find_by_recording_id)]
-        CheckSrc -- No --> StdRepo[(RawDataRepository.find_by_recording_id)]
+    subgraph API ["backend: api/v1/endpoints/export.py"]
+        ReqRaw --> CheckSrc{"Session created_by == 'MOBILE'?"}
+        CheckSrc -- Yes --> MobRepo[("RawDataMobileRepository.find_by_recording_id")]
+        CheckSrc -- No --> StdRepo[("RawDataRepository.find_by_recording_id")]
         
-        MobRepo --> PandasCSV[pd.DataFrame -> to_csv]
+        MobRepo --> PandasCSV["pd.DataFrame -> to_csv"]
         StdRepo --> PandasCSV
         
-        ReqFeat --> FeatProc[Extract Session Metadata] --> PandasCSV
+        ReqFeat --> FeatProc["Extract Session Metadata"] --> PandasCSV
         
-        ReqPlot --> PlotSvc[[services/export/plot_generator.py]]
-        PlotSvc --> RunInPool[Run in ThreadPoolExecutor]
-        RunInPool --> MatPlot[matplotlib -> BytesIO]
+        ReqPlot --> PlotSvc[["services/export/plot_generator.py"]]
+        PlotSvc --> RunInPool["Run in ThreadPoolExecutor"]
+        RunInPool --> MatPlot["matplotlib -> BytesIO"]
     end
 
     %% SWIMLANE: BROWSER
-    subgraph Browser [Client Browser]
-        PandasCSV -.->|StreamingResponse| DownloadCSV([Save .csv])
-        MatPlot -.->|StreamingResponse| DownloadPNG([Save .png])
+    subgraph Browser ["Client Browser"]
+        PandasCSV -.->|StreamingResponse| DownloadCSV(["Save .csv"])
+        MatPlot -.->|StreamingResponse| DownloadPNG(["Save .png"])
     end
 ```
 
