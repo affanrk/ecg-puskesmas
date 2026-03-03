@@ -1,4 +1,6 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { ProfileData, User, ApprovalLog } from '@/types/user';
+import { ApiErrorResponse, ApiValidationError, ParsedApiError } from '@/types/api';
 
 export function escapeHtml(text: string | null | undefined): string {
     if (text === null || text === undefined) return "-";
@@ -34,9 +36,12 @@ export function formatDateShort(isoString: string | null | undefined): string {
     });
 }
 
-export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number) {
+export function debounce<Args extends string | number | boolean | object | null | undefined>(
+    func: (...args: Args[]) => void, 
+    wait: number
+) {
     let timeout: NodeJS.Timeout;
-    return function executedFunction(...args: Parameters<T>) {
+    return function executedFunction(...args: Args[]) {
         const later = () => {
             clearTimeout(timeout);
             func(...args);
@@ -62,7 +67,7 @@ export function calculateAge(birthDateString: string | null | undefined): number
 }
 
 export function getApiUrl(): string {
-    const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
+    const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
     let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
     url = url.replace(/\/$/, '');
@@ -83,13 +88,12 @@ export function getApiUrl(): string {
     return url;
 }
 
-export interface ParsedApiError {
-    message: string;
-    fieldErrors: Record<string, string>;
-    status?: number;
+export function getActiveProfile(user: User | ApprovalLog | null | undefined): ProfileData {
+    if (!user) return {};
+    return (user.patient_profile || user.operator_profile || user.doctor_profile || {}) as ProfileData;
 }
 
-export function parseApiError(err: unknown): ParsedApiError {
+export function parseApiError(err: Error | AxiosError<ApiErrorResponse> | object): ParsedApiError {
     const result: ParsedApiError = {
         message: "An unexpected error occurred",
         fieldErrors: {},
@@ -98,51 +102,50 @@ export function parseApiError(err: unknown): ParsedApiError {
     if (axios.isAxiosError(err)) {
         if (err.response) {
             result.status = err.response.status;
-            const data = err.response.data as {
-                error?: {
-                    type?: string;
-                    message: string;
-                    details?: unknown;
-                };
-                detail?: string | Array<{ loc: string[]; msg: string }>;
+            const data = err.response.data;
+
+            const mainMsg = data.error?.message || (typeof data.detail === 'string' ? data.detail : result.message);
+            result.message = mainMsg;
+
+            const extractFromDetails = (details: ApiErrorResponse['detail'] | (NonNullable<ApiErrorResponse['error']>['details'])) => {
+                if (!details || typeof details !== 'object') return;
+
+                if ('field' in details && typeof details.field === 'string') {
+                    const field = details.field;
+                    const msg = String(('message' in details ? details.message : ('error' in details ? details.error : mainMsg)) || mainMsg);
+                    result.fieldErrors[field] = msg;
+                    return;
+                }
+
+                if (Array.isArray(details)) {
+                    (details as ApiValidationError[]).forEach((e) => {
+                        if (e.loc && Array.isArray(e.loc)) {
+                            const field = String(e.loc[e.loc.length - 1]);
+                            result.fieldErrors[field] = e.msg;
+                        }
+                    });
+                    return;
+                }
+
+                Object.entries(details as Record<string, string | string[] | number | boolean>).forEach(([key, value]) => {
+                    if (typeof value === 'string') {
+                        if (value.length > 5 && value.includes(' ')) {
+                            result.fieldErrors[key] = value;
+                        } else if (result.status === 400 || result.status === 409 || result.status === 422) {
+                            result.fieldErrors[key] = mainMsg;
+                        } else {
+                            result.fieldErrors[key] = value;
+                        }
+                    } else if (Array.isArray(value)) {
+                        result.fieldErrors[key] = String(value[0]);
+                    }
+                });
             };
 
-            if (data.error) {
-                result.message = data.error.message || result.message;
-                
-                if (data.error.details && Array.isArray(data.error.details)) {
-                    data.error.details.forEach((e: { loc: string[]; msg: string }) => {
-                        const field = e.loc[e.loc.length - 1];
-                        result.fieldErrors[field] = e.msg;
-                    });
-                } else if (data.error.details && typeof data.error.details === 'object' && data.error.details !== null) {
-                    const keys = Object.keys(data.error.details);
-                    const details = data.error.details as Record<string, unknown>;
-                    if (keys.includes('nik')) {
-                        result.fieldErrors['nik'] = data.error.message;
-                        result.message = '';
-                    } else if (keys.includes('email')) {
-                        result.fieldErrors['email'] = data.error.message;
-                        result.message = '';
-                    } else if (keys.includes('username')) {
-                        result.fieldErrors['username'] = data.error.message;
-                        result.message = '';
-                    } else if (keys.length === 1 && typeof details[keys[0]] !== 'object') {
-                        result.fieldErrors[keys[0]] = data.error.message;
-                        result.message = '';
-                    }
-                }
-            }
-            else if (data.detail) {
-                if (typeof data.detail === 'string') {
-                    result.message = data.detail;
-                } else if (Array.isArray(data.detail)) {
-                    result.message = "Validation failed";
-                    data.detail.forEach((e: { loc: string[]; msg: string }) => {
-                        const field = e.loc[e.loc.length - 1];
-                        result.fieldErrors[field] = e.msg;
-                    });
-                }
+            if (data.error?.details) {
+                extractFromDetails(data.error.details);
+            } else if (data.detail) {
+                extractFromDetails(data.detail);
             }
         } else {
             result.message = "Network error. Please check your connection or server status.";

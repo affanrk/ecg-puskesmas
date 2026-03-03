@@ -4,11 +4,6 @@ import { useStore } from '@/store/useStore';
 import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
 
-export interface Device {
-    id: string;
-    is_locked: boolean;
-}
-
 export function useDeviceManager() {
     const { currentDeviceId, setDeviceId, isRecording, setRecording, devices, setBpm } = useStore();
     const { show: toast } = useToast();

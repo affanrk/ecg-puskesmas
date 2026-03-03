@@ -54,7 +54,7 @@ export default function ClassifierToolbar({
                         setDateRange({ start: '', end: '' });
                     }
                 }
-            }) as unknown as FlatpickrInstance;
+            }) as object as FlatpickrInstance;
         }
         return () => {
             if (fpRef.current) {

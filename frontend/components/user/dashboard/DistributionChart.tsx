@@ -60,7 +60,7 @@ export default function DistributionChart({ stats, isVertical = false }: Distrib
                     generateLabels: (chart: ChartJS): LegendItem[] => {
                         const data = chart.data;
                         if (data.labels && data.labels.length && data.datasets.length) {
-                            return data.labels.map((label: unknown, i: number): LegendItem => ({
+                            return (data.labels as string[]).map((label: string, i: number): LegendItem => ({
                                 text: `${String(label).toUpperCase()} (${(data.datasets[0].data as number[])[i]})`,
                                 fillStyle: (data.datasets[0].backgroundColor as string[])[i],
                                 strokeStyle: '#fff',

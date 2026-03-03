@@ -2,7 +2,8 @@
 
 import clsx from 'clsx';
 import { ShieldCheck, AlertCircle, Activity, Settings2, Clock } from 'lucide-react';
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface ProfileHeaderProps {
     user: User | null;
@@ -35,11 +36,11 @@ export default function ProfileHeader({ user, isLocked, activeTab, setActiveTab 
                 </div>
                 <div className="space-y-1.5 text-center md:text-left">
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{user.full_name || user.username}</h1>
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight leading-none">{(getActiveProfile(user)?.full_name || "") || user.username}</h1>
                     </div>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-0.5">
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wider border border-slate-200">
-                            NIK: {user.nik || "---"}
+                            NIK: {(getActiveProfile(user)?.nik || "") || "---"}
                         </div>
                         <span className={clsx("px-2.5 py-1 rounded-md text-[9px] font-bold uppercase tracking-wider border flex items-center gap-1.5 shadow-sm", 
                             isActivated ? "bg-emerald-50 text-emerald-700 border-emerald-100" : 

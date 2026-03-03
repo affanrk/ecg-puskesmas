@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useEffect, useRef } from 'react';
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
 import {
     ChevronLeft,
     ChevronRight,
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { formatDateShort } from '@/utils/helpers';
+import { getActiveProfile } from '@/utils/helpers';
 
 const UserTableRow = memo(({
     user,
@@ -26,14 +27,14 @@ const UserTableRow = memo(({
                     {user.username.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
-                    <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">{user.full_name || user.username}</p>
-                    <p className="text-[9px] font-bold text-slate-400">{user.full_name ? `@${user.username}` : '---'}</p>
+                    <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">{(getActiveProfile(user)?.full_name || "") || user.username}</p>
+                    <p className="text-[9px] font-bold text-slate-400">{(getActiveProfile(user)?.full_name || "") ? `@${user.username}` : '---'}</p>
                 </div>
             </div>
         </td>
         <td className="px-5 whitespace-nowrap">
             <div>
-                <p className="text-[10px] font-mono font-black text-slate-500 group-hover:text-slate-700 transition-colors">{user.nik || 'No NIK'}</p>
+                <p className="text-[10px] font-mono font-black text-slate-500 group-hover:text-slate-700 transition-colors">{(getActiveProfile(user)?.nik || "") || 'No NIK'}</p>
                 <p className="text-[9px] font-bold text-slate-400">{user.email}</p>
             </div>
         </td>

@@ -1,6 +1,6 @@
 # System Flow Documentation (Technical Swimlanes)
 
-This document maps the architectural flows using standard flowchart notation organized into "Swimlanes" (Subsystems). It reflects the refactored project structure with distinct `frontend/` (Next.js) and `backend/` (FastAPI) applications.
+This document maps the architectural flows using standard flowchart notation organized into "Swimlanes" (Subsystems). It reflects the current project structure with distinct role-based dashboards, multi-step onboarding flows, admin approval mechanisms, and continuous ML segmentation loops.
 
 **Notation Legend:**
 - `([Start/End])`: Terminal Point (Trigger or End of flow).
@@ -12,158 +12,142 @@ This document maps the architectural flows using standard flowchart notation org
 
 ---
 
-## 0. Master System Flow (Dual-Stream Convergence & Handling)
-*Comprehensive view: Normal Flow (User/Hardware) + Abnormal Conditions (Watchdog/Errors/Network).*
-*(Source file: `System Flow - ECG Platform.drawio.xml`)*
+## 0. Master System Flow (Lifecycle & Governance)
+*Comprehensive view: From Registration to Role-Based Monitoring and Analytics.*
 
 ```mermaid
 flowchart LR
-    %% --- SWIMLANE 1: USER INTERACTIONS ---
-    subgraph User_Lane [User Interaction]
-        direction TB
-        Start_User([User Opens App])
-        SelectDev[Select Device\n(Dropdown)]
-        ClickRec[Click 'Start Recording']
-        Watch[Watch Live Graph]
-        SeeResult[View Diagnosis]
-        HandleErr[See Error/Offline Alert]
+    %% --- REGISTRATION & ONBOARDING ---
+    subgraph Onboarding_Lane [Onboarding & Identity]
+        Reg([Register User]) --> Login[/Login/]
+        Login --> CheckRole{Has Role?}
+        CheckRole -- No --> ModSel[Module Selection]
+        ModSel --> ECG_Mod[ECG Monitoring]
+        ECG_Mod --> RoleSel[Choose Role: Patient/Staff/Doctor]
+        RoleSel --> ProfForm[Fill Profile Details]
+        ProfForm --> SubQueue[Status: QUEUE]
     end
 
-    %% --- SWIMLANE 2: FRONTEND SYSTEM ---
-    subgraph Frontend_Lane [Frontend UI]
-        direction TB
-        WS_Conn[Global WS Connection\nFile: AppLayout.tsx]
-        WS_Sub[WS Send: 'subscribe_to_device'\nEndpoint: /api/v1/ws]
-        WS_Start[WS Send: 'start_recording'\nPayload: {type: 'start_recording'}]
-        Render[Render Live Batch\nComp: ECGChart.tsx]
-        ShowAlert[Show Result Popup\nComp: AIAnalysisCard.tsx]
-        ShowPerf[Show Network/Jitter\nComp: ConnectionStatus.tsx]
-        ResetUI[Reset UI (Global)\nStore: useStore.ts]
+    %% --- ADMIN GOVERNANCE ---
+    subgraph Admin_Lane [Admin Governance]
+        SubQueue -.-> PendList[Pending Approvals]
+        PendList --> Review{Approve?}
+        Review -- Yes --> Approved[Status: APPROVED]
+        Review -- No --> Rejected[Status: REJECTED]
     end
 
-    %% --- SWIMLANE 3: BACKEND CONTROL ---
-    subgraph Backend_Control [Backend API & State]
-        direction TB
-        Hdl_Sub[Handle Subscription]
-        Reg_Conn[Register Connection]
-        Rec_Cmd[Handle Start Command]
-        Set_State[Set State: Recording=True]
-        
-        WS_Live[WS: 'live_batch']
-        WS_Res[WS: 'live_result']
-        WS_Perf[WS: 'performance_update'\n(Latency, Jitter, Loss)]
-        WS_Disc[WS: 'device_disconnected']
-        WS_Err[WS: 'error']
+    %% --- ACTIVE MONITORING ---
+    subgraph Monitoring_Lane [Active Monitoring]
+        CheckRole -- Yes --> Dash[Role Dashboard]
+        Approved -.-> Dash
+        Dash --> SelectDev[Select Device]
+        SelectDev --> LiveWatch[Watch Live Stream & BPM]
+        LiveWatch --> RecStart[Start Recording]
+        RecStart --> SegLoop[[Data Segment Loop]]
+        SegLoop --> AI_Res[View AI Results]
     end
 
-    %% --- SWIMLANE 4: HARDWARE SOURCE ---
-    subgraph Hardware_Lane [Hardware Source]
-        Start_HW([Device Hardware])
-        Stop_HW([Device Stop/Crash])
+    %% --- HISTORY & ARCHIVE ---
+    subgraph History_Lane [History & Archive]
+        AI_Res -.-> DB_Sess[(Database)]
+        DB_Sess -.-> Hist[Calendar & History View]
+        Hist --> Export[Export CSV/Plot]
     end
-
-    %% --- SWIMLANE 5: BACKEND DATA PROCESSING ---
-    subgraph Backend_Data [Backend Data Processing]
-        direction TB
-        Ingest[MQTT Ingest\nTopic: raw/ecg/+]
-        Watchdog[Watchdog Timer\nCheck: LastSeen > 2s]
-        Calc_Perf[Calc Performance\n(Timestamp Diff)]
-        
-        Dec_Rec{Is Recording?}
-        Buffer[Buffer Data]
-        Flush[Flush to DB]
-        Trigger[Trigger AI]
-        AI_Process[AI Inference]
-        
-        Err_Hdl{Any Error?}
-    end
-
-    %% --- SWIMLANE 6: DATABASE ---
-    subgraph DB_Lane [Database]
-        direction TB
-        DB_Sess[(INSERT Session)]
-        DB_Raw[(INSERT Raw)]
-        DB_Read[(SELECT Raw)]
-        DB_Save[(UPDATE Result)]
-    end
-
-    %% ==========================================
-    %% NORMAL FLOW
-    %% ==========================================
-    Start_User --> SelectDev --> WS_Sub --> Hdl_Sub --> Reg_Conn
-    Start_HW --> Ingest
-
-    %% Monitoring & Convergence
-    Ingest --> Dec_Rec
-    Dec_Rec -- "False" --> WS_Live
-    Reg_Conn -.-> WS_Live
-    WS_Live --> Render --> Watch
-
-    %% Performance Monitoring (Side Flow)
-    Ingest --> Calc_Perf --> WS_Perf --> ShowPerf --> Watch
-
-    %% Recording Flow
-    Watch --> ClickRec --> WS_Start --> Rec_Cmd --> DB_Sess --> Set_State
-    Set_State -.-> Dec_Rec
-    Dec_Rec -- "True" --> Buffer --> Flush --> DB_Raw --> Trigger
-    Trigger --> DB_Read --> AI_Process --> DB_Save --> WS_Res --> ShowAlert --> SeeResult
-
-    %% ==========================================
-    %% ABNORMAL / UNIDEAL FLOWS
-    %% ==========================================
-
-    %% 1. DEVICE DISCONNECTION (Watchdog)
-    Start_HW -.-> Stop_HW
-    Ingest -.->|No Data| Watchdog
-    Watchdog -- "Timeout" --> WS_Disc
-    WS_Disc --> ResetUI --> HandleErr
-
-    %% 2. ERROR HANDLING (System-wide)
-    Rec_Cmd -.->|DB Fail| Err_Hdl
-    Flush -.->|DB Fail| Err_Hdl
-    AI_Process -.->|Model Fail| Err_Hdl
-    Err_Hdl --> WS_Err --> ResetUI
 ```
-## 1. Live Data Ingestion Pipeline
-*Flow: From hardware MQTT publication to Frontend Visualization.*
+
+---
+
+## 1. Onboarding & Role Assignment
+*Flow: Preventing unverified access and enforcing clinical identity before users can access live data.*
+
+```mermaid
+flowchart LR
+    Start([User Logs In via /login]) --> FetchProf[Fetch Profile Info]
+    FetchProf --> CheckRole{Has Assigned Role?}
+    CheckRole -- Yes --> Dashboard[Redirect to Specific Role Dashboard\n(e.g., /patient/dashboard)]
+    CheckRole -- No --> ModuleSel[Redirect to /dashboard\nModule Selection]
+    
+    ModuleSel --> ClickECG[Click 'ECG Monitoring']
+    ClickECG --> Onboarding[Redirect to /onboarding\nRole Selection]
+    
+    Onboarding --> ChooseRole[Select: Patient / Operator / Doctor]
+    ChooseRole --> ProfileForm[Fill details in /onboarding/{role}]
+    ProfileForm --> Submit[Submit Profile Data]
+    
+    Submit --> API_Profile[API: POST /api/v1/auth/profile/{role}]
+    API_Profile --> UpdateDB[(Database: Update TbMUser & Create Profile)]
+    UpdateDB --> SetQueue[Set Initial Status: QUEUE]
+    SetQueue --> PendingUI[Redirect to Dashboard:\nShow 'Awaiting Approval' State]
+```
+
+---
+
+## 2. Admin Approval Workflow
+*Flow: Manual verification of clinical staff and patients by Administrators.*
+
+```mermaid
+flowchart LR
+    AdminLogin([Admin Logs In]) --> AdminDash[Admin Dashboard /admin/dashboard]
+    AdminDash --> PendingList[API: GET /api/v1/admin/pending-approvals]
+    
+    PendingList --> Review[Review User & Profile Details]
+    Review --> Action{Approve or Reject?}
+    
+    Action -- Approve --> API_Approve[API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'APPROVE'}]
+    Action -- Reject --> API_Reject[API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'REJECT'}]
+    
+    API_Approve --> DB_Approve[(Update: is_activated=1,\nstatus=APPROVED)]
+    API_Reject --> DB_Reject[(Update: is_activated=0,\nstatus=REJECTED)]
+    
+    DB_Approve --> LogApprove[(Insert: TbRLogApproval)]
+    DB_Reject --> LogReject[(Insert: TbRLogApproval)]
+    
+    LogApprove --> UserNotify[User Access Granted on Next Load]
+    LogReject --> UserNotify[User Prompted to Update Profile]
+```
+
+---
+
+## 3. Live Data Ingestion Pipeline
+*Flow: From hardware MQTT publication to Frontend Visualization including filtering, live BPM, and network performance calculation.*
 
 ```mermaid
 flowchart LR
     %% SWIMLANE: HARDWARE
     subgraph External [External / Hardware]
-        StartStream([Start: MQTT Pub])
+        StartStream([Start: MQTT Pub\nTopic: raw/ecg/+])
     end
 
     %% SWIMLANE: BACKEND SERVICE
-    subgraph Backend_Service [backend: services/mqtt]
+    subgraph Backend_Service [backend: services/mqtt/handler]
         direction TB
-        RecvMsg[/handler.py: _handle_message/]
-        Parse[[protocol.py: parse_packet]]
-        CheckNew{New Device?}
+        RecvMsg[/service.py: process_samples()/]
+        CheckSPS[Calculate True SPS]
+        Filt[[signal_processor.py:\napply_filters()]]
+        BPM["_calculate_live_bpm()"]
+        Perf["_broadcast_performance()"]
         
-        RecvMsg --> CheckNew
-        CheckNew -- Yes --> NotifyList[/Notify List Update/]
-        CheckNew -- No --> Parse
+        RecvMsg --> CheckSPS
+        CheckSPS --> Filt
+        CheckSPS --> BPM
+        CheckSPS --> Perf
         
-        Parse --> Process["handler.py: process_samples()"]
-        Process --> Jitter["handler.py: _handle_jitter_buffer()"]
-        Jitter --> LiveCalc["handler.py: _process_single_sample()"]
-    end
-
-    %% SWIMLANE: BACKEND STATE
-    subgraph Backend_State [backend: services/device]
-        LiveCalc --> Thrott{Throttle Limit?}
-        Thrott -- Pass --> BroadWS[/state.py: broadcast_to_device/]
-        Thrott -- Block --> Drop([End: Drop Frame])
+        Filt --> Batch[/Broadcast: 'live_batch'/]
+        BPM --> LiveBPM[/Broadcast: 'calculate_live_bpm'/]
+        Perf --> PerfWS[/Broadcast: 'performance_update'/]
     end
 
     %% SWIMLANE: FRONTEND
     subgraph Frontend [frontend: UI]
         direction TB
-        BroadWS -.->|WS: live_data| SocketRx[/services/socket.ts: onmessage/]
-        SocketRx --> EvBus[services/events.ts: globalEventBus emit 'chart:ecg_data']
-        EvBus --> Chart["components/monitor/ECGChart.tsx: Chart.js update"]
-        Chart --> Render([End: Render Graph])
+        Batch -.->|WS| SocketRx[/services/socket.ts/]
+        LiveBPM -.->|WS| SocketRx
+        PerfWS -.->|WS| SocketRx
+        
+        SocketRx --> EvBus[services/events.ts: eventBus.emit]
+        EvBus --> Chart["ECGChart.tsx (Chart.js)"]
+        EvBus --> BPMDisp["Dashboard UI (BPM)"]
+        EvBus --> ConnStat["ConnectionStatus.tsx (Jitter/Loss)"]
     end
 
     StartStream --> RecvMsg
@@ -171,53 +155,49 @@ flowchart LR
 
 ---
 
-## 2. Recording Session Control
-*Flow: Split into (A) The Command to Start and (B) The Data Storage Loop.*
+## 4. Continuous Recording & Segmentation Loop
+*Flow: Continuous recording with automatic segment handling. Once a buffer fills, it flushes to the DB, triggers ML inference in the background, and seamlessly starts a new recording UUID for the next segment.*
 
 ```mermaid
 flowchart LR
-    %% SWIMLANE: FRONTEND USER INTERACTION
-    subgraph Frontend [frontend: User Action]
-        direction TB
-        UserStart([Start: Click 'Start Session'])
-        ValInput{Valid Input?}
+    %% SWIMLANE: BACKEND DATA STORAGE
+    subgraph Recording_Loop [backend: services/mqtt/handler]
+        SampleIn([New Processed Sample]) --> CheckRec{state.is_recording?}
+        CheckRec -- Yes --> Buffer[Append to: buffer_recording_batch]
+        Buffer --> SendProg[/Broadcast: 'progress_update'/]
+        SendProg --> CheckSeg{Samples >= target_buffer_size?}
         
-        UserStart --> ValInput
-        ValInput -- No --> Toast[/useToast: show error/]
-        ValInput -- Yes --> SendCmd[/services/socket.ts: sendJson 'start_recording'/]
-    end
-
-    %% SWIMLANE: BACKEND CONTROL (API)
-    subgraph Backend_Control [backend: api/v1/endpoints]
-        direction TB
-        SendCmd -.->|WS Payload| Endpoint[websocket.py: websocket_endpoint]
-        Endpoint --> ParseReq[Parse Patient Data]
-        ParseReq --> CreateSess[(repositories/session.py: SessionRepository.create_session)]
-        CreateSess --> SetFlag[services/device/state.py: is_recording = True]
-        SetFlag --> BroadState[/state.py: notify_state_update/]
-    end
-
-    %% SWIMLANE: BACKEND DATA (STREAMING)
-    subgraph Backend_Data [backend: services/recording]
-        direction TB
-        Incoming([Start: New Sample Stream]) --> CheckFlag{is_recording?}
+        CheckSeg -- No --> Continue([Wait for next sample])
+        CheckSeg -- Yes --> CompleteSeg["_complete_segment()"]
         
-        CheckFlag -- No --> Skip([Skip Storage])
-        CheckFlag -- Yes --> Buffer["storage.py: _store_recording_data()"]
-        Buffer --> AddBatch[(Buffer: Append to Batch)]
-        AddBatch --> BackgroundDB[(Background: Flush to DB)]
+        CompleteSeg --> Flush[Flush all buffers to DB]
+        Flush --> TrigML[Trigger: ml_engine.trigger_analysis(old_id)]
+        TrigML --> NewSeg[Generate new UUID for next segment]
+        NewSeg --> CreateDB[(SessionRepository.create_session)]
+        CreateDB --> UpdateState[Update state.recording_id]
+        UpdateState --> Continue
     end
 
-    %% CONNECTIONS
-    Toast --> EndUser([End])
-    BroadState -.->|Update UI| Frontend
-    SetFlag -.->|Controls| CheckFlag
+    %% SWIMLANE: ML WORKER
+    subgraph Analysis [backend: services/analysis]
+        TrigML -.->|Async Task| Fetch[(RawDataRepository.get_raw_data)]
+        Fetch --> ExtFeature[[feature_extractor.py]]
+        ExtFeature --> Model[[ML Model: Classification]]
+        Model --> SaveRes[(SessionRepository.update_analysis_results)]
+        SaveRes --> BroadRes[/Broadcast: 'live_result'/]
+    end
+
+    %% SWIMLANE: FRONTEND
+    subgraph UI [frontend: AI Analysis]
+        BroadRes -.->|WS| StoreUpdate[useStore: addLiveResult]
+        StoreUpdate --> ShowRes[/AIAnalysisCard: Render Classification/]
+    end
 ```
 
 ---
 
-## 3. Watchdog & Disconnect Handling (Strict Mode)
-*Flow: Real-time detection of lost connection (2.0s timeout).*
+## 5. Watchdog & Disconnect Handling (Strict Mode)
+*Flow: Real-time detection of lost connection ensuring UI resets and resources are freed.*
 
 ```mermaid
 flowchart LR
@@ -226,7 +206,7 @@ flowchart LR
         direction TB
         Timer([Start: watchdog.py Timer 0.5s])
         CheckLoop[Iterate All Devices]
-        CalcDiff[Diff = Now - LastSeen]
+        CalcDiff[Diff = Now - state.last_seen]
         
         Timer --> CheckLoop --> CalcDiff
         
@@ -235,43 +215,103 @@ flowchart LR
         
         CalcDiff --> IsOffline
         IsOffline -- Yes --> MarkOff[Set Status: Offline]
-        IsOffline -- No --> Cont1[Continue]
         
         CalcDiff --> IsDisc
-        IsDisc -- Yes --> GetRecState[Get 'was_recording' State]
-        IsDisc -- No --> Cont2[Continue]
+        IsDisc -- Yes --> Cleanup["state.py: _cleanup_device()"]
     end
 
     %% SWIMLANE: DISCONNECTION LOGIC
-    subgraph Cleanup_Logic [backend: state.py cleanup]
-        direction TB
-        GetRecState --> Payload[/"Construct Payload (reason, was_recording)"/]
-        Payload --> Broadcast[/state.py: broadcast_to_device 'device_disconnected'/]
-        Broadcast --> CancelRec["_cancel_device_recording()"]
-        CancelRec --> WipeMem["_cleanup_device()"]
+    subgraph Cleanup_Logic [backend: state cleanup]
+        Cleanup --> GetRecState[Check if was_recording]
+        GetRecState --> CancelRec["_cancel_device_recording()"]
+        CancelRec --> Broadcast[/Broadcast: 'device_disconnected'/]
     end
 
     %% SWIMLANE: FRONTEND RESPONSE
     subgraph Frontend_UI [frontend: useStore/socket.ts]
-        direction TB
-        Broadcast -.->|WS Event| HdlDisc[socket.ts: handleMessage 'device_disconnected']
-        HdlDisc --> ResetUI[useStore.ts: setDeviceId null -> Clear UI]
-        
-        ResetUI --> CheckFlag{Payload.was_recording?}
-        CheckFlag -- Yes --> Alert[/useToast: 'Recording Stopped'/]
-        CheckFlag -- No --> Toast[/useToast: 'Disconnected'/]
+        Broadcast -.->|WS Event| HdlDisc[socket.ts: handleMessage]
+        HdlDisc --> ResetUI[useStore: setDeviceId null, clear buffers]
+        ResetUI --> Toast[/useToast: 'Disconnected'/]
     end
-    
-    WipeMem --> EndWD([End Cycle])
 ```
 
 ---
 
-## 4. WebSocket: Session Enforcement (Last Login Wins)
-*Flow: Preventing multiple concurrent connections for the same account.*
+## 6. History: Archives & Analytics
+*Flow: Fetching paginated history data, calendar views, classification stats, and detailed segment analysis.*
 
 ```mermaid
-flowchart TD
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [frontend: History Views]
+        CalLoad([Load Calendar]) --> ReqCal[/API: GET /history/calendar/]
+        StatsLoad([Load Stats]) --> ReqStats[/API: GET /history/stats/]
+        ListLoad([Load Table]) --> ReqList[/API: GET /history/]
+        RowClick([Click Row]) --> ReqDet[/API: GET /history/{recording_id}/]
+    end
+
+    %% SWIMLANE: BACKEND
+    subgraph API [backend: api/v1/endpoints/history]
+        ReqCal --> CalRepo[(CalendarRepository.get_nodes)]
+        ReqStats --> SessRepoStats[(SessionRepository.get_classification_stats)]
+        ReqList --> SessRepoList[(SessionRepository.search_sessions)]
+        ReqDet --> SessRepoDet[(SessionRepository.find_by_recording_id_or_fail)]
+    end
+
+    %% SWIMLANE: RENDER
+    subgraph Render [frontend: UI Components]
+        CalRepo -.->|JSON Tree| CalComp[CalendarGrid.tsx]
+        SessRepoStats -.->|JSON Stats| StatsComp[ClassificationStats.tsx]
+        SessRepoList -.->|JSON List| TableComp[HistoryTable.tsx]
+        SessRepoDet -.->|JSON Detail| DetailModal[PatientModal.tsx]
+    end
+```
+
+---
+
+## 7. Export Data Pipeline
+*Flow: Generating downloadable reports (CSV datasets and PNG plots).*
+
+```mermaid
+flowchart LR
+    %% SWIMLANE: FRONTEND
+    subgraph UI [frontend: services/api.ts]
+        Start([User Clicks Export]) --> Type{Export Type?}
+        Type -- Raw Data --> ReqRaw[/API: GET /export/raw/{id}/]
+        Type -- Feature Data --> ReqFeat[/API: GET /export/features/{id}/]
+        Type -- Visual Plot --> ReqPlot[/API: GET /export/plot/{id}/]
+    end
+
+    %% SWIMLANE: BACKEND
+    subgraph API [backend: api/v1/endpoints/export.py]
+        ReqRaw --> CheckSrc{Session created_by == 'MOBILE'?}
+        CheckSrc -- Yes --> MobRepo[(RawDataMobileRepository.find_by_recording_id)]
+        CheckSrc -- No --> StdRepo[(RawDataRepository.find_by_recording_id)]
+        
+        MobRepo --> PandasCSV[pd.DataFrame -> to_csv]
+        StdRepo --> PandasCSV
+        
+        ReqFeat --> FeatProc[Extract Session Metadata] --> PandasCSV
+        
+        ReqPlot --> PlotSvc[[services/export/plot_generator.py]]
+        PlotSvc --> RunInPool[Run in ThreadPoolExecutor]
+        RunInPool --> MatPlot[matplotlib -> BytesIO]
+    end
+
+    %% SWIMLANE: BROWSER
+    subgraph Browser [Client Browser]
+        PandasCSV -.->|StreamingResponse| DownloadCSV([Save .csv])
+        MatPlot -.->|StreamingResponse| DownloadPNG([Save .png])
+    end
+```
+
+---
+
+## 8. WebSocket: Session Enforcement (Last Login Wins)
+*Flow: Preventing multiple concurrent connections for the same account to ensure data integrity and avoid cross-session pollution.*
+
+```mermaid
+flowchart LR
     %% SWIMLANE: TRIGGER
     subgraph Connection [Client Connection]
         StartWS([Start: WS Handshake]) --> Token[/Payload: ?token=JWT/]
@@ -280,279 +320,17 @@ flowchart TD
     %% SWIMLANE: BACKEND VALIDATION
     subgraph Validation [backend: api/v1/endpoints/websocket.py]
         Token --> VerifyTok[Verify JWT & Extract 'sid']
-        VerifyTok --> FetchDB[(UserRepository.get_current_session_id)]
-        FetchDB --> Compare{sid == DB.current_session_id?}
+        VerifyTok --> Recheck[(UserRepository.get_current_session_id)]
+        Recheck --> Compare{JWT 'sid' == DB current_session_id?}
         
         Compare -- No --> CloseWS([End: Close Connection 4003])
-        Compare -- Yes --> AcceptWS[Accept WebSocket & Register]
+        Compare -- Yes --> KickPrev[[device_state_manager.kick_unauthorized_sessions]]
+        KickPrev --> AcceptWS[Accept WebSocket & Register]
     end
 
-    %% SWIMLANE: RUNTIME CHECK
+    %% SWIMLANE: RUNTIME
     subgraph Runtime [WebSocket Loop]
-        AcceptWS --> Incoming[/Any Command/]
-        Incoming --> ReCheck{sid Valid?}
-        ReCheck -- No --> Kick([End: Force Close])
-        ReCheck -- Yes --> Process[Handle Command]
-    end
-```
-
----
-
-## 5. Device List Synchronization (Implicit Disconnect)
-*Flow: Handling race conditions where Watchdog clears device before UI updates.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: BACKEND
-    subgraph Backend_MQTT [backend: services/mqtt/handler.py]
-        MsgIn([Start: Message Received]) --> CheckStatus{Status Changed?}
-        CheckStatus -- Yes --> InitDev[Init Device State]
-        InitDev --> SendList[/Notify: device_list_update/]
-        CheckStatus -- No --> Ignore([Ignore Update])
-    end
-
-    %% SWIMLANE: FRONTEND
-    subgraph Frontend_Logic [frontend: useStore / useDeviceManager]
-        SendList -.->|WS Event| Render[useStore: setDevices]
-        Render --> LoopCheck{Current Device Missing?}
-        
-        LoopCheck -- Yes --> TriggerDisc[socket.ts: handleMessage 'device_disconnected']
-        LoopCheck -- No --> UpdateUI[UI: DeviceDropdown Update]
-        
-        TriggerDisc --> ResetComp[[useStore: resetSession]]
-    end
-    
-    ResetComp --> EndSync([End])
-    UpdateUI --> EndSync
-```
-
----
-
-## 6. ML Analysis & Feedback Loop
-*Flow: Post-processing of completed recording segments.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: TRIGGER
-    subgraph Handler [backend: services/mqtt/handler.py]
-        SampleCount([Start: 1000 samples collected]) --> SegComp["_complete_segment()"]
-        SegComp --> TrigML["services/analysis/ml_engine.py: trigger_analysis()"]
-    end
-
-    %% SWIMLANE: ML WORKER
-    subgraph Worker_Thread [backend: services/analysis]
-        direction TB
-        TrigML --> ThreadPool[Run in ThreadPool]
-        ThreadPool --> FetchDB[(repositories/session.py: RawDataRepository.get_raw_data)]
-        FetchDB --> FeatExt[[feature_extractor.py: extract]]
-        FeatExt --> ModelPred[[Keras Model: predict]]
-        ModelPred --> SaveRes[(repositories/session.py: SessionRepository.update_analysis_results)]
-    end
-
-    %% SWIMLANE: FEEDBACK
-    subgraph Feedback [backend: state.py]
-        SaveRes --> SendRes[/Broadcast: live_result/]
-    end
-
-    %% SWIMLANE: UI
-    subgraph UI [frontend: AIAnalysisCard.tsx]
-        SendRes -.->|WS Event| UpdateStore[useStore: addLiveResult]
-        UpdateStore --> ShowUI[AIAnalysisCard: Render Classification]
-        ShowUI --> ShowBar[/Animate Confidence Bar/]
-        ShowBar --> EndML([End])
-    end
-```
-
----
-
-## 7. Authentication: Login Flow
-*Flow: User authentication, Session ID generation, and "Last Login Wins" enforcement.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: /login/page.tsx]
-        UserLogin([Start: Click Login]) --> Payload[/Input: Email/Pass/]
-        Payload --> ReqPost[/API: POST /api/v1/auth/login/]
-    end
-
-    %% SWIMLANE: BACKEND API
-    subgraph API [backend: api/v1/endpoints/auth.py]
-        ReqPost -.->|HTTP Request| Route["auth.py: login"]
-        Route --> AuthSvc["core/security.py: authenticate_user"]
-        AuthSvc --> DBQuery[(repositories/user.py: UserRepository.get_by_email)]
-        
-        DBQuery --> Verify{Password Valid?}
-        Verify -- No --> Err401([End: Return 401])
-        Verify -- Yes --> GenSID[Generate New UUID 'sid']
-        GenSID --> UpdateSess[(UserRepository.update_current_session_id)]
-        UpdateSess --> CreateTok["core/security.py: create_access_token(claims={sid})"]
-    end
-
-    %% SWIMLANE: RESPONSE
-    subgraph Response [frontend: Handling]
-        CreateTok --> Ret200[/Return: access_token/]
-        Ret200 -.->|JSON| SaveTok["localStorage.setItem('ecg_token')"]
-        SaveTok --> Redir([End: Redirect /monitor])
-        Err401 -.-> ShowErr[/useToast: show error/]
-    end
-```
-
----
-
-## 8. Authentication: Registration Flow
-*Flow: New user signup, DB split (User + Patient), and Sequential ID generation.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: /register/page.tsx]
-        UserReg([Start: Click Register]) --> InputData[/Input: Email/Pass/Name/]
-        InputData --> ClientVal{Zod Validation?}
-        ClientVal -- Fail --> ShowToast[/UI Error Message/]
-        ClientVal -- Pass --> ReqReg[/API: POST /api/v1/auth/register/]
-    end
-
-    %% SWIMLANE: BACKEND API
-    subgraph API [backend: api/v1/endpoints/auth.py]
-        ReqReg -.->|HTTP Request| Route["auth.py: register"]
-        Route --> CheckDup[(repositories/user.py: UserRepository.get_by_email)]
-        CheckDup --> Exists{Email Exists?}
-        
-        Exists -- Yes --> Err400([End: Return 400])
-        Exists -- No --> GenUSR[id_generator: USR2026...]
-        GenUSR --> Hash["core/security.py: get_password_hash"]
-        Hash --> InsertUser[(UserRepository.create)]
-        
-        InsertUser --> GenPAT[id_generator: PAT2026...]
-        GenPAT --> InsertPat[(PatientRepository.create_with_user)]
-    end
-
-    %% SWIMLANE: RESPONSE
-    subgraph Response [frontend: Handling]
-        InsertPat --> Ret200[/Return: User Schema/]
-        Ret200 -.->|JSON| SuccessToast[/useToast: Registration Successful/]
-        SuccessToast --> NavLogin([End: Navigate to /login])
-        Err400 -.-> ShowToast
-    end
-```
-
----
-
-## 9. History: Archive Retrieval
-*Flow: Fetching paginated history data.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: services/api.ts]
-        LoadPage([Start: Page Load]) --> FetchReq["api.ts: fetchHistory()"]
-    end
-
-    %% SWIMLANE: BACKEND
-    subgraph API [backend: api/v1/endpoints/history.py]
-        FetchReq -.->|HTTP GET| Endpoint["history.py: read_sessions"]
-        Endpoint --> RepoCall["repositories/session.py: SessionRepository.search_sessions"]
-        RepoCall --> DBQuery[(Database: SELECT Sessions JOIN Patients)]
-        DBQuery --> Serialize["schemas/session.py: SessionResponse"]
-    end
-
-    %% SWIMLANE: RENDER
-    subgraph Render [frontend: UI Update]
-        Serialize -.->|JSON List| RecvData["History View: Table Render"]
-        RecvData --> DOMUpd([End: Update Next.js Table])
-    end
-```
-
----
-
-## 10. History: Detail View & Charts
-*Flow: Viewing deep analytics for a specific session.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: components/shared/PatientModal.tsx]
-        ClickRow([Start: Click Table Row]) --> ReqDet["api.ts: fetchSessionDetails()"]
-    end
-
-    %% SWIMLANE: BACKEND
-    subgraph API [backend: api/v1/endpoints/history.py]
-        ReqDet -.->|HTTP GET| Endpoint["history.py: read_session"]
-        Endpoint --> FetchSess[(SessionRepository.get_by_recording_id)]
-        FetchSess --> FetchRaw[(RawDataRepository.get_by_session)]
-        FetchRaw --> Combine[Combine Session + Analysis + Raw]
-    end
-
-    %% SWIMLANE: RENDER
-    subgraph Frontend_Modal [frontend: PatientModal]
-        Combine -.->|JSON Detail| OpenMod["PatientModal: Render Props"]
-        OpenMod --> RenderChart["ECGChart: Render Static Segment"]
-        RenderChart --> View([End: View Details])
-    end
-```
-
----
-
-## 11. Export Data (CSV & Plot)
-*Flow: Generating and downloading reports.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: services/api.ts]
-        ClickExp([Start: Click Export]) --> Type{"Export Type?"}
-        Type -- CSV --> ReqCSV["api.ts: downloadRecording('raw')"]
-        Type -- Chart --> ReqPlot["api.ts: downloadRecording('plot')"]
-    end
-
-    %% SWIMLANE: BACKEND API
-    subgraph API [backend: api/v1/endpoints/export.py]
-        ReqCSV -.->|HTTP GET| EndCSV["export.py: export_raw_ecg_data"]
-        EndCSV --> FetchRaw[(RawDataRepository.get_raw_data)]
-        FetchRaw --> Pandas["pd.DataFrame()"]
-        Pandas --> StreamCSV["StreamingResponse(BytesIO)"]
-
-        ReqPlot -.->|HTTP GET| EndPlot["export.py: export_ecg_chart"]
-        EndPlot --> ExecPool[Run in ThreadPool]
-        ExecPool --> MatPlot[[services/export/plot_generator.py: generate_ecg_plot]]
-        MatPlot --> StreamPNG["StreamingResponse(BytesIO)"]
-    end
-
-    %% SWIMLANE: BROWSER
-    subgraph Browser [Client Browser]
-        StreamCSV -.->|File Stream| DownloadCSV([End: Save .csv])
-        StreamPNG -.->|File Stream| DownloadPNG([End: Save .png])
-    end
-```
-
----
-
-## 12. Performance Monitoring (Per Device)
-*Flow: Calculating and broadcasting network metrics.*
-
-```mermaid
-flowchart LR
-    %% SWIMLANE: INGESTION
-    subgraph Handler [backend: services/mqtt/handler.py]
-        PktIn([New Packet]) --> CalcLat["Calc: Now - PacketTime"]
-        CalcLat --> UpdateStat["State: Update Device Performance State"]
-    end
-
-    %% SWIMLANE: LOGGING
-    subgraph Periodic [backend: services/mqtt/handler.py]
-        CheckInt{Every 10 Pkts?}
-        UpdateStat --> CheckInt
-        CheckInt -- Yes --> CalcAgg["Calc: Avg Latency / Jitter"]
-        CheckInt -- No --> Continue([Continue])
-        
-        CalcAgg --> BroadPerf[/Broadcast: performance_update/]
-    end
-
-    %% SWIMLANE: FRONTEND
-    subgraph UI [frontend: useStore / PerformancePage.tsx]
-        BroadPerf -.->|WS Event| RecvPerf["socket.ts: handleMessage 'performance_update'"]
-        RecvPerf --> UpdateStore["useStore: updatePerformance"]
-        UpdateStore --> UpdateUI([End: Render Jitter/Latency Charts])
+        AcceptWS --> Incoming[/Listen for Commands/]
+        Incoming --> Process[Handle Command]
     end
 ```

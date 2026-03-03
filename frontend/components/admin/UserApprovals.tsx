@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { api } from '@/services/api';
-import { User, useStore } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { User } from '@/types/user';
 import { useToast } from '@/hooks/useToast';
 import {
     ShieldCheck,
@@ -13,7 +14,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import ApprovalsQueue from './ApprovalsQueue';
-import ApprovalLogs, { ApprovalLog } from './ApprovalLogs';
+import ApprovalLogs from './ApprovalLogs';
+import { ApprovalLog } from '@/types/user';
 import UserDetailModal from './UserDetailModal';
 import UserActionModals from './UserActionModals';
 import flatpickr from 'flatpickr';
@@ -123,7 +125,7 @@ export default function UserApprovals() {
                     data = await api.fetchApprovalLogs(filters);
                     if (currentFetchId === fetchIdRef.current) setLogs(data);
                 }
-            } catch (error: unknown) {
+            } catch (error) {
                 if (currentFetchId === fetchIdRef.current) {
                     console.error("Fetch error:", error);
                     showToast(`Failed to load ${adminViewMode}`, "error");
@@ -157,7 +159,7 @@ export default function UserApprovals() {
                 onReady: (_, __, instance) => {
                     if (instance.altInput) instance.altInput.placeholder = "Select Date Range";
                 }
-            }) as unknown as FlatpickrInstance;
+            }) as object as FlatpickrInstance;
         }
         return () => fpRef.current?.destroy();
     }, []);

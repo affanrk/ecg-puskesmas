@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Clock, Database, HeartPulse } from 'lucide-react';
 import clsx from 'clsx';
-import { AnalysisResult } from '@/store/useStore';
+import { AnalysisResult } from '@/types/models';
 import { formatDate } from '@/utils/helpers';
 
 interface ClassifierTableProps {

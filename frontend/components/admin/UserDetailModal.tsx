@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
 import { 
     X, 
     UserCheck, 
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatDate, calculateAge } from '@/utils/helpers';
 import clsx from 'clsx';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface UserDetailModalProps {
     user: User;
@@ -46,7 +47,7 @@ function DetailGroup({ title, icon, color = "slate", children }: { title: string
 }
 
 export default function UserDetailModal({ user, onClose, onApprove, onReject }: UserDetailModalProps) {
-    const age = calculateAge(user.dob);
+    const age = calculateAge((getActiveProfile(user)?.dob || ""));
 
     return (
         <div className="absolute inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none">
@@ -62,7 +63,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                         </div>
                         <div>
                             <h2 className="text-sm font-black text-slate-800 tracking-tight leading-tight">
-                                {user.full_name || user.username}
+                                {(getActiveProfile(user)?.full_name || "") || user.username}
                             </h2>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Reviewing Application</p>
                         </div>
@@ -80,27 +81,27 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">National Identity (NIK)</span>
                             <div className="flex items-center gap-3">
                                 <span className="text-[9px] font-black bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded uppercase">Age: {age || '--'}</span>
-                                <span className="text-[9px] font-black bg-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase">{user.gender || '---'}</span>
+                                <span className="text-[9px] font-black bg-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase">{(getActiveProfile(user)?.gender || "") || '---'}</span>
                             </div>
                         </div>
                         <p className="text-xl font-mono font-black tracking-[0.15em] text-white">
-                            {user.nik || '--- --- ---'}
+                            {(getActiveProfile(user)?.nik || "") || '--- --- ---'}
                         </p>
                     </div>
                     <div className="space-y-6">
                         <DetailGroup title="Communications" icon={<Mail size={12} />}>
                             <DetailRow label="Email Address" value={user.email} />
-                            <DetailRow label="Phone Number" value={user.contact_number} />
+                            <DetailRow label="Phone Number" value={(getActiveProfile(user)?.contact_number || "")} />
                         </DetailGroup>
                         <DetailGroup title="Demographics & Registration" icon={<Calendar size={12} />}>
                             <div className="grid grid-cols-2 gap-4 pb-2">
                                 <div>
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Place of Birth</p>
-                                    <p className="text-xs font-bold text-slate-700">{user.pob || '---'}</p>
+                                    <p className="text-xs font-bold text-slate-700">{(getActiveProfile(user)?.pob || "") || '---'}</p>
                                 </div>
                                 <div>
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Date of Birth</p>
-                                    <p className="text-xs font-bold text-slate-700">{user.dob || '---'}</p>
+                                    <p className="text-xs font-bold text-slate-700">{(getActiveProfile(user)?.dob || "") || '---'}</p>
                                 </div>
                             </div>
                             <div className="pt-2 border-t border-slate-50">
@@ -108,7 +109,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                                 <div className="flex gap-2">
                                     <MapPin size={12} className="text-slate-300 shrink-0 mt-0.5" />
                                     <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
-                                        {user.address || "No residential address provided."}
+                                        {(getActiveProfile(user)?.address || "") || "No residential address provided."}
                                     </p>
                                 </div>
                             </div>
@@ -116,7 +117,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                         <DetailGroup title="Medical Background" icon={<Stethoscope size={12} />} color="rose">
                             <div className="bg-rose-50/30 rounded-xl p-4 border border-rose-100/50">
                                 <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
-                                    {user.medical_history || "The patient has formally declared no significant prior medical history during the registration process."}
+                                    {(getActiveProfile(user)?.medical_history || "") || "The patient has formally declared no significant prior medical history during the registration process."}
                                 </p>
                             </div>
                         </DetailGroup>
@@ -131,7 +132,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                 <div className="p-6 bg-white border-t border-slate-100 space-y-3 shrink-0">
                     <button 
                         onClick={() => {
-                            if (user.id) onApprove(user.id, user.full_name || user.username);
+                            if (user.id) onApprove(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
                         }}
                         className="w-full py-4 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-lg shadow-slate-900/10"
                     >
@@ -139,7 +140,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                     </button>
                     <button 
                         onClick={() => {
-                            if (user.id) onReject(user.id, user.full_name || user.username);
+                            if (user.id) onReject(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
                         }}
                         className="w-full py-3 text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-black uppercase tracking-[0.2em]"
                     >

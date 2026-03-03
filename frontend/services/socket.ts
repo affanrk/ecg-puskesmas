@@ -2,8 +2,10 @@
 
 import { globalEventBus } from './events';
 import { EVENTS } from '@/config/constants';
-import { useStore, Device } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { Device } from '@/types/models';
 import { useToast } from '@/hooks/useToast';
+import { getActiveProfile } from '@/utils/helpers';
 
 type SocketMessage =
     | { type: 'ping' | 'pong' }
@@ -30,7 +32,7 @@ class WebSocketService {
         const port = '8080';
         const defaultUrl = `${protocol}//${host}:${port}/ws`;
 
-        const env = (typeof window !== 'undefined' ? (window as { __ENV__?: Record<string, string> }).__ENV__ : null) || {};
+        const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
         let finalUrl = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
 
         if (!finalUrl.startsWith('ws://') && !finalUrl.startsWith('wss://')) {
@@ -176,8 +178,8 @@ class WebSocketService {
                 store.addLiveResult({
                     timestamp: new Date().toISOString(),
                     device_id: msg.device_id,
-                    subject_id: store.user?.nik || store.user?.id || "-",
-                    patient_name: store.user?.full_name || store.user?.username || "-",
+                    subject_id: (getActiveProfile(store.user)?.nik || "") || store.user?.id || "-",
+                    patient_name: (getActiveProfile(store.user)?.full_name || "") || store.user?.username || "-",
                     classification: msg.classification,
                     confidence: msg.confidence,
                     recording_id: msg.recording_id || `live_${Date.now()}`
@@ -219,7 +221,7 @@ class WebSocketService {
                     this.terminate();
                     
                     if (typeof window !== 'undefined') {
-                        (window as { __is_logging_out?: boolean } & Window).__is_logging_out = true;
+                        window.__is_logging_out = true;
                         window.location.replace('/login?reason=expired');
                     }
                 } else {
@@ -229,7 +231,7 @@ class WebSocketService {
         }
     }
 
-    public sendJson(data: Record<string, unknown>) {
+    public sendJson<T extends object>(data: T) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(JSON.stringify(data));
         } else {
@@ -243,5 +245,5 @@ export const connectWebSocket = () => wsService.connect();
 export const disconnectWebSocket = () => wsService.disconnect();
 export const terminateWebSocket = () => wsService.terminate();
 export const reconnectWebSocket = () => wsService.reconnect();
-export const sendJson = (data: Record<string, unknown>) => wsService.sendJson(data);
+export const sendJson = <T extends object>(data: T) => wsService.sendJson(data);
 export default wsService;

@@ -144,9 +144,9 @@ export default function RegisterPage() {
             setTimeout(() => {
                 router.push('/login');
             }, 1500);
-        } catch (err: unknown) {
+        } catch (err) {
             triggerErrorEffect();
-            const { message, fieldErrors } = parseApiError(err);
+            const { message, fieldErrors } = parseApiError(err as Error);
             setServerError(message);
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));

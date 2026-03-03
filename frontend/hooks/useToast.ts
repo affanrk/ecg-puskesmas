@@ -1,14 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-
-export type ToastType = 'success' | 'error' | 'warning';
-
-export interface Toast {
-    id: number;
-    message: string;
-    type: ToastType;
-}
+import { Toast, ToastType } from '@/types/models';
 
 interface ToastState {
     toasts: Toast[];

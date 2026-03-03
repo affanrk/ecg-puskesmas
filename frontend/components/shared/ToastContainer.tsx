@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import clsx from 'clsx';
-import { useToast, Toast } from '@/hooks/useToast';
+import { useToast } from '@/hooks/useToast';
+import { Toast } from '@/types/models';
 
 function ToastItem({ toast, onRemove }: { toast: Toast, onRemove: () => void }) {
     const [isVisible, setIsVisible] = useState(false);

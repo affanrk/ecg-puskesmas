@@ -54,8 +54,8 @@ export default function AdminProfile() {
             setUser(res.data);
             toast("Username updated successfully", "success");
             setIsEditingUsername(false);
-        } catch (error: unknown) {
-            const { message } = parseApiError(error);
+        } catch (error) {
+            const { message } = parseApiError(error as Error);
             toast(message || "Failed to update username", "error");
             setUsername(user?.username || '');
         }
@@ -83,8 +83,8 @@ export default function AdminProfile() {
             });
             toast("Password changed successfully", "success");
             setPasswords({ current: '', new: '', confirm: '' });
-        } catch (error: unknown) {
-            const { message } = parseApiError(error);
+        } catch (error) {
+            const { message } = parseApiError(error as Error);
             toast(message || "Failed to change password", "error");
         } finally {
             setIsUpdatingPassword(false);

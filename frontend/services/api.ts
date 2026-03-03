@@ -1,9 +1,7 @@
 import axiosInstance from './axiosInstance';
 import { getApiUrl } from '../utils/helpers';
-
-export interface HistoryFilters {
-    [key: string]: string | number | boolean | undefined;
-}
+import { UserFormPayload, AuthPayload, ProfilePayload, AdminUserPayload } from '@/types/user';
+import { HistoryFilters } from '@/types/models';
 
 export async function fetchHistory(filters: HistoryFilters = {}) {
     const params = new URLSearchParams();
@@ -145,7 +143,7 @@ export async function fetchDetailedHealth() {
     }
 }
 
-export async function createPatientProfile(profileData: Record<string, unknown>) {
+export async function createPatientProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.post('/auth/profile/patient', profileData);
         return response.data;
@@ -155,7 +153,7 @@ export async function createPatientProfile(profileData: Record<string, unknown>)
     }
 }
 
-export async function updatePatientProfile(profileData: Record<string, unknown>) {
+export async function updatePatientProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.put('/auth/profile/patient', profileData);
         return response.data;
@@ -165,7 +163,7 @@ export async function updatePatientProfile(profileData: Record<string, unknown>)
     }
 }
 
-export async function updateOperatorProfile(profileData: Record<string, unknown>) {
+export async function updateOperatorProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.put('/auth/profile/operator', profileData);
         return response.data;
@@ -175,7 +173,7 @@ export async function updateOperatorProfile(profileData: Record<string, unknown>
     }
 }
 
-export async function updateDoctorProfile(profileData: Record<string, unknown>) {
+export async function updateDoctorProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.put('/auth/profile/doctor', profileData);
         return response.data;
@@ -185,7 +183,7 @@ export async function updateDoctorProfile(profileData: Record<string, unknown>) 
     }
 }
 
-export async function createOperatorProfile(profileData: Record<string, unknown>) {
+export async function createOperatorProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.post('/auth/profile/operator', profileData);
         return response.data;
@@ -195,7 +193,7 @@ export async function createOperatorProfile(profileData: Record<string, unknown>
     }
 }
 
-export async function createDoctorProfile(profileData: Record<string, unknown>) {
+export async function createDoctorProfile(profileData: ProfilePayload) {
     try {
         const response = await axiosInstance.post('/auth/profile/doctor', profileData);
         return response.data;
@@ -205,7 +203,7 @@ export async function createDoctorProfile(profileData: Record<string, unknown>) 
     }
 }
 
-export async function register(data: Record<string, unknown>) {
+export async function register(data: AuthPayload) {
     try {
         const response = await axiosInstance.post('/auth/register', data);
         return response.data;
@@ -215,7 +213,7 @@ export async function register(data: Record<string, unknown>) {
     }
 }
 
-export async function login(data: Record<string, unknown>) {
+export async function login(data: AuthPayload) {
     try {
         const response = await axiosInstance.post('/auth/login', data);
         return response.data;
@@ -235,9 +233,37 @@ export async function fetchUsers(filters: HistoryFilters = {}) {
     }
 }
 
-export async function createUser(data: Record<string, unknown>) {
+function formatUserPayload(data: UserFormPayload) {
+    const {
+        full_name, nik, pob, dob, gender, address, contact_number,
+        medical_history, str_number, sip_number, operator_role, specialty, work_location,
+        ...rest
+    } = data;
+
+    const payload: AdminUserPayload = { ...rest };
+    const baseProfile = { full_name, nik, pob, dob, gender, address, contact_number };
+
+    Object.keys(baseProfile).forEach(key => {
+        if (baseProfile[key as keyof typeof baseProfile] === '') {
+            delete baseProfile[key as keyof typeof baseProfile];
+        }
+    });
+
+    if (data.role === 'patient') {
+        payload.patient_profile = { ...baseProfile, medical_history: medical_history || undefined };
+    } else if (data.role === 'operator') {
+        payload.operator_profile = { ...baseProfile, str_number: str_number || undefined, operator_role: operator_role || undefined, work_location: work_location || undefined };
+    } else if (data.role === 'doctor') {
+        payload.doctor_profile = { ...baseProfile, str_number: str_number || undefined, sip_number: sip_number || undefined, specialty: specialty || undefined, work_location: work_location || undefined };
+    }
+
+    return payload;
+}
+
+export async function createUser(data: UserFormPayload) {
     try {
-        const response = await axiosInstance.post('/admin/users', data);
+        const payload = formatUserPayload(data);
+        const response = await axiosInstance.post('/admin/users', payload);
         return response.data;
     } catch (error) {
         console.error("Create User Error:", error);
@@ -245,9 +271,10 @@ export async function createUser(data: Record<string, unknown>) {
     }
 }
 
-export async function updateUser(userId: string, data: Record<string, unknown>) {
+export async function updateUser(userId: string, data: UserFormPayload) {
     try {
-        const response = await axiosInstance.put(`/admin/users/${userId}`, data);
+        const payload = formatUserPayload(data);
+        const response = await axiosInstance.put(`/admin/users/${userId}`, payload);
         return response.data;
     } catch (error) {
         console.error("Update User Error:", error);

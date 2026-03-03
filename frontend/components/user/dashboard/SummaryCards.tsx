@@ -4,12 +4,12 @@ import { User, Clock, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { calculateAge } from '@/utils/helpers';
 import { useStore } from '@/store/useStore';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface SummaryCardsProps {
     lastResult: {
         classification?: string;
         confidence?: number;
-        [key: string]: unknown;
     } | null;
     lastResultTime: {
         date: string;
@@ -36,10 +36,10 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                     </div>
                     <div className="min-w-0">
                         <h3 className="text-lg 2xl:text-xl font-black text-slate-800 truncate tracking-tight leading-none mb-1">
-                            {user.full_name || user.username}
+                            {(getActiveProfile(user)?.full_name || "") || user.username}
                         </h3>
                         <p className="text-[9px] 2xl:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">
-                            {user.gender === 'L' ? 'Male' : 'Female'} • {user.dob ? calculateAge(user.dob) : 'N/A'} YEARS OLD
+                            {(getActiveProfile(user)?.gender || "") === 'L' ? 'Male' : 'Female'} • {(getActiveProfile(user)?.dob || "") ? calculateAge((getActiveProfile(user)?.dob || "")) : 'N/A'} YEARS OLD
                         </p>
                     </div>
                 </div>

@@ -11,6 +11,7 @@ import { getApiUrl, parseApiError } from '@/utils/helpers';
 import { reconnectWebSocket } from '@/services/socket';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
+import { getActiveProfile } from '@/utils/helpers';
 
 function LoginContent() {
     const [usernameOrEmail, setUsernameOrEmail] = useState('');
@@ -99,7 +100,7 @@ function LoginContent() {
             setUser(fullProfile);
             
             reconnectWebSocket();
-            toast(`Welcome, ${fullProfile.full_name || fullProfile.username}!`, "success");
+            toast(`Welcome, ${(getActiveProfile(fullProfile)?.full_name || "") || fullProfile.username}!`, "success");
             
             if (fullProfile.role === 'admin') {
                 router.push('/admin/dashboard');
@@ -112,9 +113,9 @@ function LoginContent() {
             } else {
                 router.push('/dashboard');
             }
-        } catch (err: unknown) {
+        } catch (err) {
             triggerErrorEffect();
-            const { message, fieldErrors } = parseApiError(err);
+            const { message, fieldErrors } = parseApiError(err as Error);
             setServerError(message);
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));

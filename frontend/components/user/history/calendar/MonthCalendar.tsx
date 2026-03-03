@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import clsx from 'clsx';
-import { CalendarNode } from '../CalendarDrillDown';
+import { CalendarNode } from '@/types/models';
 
 interface MonthCalendarProps {
     year: number;

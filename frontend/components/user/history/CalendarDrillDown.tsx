@@ -2,22 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
-import { useStore, AnalysisResult } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { AnalysisResult, CalendarNode } from '@/types/models';
 import { useToast } from '@/hooks/useToast';
 import clsx from 'clsx';
 import CalendarHeader from './calendar/CalendarHeader';
 import CalendarSidebar from './calendar/CalendarSidebar';
 import MonthCalendar from './calendar/MonthCalendar';
 import AgendaView from './calendar/AgendaView';
-
-export interface CalendarNode {
-    label: string;
-    value: number;
-    level: string;
-    status: 'normal' | 'abnormal' | 'potential' | 'high_potential';
-    count: number;
-    classifications?: Record<string, number>;
-}
 
 export default function CalendarDrillDown() {
     const { 
@@ -136,7 +128,7 @@ export default function CalendarDrillDown() {
                 end_date: endDt,
                 limit: 200
             });
-            const filteredResults = results.filter((r: AnalysisResult) => r.classification !== 'Unknown' && r.classification !== 'Insufficient Data');
+            const filteredResults = (results as AnalysisResult[]).filter((r: AnalysisResult) => r.classification !== 'Unknown' && r.classification !== 'Insufficient Data');
             setDayResults(filteredResults);
         } catch (error) {
             console.error(error);

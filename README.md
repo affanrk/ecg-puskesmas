@@ -1,94 +1,101 @@
-# ECG Live Platform
+# ECG Live Platform (v2.0)
 
-A professional medical ECG telemetry platform providing real-time monitoring, high-frequency signal analysis, and AI-assisted cardiac diagnostics.
+A professional-grade medical ECG telemetry platform providing real-time cardiac monitoring, high-frequency signal analysis, and AI-assisted diagnostics. Designed for clinical environments (Puskesmas/Clinics), it supports a full medical lifecycle from patient onboarding to specialist review.
 
-## 🚀 Key Features
+---
 
-- **Real-time Telemetry**: High-frequency ECG signal streaming via MQTT and WebSockets.
-- **AI Diagnostics**: Automated arrhythmia detection using an integrated ML model.
-- **Modern UI/UX**: Clean, professional interface with specialized cardiac visualization (Lead I, II, V1).
-- **Advanced Security**: 
-  - **Last Login Wins**: Enforced single-active session per user for data integrity.
-  - **Traceable Activity**: Unique `X-Request-ID` assigned to every request for precise audit trailing.
-  - **Business Identity**: Sequential medical IDs (USR/PAT/APP) for professional record tracking.
-  - **User/Patient Separation**: Dedicated tables for authentication and clinical profile data.
-- **System Telemetry**: Real-time monitoring of network health, latency, and system performance.
-- **Enhanced Observability**: Professional-grade logging with clean separation between operational milestones (INFO) and technical details (DEBUG).
-- **Admin Console**: Centralized approval queue for new medical profiles.
+## Key Features
 
-## 🏗️ Architecture
+### 1. Real-time Clinical Monitoring
+- **5-Lead Visualization**: Optimized charting for Lead I, II, III, aVF, and V1.
+- **Live BPM Detection**: Real-time heart rate calculation performed in the backend from raw samples.
+- **Network Resilience**: Integrated **Jitter Buffer** (up to 20 packets) to handle out-of-order MQTT delivery and minor latency spikes.
+- **Performance Telemetry**: Real-time visualization of Latency, Jitter, and Packet Loss % per device.
+
+### 2. AI Diagnostics & Recording
+- **Seamless Segmentation**: Automated recording loops with seamless segment transitions (UUID rotation).
+- **AI Arrhythmia Detection**: Integrated Keras-based ML model for automated classification (Normal, Abnormal, Arrhythmia, etc.).
+- **Async Processing**: Recording data is flushed and analyzed in the background, ensuring zero-latency monitoring.
+
+### 3. Medical Identity & Governance
+- **Role-Based Workflows**: Dedicated dashboards and permissions for **Patients**, **Medical Staff (Operators)**, and **Heart Specialists (Doctors)**.
+- **Onboarding Flow**: Multi-step identity verification process before accessing clinical data.
+- **Admin Approval Queue**: Centralized manual verification system for clinical profiles.
+- **SSE (Last Login Wins)**: Enforced Single Session per user via WebSocket session tracking for data integrity.
+
+### 4. Advanced History & Reporting
+- **Calendar Heatmaps**: Interactive data discovery through hierarchical calendar views (Year -> Day).
+- **Classification Stats**: At-a-glance analytics of cardiac health trends.
+- **Export Pipeline**: One-click export for **Raw Data (CSV)**, **AI Feature Data (CSV)**, and **Visual ECG Charts (PNG)**.
+
+---
+
+## Technical Stack
 
 - **Backend**: FastAPI (Python 3.12+)
-  - **Repositories**: Standardized data access layer with Reader/Writer separation.
-  - **Data Routing**: Dual-table architecture for raw data (`tb_r_ecg_raw_web` vs `tb_r_ecg_raw_mobile`) ensuring clean platform separation.
-  - **Models**: SQLAlchemy with TSID/UUID primary keys and composite indexes for high-performance telemetry.
-  - **Messaging**: Mosquitto (MQTT) for signal ingestion and WebSockets for real-time UI updates.
+  - **MQTT Service**: `aiomqtt` client with high-performance jitter buffer.
+  - **Signal Processing**: NumPy & SciPy for Butterworth filtering and HR detection.
+  - **ML Engine**: TensorFlow/Keras for ECG classification.
+  - **Database**: PostgreSQL with SQLAlchemy (optimized with composite indexes for telemetry).
 - **Frontend**: Next.js 15+ (TypeScript)
-  - **State Management**: Zustand for efficient real-time data handling.
-  - **Visualization**: Optimized Canvas-based ECG charting.
-  - **Services**: Centralized Axios instance with automated session enforcement interceptors.
+  - **State**: Zustand (`useStore`) for real-time sample buffering.
+  - **Charts**: Specialized Chart.js configuration for medical-grade ECG plotting.
+  - **UI**: Tailwind CSS with Framer Motion for interactive medical dashboards.
 
-## 🛠️ Prerequisites
+---
 
-- Docker & Docker Compose
-- Node.js 18+ (for local frontend development)
-- Python 3.12+ (for local backend development)
+## Prerequisites
 
-## 🚦 Quick Start (Docker)
+- **Docker & Docker Compose** (Recommended for deployment)
+- **Node.js 20+** (For local frontend development)
+- **Python 3.12+** (For local backend development)
+- **Mosquitto** (MQTT Broker)
 
-The fastest way to deploy the complete stack (PostgreSQL, Mosquitto, Backend, Frontend):
+---
+
+## Deployment (Docker)
+
+Deploy the complete stack (PostgreSQL, Mosquitto, Backend, Frontend):
 
 ```bash
 # Clone the repository
 git clone <repository-url>
 cd ecg-puskesmas
 
-# Start the application
+# Launch services
 docker-compose up --build
 ```
 
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:8080](http://localhost:8080)
-- **API Docs**: [http://localhost:8080/docs](http://localhost:8080/docs)
+- **Frontend**: `http://localhost:3000`
+- **Backend API**: `http://localhost:8080`
+- **API Documentation (Swagger)**: `http://localhost:8080/docs`
 
-## 💻 Local Development
+---
 
-### Backend Setup
+## Documentation
 
-```bash
-cd backend
-# Create and activate venv
-python -m venv venv
-.\venv\Scripts\activate  # Windows
-source venv/bin/activate # Linux/macOS
+- [SYSTEM_FLOWS.md](SYSTEM_FLOWS.md): Detailed architectural sequence and swimlane diagrams.
+- [WEBSOCKET.md](WEBSOCKET.md): Bi-directional command/event protocol for real-time monitoring.
+- [MQTT.md](MQTT.md): High-frequency data ingestion and payload specifications.
+- [API.md](API.md): Complete REST API documentation for Auth, Admin, and History.
+- [DESIGN_DOCUMENT.md](DESIGN_DOCUMENT.md): Technical foundations and data schemas.
 
-# Install dependencies
-pip install -r requirements.txt
+---
 
-# Run application
-python main.py
+## Project Structure
+
+```text
+ecg-puskesmas/
+├── backend/            # FastAPI Application
+│   ├── api/            # Endpoints (v1)
+│   ├── core/           # Security & DB Setup
+│   ├── models/         # SQLAlchemy Schemas
+│   ├── repositories/   # Data Access Layer
+│   ├── services/       # MQTT, WS, ML & Storage logic
+│   └── utils/          # Constants & Helpers
+└── frontend/           # Next.js Application
+    ├── app/            # App Router (Pages)
+    ├── components/     # UI Components (Charts, Admin, User)
+    ├── hooks/          # Custom Hooks (Auth, WebSocket)
+    └── services/       # API & Socket Clients
 ```
-
-### Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 📄 Documentation
-
-- [MQTT Protocol](MQTT.md): Data pipe and payload specifications.
-- [WebSocket API](WEBSOCKET_API.md): Real-time command and event documentation.
-- [Design Document](DESIGN_DOCUMENT.md): System architecture and data flow.
-- [System Flows](SYSTEM_FLOWS.md): Detailed sequence diagrams for core processes.
-
-## 🔐 Environment Variables
-
-### Frontend
-- `NEXT_PUBLIC_API_URL`: Backend API URL (default: `http://localhost:8080/api/v1`)
-- `NEXT_PUBLIC_WS_URL`: Backend WebSocket URL (default: `ws://localhost:8080/ws`)
-
-### Backend
-Configured via `backend/.env`. Refer to `backend/.env-example` for the full list of required keys (Database, MQTT, Security).

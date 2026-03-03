@@ -8,6 +8,7 @@ import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { getActiveProfile } from '@/utils/helpers';
 
 export default function Header() {
     const pathname = usePathname();
@@ -64,7 +65,7 @@ export default function Header() {
                             className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100 group"
                         >
                             <div className="text-right hidden md:block">
-                                <p className="text-xs font-bold text-slate-700 leading-tight group-hover:text-teal-700 transition-colors">{user ? (user.full_name || user.username) : 'Loading...'}</p>
+                                <p className="text-xs font-bold text-slate-700 leading-tight group-hover:text-teal-700 transition-colors">{user ? ((getActiveProfile(user)?.full_name || "") || user.username) : 'Loading...'}</p>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider leading-tight">{user?.role || 'Guest'}</p>
                             </div>
                             <div className={clsx(

@@ -98,8 +98,8 @@ export default function OperatorOnboardingForm() {
             }
             toast("Profile created successfully!", "success");
             router.push('/operator/dashboard');
-        } catch (err: unknown) {
-            const { message, fieldErrors } = parseApiError(err);
+        } catch (err) {
+            const { message, fieldErrors } = parseApiError(err as Error);
             setServerError(message);
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));

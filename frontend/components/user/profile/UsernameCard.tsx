@@ -3,7 +3,7 @@
 import { ChangeEvent } from 'react';
 import { Shield, Edit2, CheckCircle2, UserCircle2 } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
 
 interface SecurityForm {
     new_username: string;

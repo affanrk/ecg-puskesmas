@@ -1,6 +1,6 @@
 'use client';
 
-import { AnalysisResult } from '@/store/useStore';
+import { AnalysisResult } from '@/types/models';
 import { HeartPulse, Activity, AlertTriangle, ChevronRight, Clock, ChevronDown, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useState, useRef, useEffect } from 'react';

@@ -1,9 +1,10 @@
 'use client';
 
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
 import { UserX, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDateShort } from '@/utils/helpers';
 import { useEffect, useRef } from 'react';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface ApprovalsQueueProps {
     users: User[];
@@ -107,23 +108,23 @@ export default function ApprovalsQueue({
                                             </div>
                                             <div>
                                                 <p className="text-[11px] font-black text-slate-800 group-hover:text-rose-700 transition-colors truncate max-w-[180px]">
-                                                    {user.full_name || user.username}
+                                                    {(getActiveProfile(user)?.full_name || "") || user.username}
                                                 </p>
                                                 <p className="text-[9px] font-bold text-slate-400 truncate max-w-[180px]">
-                                                    {user.full_name ? `@${user.username}` : user.email} {user.full_name ? `• ${user.email}` : ''}
+                                                    {(getActiveProfile(user)?.full_name || "") ? `@${user.username}` : user.email} {(getActiveProfile(user)?.full_name || "") ? `• ${user.email}` : ''}
                                                 </p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-5 whitespace-nowrap text-[10px] font-mono font-black text-slate-500 group-hover:text-slate-700 transition-colors">
-                                        {user.nik || '---'}
+                                        {(getActiveProfile(user)?.nik || "") || '---'}
                                     </td>
                                     <td className="px-5 whitespace-nowrap">
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md text-[9px] font-black">{user.gender || 'U'}</span>
-                                            <span className="truncate max-w-[120px]">{user.pob || '---'}</span>
+                                            <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-md text-[9px] font-black">{(getActiveProfile(user)?.gender || "") || 'U'}</span>
+                                            <span className="truncate max-w-[120px]">{(getActiveProfile(user)?.pob || "") || '---'}</span>
                                             <span className="text-slate-200">|</span>
-                                            <span className="flex items-center gap-1"><Calendar size={10} className="text-slate-300" /> {user.dob ? String(user.dob) : '---'}</span>
+                                            <span className="flex items-center gap-1"><Calendar size={10} className="text-slate-300" /> {(getActiveProfile(user)?.dob || "") ? String((getActiveProfile(user)?.dob || "")) : '---'}</span>
                                         </div>
                                     </td>
                                     <td className="px-5 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
@@ -132,13 +133,13 @@ export default function ApprovalsQueue({
                                     <td className="px-5 whitespace-nowrap text-right pr-6" onClick={(e) => e.stopPropagation()}>
                                         <div className="flex items-center justify-end gap-1.5">
                                             <button
-                                                onClick={() => onReject(user.id || "", user.full_name || user.username || "-")}
+                                                onClick={() => onReject(user.id || "", (getActiveProfile(user)?.full_name || "") || user.username || "-")}
                                                 className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all active:scale-95 border border-rose-100/50"
                                             >
                                                 Reject
                                             </button>
                                             <button
-                                                onClick={() => onApprove(user.id || "", user.full_name || user.username || "-")}
+                                                onClick={() => onApprove(user.id || "", (getActiveProfile(user)?.full_name || "") || user.username || "-")}
                                                 className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all active:scale-95"
                                             >
                                                 Approve

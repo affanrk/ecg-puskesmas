@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useStore, User } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { User, ApprovalLog } from '@/types/user';
 import { api } from '@/services/api';
-import { ApprovalLog } from '@/components/admin/ApprovalLogs';
 import {
     Users,
     Activity,
@@ -15,7 +15,7 @@ import {
     HeartPulse
 } from 'lucide-react';
 import clsx from 'clsx';
-import { formatDateShort } from '@/utils/helpers';
+import { formatDateShort, getActiveProfile } from '@/utils/helpers';
 
 export default function AdminDashboard() {
     const { user } = useStore();
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                                                 {item.username.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="text-xs font-bold text-slate-800">{item.full_name || item.username}</p>
+                                                <p className="text-xs font-bold text-slate-800">{(getActiveProfile(item)?.full_name || "") || item.username}</p>
                                                 <p className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
                                                     <Clock size={10} /> {formatDateShort(item.created_dt as string)}
                                                 </p>

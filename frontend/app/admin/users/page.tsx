@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
-import { User } from '@/store/useStore';
+import { User, UserFormPayload } from '@/types/user';
 import {
     Search,
     Filter,
@@ -39,7 +39,7 @@ export default function UserManagementPage() {
             });
             setUsers(data);
         } catch (err) {
-            const { message } = parseApiError(err);
+            const { message } = parseApiError(err as Error);
             console.error(message);
             showToast(message, "error");
         } finally {
@@ -47,14 +47,14 @@ export default function UserManagementPage() {
         }
     }, [search, roleFilter, showToast]);
 
-    const handleCreate = useCallback(async (data: Record<string, unknown>) => {
+    const handleCreate = useCallback(async (data: UserFormPayload) => {
         try {
             await api.createUser(data);
             fetchUsers();
             showToast("User created successfully", "success");
             return { success: true };
         } catch (err) {
-            const { message, fieldErrors } = parseApiError(err);
+            const { message, fieldErrors } = parseApiError(err as Error);
             return { success: false, message, fieldErrors };
         }
     }, [showToast, fetchUsers]);
@@ -96,7 +96,7 @@ export default function UserManagementPage() {
             showToast("User account updated successfully", "success");
             return { success: true };
         } catch (err) {
-            const { message, fieldErrors, status } = parseApiError(err);
+            const { message, fieldErrors, status } = parseApiError(err as Error);
             
             if (status !== 400 && status !== 422 && message) {
                 showToast(message || "Failed to update user account", "error");
@@ -113,7 +113,7 @@ export default function UserManagementPage() {
             setDeletingUser(null);
             showToast("User account deleted successfully", "success");
         } catch (err) {
-            const { message } = parseApiError(err);
+            const { message } = parseApiError(err as Error);
             showToast(message || "Failed to delete user account", "error");
         }
     }, [deletingUser, fetchUsers, showToast]);

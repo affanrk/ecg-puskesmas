@@ -2,91 +2,9 @@
 
 import { create } from 'zustand';
 import { CONFIG } from '@/config/constants';
-
-export interface User {
-    id?: string;
-    username: string;
-    email?: string;
-    role: string;
-    is_patient: boolean;
-    is_active: boolean;
-    is_doctor?: boolean;
-    is_operator?: boolean;
-    is_activated: number;
-    status?: string;
-    rejection_reason?: string;
-    full_name?: string;
-    nik?: string;
-    pob?: string;
-    dob?: string;
-    gender?: string;
-    medical_history?: string;
-    address?: string;
-    contact_number?: string;
-    str_number?: string;
-    sip_number?: string;
-    specialty?: string;
-    work_location?: string;
-    created_dt?: string | Date;
-    changed_dt?: string | Date;
-    [key: string]: unknown;
-}
-
-export interface Device {
-    id: string;
-    is_locked: boolean;
-    [key: string]: unknown;
-}
-
-export interface AnalysisResult {
-    recording_id: string;
-    classification: string;
-    confidence?: number;
-    timestamp: string;
-    changed_dt?: string;
-    device_id: string;
-    subject_id: string;
-    patient_name: string;
-    bpm?: number | string;
-    avg_bpm?: number | string;
-    [key: string]: unknown;
-}
-
-export interface EcgSample {
-    leadI: number;
-    leadII: number;
-    leadIII: number;
-    avF: number;
-    v1: number;
-}
-
-export interface PerformanceMetrics {
-    latency: number;
-    jitter: number;
-    loss: number;
-    latencyHistory: number[];
-    jitterHistory: number[];
-}
-
-export interface HealthData {
-    status: string;
-    timestamp: number;
-    components: {
-        database: { status: string; latency_ms?: number; error?: string };
-        mqtt: { status: string };
-        ml_model: { status: string };
-        devices: { active: number; recording: number };
-    };
-    buffers: {
-        recording_batch_size: number;
-        mobile_batch_size: number;
-    };
-    performance: {
-        avg_latency_ms: number;
-        avg_jitter_ms: number;
-        avg_packet_loss_pct: number;
-    };
-}
+import { getActiveProfile } from '@/utils/helpers';
+import { User } from '@/types/user';
+import { Device, AnalysisResult, EcgSample, PerformanceMetrics, HealthData } from '@/types/models';
 
 interface AppState {
     currentDeviceId: string | null;
@@ -218,8 +136,8 @@ export const useStore = create<AppState>((set, get) => ({
         newLiveData.unshift({
             timestamp: new Date().toISOString(),
             device_id: state.currentDeviceId || 'unknown',
-            subject_id: state.user?.nik || state.user?.id || "-",
-            patient_name: state.user?.full_name || state.user?.username || "-",
+            subject_id: (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
+            patient_name: (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
             classification: "Recording...",
             recording_id: 'placeholder-live'
         });
@@ -274,8 +192,8 @@ export const useStore = create<AppState>((set, get) => ({
             newLive.unshift({
                 timestamp: new Date().toISOString(),
                 device_id: state.currentDeviceId || 'unknown',
-                subject_id: state.user?.nik || state.user?.id || "-",
-                patient_name: state.user?.full_name || state.user?.username || "-",
+                subject_id: (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
+                patient_name: (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
                 classification: "Recording...",
                 recording_id: 'placeholder-live'
             });

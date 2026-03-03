@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { X, UserPlus } from 'lucide-react';
-import { User } from '@/store/useStore';
+import { User, UserFormPayload } from '@/types/user';
 import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
@@ -53,7 +53,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         setErrors({});
         setServerError('');
 
-        const payload: Record<string, unknown> = {
+        const payload: UserFormPayload = {
             username: formData.username, 
             email: formData.email, 
             password: formData.password, 

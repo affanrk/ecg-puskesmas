@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useStore, AnalysisResult } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { AnalysisResult } from '@/types/models';
 import { api } from '@/services/api';
 import SummaryCards from './SummaryCards';
 import RecentAnalysisTable from './RecentAnalysisTable';

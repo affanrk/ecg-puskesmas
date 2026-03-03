@@ -7,6 +7,7 @@ import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
+import { getActiveProfile } from '@/utils/helpers';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();
@@ -59,18 +60,18 @@ export function useProfileManager() {
     const resetForms = useCallback(() => {
         if (user) {
             setMedicalForm({
-                full_name: user.full_name || '',
-                nik: user.nik || '',
-                pob: user.pob || '',
-                dob: user.dob || '',
-                gender: user.gender || 'L',
-                contact_number: user.contact_number || '',
-                address: user.address || '',
-                medical_history: user.medical_history || '',
-                str_number: user.str_number || '',
-                sip_number: user.sip_number || '',
-                specialty: user.specialty || '',
-                work_location: user.work_location || ''
+                full_name: (getActiveProfile(user)?.full_name || "") || '',
+                nik: (getActiveProfile(user)?.nik || "") || '',
+                pob: (getActiveProfile(user)?.pob || "") || '',
+                dob: (getActiveProfile(user)?.dob || "") || '',
+                gender: (getActiveProfile(user)?.gender || "") || 'L',
+                contact_number: (getActiveProfile(user)?.contact_number || "") || '',
+                address: (getActiveProfile(user)?.address || "") || '',
+                medical_history: (getActiveProfile(user)?.medical_history || "") || '',
+                str_number: (getActiveProfile(user)?.str_number || "") || '',
+                sip_number: (getActiveProfile(user)?.sip_number || "") || '',
+                specialty: (getActiveProfile(user)?.specialty || "") || '',
+                work_location: (getActiveProfile(user)?.work_location || "") || ''
             });
             setSecurityForm(p => ({ ...p, new_username: user.username, current_password: '', new_password: '', confirm_password: '' }));
             setRejectionReason(user.rejection_reason || null);
@@ -167,7 +168,7 @@ export function useProfileManager() {
         setErrors(prev => ({ ...prev, [field]: error }));
     }, [validateField]);
 
-    const handleApiError = (err: unknown, defaultField?: string) => {
+    const handleApiError = (err: Parameters<typeof parseApiError>[0], defaultField?: string) => {
         const { message, fieldErrors } = parseApiError(err);
         
         if (Object.keys(fieldErrors).length > 0) {
@@ -253,7 +254,7 @@ export function useProfileManager() {
             setIsEditingMedical(false);
             setConfirmState(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
-            handleApiError(err);
+            handleApiError(err as Error);
         } finally {
             setLoading(false);
         }
@@ -268,7 +269,7 @@ export function useProfileManager() {
             setIsEditingUsername(false);
             setConfirmState(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
-            handleApiError(err, 'new_username');
+            handleApiError(err as Error, 'new_username');
         } finally {
             setLoading(false);
         }
@@ -286,7 +287,7 @@ export function useProfileManager() {
             setIsChangingPassword(false);
             setConfirmState(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
-            handleApiError(err, 'current_password');
+            handleApiError(err as Error, 'current_password');
         } finally {
             setLoading(false);
         }

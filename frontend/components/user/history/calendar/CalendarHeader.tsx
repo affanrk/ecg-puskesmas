@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useState, useRef, useEffect } from 'react';
-import { CalendarNode } from '../CalendarDrillDown';
+import { CalendarNode } from '@/types/models';
 
 interface CalendarHeaderProps {
     onPrev: () => void;

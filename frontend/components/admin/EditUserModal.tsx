@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { User } from '@/store/useStore';
+import { User, UserFormPayload } from '@/types/user';
 import { X, Save, UserCircle, ChevronUp } from 'lucide-react';
 import clsx from 'clsx';
 import StandardInput from '@/components/shared/StandardInput';
@@ -10,6 +10,7 @@ import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { validators } from '@/utils/validators';
 import { PatientIdentitySection } from './UserFormFields';
 import ReviewSummaryTable from './ReviewSummaryTable';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface EditUserModalProps {
     user: User;
@@ -37,8 +38,8 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         username: user.username || '', email: user.email || '', role: initialRole,
         account_status: user.is_active ? 'ACTIVE' : 'INACTIVE', 
         activation_status: user.is_activated === 1 ? 'APPROVE' : 'REJECT',
-        full_name: user.full_name || '', nik: user.nik || '', pob: user.pob || '', dob: user.dob || '',
-        gender: user.gender || 'L', contact_number: user.contact_number || '', address: user.address || '', medical_history: user.medical_history || ''
+        full_name: (getActiveProfile(user)?.full_name || "") || '', nik: (getActiveProfile(user)?.nik || "") || '', pob: (getActiveProfile(user)?.pob || "") || '', dob: (getActiveProfile(user)?.dob || "") || '',
+        gender: (getActiveProfile(user)?.gender || "") || 'L', contact_number: (getActiveProfile(user)?.contact_number || "") || '', address: (getActiveProfile(user)?.address || "") || '', medical_history: (getActiveProfile(user)?.medical_history || "") || ''
     });
 
     const getChangedFields = useCallback(() => {
@@ -61,14 +62,14 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         if (formData.role === 'patient') {
             Object.assign(initialMap, {
                 'activation_status': { label: 'Verification Status', value: user.is_activated === 1 ? 'FULL-ACCESS' : 'RESTRICTED' },
-                'full_name': { label: 'Full Name', value: user.full_name },
-                'nik': { label: 'NIK', value: user.nik },
-                'pob': { label: 'Place of Birth', value: user.pob },
-                'dob': { label: 'Date of Birth', value: user.dob },
-                'gender': { label: 'Gender', value: user.gender ? (user.gender === 'L' ? 'Male' : 'Female') : null },
-                'contact_number': { label: 'Contact', value: user.contact_number },
-                'address': { label: 'Address', value: user.address },
-                'medical_history': { label: 'Medical History', value: user.medical_history }
+                'full_name': { label: 'Full Name', value: (getActiveProfile(user)?.full_name || "") },
+                'nik': { label: 'NIK', value: (getActiveProfile(user)?.nik || "") },
+                'pob': { label: 'Place of Birth', value: (getActiveProfile(user)?.pob || "") },
+                'dob': { label: 'Date of Birth', value: (getActiveProfile(user)?.dob || "") },
+                'gender': { label: 'Gender', value: (getActiveProfile(user)?.gender || "") ? ((getActiveProfile(user)?.gender || "") === 'L' ? 'Male' : 'Female') : null },
+                'contact_number': { label: 'Contact', value: (getActiveProfile(user)?.contact_number || "") },
+                'address': { label: 'Address', value: (getActiveProfile(user)?.address || "") },
+                'medical_history': { label: 'Medical History', value: (getActiveProfile(user)?.medical_history || "") }
             });
             Object.assign(currentMap, {
                 'activation_status': { label: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS' : 'RESTRICTED' },
@@ -136,7 +137,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         setServerError('');
 
         const isNewlyPatient = formData.role === 'patient' && !user.is_patient;
-        const payload: Record<string, unknown> = {
+        const payload: UserFormPayload = {
             username: formData.username, 
             email: formData.email, 
             role: formData.role,

@@ -4,20 +4,8 @@ import { useEffect, useRef } from 'react';
 import { History, CheckCircle2, XCircle, Clock, ChevronLeft, ChevronRight, User as UserIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { formatDate } from '@/utils/helpers';
-
-export interface ApprovalLog {
-    id: string;
-    user_id: string;
-    username: string;
-    full_name: string;
-    is_patient: boolean;
-    is_operator: boolean;
-    is_doctor: boolean;
-    status: 'QUEUE' | 'APPROVED' | 'REJECTED';
-    reason?: string;
-    created_dt: string;
-    created_by: string;
-}
+import { getActiveProfile } from '@/utils/helpers';
+import { ApprovalLog } from '@/types/user';
 
 interface ApprovalLogsProps {
     logs: ApprovalLog[];
@@ -105,7 +93,7 @@ export default function ApprovalLogs({ logs, rowsPerPage, setRowsPerPage, curren
                                                     <UserIcon size={14} />
                                                 </div>
                                                 <div className="flex flex-col leading-tight">
-                                                    <span className="text-[11px] font-black text-slate-800">{log.full_name || log.username}</span>
+                                                    <span className="text-[11px] font-black text-slate-800">{(getActiveProfile(log)?.full_name || "") || log.username}</span>
                                                     <span className="text-[9px] font-bold text-slate-400">@{log.username}</span>
                                                 </div>
                                             </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, ShieldAlert } from 'lucide-react';
 import clsx from 'clsx';
-import { CalendarNode } from '../CalendarDrillDown';
+import { CalendarNode } from '@/types/models';
 
 interface CalendarSidebarProps {
     currentDate: Date;

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
+import { getActiveProfile } from '@/utils/helpers';
 import clsx from 'clsx';
 import {
     LayoutDashboard,
@@ -60,7 +61,7 @@ export default function Sidebar() {
                             <span className={clsx("truncate font-medium transition-opacity", !isSidebarPinned && "opacity-0 group-hover:opacity-100")}>{item.name}</span>
                             <Lock size={14} className={clsx("absolute right-4 text-slate-300 shrink-0 transition-opacity", !isSidebarPinned && "opacity-0 group-hover:opacity-100")} />
                             <div className="hidden lg:group-hover:block absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-[10px] font-bold rounded-md opacity-0 group-hover:opacity-100 transition-all whitespace-nowrap z-50 pointer-events-none shadow-xl border border-slate-700">
-                                {!isActivated ? (user?.is_activated === 0 && user?.nik ? "Awaiting admin approval" : "Complete profile to unlock") : "Access restricted"}
+                                {!isActivated ? (user?.is_activated === 0 && getActiveProfile(user)?.nik ? "Awaiting admin approval" : "Complete profile to unlock") : "Access restricted"}
                                 <div className="absolute top-1/2 -left-1 w-2 h-2 bg-slate-800 transform -translate-y-1/2 rotate-45 border-l border-b border-slate-700"></div>
                             </div>
                         </div>

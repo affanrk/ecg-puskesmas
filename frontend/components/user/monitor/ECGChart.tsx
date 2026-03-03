@@ -11,6 +11,7 @@ import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import clsx from 'clsx';
 import { Activity, Square, XCircle } from 'lucide-react';
 import DeviceDropdown from './DeviceDropdown';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface ECGChartProps {
     onToggleLead?: (key: 'leadI' | 'leadII' | 'v1') => void;
@@ -361,11 +362,11 @@ export default function ECGChart({ }: ECGChartProps) {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                             <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500">
-                                {(user?.full_name || user?.username || '?').charAt(0).toUpperCase()}
+                                {((getActiveProfile(user)?.full_name || "") || user?.username || '?').charAt(0).toUpperCase()}
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-[11px] font-black text-slate-800 leading-none">
-                                    {user?.full_name || user?.username || 'Unknown Patient'}
+                                    {(getActiveProfile(user)?.full_name || "") || user?.username || 'Unknown'}
                                 </span>
                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Patient Identity</span>
                             </div>
@@ -375,7 +376,7 @@ export default function ECGChart({ }: ECGChartProps) {
                             <div className="flex items-center gap-2">
                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medical History:</span>
                                 <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                                    {user?.medical_history || 'No Prior Records'}
+                                    {(getActiveProfile(user)?.medical_history || "") || 'No Prior Records'}
                                 </span>
                             </div>
                         </div>

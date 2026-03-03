@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
-import { User } from '@/store/useStore';
+import { User } from '@/types/user';
 import { connectWebSocket } from '@/services/socket';
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
