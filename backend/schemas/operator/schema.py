@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import date
 from pydantic import BaseModel, field_validator, ConfigDict
-from ..validators import (
+from utils.helpers.validation import (
     validate_full_name,
     validate_nik,
     validate_contact_number,
@@ -12,7 +12,7 @@ from ..validators import (
 
 class OperatorBase(BaseModel):
     full_name: str
-    nik: str
+    nik: Optional[str] = None
     pob: str
     dob: date
     gender: str
@@ -37,12 +37,13 @@ class OperatorBase(BaseModel):
 
 
 class OperatorCreate(OperatorBase):
+    nik: str
     source: Optional[str] = "WEB"
 
 
 class OperatorUpdate(BaseModel):
     full_name: Optional[str] = None
-    nik: Optional[str] = None
+    nik: str
     pob: Optional[str] = None
     dob: Optional[date] = None
     gender: Optional[str] = None

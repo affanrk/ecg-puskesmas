@@ -1,6 +1,29 @@
+from sqlalchemy.orm import Session
+from models import TbMPatient, TbMOperator, TbMDoctor
 from typing import Optional, Any
 from datetime import date
 import re
+
+
+def check_global_nik(
+    db_session: Session, nik: str, current_user_id: str = None
+) -> bool:
+    if not nik:
+        return False
+
+    p = db_session.query(TbMPatient).filter(TbMPatient.nik == nik).first()
+    if p and p.user_id != current_user_id:
+        return True
+
+    o = db_session.query(TbMOperator).filter(TbMOperator.nik == nik).first()
+    if o and o.user_id != current_user_id:
+        return True
+
+    d = db_session.query(TbMDoctor).filter(TbMDoctor.nik == nik).first()
+    if d and d.user_id != current_user_id:
+        return True
+
+    return False
 
 
 def validate_full_name(v: Optional[str]) -> Optional[str]:

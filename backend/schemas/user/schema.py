@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
-from ..validators import (
+from utils.helpers.validation import (
     validate_username,
     validate_password,
     sanitize_email,

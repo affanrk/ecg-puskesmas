@@ -7,6 +7,7 @@ from schemas.operator import OperatorUpdate, OperatorCreate
 from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
+from utils.helpers.validation import check_global_nik
 from utils import logger
 
 
@@ -36,7 +37,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         initial_status: str = "QUEUE",
     ) -> TbMOperator:
         try:
-            if self.find_by_nik(operator_in.nik):
+            if operator_in.nik and check_global_nik(self.db, operator_in.nik, user_id):
                 raise DuplicateNIKException(nik=operator_in.nik)
 
             operator_id = generate_custom_id("OPR", "tb_m_operator", self.db)
@@ -114,8 +115,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
             if "nik" in update_data and update_data["nik"]:
                 new_nik = update_data["nik"]
                 if not operator or operator.nik != new_nik:
-                    existing_operator = self.find_by_nik(new_nik)
-                    if existing_operator and existing_operator.user_id != user_id:
+                    if check_global_nik(self.db, new_nik, user_id):
                         raise DuplicateNIKException(nik=new_nik)
 
             should_log = False

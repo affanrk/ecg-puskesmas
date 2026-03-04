@@ -7,6 +7,7 @@ from schemas.doctor import DoctorUpdate, DoctorCreate
 from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
+from utils.helpers.validation import check_global_nik
 from utils import logger
 
 
@@ -36,7 +37,7 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
         initial_status: str = "QUEUE",
     ) -> TbMDoctor:
         try:
-            if self.find_by_nik(doctor_in.nik):
+            if doctor_in.nik and check_global_nik(self.db, doctor_in.nik, user_id):
                 raise DuplicateNIKException(nik=doctor_in.nik)
 
             doctor_id = generate_custom_id("DOC", "tb_m_doctor", self.db)
@@ -115,8 +116,7 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
             if "nik" in update_data and update_data["nik"]:
                 new_nik = update_data["nik"]
                 if not doctor or doctor.nik != new_nik:
-                    existing_doctor = self.find_by_nik(new_nik)
-                    if existing_doctor and existing_doctor.user_id != user_id:
+                    if check_global_nik(self.db, new_nik, user_id):
                         raise DuplicateNIKException(nik=new_nik)
 
             should_log = False

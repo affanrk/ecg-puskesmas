@@ -136,9 +136,15 @@ def create_user(
 ):
     try:
         if user_repo.find_by_username(user_in.username):
-            raise HTTPException(status_code=400, detail={"message": "Username is already taken", "field": "username"})
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Username is already taken", "field": "username"},
+            )
         if user_repo.find_by_email(user_in.email):
-            raise HTTPException(status_code=400, detail={"message": "Email is already registered", "field": "email"})
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Email is already registered", "field": "email"},
+            )
 
         nik_to_check = None
         if user_in.patient_profile and user_in.patient_profile.nik:
@@ -154,7 +160,10 @@ def create_user(
                 or operator_repo.find_by_nik(nik_to_check)
                 or doctor_repo.find_by_nik(nik_to_check)
             ):
-                raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
+                raise HTTPException(
+                    status_code=400,
+                    detail={"message": "NIK is already registered", "field": "nik"},
+                )
 
         user_in.source = "ADMIN"
 
@@ -252,7 +261,10 @@ def create_user(
     except (HTTPException, AppException):
         raise
     except DuplicateNIKException:
-        raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "NIK is already registered", "field": "nik"},
+        )
     except Exception as e:
         logger.error(f"Unexpected system error in create_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -309,13 +321,20 @@ def update_user(
         if "username" in update_data:
             existing = user_repo.find_by_username(update_data["username"])
             if existing and existing.id != user_id:
-                raise HTTPException(status_code=400, detail={"message": "Username is already taken", "field": "username"})
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "message": "Username is already taken",
+                        "field": "username",
+                    },
+                )
 
         if "email" in update_data:
             existing = user_repo.find_by_email(update_data["email"])
             if existing and existing.id != user_id:
                 raise HTTPException(
-                    status_code=400, detail={"message": "Email is already registered", "field": "email"}
+                    status_code=400,
+                    detail={"message": "Email is already registered", "field": "email"},
                 )
 
         if "role" in update_data:
@@ -406,7 +425,10 @@ def update_user(
     except (HTTPException, AppException):
         raise
     except DuplicateNIKException:
-        raise HTTPException(status_code=400, detail={"message": "NIK is already registered", "field": "nik"})
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "NIK is already registered", "field": "nik"},
+        )
     except Exception as e:
         logger.error(f"Unexpected system error in update_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
