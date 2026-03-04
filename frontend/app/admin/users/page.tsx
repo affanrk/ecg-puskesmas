@@ -10,28 +10,37 @@ import {
     Plus
 } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import EditUserModal from '@/components/admin/EditUserModal';
-import CreateUserModal from '@/components/admin/CreateUserModal';
+import EditUserModal from '@/components/admin/users/EditUserModal';
+import CreateUserModal from '@/components/admin/users/CreateUserModal';
 import { parseApiError } from '@/utils/helpers';
 import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 import { globalEventBus } from '@/services/events';
 import { EVENTS } from '@/config/constants';
-import UserManagementTable from '@/components/admin/UserManagementTable';
+import UserManagementTable from '@/components/admin/users/UserManagementTable';
 
 export default function UserManagementPage() {
     const showToast = useToast((state) => state.show);
+    const { setAdminLoading } = useStore();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        setAdminLoading(isLoading);
+    }, [isLoading, setAdminLoading]);
     const [search, setSearch] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
 
     const fetchUsers = useCallback(async () => {
+        setIsLoading(true);
         try {
+
             const data = await api.fetchUsers({
                 search,
                 role: roleFilter || undefined,
@@ -44,8 +53,9 @@ export default function UserManagementPage() {
             showToast(message, "error");
         } finally {
             setIsLoading(false);
+            setAdminLoading(false);
         }
-    }, [search, roleFilter, showToast]);
+    }, [search, roleFilter, showToast, setAdminLoading]);
 
     const handleCreate = useCallback(async (data: UserFormPayload) => {
         try {
@@ -107,6 +117,7 @@ export default function UserManagementPage() {
 
     const handleDelete = useCallback(async () => {
         if (!deletingUser?.id) return;
+        setIsDeleting(true);
         try {
             await api.deleteUser(deletingUser.id);
             fetchUsers();
@@ -115,6 +126,8 @@ export default function UserManagementPage() {
         } catch (err) {
             const { message } = parseApiError(err as Error);
             showToast(message || "Failed to delete user account", "error");
+        } finally {
+            setIsDeleting(false);
         }
     }, [deletingUser, fetchUsers, showToast]);
 
@@ -215,6 +228,7 @@ export default function UserManagementPage() {
                 }
                 confirmText="Delete Account"
                 isDestructive={true}
+                isLoading={isDeleting}
             />
         </div>
     );

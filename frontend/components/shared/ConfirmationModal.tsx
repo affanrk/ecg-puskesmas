@@ -45,7 +45,7 @@ export default function ConfirmationModal({
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="order-2 sm:order-1 flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors disabled:opacity-50"
+                            className="order-2 sm:order-1 flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
                         >
                             Cancel
                         </button>
@@ -53,7 +53,7 @@ export default function ConfirmationModal({
                             onClick={onConfirm}
                             disabled={isLoading}
                             className={clsx(
-                                "order-1 sm:order-2 flex-[1.5] px-4 py-3 rounded-xl text-white text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap",
+                                "order-1 sm:order-2 flex-[1.5] px-4 py-3 rounded-xl text-white text-xs font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer",
                                 isDestructive
                                     ? "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
                                     : "bg-brand-600 hover:bg-brand-700 shadow-brand-500/20",

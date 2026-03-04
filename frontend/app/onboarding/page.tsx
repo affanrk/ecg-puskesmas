@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Shield, User, Clock, Activity, ArrowRight, ArrowLeft, Stethoscope, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, User, Clock, Activity, ArrowRight, ArrowLeft, Stethoscope, LogOut, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,8 +11,18 @@ export default function OnboardingPage() {
     const router = useRouter();
     const { user } = useStore();
     const { logout } = useAuth();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     if (!user) return null;
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await logout();
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     const roles = [
         {
@@ -74,7 +85,7 @@ export default function OnboardingPage() {
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => router.push('/dashboard')} 
-                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-200 transition-all group"
+                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-brand-600 hover:bg-brand-50 hover:border-brand-200 transition-all group cursor-pointer"
                         title="Back to Dashboard"
                     >
                         <ArrowLeft size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
@@ -87,12 +98,17 @@ export default function OnboardingPage() {
                         <span className="text-xs md:text-sm font-bold text-slate-500 truncate max-w-[150px] md:max-w-none">Welcome, <span className="text-slate-800">{user.username}</span></span>
                     </div>
                     <button 
-                        onClick={logout} 
-                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all group"
+                        onClick={handleLogout} 
+                        disabled={isLoggingOut}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                         title="Sign Out"
                     >
-                        <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
-                        <span className="hidden sm:inline">Sign Out</span>
+                        {isLoggingOut ? (
+                            <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                            <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
+                        )}
+                        <span className="hidden sm:inline">{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
                     </button>
                 </div>
             </header>
@@ -115,7 +131,7 @@ export default function OnboardingPage() {
                                 key={role.id}
                                 onClick={role.action}
                                 className={clsx(
-                                    "group relative flex flex-col text-left p-6 md:p-8 bg-white rounded-3xl border-2 transition-all duration-300 shadow-xl shadow-slate-200/50",
+                                    "group relative flex flex-col text-left p-6 md:p-8 bg-white rounded-3xl border-2 transition-all duration-300 shadow-xl shadow-slate-200/50 cursor-pointer",
                                     role.border,
                                     !isComingSoon && role.hover,
                                     isComingSoon && "opacity-80 hover:opacity-100 grayscale-[30%]"

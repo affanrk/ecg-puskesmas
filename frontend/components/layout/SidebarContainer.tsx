@@ -25,9 +25,12 @@ export default function SidebarContainer({ children, className }: SidebarContain
     const { logout } = useAuth();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
     const handleLogout = async () => {
+        setIsLoggingOut(true);
+
         await logout();
     };
 
@@ -91,7 +94,7 @@ export default function SidebarContainer({ children, className }: SidebarContain
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
                         className={clsx(
-                            "flex items-center gap-3 w-full px-4 py-3.5 rounded-md transition-all font-bold text-sm group border",
+                            "flex items-center gap-3 w-full px-4 py-3.5 rounded-md transition-all font-bold text-sm group border cursor-pointer",
                             className?.includes('bg-slate-900')
                                 ? "text-rose-500 hover:bg-rose-500/10 border-transparent hover:border-rose-500/20"
                                 : "text-rose-600 hover:bg-rose-50 border-transparent hover:border-rose-100"
@@ -108,7 +111,7 @@ export default function SidebarContainer({ children, className }: SidebarContain
                     <button
                         onClick={() => setIsSidebarPinned(!isSidebarPinned)}
                         className={clsx(
-                            "hidden lg:flex items-center gap-3 w-full px-4 py-2 rounded-md transition-all font-bold text-xs group border",
+                            "hidden lg:flex items-center gap-3 w-full px-4 py-2 rounded-md transition-all font-bold text-xs group border cursor-pointer",
                             className?.includes('bg-slate-900')
                                 ? (isSidebarPinned ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800 border-transparent" : "text-rose-400 bg-rose-500/5 border-rose-500/10")
                                 : (isSidebarPinned ? "text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent" : "text-teal-600 bg-teal-50 border-teal-100")
@@ -138,6 +141,7 @@ export default function SidebarContainer({ children, className }: SidebarContain
                 message="Are you sure you want to end your session and logout from the system?"
                 confirmText="Logout"
                 isDestructive={true}
+                isLoading={isLoggingOut}
             />
         </>
     );

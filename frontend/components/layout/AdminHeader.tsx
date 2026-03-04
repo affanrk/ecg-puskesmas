@@ -38,6 +38,13 @@ export default function AdminHeader() {
     const isApprovalsPage = pathname === '/admin/approvals';
     const isHealthPage = pathname === '/admin/health';
     const isUsersPage = pathname === '/admin/users';
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+
+        logout();
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -50,12 +57,14 @@ export default function AdminHeader() {
     }, []);
 
     const handleRefresh = () => {
+        setAdminLoading(true);
         globalEventBus.emit(EVENTS.STATE.LIVE_DATA_UPDATED);
     };
 
     const handleHealthRefresh = async () => {
         setAdminLoading(true);
         try {
+
             const data = await api.fetchDetailedHealth();
             setHealthData(data);
             toast("System health updated", "success");
@@ -104,7 +113,7 @@ export default function AdminHeader() {
                             <button
                                 onClick={() => setAdminViewMode('queue')}
                                 className={clsx(
-                                    "flex-1 relative z-10 h-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
+                                    "flex-1 relative z-10 h-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center cursor-pointer",
                                     adminViewMode === 'queue' ? "text-white" : "text-slate-500 hover:text-slate-300"
                                 )}
                             >
@@ -113,7 +122,7 @@ export default function AdminHeader() {
                             <button
                                 onClick={() => setAdminViewMode('logs')}
                                 className={clsx(
-                                    "flex-1 relative z-10 h-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center",
+                                    "flex-1 relative z-10 h-full text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center cursor-pointer",
                                     adminViewMode === 'logs' ? "text-white" : "text-slate-500 hover:text-slate-300"
                                 )}
                             >
@@ -124,7 +133,7 @@ export default function AdminHeader() {
                             onClick={handleRefresh}
                             disabled={adminLoading}
                             className={clsx(
-                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm",
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
                                 adminLoading && "opacity-50 cursor-wait"
                             )}
                             title="Sync Verification Data"
@@ -154,7 +163,7 @@ export default function AdminHeader() {
                             onClick={handleHealthRefresh}
                             disabled={adminLoading}
                             className={clsx(
-                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm",
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
                                 adminLoading && "opacity-50 cursor-wait"
                             )}
                             title="Refresh System Health"
@@ -169,10 +178,14 @@ export default function AdminHeader() {
                     <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
                         <button
                             onClick={handleRefresh}
-                            className="h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm"
+                            disabled={adminLoading}
+                            className={clsx(
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
+                                adminLoading && "opacity-50 cursor-wait"
+                            )}
                             title="Refresh Users List"
                         >
-                            <RefreshCcw size={12} />
+                            <RefreshCcw size={12} className={clsx(adminLoading && "animate-spin")} />
                             <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
                         </button>
                     </div>
@@ -183,7 +196,7 @@ export default function AdminHeader() {
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                            className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-800 transition-colors border border-transparent group"
+                            className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-800 transition-colors border border-transparent group cursor-pointer"
                         >
                             <div className="text-right hidden md:block">
                                 <p className="text-xs font-bold text-slate-200 leading-tight group-hover:text-rose-400 transition-colors">{user?.username || 'Admin'}</p>
@@ -211,7 +224,7 @@ export default function AdminHeader() {
                                     </Link>
                                     <button
                                         onClick={() => setShowLogoutConfirm(true)}
-                                        className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-md w-full text-left transition-colors group"
+                                        className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-500 hover:bg-rose-500/10 rounded-md w-full text-left transition-colors group cursor-pointer"
                                     >
                                         <LogOut size={16} />
                                         Sign Out
@@ -225,11 +238,12 @@ export default function AdminHeader() {
             <ConfirmationModal
                 isOpen={showLogoutConfirm}
                 onClose={() => setShowLogoutConfirm(false)}
-                onConfirm={logout}
+                onConfirm={handleLogout}
                 title="End Admin Session?"
                 message="Are you sure you want to terminate your administrative session and logout?"
                 confirmText="Logout"
                 isDestructive={true}
+                isLoading={isLoggingOut}
             />
         </>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import CalendarDrillDown from '@/components/user/history/CalendarDrillDown';
+import CalendarDrillDown from '@/components/patient/history/CalendarDrillDown';
 
 export default function HistoryPage() {
     return (

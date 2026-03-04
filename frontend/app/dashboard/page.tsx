@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Shield, User, Activity, ArrowRight, LogOut, HeartPulse, Fingerprint, Lock } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, User, Activity, ArrowRight, LogOut, HeartPulse, Fingerprint, Lock, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -9,8 +10,18 @@ export default function DashboardPage() {
     const router = useRouter();
     const { user } = useStore();
     const { logout } = useAuth();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     if (!user) return null;
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await logout();
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     return (
         <div className="h-screen bg-slate-50 flex flex-col relative overflow-hidden font-sans">
@@ -33,12 +44,17 @@ export default function DashboardPage() {
                         <span className="text-xs md:text-sm font-bold text-slate-500 truncate max-w-[150px] md:max-w-none">Welcome, <span className="text-slate-800">{user.username}</span></span>
                     </div>
                     <button 
-                        onClick={logout} 
-                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all group"
+                        onClick={handleLogout} 
+                        disabled={isLoggingOut}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-full text-sm font-bold text-slate-500 hover:text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                         title="Sign Out"
                     >
-                        <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
-                        <span className="hidden sm:inline">Sign Out</span>
+                        {isLoggingOut ? (
+                            <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                            <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform shrink-0" />
+                        )}
+                        <span className="hidden sm:inline">{isLoggingOut ? 'Signing Out...' : 'Sign Out'}</span>
                     </button>
                 </div>
             </header>
@@ -53,10 +69,9 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-                        {/* ECG Module */}
                         <button
                             onClick={() => router.push('/onboarding')}
-                            className="group relative flex flex-col text-left p-8 md:p-10 bg-white rounded-3xl border-2 border-brand-200 hover:border-brand-500 hover:ring-brand-500/20 transition-all duration-300 shadow-xl shadow-slate-200/50"
+                            className="group relative flex flex-col text-left p-8 md:p-10 bg-white rounded-3xl border-2 border-brand-200 hover:border-brand-500 hover:ring-brand-500/20 transition-all duration-300 shadow-xl shadow-slate-200/50 cursor-pointer"
                         >
                             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-sm transition-transform group-hover:scale-110 bg-brand-50 text-brand-500">
                                 <HeartPulse className="w-8 h-8" />
@@ -71,7 +86,6 @@ export default function DashboardPage() {
                             </div>
                         </button>
 
-                        {/* PPG Module (Disabled) */}
                         <div className="group relative flex flex-col text-left p-8 md:p-10 bg-white/60 rounded-3xl border-2 border-slate-200 transition-all duration-300 shadow-lg shadow-slate-200/30 opacity-80 grayscale-[20%] overflow-hidden cursor-not-allowed">
                             <div className="absolute top-6 right-6 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-200 flex items-center gap-1.5 shadow-sm">
                                 <Lock size={12} /> Future Development

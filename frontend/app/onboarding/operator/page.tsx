@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/useToast';
 import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import ReviewSummaryTable from '@/components/admin/users/ReviewSummaryTable';
 
 export default function OperatorOnboardingForm() {
     const router = useRouter();
@@ -19,7 +21,7 @@ export default function OperatorOnboardingForm() {
     
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [serverError, setServerError] = useState('');
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     
     const [formData, setFormData] = useState({
         full_name: '',
@@ -39,7 +41,6 @@ export default function OperatorOnboardingForm() {
 
     const handleFieldChange = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        setServerError('');
         
         let error = '';
         if (field === 'full_name') error = validators.name(value);
@@ -81,6 +82,11 @@ export default function OperatorOnboardingForm() {
             return;
         }
 
+        setIsConfirmOpen(true);
+    };
+
+    const executeSubmit = async () => {
+        setIsConfirmOpen(false);
         setLoading(true);
         try {
             const payload = {
@@ -100,9 +106,10 @@ export default function OperatorOnboardingForm() {
             router.push('/operator/dashboard');
         } catch (err) {
             const { message, fieldErrors } = parseApiError(err as Error);
-            setServerError(message);
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(prev => ({ ...prev, ...fieldErrors }));
+            } else {
+                toast(message || "An unexpected error occurred.", "error");
             }
         } finally {
             setLoading(false);
@@ -122,7 +129,7 @@ export default function OperatorOnboardingForm() {
                     </div>
                     <span className="font-black text-xl text-slate-900 tracking-tight">ECG Platform</span>
                 </div>
-                <button onClick={() => router.push('/onboarding')} className="group flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors bg-white/60 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-200/60 shadow-sm hover:shadow-md">
+                <button onClick={() => router.push('/onboarding')} className="group flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors bg-white/60 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-200/60 shadow-sm hover:shadow-md cursor-pointer">
                     <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
                     Cancel & Return
                 </button>
@@ -141,12 +148,6 @@ export default function OperatorOnboardingForm() {
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5 overflow-y-auto custom-scrollbar">
-                        {serverError && (
-                            <div className="p-4 bg-rose-50 border border-rose-100 rounded-xl text-sm font-bold text-rose-600">
-                                {serverError}
-                            </div>
-                        )}
-                        
                         <div className="space-y-3 md:space-y-4">
                             <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Essential Identity
@@ -188,13 +189,38 @@ export default function OperatorOnboardingForm() {
                         </div>
 
                         <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end shrink-0 pb-2">
-                            <button type="submit" disabled={loading} className="px-6 md:px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0">
+                            <button type="submit" disabled={loading} className="px-6 md:px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer">
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Complete Registration <ArrowRight size={18} /></>}
                             </button>
                         </div>
                     </form>
                 </div>
             </main>
+
+            <ConfirmationModal
+                isOpen={isConfirmOpen}
+                onClose={() => setIsConfirmOpen(false)}
+                onConfirm={executeSubmit}
+                title="Review Registration Information"
+                message={
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-500 font-medium">
+                            WARNING: Once saved, your <span className="font-bold text-rose-600">Name, NIK, Date of Birth, and Gender</span> will be <span className="font-bold text-rose-600">PERMANENTLY locked</span>. They cannot be changed after submission. Please ensure they match your official ID exactly.
+                        </p>
+                        <ReviewSummaryTable data={[
+                            { field: 'Full Name', value: formData.full_name },
+                            { field: 'NIK', value: formData.nik },
+                            { field: 'Place of Birth', value: formData.pob },
+                            { field: 'Date of Birth', value: formData.dob },
+                            { field: 'Gender', value: formData.gender === 'L' ? 'Male' : 'Female' },
+                            { field: 'Role', value: formData.operator_role },
+                            { field: 'STR Number', value: formData.str_number },
+                            { field: 'Work Location', value: formData.work_location || '-' }
+                        ]} />
+                    </div>
+                }
+                confirmText="Submit & Activate Profile"
+            />
         </div>
     );
 }

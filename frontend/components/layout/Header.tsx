@@ -29,7 +29,11 @@ export default function Header() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
     const handleLogout = async () => {
+        setIsLoggingOut(true);
+
         await logout();
     };
 
@@ -62,7 +66,7 @@ export default function Header() {
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                            className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100 group"
+                            className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-md hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100 group cursor-pointer"
                         >
                             <div className="text-right hidden md:block">
                                 <p className="text-xs font-bold text-slate-700 leading-tight group-hover:text-teal-700 transition-colors">{user ? ((getActiveProfile(user)?.full_name || "") || user.username) : 'Loading...'}</p>
@@ -94,7 +98,7 @@ export default function Header() {
                                     </Link>
                                     <button
                                         onClick={() => setShowLogoutConfirm(true)}
-                                        className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-md w-full text-left transition-colors group"
+                                        className="flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-md w-full text-left transition-colors group cursor-pointer"
                                     >
                                         <LogOut size={16} className="text-rose-400 group-hover:text-rose-600 transition-colors" />
                                         Sign Out
@@ -113,6 +117,7 @@ export default function Header() {
                 message="Are you sure you want to end your session and logout from the system?"
                 confirmText="Logout"
                 isDestructive={true}
+                isLoading={isLoggingOut}
             />
         </>
     );

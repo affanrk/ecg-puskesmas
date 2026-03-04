@@ -1,19 +1,32 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { LogOut } from 'lucide-react';
+import { LogOut, Loader2 } from 'lucide-react';
 
 export default function DoctorDashboard() {
     const { logout } = useAuth();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await logout();
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     return (
         <div className="flex items-center justify-center h-screen bg-slate-50 relative">
             <div className="absolute top-8 right-8">
                 <button
-                    onClick={logout}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-rose-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-50 transition-all shadow-sm active:scale-95"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-rose-500 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-rose-50 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                    <LogOut size={16} /> Sign Out
+                    {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />} 
+                    {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                 </button>
             </div>
             <div className="text-center">

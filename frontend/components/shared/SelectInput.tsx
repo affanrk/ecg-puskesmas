@@ -33,7 +33,7 @@ export default function SelectInput({ label, value, onChange, options, disabled 
                             ? "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none"
                             : errorMessage 
                                 ? "border-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 bg-rose-50/20 text-rose-900"
-                                : "border-slate-100 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/5 bg-slate-50/50 focus:bg-white text-slate-800"
+                                : "border-slate-100 focus:border-brand-500 focus:ring-4 focus:ring-brand-500/5 bg-slate-50/50 focus:bg-white text-slate-800 cursor-pointer"
                     )}
                 >
                     {options.map((opt) => (

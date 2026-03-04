@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
 import axiosInstance from '@/services/axiosInstance';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
 import { getActiveProfile } from '@/utils/helpers';
+import ReviewSummaryTable from '@/components/admin/users/ReviewSummaryTable';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();
@@ -43,7 +44,7 @@ export function useProfileManager() {
         isOpen: boolean;
         type: 'identity' | 'medical' | 'username' | 'password' | null;
         title: string;
-        message: string;
+        message: ReactNode;
         action: () => Promise<void>;
         isDestructive?: boolean;
         confirmText?: string;
@@ -126,29 +127,29 @@ export function useProfileManager() {
 
     const runFullMedicalValidation = () => {
         const newErrors: Record<string, string> = {};
-        const isLocked = user?.is_patient;
+        const isLocked = user?.is_patient || user?.is_operator || user?.is_doctor;
         if (!isLocked) {
             const nikErr = validators.nik(medicalForm.nik);
             if (nikErr) newErrors.nik = nikErr;
-            
+
             const nameErr = validators.name(medicalForm.full_name);
             if (nameErr) newErrors.full_name = nameErr;
-            
+
             const dobErr = validators.dob(medicalForm.dob);
             if (dobErr) newErrors.dob = dobErr;
-            
+
             if (validators.required(medicalForm.pob)) newErrors.pob = "Place of Birth required";
 
-            if (user?.is_operator) {
+            if (user?.role === 'operator') {
                 if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
             }
-            if (user?.is_doctor) {
+            if (user?.role === 'doctor') {
                 if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
                 if (validators.required(medicalForm.sip_number)) newErrors.sip_number = "Required";
                 if (validators.required(medicalForm.specialty)) newErrors.specialty = "Required";
             }
         }
-        
+
         const phoneErr = validators.phone(medicalForm.contact_number);
         if (phoneErr) newErrors.contact_number = phoneErr;
 
@@ -170,7 +171,7 @@ export function useProfileManager() {
 
     const handleApiError = (err: Parameters<typeof parseApiError>[0], defaultField?: string) => {
         const { message, fieldErrors } = parseApiError(err);
-        
+
         if (Object.keys(fieldErrors).length > 0) {
             setErrors(prev => ({ ...prev, ...fieldErrors }));
         } else if (defaultField && message) {
@@ -184,10 +185,10 @@ export function useProfileManager() {
     const executeSaveProfile = async () => {
         setLoading(true);
         try {
-            const isFirstTime = !user?.is_patient && !user?.is_operator && !user?.is_doctor;
+
             let res;
 
-            if (isFirstTime) {
+            if (user?.is_patient) {
                 const payload = {
                     ...medicalForm,
                     full_name: medicalForm.full_name || null,
@@ -199,54 +200,39 @@ export function useProfileManager() {
                     medical_history: medicalForm.medical_history || null,
                     source: 'WEB'
                 };
-                res = await api.createPatientProfile(payload);
+                res = await api.updatePatientProfile(payload);
+            } else if (user?.is_operator) {
+                const payload = {
+                    ...medicalForm,
+                    full_name: medicalForm.full_name || null,
+                    nik: medicalForm.nik || null,
+                    pob: medicalForm.pob || null,
+                    dob: medicalForm.dob || null,
+                    address: medicalForm.address || null,
+                    contact_number: medicalForm.contact_number || null,
+                    str_number: medicalForm.str_number || null,
+                    work_location: medicalForm.work_location || null,
+                    source: 'WEB'
+                };
+                res = await api.updateOperatorProfile(payload);
+            } else if (user?.is_doctor) {
+                const payload = {
+                    ...medicalForm,
+                    full_name: medicalForm.full_name || null,
+                    nik: medicalForm.nik || null,
+                    pob: medicalForm.pob || null,
+                    dob: medicalForm.dob || null,
+                    address: medicalForm.address || null,
+                    contact_number: medicalForm.contact_number || null,
+                    str_number: medicalForm.str_number || null,
+                    sip_number: medicalForm.sip_number || null,
+                    specialty: medicalForm.specialty || null,
+                    work_location: medicalForm.work_location || null,
+                    source: 'WEB'
+                };
+                res = await api.updateDoctorProfile(payload);
             } else {
-                if (user?.is_patient) {
-                    const payload = {
-                        ...medicalForm,
-                        full_name: medicalForm.full_name || null,
-                        nik: medicalForm.nik || null,
-                        pob: medicalForm.pob || null,
-                        dob: medicalForm.dob || null,
-                        address: medicalForm.address || null,
-                        contact_number: medicalForm.contact_number || null,
-                        medical_history: medicalForm.medical_history || null,
-                        source: 'WEB'
-                    };
-                    res = await api.updatePatientProfile(payload);
-                } else if (user?.is_operator) {
-                    const payload = {
-                        ...medicalForm,
-                        full_name: medicalForm.full_name || null,
-                        nik: medicalForm.nik || null,
-                        pob: medicalForm.pob || null,
-                        dob: medicalForm.dob || null,
-                        address: medicalForm.address || null,
-                        contact_number: medicalForm.contact_number || null,
-                        str_number: medicalForm.str_number || null,
-                        work_location: medicalForm.work_location || null,
-                        source: 'WEB'
-                    };
-                    res = await api.updateOperatorProfile(payload);
-                } else if (user?.is_doctor) {
-                    const payload = {
-                        ...medicalForm,
-                        full_name: medicalForm.full_name || null,
-                        nik: medicalForm.nik || null,
-                        pob: medicalForm.pob || null,
-                        dob: medicalForm.dob || null,
-                        address: medicalForm.address || null,
-                        contact_number: medicalForm.contact_number || null,
-                        str_number: medicalForm.str_number || null,
-                        sip_number: medicalForm.sip_number || null,
-                        specialty: medicalForm.specialty || null,
-                        work_location: medicalForm.work_location || null,
-                        source: 'WEB'
-                    };
-                    res = await api.updateDoctorProfile(payload);
-                } else {
-                    throw new Error("No valid role found for update");
-                }
+                throw new Error("No valid role found for update");
             }
 
             setUser(res);
@@ -263,6 +249,7 @@ export function useProfileManager() {
     const executeChangeUsername = async () => {
         setLoading(true);
         try {
+
             const res = await axiosInstance.put('/auth/change-username', { new_username: securityForm.new_username });
             setUser(res.data);
             toast("Username updated!", "success");
@@ -278,6 +265,7 @@ export function useProfileManager() {
     const executeChangePassword = async () => {
         setLoading(true);
         try {
+
             await axiosInstance.put('/auth/change-password', {
                 current_password: securityForm.current_password,
                 new_password: securityForm.new_password
@@ -295,7 +283,7 @@ export function useProfileManager() {
 
     const handleCancelMedical = () => {
         setIsEditingMedical(false);
-        if (user?.is_patient) resetForms();
+        if (user?.is_patient || user?.is_operator || user?.is_doctor) resetForms();
     };
 
     const handleCancelUsername = () => {
@@ -312,29 +300,45 @@ export function useProfileManager() {
 
     const onSaveProfileClick = () => {
         if (!runFullMedicalValidation()) return;
-        if (!user?.is_patient) {
-            setConfirmState({
-                isOpen: true,
-                type: 'identity',
-                title: 'Confirm Identity',
-                message: 'Once saved, your Name, NIK, Date of Birth, and Gender will be PERMANENTLY locked. Please ensure they match your official ID exactly.',
-                action: executeSaveProfile,
-                isDestructive: false,
-                confirmText: 'Activate Profile'
-            });
-        } else {
-            const isRejected = user?.status === 'REJECTED';
-            setConfirmState({
-                isOpen: true,
-                type: 'medical',
-                title: isRejected ? 'Resubmit Profile' : 'Update Profile',
-                message: isRejected
-                    ? 'Are you sure you want to resubmit your profile for administrative review?'
-                    : 'Are you sure you want to update your contact and medical information?',
-                action: executeSaveProfile,
-                confirmText: isRejected ? 'Resubmit Now' : 'Save Changes'
-            });
-        }
+        const isRejected = user?.status === 'REJECTED';
+        setConfirmState({
+            isOpen: true,
+            type: 'medical',
+            title: isRejected ? 'Review Profile Resubmission' : 'Review Profile Changes',
+            message: React.createElement("div", { className: "space-y-4" },
+                React.createElement("p", { className: "text-sm text-slate-500 font-medium" },
+                    isRejected
+                        ? 'Review your updated identity and contact details before resubmitting for administrative review.'
+                        : 'Review the changes you made to your contact and professional information.'
+                ),
+                React.createElement(ReviewSummaryTable, {
+                    data: [
+                        ...(isRejected ? [
+                            { field: 'Full Name', value: medicalForm.full_name },
+                            { field: 'NIK', value: medicalForm.nik },
+                            { field: 'Place of Birth', value: medicalForm.pob },
+                            { field: 'Date of Birth', value: medicalForm.dob },
+                            { field: 'Gender', value: medicalForm.gender === 'L' ? 'Male' : 'Female' },
+                        ] : []),
+                        { field: 'Contact Number', value: medicalForm.contact_number || '-' },
+                        { field: 'Address', value: medicalForm.address || '-' },
+                        ...(user?.is_patient ? [{ field: 'Medical History', value: medicalForm.medical_history || '-' }] : []),
+                        ...(user?.is_operator ? [
+                            { field: 'STR Number', value: medicalForm.str_number || '-' },
+                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                        ] : []),
+                        ...(user?.is_doctor ? [
+                            { field: 'STR Number', value: medicalForm.str_number || '-' },
+                            { field: 'SIP Number', value: medicalForm.sip_number || '-' },
+                            { field: 'Specialty', value: medicalForm.specialty || '-' },
+                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                        ] : [])
+                    ]
+                })
+            ),
+            action: executeSaveProfile,
+            confirmText: isRejected ? 'Resubmit Profile' : 'Save Changes'
+        });
     };
 
     const onUpdateUsernameClick = () => {
@@ -342,8 +346,17 @@ export function useProfileManager() {
         setConfirmState({
             isOpen: true,
             type: 'username',
-            title: 'Change Username',
-            message: `Are you sure you want to change your username to @${securityForm.new_username}?`,
+            title: 'Review Username Change',
+            message: React.createElement("div", { className: "space-y-4" },
+                React.createElement("p", { className: "text-sm text-slate-500 font-medium" },
+                    "Are you sure you want to change your username?"
+                ),
+                React.createElement(ReviewSummaryTable, {
+                    changes: [
+                        { field: 'Username', old: user?.username || '', new: securityForm.new_username }
+                    ]
+                })
+            ),
             action: executeChangeUsername
         });
     };
@@ -358,8 +371,17 @@ export function useProfileManager() {
         setConfirmState({
             isOpen: true,
             type: 'password',
-            title: 'Change Password',
-            message: 'Are you sure you want to update your password? You will need to use the new password next time you login.',
+            title: 'Review Password Change',
+            message: React.createElement("div", { className: "space-y-4" },
+                React.createElement("p", { className: "text-sm text-slate-500 font-medium" },
+                    "Are you sure you want to update your password? You will need to use the new password next time you login."
+                ),
+                React.createElement(ReviewSummaryTable, {
+                    changes: [
+                        { field: 'Password', old: '********', new: '********' }
+                    ]
+                })
+            ),
             action: executeChangePassword,
             isDestructive: true
         });

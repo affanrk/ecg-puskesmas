@@ -2,11 +2,11 @@
 
 import { AlertCircle } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ProfileHeader from '@/components/user/profile/ProfileHeader';
-import IdentityCard from '@/components/user/profile/IdentityCard';
-import ContactCard from '@/components/user/profile/ContactCard';
-import UsernameCard from '@/components/user/profile/UsernameCard';
-import PasswordCard from '@/components/user/profile/PasswordCard';
+import ProfileHeader from '@/components/patient/profile/ProfileHeader';
+import IdentityCard from '@/components/patient/profile/IdentityCard';
+import ContactCard from '@/components/patient/profile/ContactCard';
+import UsernameCard from '@/components/patient/profile/UsernameCard';
+import PasswordCard from '@/components/patient/profile/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
 
 export default function ProfilePage() {

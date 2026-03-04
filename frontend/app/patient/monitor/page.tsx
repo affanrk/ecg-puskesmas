@@ -1,8 +1,8 @@
 'use client';
 
-import ECGChart from '@/components/user/monitor/ECGChart';
-import StatsPanel from '@/components/user/monitor/StatsPanel';
-import AIAnalysisCard from '@/components/user/monitor/AIAnalysisCard';
+import ECGChart from '@/components/patient/monitor/ECGChart';
+import StatsPanel from '@/components/patient/monitor/StatsPanel';
+import AIAnalysisCard from '@/components/patient/monitor/AIAnalysisCard';
 import { useStore } from '@/store/useStore';
 
 export default function MonitorPage() {

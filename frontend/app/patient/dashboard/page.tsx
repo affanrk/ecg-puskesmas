@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ShieldAlert, ArrowRight, Lock, Activity, FileCheck, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
-import DashboardSummary from '@/components/user/dashboard/DashboardSummary';
+import DashboardSummary from '@/components/patient/dashboard/DashboardSummary';
 import { useStore } from '@/store/useStore';
 
 export default function DashboardPage() {
