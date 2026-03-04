@@ -129,9 +129,9 @@ export default function ClassifierToolbar({
                         onClick={clearFilters}
                         disabled={!isFilterActive}
                         className={clsx(
-                            "flex-1 sm:flex-none px-4 py-2.5 text-[10px] font-black uppercase tracking-wider text-white rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer",
+                            "flex-1 sm:flex-none px-4 py-2.5 text-[10px] font-black uppercase tracking-wider text-white rounded-lg shadow-sm transition-all flex items-center justify-center gap-2",
                             isFilterActive
-                                ? "bg-rose-500 hover:bg-rose-600 active:scale-95 shadow-rose-500/20"
+                                ? "bg-rose-500 hover:bg-rose-600 active:scale-95 shadow-rose-500/20 cursor-pointer"
                                 : "bg-slate-200 opacity-50 cursor-not-allowed"
                         )}
                     >
