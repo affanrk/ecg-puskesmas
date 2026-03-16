@@ -1,3 +1,3 @@
-from .schema import CalendarNode, CalendarResponse
+from .schema import CalendarNode, CalendarResponse, CalendarLevel, CalendarStatus
 
-__all__ = ["CalendarNode", "CalendarResponse"]
+__all__ = ["CalendarNode", "CalendarResponse", "CalendarLevel", "CalendarStatus"]

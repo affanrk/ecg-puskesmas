@@ -1,4 +1,5 @@
-from typing import List, Optional
+from datetime import datetime
+from typing import List, Optional, cast
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 from core.dependencies import (
@@ -24,6 +25,7 @@ from schemas.patient import PatientUpdate
 from schemas.operator import OperatorUpdate
 from schemas.doctor import DoctorUpdate
 from schemas.approval import ApprovalLogResponse
+from schemas.common import GenericResponse, MessageResponse, ApiStatus
 from core.exceptions import AppException, DuplicateNIKException
 from models import TbMUser, TbRLogApproval
 from utils import logger
@@ -31,7 +33,7 @@ from utils import logger
 router = APIRouter()
 
 
-@router.get("/pending-approvals", response_model=List[UserResponse])
+@router.get("/pending-approvals", response_model=GenericResponse[List[UserResponse]])
 def get_pending_approvals(
     skip: int = 0,
     limit: int = 100,
@@ -44,19 +46,30 @@ def get_pending_approvals(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    return user_repo.list_pending_approval(
-        skip=skip,
-        limit=limit,
-        search=search,
-        start_date=start_date,
-        end_date=end_date,
-        is_patient=is_patient,
-        is_operator=is_operator,
-        is_doctor=is_doctor,
-    )
+    try:
+        data = user_repo.list_pending_approval(
+            skip=skip,
+            limit=limit,
+            search=search,
+            start_date=start_date,
+            end_date=end_date,
+            is_patient=is_patient,
+            is_operator=is_operator,
+            is_doctor=is_doctor,
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message="Pending approvals retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_pending_approvals: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/approval-logs", response_model=List[ApprovalLogResponse])
+@router.get("/approval-logs", response_model=GenericResponse[List[ApprovalLogResponse]])
 def get_approval_logs(
     skip: int = 0,
     limit: int = 100,
@@ -69,38 +82,48 @@ def get_approval_logs(
     admin: TbMUser = Depends(get_admin_user),
     approval_repo: ApprovalRepository = Depends(get_approval_repository),
 ):
-    logs = approval_repo.list_logs(
-        skip=skip,
-        limit=limit,
-        search=search,
-        start_date=start_date,
-        end_date=end_date,
-        is_patient=is_patient,
-        is_operator=is_operator,
-        is_doctor=is_doctor,
-    )
-
-    response = []
-    for log in logs:
-        response.append(
-            ApprovalLogResponse(
-                id=log.id,
-                user_id=log.user_id,
-                username=log.user.username if log.user else None,
-                full_name=log.user.full_name if log.user else None,
-                is_patient=log.user.is_patient if log.user else False,
-                is_operator=log.user.is_operator if log.user else False,
-                is_doctor=log.user.is_doctor if log.user else False,
-                status=log.status,
-                reason=log.reason,
-                created_dt=log.created_dt,
-                created_by=log.created_by,
-            )
+    try:
+        logs = approval_repo.list_logs(
+            skip=skip,
+            limit=limit,
+            search=search,
+            start_date=start_date,
+            end_date=end_date,
+            is_patient=is_patient,
+            is_operator=is_operator,
+            is_doctor=is_doctor,
         )
-    return response
+
+        response = []
+        for log in logs:
+            response.append(
+                ApprovalLogResponse(
+                    id=str(log.id),
+                    user_id=str(log.user_id),
+                    username=str(log.user.username) if log.user else None,
+                    full_name=str(log.user.full_name) if log.user else None,
+                    is_patient=bool(log.user.is_patient) if log.user else False,
+                    is_operator=bool(log.user.is_operator) if log.user else False,
+                    is_doctor=bool(log.user.is_doctor) if log.user else False,
+                    status=str(log.status),
+                    reason=cast(str, log.reason) if log.reason else None,
+                    created_dt=cast(datetime, log.created_dt),
+                    created_by=str(log.created_by),
+                )
+            )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=response,
+            message="Approval logs retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_approval_logs: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.post("/update-status/{user_id}", response_model=UserResponse)
+@router.post("/update-status/{user_id}", response_model=GenericResponse[UserResponse])
 def update_user_status(
     user_id: str,
     status_in: UserApprovalUpdate,
@@ -117,15 +140,19 @@ def update_user_status(
         logger.info(
             f"Admin {admin.username} performed action {status_in.action} for user {user_id}"
         )
-        return user
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=user,
+            message=f"User status updated to {status_in.action} successfully",
+        )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected system error in update_user_status: {e}")
+        logger.error(f"Unexpected error in update_user_status: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.post("/users", response_model=UserResponse)
+@router.post("/users", response_model=GenericResponse[UserResponse])
 def create_user(
     user_in: UserAdminCreate,
     admin: TbMUser = Depends(get_admin_user),
@@ -200,7 +227,7 @@ def create_user(
                 user_in.patient_profile.source = "ADMIN"
                 patient_repo.create_profile(
                     user_in.patient_profile,
-                    user.id,
+                    str(user.id),
                     source="ADMIN",
                     initial_status=initial_status,
                 )
@@ -212,7 +239,7 @@ def create_user(
                 user_in.operator_profile.source = "ADMIN"
                 operator_repo.create_profile(
                     user_in.operator_profile,
-                    user.id,
+                    str(user.id),
                     source="ADMIN",
                     initial_status=initial_status,
                 )
@@ -224,7 +251,7 @@ def create_user(
                 user_in.doctor_profile.source = "ADMIN"
                 doctor_repo.create_profile(
                     user_in.doctor_profile,
-                    user.id,
+                    str(user.id),
                     source="ADMIN",
                     initial_status=initial_status,
                 )
@@ -232,16 +259,16 @@ def create_user(
             if user.is_patient or user.is_operator or user.is_doctor:
                 log = (
                     user_repo.db.query(TbRLogApproval)
-                    .filter_by(user_id=user.id)
+                    .filter_by(user_id=str(user.id))
                     .order_by(TbRLogApproval.created_dt.desc())
                     .first()
                 )
                 if log:
-                    log.reason = initial_reason
+                    setattr(log, "reason", initial_reason)
                     user_repo.db.commit()
 
         except ValidationError as e:
-            user_repo.delete(user.id)
+            user_repo.delete(str(user.id))
             formatted_errors = []
             for error in e.errors():
                 msg = error.get("msg")
@@ -252,11 +279,15 @@ def create_user(
                 )
             raise HTTPException(status_code=422, detail=formatted_errors)
         except Exception as e:
-            user_repo.delete(user.id)
+            user_repo.delete(str(user.id))
             raise e
 
         logger.info(f"Admin {admin.username} created user {user.username}")
-        return user_repo.find_by_id(user.id)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=user_repo.find_by_id(str(user.id)),
+            message="User created successfully",
+        )
 
     except (HTTPException, AppException):
         raise
@@ -266,11 +297,11 @@ def create_user(
             detail={"message": "NIK is already registered", "field": "nik"},
         )
     except Exception as e:
-        logger.error(f"Unexpected system error in create_user: {e}")
+        logger.error(f"Unexpected error in create_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=GenericResponse[List[UserResponse]])
 def get_all_users(
     skip: int = 0,
     limit: int = 100,
@@ -279,10 +310,19 @@ def get_all_users(
     admin: TbMUser = Depends(get_admin_user),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
-    return user_repo.list_all(skip=skip, limit=limit, search=search, role=role)
+    try:
+        data = user_repo.list_all(skip=skip, limit=limit, search=search, role=role)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS, data=data, message="Users retrieved successfully"
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_all_users: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.put("/users/{user_id}", response_model=UserResponse)
+@router.put("/users/{user_id}", response_model=GenericResponse[UserResponse])
 def update_user(
     user_id: str,
     user_in: UserAdminUpdate,
@@ -390,28 +430,32 @@ def update_user(
         is_doctor = update_data.get("is_doctor", target_user.is_doctor)
 
         if is_patient and (user_in.patient_profile or activation_status):
-            update_prof = user_in.patient_profile or PatientUpdate()
-            update_prof.source = "ADMIN"
+            update_prof_pat = user_in.patient_profile or PatientUpdate.model_construct()
+            update_prof_pat.source = "ADMIN"
             patient_repo.update_by_user_id(
-                user_id, update_prof, admin_action=activation_status
+                user_id, update_prof_pat, admin_action=activation_status
             )
         elif is_operator and (user_in.operator_profile or activation_status):
-            update_prof = user_in.operator_profile or OperatorUpdate()
-            update_prof.source = "ADMIN"
+            update_prof_op = (
+                user_in.operator_profile or OperatorUpdate.model_construct()
+            )
+            update_prof_op.source = "ADMIN"
             operator_repo.update_by_user_id(
-                user_id, update_prof, admin_action=activation_status
+                user_id, update_prof_op, admin_action=activation_status
             )
         elif is_doctor and (user_in.doctor_profile or activation_status):
-            update_prof = user_in.doctor_profile or DoctorUpdate()
-            update_prof.source = "ADMIN"
+            update_prof_doc = user_in.doctor_profile or DoctorUpdate.model_construct()
+            update_prof_doc.source = "ADMIN"
             doctor_repo.update_by_user_id(
-                user_id, update_prof, admin_action=activation_status
+                user_id, update_prof_doc, admin_action=activation_status
             )
 
         update_data["changed_by"] = "ADMIN"
         user = user_repo.update(user_id, update_data)
         logger.info(f"Admin {admin.username} updated user {user_id}")
-        return user
+        return GenericResponse(
+            status=ApiStatus.SUCCESS, data=user, message="User updated successfully"
+        )
     except ValidationError as e:
         formatted_errors = []
         for error in e.errors():
@@ -430,11 +474,11 @@ def update_user(
             detail={"message": "NIK is already registered", "field": "nik"},
         )
     except Exception as e:
-        logger.error(f"Unexpected system error in update_user: {e}")
+        logger.error(f"Unexpected error in update_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.delete("/users/{user_id}")
+@router.delete("/users/{user_id}", response_model=MessageResponse)
 def delete_user(
     user_id: str,
     admin: TbMUser = Depends(get_admin_user),
@@ -452,9 +496,11 @@ def delete_user(
 
         user_repo.delete(user_id)
         logger.info(f"Admin {admin.username} deleted user {user_id}")
-        return {"message": "User deleted successfully"}
+        return MessageResponse(
+            status=ApiStatus.SUCCESS, message="User deleted successfully"
+        )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Delete user failed: {e}")
+        logger.error(f"Unexpected error in delete_user: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

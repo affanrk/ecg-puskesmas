@@ -26,7 +26,7 @@ graph LR
 
     subgraph "Data Storage"
         PGSQL[(PostgreSQL<br/>Relational Data)]
-        TSDB[(Partitioned DB<br/>Raw Web & Mobile Data)]
+        TSDB[(Partitioned DB<br/>Raw 5L & 12L Data)]
         MEM[(In-Memory<br/>Live State & Buffers)]
     end
 
@@ -67,8 +67,10 @@ erDiagram
     TB_M_USER ||--|{ TB_R_LOG_APPROVAL : has_approval_history
     
     %% Transaction Tables
-    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_WEB : has_raw_data_web
-    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_MOBILE : has_raw_data_mobile
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_5LEADS_WEB : has_data_5l_web
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_5LEADS_MOBILE : has_data_5l_mob
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_12LEADS_WEB : has_data_12l_web
+    TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_12LEADS_MOBILE : has_data_12l_mob
 ```
 
 ---
@@ -102,88 +104,52 @@ CREATE TABLE tb_m_user (
 
 -- Patients (Clinical Profiles)
 CREATE TABLE tb_m_patient (
-    id              VARCHAR(30) PRIMARY KEY,    -- PAT + YYYYMMDD + seq
+    id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
-    
     nik             VARCHAR(20) UNIQUE,
     full_name       VARCHAR(100) NOT NULL,
     pob             VARCHAR(100) NOT NULL,
     dob             DATE NOT NULL,
-    gender          VARCHAR(10) NOT NULL,       -- L/P
+    gender          VARCHAR(10) NOT NULL,
     address         VARCHAR(255),
     contact_number  VARCHAR(20),
     medical_history TEXT,
-    status          VARCHAR(20) DEFAULT 'QUEUE',-- QUEUE, APPROVED, REJECTED
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status          VARCHAR(20) DEFAULT 'QUEUE',
+    created_by      VARCHAR(50),
+    created_dt      TIMESTAMP,
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
 
 -- Operators (Nurses / GP)
 CREATE TABLE tb_m_operator (
-    id              VARCHAR(30) PRIMARY KEY,    -- OPR + YYYYMMDD + seq
+    id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
-    
     nik             VARCHAR(20) UNIQUE,
     full_name       VARCHAR(100) NOT NULL,
-    pob             VARCHAR(100) NOT NULL,
-    dob             DATE NOT NULL,
-    gender          VARCHAR(10) NOT NULL,
-    address         VARCHAR(255),
-    contact_number  VARCHAR(20),
-    str_number      VARCHAR(50) NOT NULL,       -- Surat Tanda Registrasi
-    operator_role   VARCHAR(50) NOT NULL,       -- Nurse or General Practitioner
+    str_number      VARCHAR(50) NOT NULL,
+    operator_role   VARCHAR(50) NOT NULL,
     work_location   VARCHAR(100),
     status          VARCHAR(20) DEFAULT 'QUEUE',
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by      VARCHAR(50),
+    created_dt      TIMESTAMP,
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
 
 -- Doctors (Specialists)
 CREATE TABLE tb_m_doctor (
-    id              VARCHAR(30) PRIMARY KEY,    -- DOC + YYYYMMDD + seq
+    id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
-    
     nik             VARCHAR(20) UNIQUE,
     full_name       VARCHAR(100) NOT NULL,
-    pob             VARCHAR(100) NOT NULL,
-    dob             DATE NOT NULL,
-    gender          VARCHAR(10) NOT NULL,
-    address         VARCHAR(255),
-    contact_number  VARCHAR(20),
     str_number      VARCHAR(50) NOT NULL,
-    sip_number      VARCHAR(50) NOT NULL,       -- Surat Izin Praktik
+    sip_number      VARCHAR(50) NOT NULL,
     specialty       VARCHAR(100) NOT NULL,
     work_location   VARCHAR(100),
     status          VARCHAR(20) DEFAULT 'QUEUE',
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    changed_by      VARCHAR(50),
-    changed_dt      TIMESTAMP
-);
-
--- Administrators
-CREATE TABLE tb_m_admin (
-    id              VARCHAR(30) PRIMARY KEY,    -- ADM + YYYYMMDD + seq
-    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
-    
-    nik             VARCHAR(20) UNIQUE,
-    full_name       VARCHAR(100) NOT NULL,
-    pob             VARCHAR(100) NOT NULL,
-    dob             DATE NOT NULL,
-    gender          VARCHAR(10) NOT NULL,
-    address         VARCHAR(255) NOT NULL,
-    contact_number  VARCHAR(20) NOT NULL,
-    status          VARCHAR(20) DEFAULT 'QUEUE',
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by      VARCHAR(50),
+    created_dt      TIMESTAMP,
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
@@ -194,24 +160,22 @@ CREATE TABLE tb_m_admin (
 ```sql
 -- Profile Approval Logs
 CREATE TABLE tb_r_log_approval (
-    id              VARCHAR(30) PRIMARY KEY,    -- APP + YYYYMMDD + seq
+    id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
-    status          VARCHAR(20) NOT NULL,       -- QUEUE, APPROVED, REJECTED
-    reason          VARCHAR(100),               -- Reason for rejection or approval notes
-    
-    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    status          VARCHAR(20) NOT NULL,
+    reason          VARCHAR(100),
+    created_by      VARCHAR(50),
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Sessions (Recording Sessions)
 CREATE TABLE tb_r_ecg_session (
     recording_id    VARCHAR(50) PRIMARY KEY,    -- UUID
-    device_id       VARCHAR(50) NOT NULL,       -- ID of the device used
+    device_id       VARCHAR(50) NOT NULL,
     user_id         VARCHAR(30) NOT NULL REFERENCES tb_m_user(id),
-    
+    device_type     VARCHAR(20),                -- 5LEADS, 12LEADS
     classification_result VARCHAR(50) DEFAULT 'Pending',
     confidence_score FLOAT,
-    
     avg_bpm         FLOAT,
     avg_rr_ms       FLOAT,
     avg_pr_ms       FLOAT,
@@ -219,50 +183,70 @@ CREATE TABLE tb_r_ecg_session (
     avg_qtc_ms      FLOAT,
     avg_st_ms       FLOAT,
     rs_ratio_v1     FLOAT,
-    
-    -- Audit Trail
-    created_by      VARCHAR(50) NOT NULL,       -- e.g., WEB, ADMIN, MOBILE
+    created_by      VARCHAR(50),
     created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     changed_by      VARCHAR(50),
     changed_dt      TIMESTAMP
 );
 
--- Signal Data (Web/Desktop)
-CREATE TABLE tb_r_ecg_raw_web (
+-- Signal Data 5-Leads (Web)
+CREATE TABLE tb_r_ecg_raw_5leads_web (
     id              BIGSERIAL PRIMARY KEY,
     recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
-    
-    mv_lead_I       FLOAT,
-    mv_lead_II      FLOAT,
-    mv_lead_III     FLOAT,
-    mv_avF          FLOAT,
+    created_dt      TIMESTAMP WITH TIME ZONE,
+    created_by      VARCHAR(50),
+    mv_lead_i       FLOAT,
+    mv_lead_ii      FLOAT,
+    mv_lead_iii     FLOAT,
+    mv_avf          FLOAT,
     mv_v1           FLOAT,
-    
-    raw_lead_I      INTEGER,
-    raw_lead_II     INTEGER,
-    raw_v1          INTEGER,
-    
-    created_by      VARCHAR(50) DEFAULT 'DEVICE',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    raw_lead_i      INTEGER,
+    raw_lead_ii     INTEGER,
+    raw_v1          INTEGER
 );
 
--- Signal Data (Mobile)
-CREATE TABLE tb_r_ecg_raw_mobile (
+-- Signal Data 5-Leads (Mobile)
+CREATE TABLE tb_r_ecg_raw_5leads_mobile (
     id              BIGSERIAL PRIMARY KEY,
     recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
-    
-    mv_lead_I       FLOAT,
-    mv_lead_II      FLOAT,
-    mv_lead_III     FLOAT,
-    mv_avF          FLOAT,
+    created_dt      TIMESTAMP WITH TIME ZONE,
+    created_by      VARCHAR(50),
+    mv_lead_i       FLOAT,
+    mv_lead_ii      FLOAT,
+    mv_lead_iii     FLOAT,
+    mv_avf          FLOAT,
     mv_v1           FLOAT,
-    
-    raw_lead_I      INTEGER,
-    raw_lead_II     INTEGER,
-    raw_v1          INTEGER,
-    
-    created_by      VARCHAR(50) DEFAULT 'MOBILE',
-    created_dt      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    raw_lead_i      INTEGER,
+    raw_lead_ii     INTEGER,
+    raw_v1          INTEGER
+);
+
+-- Signal Data 12-Leads (Web)
+CREATE TABLE tb_r_ecg_raw_12leads_web (
+    id              BIGSERIAL PRIMARY KEY,
+    recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
+    created_dt      TIMESTAMP WITH TIME ZONE,
+    created_by      VARCHAR(50),
+    mv_lead_i       FLOAT, mv_lead_ii FLOAT, mv_lead_iii FLOAT,
+    mv_avr FLOAT, mv_avl FLOAT, mv_avf FLOAT,
+    mv_v1 FLOAT, mv_v2 FLOAT, mv_v3 FLOAT, mv_v4 FLOAT, mv_v5 FLOAT, mv_v6 FLOAT,
+    raw_lead_i INTEGER, raw_lead_ii INTEGER, raw_lead_iii INTEGER,
+    raw_avr INTEGER, raw_avl INTEGER, raw_avf INTEGER,
+    raw_v1 INTEGER, raw_v2 INTEGER, raw_v3 INTEGER, raw_v4 INTEGER, raw_v5 INTEGER, raw_v6 INTEGER
+);
+
+-- Signal Data 12-Leads (Mobile)
+CREATE TABLE tb_r_ecg_raw_12leads_mobile (
+    id              BIGSERIAL PRIMARY KEY,
+    recording_id    VARCHAR(50) NOT NULL REFERENCES tb_r_ecg_session(recording_id) ON DELETE CASCADE,
+    created_dt      TIMESTAMP WITH TIME ZONE,
+    created_by      VARCHAR(50),
+    mv_lead_i       FLOAT, mv_lead_ii FLOAT, mv_lead_iii FLOAT,
+    mv_avr FLOAT, mv_avl FLOAT, mv_avf FLOAT,
+    mv_v1 FLOAT, mv_v2 FLOAT, mv_v3 FLOAT, mv_v4 FLOAT, mv_v5 FLOAT, mv_v6 FLOAT,
+    raw_lead_i INTEGER, raw_lead_ii INTEGER, raw_lead_iii INTEGER,
+    raw_avr INTEGER, raw_avl INTEGER, raw_avf INTEGER,
+    raw_v1 INTEGER, raw_v2 INTEGER, raw_v3 INTEGER, raw_v4 INTEGER, raw_v5 INTEGER, raw_v6 INTEGER
 );
 ```
 
@@ -270,21 +254,11 @@ CREATE TABLE tb_r_ecg_raw_mobile (
 
 *   **Primary Keys**: `id` or `[entity]_id`
 *   **Audit Fields**: `created_by`, `created_dt`, `changed_by`, `changed_dt`
-*   **Business Keys**: Prefix + YYYYMMDD + 6-digit seq (e.g., `USR20240101000001`, `PAT...`, `DOC...`, `OPR...`, `ADM...`) or UUID (`recording_id`)
+*   **Business Keys**: Prefix + YYYYMMDD + 6-digit seq (e.g., `USR20240101000001`)
 *   **Table Prefixes**: `tb_m_` (Master), `tb_r_` (Transaction)
 
 ## 5. Indexing & Optimization Strategies
 
-To maintain high performance during national-scale telemetry ingestion, the following indexing strategies are applied:
-
-1.  **Composite Time-Series Indexes**:
-    *   `idx_raw_web_recording_dt` on `tb_r_ecg_raw_web(recording_id, created_dt)`: Optimized for sequential signal retrieval and plotting.
-    *   `idx_raw_mobile_recording_dt` on `tb_r_ecg_raw_mobile(recording_id, created_dt)`: Optimized for mobile platform signal retrieval.
-
-2.  **Lookup & Relationship Indexes**:
-    *   `unique_user_sid`: Enforces single-session logic on `tb_m_user(current_session_id)`.
-    *   `idx_patient_user` / `idx_doctor_user` / `idx_operator_user` / `idx_admin_user`: Linked indexes between authentication and specific clinical profiles.
-    *   `idx_session_recording`: Primary identifier for recording sessions and AI classification results.
-
-3.  **Audit & Lifecycle Indexes**:
-    *   All tables include indexes on `created_dt` and `changed_dt` to support administrative reporting and automated cleanup workers.
+1.  **Composite Time-Series Indexes**: `(recording_id, created_dt)` on all raw data tables for sequential signal retrieval.
+2.  **Lookup & Relationship Indexes**: Linked indexes between authentication and specific clinical profiles.
+3.  **Audit & Lifecycle Indexes**: Indexes on `created_dt` and `changed_dt` to support reporting and automated cleanup workers.

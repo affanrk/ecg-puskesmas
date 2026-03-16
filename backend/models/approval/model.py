@@ -1,11 +1,14 @@
 from sqlalchemy import Column, String, ForeignKey, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from ..base import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..user.model import TbMUser
 
 
 class TbRLogApproval(Base):
-
     __tablename__ = "tb_r_log_approval"
 
     id = Column(
@@ -35,4 +38,4 @@ class TbRLogApproval(Base):
     )
     created_by = Column(String(50), default="SYSTEM", nullable=False)
 
-    user = relationship("TbMUser", back_populates="approval_logs")
+    user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="approval_logs")

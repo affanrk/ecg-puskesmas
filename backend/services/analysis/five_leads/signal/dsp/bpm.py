@@ -4,15 +4,20 @@ import neurokit2 as nk
 from typing import Optional
 
 
-def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float]:
+from utils import logger
 
+
+def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float]:
+    logger.debug("[DSP-BPM] Starting calculate_bpm_fast...")
     try:
         if len(signal) < (sampling_rate * 2):
+            logger.debug("[DSP-BPM] Signal too short for BPM calculation.")
             return None
 
         detrended = scipy.signal.detrend(signal)
         std_val = np.std(detrended)
         if std_val < 0.001:
+            logger.debug("[DSP-BPM] Signal standard deviation too low.")
             return 0.0
 
         signal_norm = (detrended - np.mean(detrended)) / std_val
@@ -32,7 +37,11 @@ def calculate_bpm_fast(signal: np.ndarray, sampling_rate: int) -> Optional[float
             avg_rr = np.median(rr_intervals)
             if avg_rr > 0:
                 bpm = 60.0 / avg_rr
+                logger.debug("[DSP-BPM] Successfully completed calculate_bpm_fast.")
                 return float(round(bpm))
+
+        logger.debug("[DSP-BPM] Not enough R-peaks found.")
         return 0.0
-    except Exception:
+    except Exception as e:
+        logger.error(f"[DSP-BPM] Unexpected error in calculate_bpm_fast: {e}")
         return 0.0

@@ -1,10 +1,18 @@
+from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
+
+if TYPE_CHECKING:
+    from ..patient.model import TbMPatient
+    from ..admin.model import TbMAdmin
+    from ..operator.model import TbMOperator
+    from ..doctor.model import TbMDoctor
+    from ..session.model import TbREcgSession
+    from ..approval.model import TbRLogApproval
 
 
 class TbMUser(Base, AuditMixin):
-
     __tablename__ = "tb_m_user"
     id = Column(
         String(30),
@@ -72,7 +80,7 @@ class TbMUser(Base, AuditMixin):
         comment="Current active session ID (for single login enforcement)",
     )
 
-    patient_profile = relationship(
+    patient_profile: Mapped[Optional["TbMPatient"]] = relationship(
         "TbMPatient",
         back_populates="user",
         uselist=False,
@@ -80,7 +88,7 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
-    admin_profile = relationship(
+    admin_profile: Mapped[Optional["TbMAdmin"]] = relationship(
         "TbMAdmin",
         back_populates="user",
         uselist=False,
@@ -88,7 +96,7 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
-    operator_profile = relationship(
+    operator_profile: Mapped[Optional["TbMOperator"]] = relationship(
         "TbMOperator",
         back_populates="user",
         uselist=False,
@@ -96,7 +104,7 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
-    doctor_profile = relationship(
+    doctor_profile: Mapped[Optional["TbMDoctor"]] = relationship(
         "TbMDoctor",
         back_populates="user",
         uselist=False,
@@ -104,14 +112,14 @@ class TbMUser(Base, AuditMixin):
         passive_deletes=True,
     )
 
-    sessions = relationship(
+    sessions: Mapped[List["TbREcgSession"]] = relationship(
         "TbREcgSession",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
 
-    approval_logs = relationship(
+    approval_logs: Mapped[List["TbRLogApproval"]] = relationship(
         "TbRLogApproval",
         back_populates="user",
         cascade="all, delete-orphan",

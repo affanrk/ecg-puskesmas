@@ -98,8 +98,10 @@ class DuplicateNIKException(PatientException):
 
 class AnalysisException(AppException):
 
-    def __init__(self, message: str, details: Optional[dict] = None):
-        super().__init__(message, status_code=500, details=details)
+    def __init__(
+        self, message: str, status_code: int = 500, details: Optional[dict] = None
+    ):
+        super().__init__(message, status_code=status_code, details=details)
 
 
 class InsufficientDataException(AnalysisException):

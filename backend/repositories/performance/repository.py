@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from models.performance import TbRPerformanceLog
 from repositories.base import BaseRepository
-from core.exceptions import DatabaseException
+from core.exceptions import DatabaseException, AppException
 from utils import logger
 
 
@@ -16,19 +16,33 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
     def get_logs_for_recording(
         self, recording_id: str, limit: int = 1000
     ) -> List[TbRPerformanceLog]:
-        return self.filter(
-            filters={"recording_id": recording_id},
-            limit=limit,
-            order_by="created_dt",
-            desc_order=False,
-        )
+        logger.debug("[PerformanceRepository] Starting get_logs_for_recording...")
+        try:
+            result = self.filter(
+                filters={"recording_id": recording_id},
+                limit=limit,
+                order_by="created_dt",
+                desc_order=False,
+            )
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_logs_for_recording."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_logs_for_recording: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def get_logs_for_device(
         self, device_id: str, hours: int = 24, limit: int = 1000
     ) -> List[TbRPerformanceLog]:
+        logger.debug("[PerformanceRepository] Starting get_logs_for_device...")
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=hours)
-            return (
+            result = (
                 self.db.query(TbRPerformanceLog)
                 .filter(
                     TbRPerformanceLog.device_id == device_id,
@@ -38,12 +52,22 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 .limit(limit)
                 .all()
             )
-        except Exception as e:
-            raise DatabaseException(
-                f"Failed to get logs for device {device_id}", details={"error": str(e)}
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_logs_for_device."
             )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_logs_for_device: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def get_average_metrics_for_recording(self, recording_id: str) -> Dict[str, float]:
+        logger.debug(
+            "[PerformanceRepository] Starting get_average_metrics_for_recording..."
+        )
         try:
             result = (
                 self.db.query(
@@ -56,24 +80,31 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             )
 
             if not result:
-                return {
+                res = {
                     "avg_latency_ms": 0.0,
                     "avg_jitter_ms": 0.0,
                     "avg_packet_loss_pct": 0.0,
                 }
-
-            return {
-                "avg_latency_ms": float(result.avg_latency or 0),
-                "avg_jitter_ms": float(result.avg_jitter or 0),
-                "avg_packet_loss_pct": float(result.avg_loss or 0),
-            }
-        except Exception as e:
-            raise DatabaseException(
-                f"Failed to calculate metrics for {recording_id}",
-                details={"error": str(e)},
+            else:
+                res = {
+                    "avg_latency_ms": float(result.avg_latency or 0),
+                    "avg_jitter_ms": float(result.avg_jitter or 0),
+                    "avg_packet_loss_pct": float(result.avg_loss or 0),
+                }
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_average_metrics_for_recording."
             )
+            return res
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_average_metrics_for_recording: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def get_device_statistics(self, device_id: str, hours: int = 24) -> Dict[str, Any]:
+        logger.debug("[PerformanceRepository] Starting get_device_statistics...")
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=hours)
             result = (
@@ -93,7 +124,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             )
 
             if not result or result.total_logs == 0:
-                return {
+                res = {
                     "device_id": device_id,
                     "avg_latency_ms": 0.0,
                     "min_latency_ms": 0.0,
@@ -102,23 +133,30 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                     "avg_packet_loss_pct": 0.0,
                     "total_logs": 0,
                 }
-
-            return {
-                "device_id": device_id,
-                "avg_latency_ms": float(result.avg_latency or 0),
-                "min_latency_ms": float(result.min_latency or 0),
-                "max_latency_ms": float(result.max_latency or 0),
-                "avg_jitter_ms": float(result.avg_jitter or 0),
-                "avg_packet_loss_pct": float(result.avg_loss or 0),
-                "total_logs": int(result.total_logs),
-            }
-        except Exception as e:
-            raise DatabaseException(
-                f"Failed to get statistics for device {device_id}",
-                details={"error": str(e)},
+            else:
+                res = {
+                    "device_id": device_id,
+                    "avg_latency_ms": float(result.avg_latency or 0),
+                    "min_latency_ms": float(result.min_latency or 0),
+                    "max_latency_ms": float(result.max_latency or 0),
+                    "avg_jitter_ms": float(result.avg_jitter or 0),
+                    "avg_packet_loss_pct": float(result.avg_loss or 0),
+                    "total_logs": int(result.total_logs),
+                }
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_device_statistics."
             )
+            return res
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_device_statistics: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def get_system_health_summary(self) -> Dict[str, Any]:
+        logger.debug("[PerformanceRepository] Starting get_system_health_summary...")
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=1)
             result = (
@@ -135,27 +173,35 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             )
 
             if not result:
-                return {
+                res = {
                     "avg_latency_ms": 0.0,
                     "avg_jitter_ms": 0.0,
                     "avg_packet_loss_pct": 0.0,
                     "active_devices": 0,
                 }
-
-            return {
-                "avg_latency_ms": float(result.avg_latency or 0),
-                "avg_jitter_ms": float(result.avg_jitter or 0),
-                "avg_packet_loss_pct": float(result.avg_loss or 0),
-                "active_devices": int(result.active_devices or 0),
-            }
-        except Exception as e:
-            raise DatabaseException(
-                "Failed to get system health summary", details={"error": str(e)}
+            else:
+                res = {
+                    "avg_latency_ms": float(result.avg_latency or 0),
+                    "avg_jitter_ms": float(result.avg_jitter or 0),
+                    "avg_packet_loss_pct": float(result.avg_loss or 0),
+                    "active_devices": int(result.active_devices or 0),
+                }
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_system_health_summary."
             )
+            return res
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_system_health_summary: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def get_worst_performing_devices(
         self, metric: str = "latency", limit: int = 5, hours: int = 24
     ) -> List[Dict[str, Any]]:
+        logger.debug("[PerformanceRepository] Starting get_worst_performing_devices...")
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=hours)
             if metric == "latency":
@@ -179,7 +225,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 .all()
             )
 
-            return [
+            res = [
                 {
                     "device_id": row.device_id,
                     "avg_latency_ms": float(row.avg_latency or 0),
@@ -188,18 +234,40 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 }
                 for row in result
             ]
-        except Exception as e:
-            raise DatabaseException(
-                "Failed to get worst performing devices", details={"error": str(e)}
+            logger.debug(
+                "[PerformanceRepository] Successfully completed get_worst_performing_devices."
             )
+            return res
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in get_worst_performing_devices: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def bulk_insert_logs(self, logs: List[dict]) -> int:
-        count = self.bulk_insert_dicts(logs)
-        if count > 0:
-            logger.debug(f"[Performance] Bulk inserted {count} performance log entries")
-        return count
+        logger.debug("[PerformanceRepository] Starting bulk_insert_logs...")
+        try:
+            count = self.bulk_insert_dicts(logs)
+            if count > 0:
+                logger.debug(
+                    f"[Performance] Bulk inserted {count} performance log entries"
+                )
+            logger.debug(
+                "[PerformanceRepository] Successfully completed bulk_insert_logs."
+            )
+            return count
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in bulk_insert_logs: {e}"
+            )
+            raise DatabaseException("Database operation failed")
 
     def delete_old_logs(self, days: int = 30) -> int:
+        logger.debug("[PerformanceRepository] Starting delete_old_logs...")
         try:
             cutoff_date = datetime.utcnow() - timedelta(days=days)
             count = (
@@ -211,10 +279,16 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.info(
                 f"[Performance] Deleted {count} old performance logs older than {days} days"
             )
+            logger.debug(
+                "[PerformanceRepository] Successfully completed delete_old_logs."
+            )
             return count
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to cleanup performance logs: {e}")
-            raise DatabaseException(
-                f"Failed to delete old logs (>{days} days)", details={"error": str(e)}
+            logger.error(
+                f"[PerformanceRepository] Unexpected error in delete_old_logs: {e}"
             )
+            raise DatabaseException("Database operation failed")

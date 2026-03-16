@@ -6,6 +6,7 @@ from utils import logger
 
 
 def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
+    logger.debug("[DSP-Peaks] Starting detect_peaks...")
     rpeaks_info = {}
     waves_info = {}
 
@@ -13,14 +14,16 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
         signal = np.nan_to_num(signal, nan=0.0, posinf=0.0, neginf=0.0)
 
         if np.ptp(signal) < 0.01:
-            logger.warning("[DSP] Signal is flat or too weak. Skipping peak detection.")
+            logger.debug(
+                "[DSP-Peaks] Signal is flat or too weak. Skipping peak detection."
+            )
             return {}, {}
 
         _, rpeaks_info = nk.ecg_peaks(signal, sampling_rate=sampling_rate)
 
         r_peaks = rpeaks_info.get("ECG_R_Peaks", [])
         if len(r_peaks) == 0:
-            logger.warning("[DSP] No R-peaks detected.")
+            logger.debug("[DSP-Peaks] No R-peaks detected.")
             return {}, {}
 
         r_peaks = _clean_array(r_peaks)
@@ -29,12 +32,12 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
 
         if len(r_peaks) < 3:
             logger.warning(
-                f"[DSP] Too few R-peaks ({len(r_peaks)}) for reliable delineation."
+                f"[DSP-Peaks] Too few R-peaks ({len(r_peaks)}) for reliable delineation."
             )
             return rpeaks_info, {}
 
     except Exception as e:
-        logger.error(f"[DSP] R-Peak detection failed: {e}")
+        logger.error(f"[DSP-Peaks] R-Peak detection failed: {e}")
         return {}, {}
 
     try:
@@ -43,20 +46,22 @@ def detect_peaks(signal: np.ndarray, sampling_rate: int) -> Tuple[dict, dict]:
         )
     except Exception as e:
         logger.warning(
-            f"[DSP] DWT delineation failed, retrying with 'peak' method: {e}"
+            f"[DSP-Peaks] DWT delineation failed, retrying with 'peak' method: {e}"
         )
         try:
             _, waves_info = nk.ecg_delineate(
                 signal, rpeaks_info, sampling_rate=sampling_rate, method="peak"
             )
         except Exception as e2:
-            logger.error(f"[DSP] Wave delineation failed (all methods): {e2}")
+            logger.error(f"[DSP-Peaks] Wave delineation failed (all methods): {e2}")
             return rpeaks_info, {}
 
+    logger.debug("[DSP-Peaks] Successfully completed detect_peaks.")
     return rpeaks_info, waves_info
 
 
 def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, dict]:
+    logger.debug("[DSP-Peaks] Starting correct_peaks...")
     rpeaks_corr = rpeaks.copy()
     waves_corr = waves.copy()
 
@@ -98,10 +103,11 @@ def correct_peaks(rpeaks: dict, waves: dict, signal: np.ndarray) -> Tuple[dict, 
                 rpeaks_corr, waves_corr, signal
             )
 
+        logger.debug("[DSP-Peaks] Successfully completed correct_peaks.")
         return rpeaks_corr, waves_corr
 
     except Exception as e:
-        logger.error(f"[SignalProcessor] Peak correction failed: {e}")
+        logger.error(f"[DSP-Peaks] Peak correction failed: {e}")
         return rpeaks, waves
 
 

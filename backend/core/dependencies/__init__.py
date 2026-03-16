@@ -1,4 +1,5 @@
 from .injection import (
+    get_db,
     get_session_repository,
     get_calendar_repository,
     get_performance_repository,
@@ -12,17 +13,17 @@ from .injection import (
     get_current_user,
     get_current_active_user,
     get_admin_user,
-    get_unassigned_user,
     get_patient_user,
     get_operator_user,
     get_doctor_user,
+    get_unassigned_user,
     enforce_data_access,
     verify_session_access,
     DateRangeParams,
-    oauth2_scheme,
 )
 
 __all__ = [
+    "get_db",
     "get_session_repository",
     "get_calendar_repository",
     "get_performance_repository",
@@ -36,13 +37,11 @@ __all__ = [
     "get_current_user",
     "get_current_active_user",
     "get_admin_user",
-    "get_unassigned_user",
     "get_patient_user",
     "get_operator_user",
     "get_doctor_user",
-    "get_admin_user",
+    "get_unassigned_user",
     "enforce_data_access",
     "verify_session_access",
     "DateRangeParams",
-    "oauth2_scheme",
 ]

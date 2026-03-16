@@ -5,7 +5,12 @@ from .admin import TbMAdmin
 from .operator import TbMOperator
 from .doctor import TbMDoctor
 from .session import TbREcgSession
-from .raw_data import TbREcgRawWeb, TbREcgRawMobile
+from .raw_data import (
+    TbREcgRaw5LeadsWeb,
+    TbREcgRaw5LeadsMobile,
+    TbREcgRaw12LeadsWeb,
+    TbREcgRaw12LeadsMobile,
+)
 from .performance import TbRPerformanceLog
 from .approval import TbRLogApproval
 
@@ -18,8 +23,10 @@ __all__ = [
     "TbMOperator",
     "TbMDoctor",
     "TbREcgSession",
-    "TbREcgRawWeb",
-    "TbREcgRawMobile",
+    "TbREcgRaw5LeadsWeb",
+    "TbREcgRaw5LeadsMobile",
+    "TbREcgRaw12LeadsWeb",
+    "TbREcgRaw12LeadsMobile",
     "TbRPerformanceLog",
     "TbRLogApproval",
 ]

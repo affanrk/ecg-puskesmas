@@ -4,7 +4,6 @@ from datetime import datetime
 
 
 class SessionResponse(BaseModel):
-
     recording_id: str = Field(..., description="Unique recording identifier")
     device_id: str = Field(..., description="Device that performed the recording")
     subject_id: str = Field(..., description="Patient identifier (NIK)")
@@ -26,6 +25,9 @@ class SessionResponse(BaseModel):
     )
     avg_st_ms: Optional[float] = Field(None, description="Average ST interval (ms)")
     rs_ratio_v1: Optional[float] = Field(None, description="RS ratio in V1")
+    device_type: Optional[str] = Field(
+        None, description="Type of device (5LEADS, 12LEADS)"
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -52,7 +54,6 @@ class SessionResponse(BaseModel):
 
 
 class DeviceStatusResponse(BaseModel):
-
     device_id: str = Field(..., description="Device identifier")
     is_connected: bool = Field(..., description="Device connection status")
     is_locked: bool = Field(..., description="Device is locked by a user")
@@ -73,10 +74,32 @@ class DeviceStatusResponse(BaseModel):
 
 
 class ClassificationCount(BaseModel):
-    classification: str
-    count: int
+    classification: str = Field(
+        ..., description="The classification result (e.g., Normal, Abnormal)"
+    )
+    count: int = Field(
+        ..., description="The number of occurrences for this classification"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"classification": "Normal", "count": 42}}
+    )
 
 
 class ClassificationStatsResponse(BaseModel):
-    total_sessions: int
-    classification_counts: list[ClassificationCount]
+    total_sessions: int = Field(..., description="Total number of sessions")
+    classification_counts: list[ClassificationCount] = Field(
+        ..., description="List of classification counts"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_sessions": 100,
+                "classification_counts": [
+                    {"classification": "Normal", "count": 80},
+                    {"classification": "Abnormal", "count": 20},
+                ],
+            }
+        }
+    )

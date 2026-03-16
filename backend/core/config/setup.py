@@ -1,5 +1,8 @@
 import os
+import logging
 from pydantic_settings import BaseSettings
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -29,7 +32,11 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+        try:
+            return f"postgresql://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
+        except Exception as e:
+            logger.error(f"Error constructing DATABASE_URL: {e}")
+            raise RuntimeError(f"Error constructing DATABASE_URL: {e}")
 
     model_config = {
         "env_file": os.path.join(

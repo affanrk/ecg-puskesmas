@@ -9,7 +9,8 @@ MIN_SAMPLES_FOR_ANALYSIS = 500
 BUTTER_ORDER = 4
 BUTTER_CUTOFF = 0.6
 
-MQTT_TOPIC_PATTERN = "raw/ecg/+"
+MQTT_TOPIC_PATTERN_5LEADS = "raw/ecg/+"
+MQTT_TOPIC_PATTERN_12LEADS = "raw/ecg/12leads/+"
 MQTT_QOS = 0
 
 DEVICE_TIMEOUT_SECONDS = 2.0
@@ -23,6 +24,7 @@ BPM_CALCULATION_INTERVAL = 100
 
 DB_BATCH_INTERVAL = 1.0
 DB_BATCH_CHUNK_SIZE = 2000
+MAX_GAP_FILL_SAMPLES = 500
 
 MAX_HISTORY_RESULTS = 200
 MAX_EXPORT_RECORDS = 10000
@@ -31,7 +33,6 @@ PLOT_FIGURE_SIZE = (24, 12)
 
 
 class ECGClassification(str, Enum):
-
     NORMAL = "Normal"
     ABNORMAL = "Abnormal"
     POTENTIAL_ARRHYTHMIA = "Berpotensi Aritmia"
@@ -51,7 +52,6 @@ CLASS_INDEX_MAP = {
 
 
 class WSMessageType(str, Enum):
-
     PING = "ping"
     PONG = "pong"
     SUBSCRIBE = "subscribe_to_device"
@@ -70,6 +70,8 @@ class WSMessageType(str, Enum):
     RECORDING_CANCELLED = "recording_cancelled"
     HISTORY_UPDATED = "history_updated"
     LIVE_RESULT = "live_result"
+    LIVE_5LEADS_BATCH = "live_5leads_batch"
+    LIVE_12LEADS_BATCH = "live_12leads_batch"
 
 
 SOFT_DELETE_ENABLED = False

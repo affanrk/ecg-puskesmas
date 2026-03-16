@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from utils.helpers.validation import (
     validate_full_name,
     validate_nik,
@@ -11,20 +11,40 @@ from utils.helpers.validation import (
 
 
 class OperatorBase(BaseModel):
-    full_name: str
-    nik: Optional[str] = None
-    pob: str
-    dob: date
-    gender: str
-    str_number: str
-    operator_role: str
-    address: Optional[str] = None
-    contact_number: Optional[str] = None
-    work_location: Optional[str] = None
+    full_name: str = Field(..., description="Operator's full name")
+    nik: Optional[str] = Field(
+        default=None, description="National Identity Number (NIK)"
+    )
+    pob: str = Field(..., description="Place of birth")
+    dob: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender of the operator")
+    str_number: str = Field(..., description="Registration Certificate Number")
+    operator_role: str = Field(..., description="Role of the operator")
+    address: Optional[str] = Field(default=None, description="Residential address")
+    contact_number: Optional[str] = Field(
+        default=None, description="Contact phone number"
+    )
+    work_location: Optional[str] = Field(
+        default=None, description="Primary work location"
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "full_name": "Alice Operator",
+                "nik": "3171234567890123",
+                "pob": "Bandung",
+                "dob": "1990-01-01",
+                "gender": "Female",
+                "str_number": "9876543210987654",
+                "operator_role": "Nurse",
+                "address": "Jl. Mawar No. 10",
+                "contact_number": "08111222333",
+                "work_location": "Puskesmas Melati",
+            }
+        },
     )
 
     _validate_full_name = field_validator("full_name")(validate_full_name)
@@ -37,26 +57,61 @@ class OperatorBase(BaseModel):
 
 
 class OperatorCreate(OperatorBase):
-    nik: str
-    source: Optional[str] = "WEB"
+    nik: str = Field(..., description="National Identity Number (NIK)")
+    source: Optional[str] = Field(default="WEB", description="Registration source")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "full_name": "Alice Operator",
+                "nik": "3171234567890123",
+                "pob": "Bandung",
+                "dob": "1990-01-01",
+                "gender": "Female",
+                "str_number": "9876543210987654",
+                "operator_role": "General Practitioner",
+                "address": "Jl. Mawar No. 10",
+                "contact_number": "08111222333",
+                "work_location": "Puskesmas Melati",
+                "source": "WEB",
+            }
+        }
+    )
 
 
 class OperatorUpdate(BaseModel):
-    full_name: Optional[str] = None
-    nik: str
-    pob: Optional[str] = None
-    dob: Optional[date] = None
-    gender: Optional[str] = None
-    address: Optional[str] = None
-    contact_number: Optional[str] = None
-    str_number: Optional[str] = None
-    operator_role: Optional[str] = None
-    work_location: Optional[str] = None
-    source: Optional[str] = "WEB"
+    full_name: Optional[str] = Field(default=None, description="Operator's full name")
+    nik: str = Field(..., description="National Identity Number (NIK)")
+    pob: Optional[str] = Field(default=None, description="Place of birth")
+    dob: Optional[date] = Field(default=None, description="Date of birth")
+    gender: Optional[str] = Field(default=None, description="Gender of the operator")
+    address: Optional[str] = Field(default=None, description="Residential address")
+    contact_number: Optional[str] = Field(
+        default=None, description="Contact phone number"
+    )
+    str_number: Optional[str] = Field(
+        default=None, description="Registration Certificate Number"
+    )
+    operator_role: Optional[str] = Field(
+        default=None, description="Role of the operator"
+    )
+    work_location: Optional[str] = Field(
+        default=None, description="Primary work location"
+    )
+    source: Optional[str] = Field(default="WEB", description="Update source")
 
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "full_name": "Alice Operator Updated",
+                "nik": "3171234567890123",
+                "address": "Jl. Melati No. 20",
+                "operator_role": "General Practitioner",
+                "source": "WEB",
+            }
+        },
     )
 
     _validate_full_name = field_validator("full_name")(validate_full_name)
@@ -69,5 +124,24 @@ class OperatorUpdate(BaseModel):
 
 
 class OperatorResponse(OperatorBase):
-    id: str
-    user_id: str
+    id: str = Field(..., description="Unique identifier for the operator profile")
+    user_id: str = Field(..., description="Associated user account identifier")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "id": "opr_12345",
+                "user_id": "usr_98765",
+                "full_name": "Alice Operator",
+                "nik": "3171234567890123",
+                "pob": "Bandung",
+                "dob": "1990-01-01",
+                "gender": "Female",
+                "str_number": "9876543210987654",
+                "operator_role": "Nurse",
+                "address": "Jl. Mawar No. 10",
+                "contact_number": "08111222333",
+                "work_location": "Puskesmas Melati",
+            }
+        }
+    )

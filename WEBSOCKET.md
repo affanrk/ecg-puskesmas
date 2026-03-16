@@ -32,9 +32,9 @@ This document describes the real-time communication protocol for the ECG Platfor
 | :--- | :--- | :--- |
 | `ping` | `{}` | Standard heartbeat request. Server responds with `pong`. |
 | `pong` | `{}` | Response to server-initiated `ping`. |
-| `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts receiving `live_batch` and `performance_update`. |
+| `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts receiving live data batches and performance updates. |
 | `unsubscribe` | `{}` | Releases current device lock and stops data stream. |
-| `start_recording` | `{ "device_id": "string", "source": "WEB" }` | Initiates a recording session. `source` defaults to `WEB`. |
+| `start_recording` | `{ "device_id": "string", "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. `source` defaults to `WEB`. `lead_mode` (5 or 12) is optional and used for validation. |
 | `stop_recording` | `{ "device_id": "string" }` | Forces current recording to complete and triggers analysis. |
 | `calculate_live_bpm` | `{ "device_id": "string", "data": [0.12, ...] }` | Request server-side HR calculation from raw samples. |
 
@@ -53,7 +53,8 @@ This document describes the real-time communication protocol for the ECG Platfor
                 "id": "ECG001", 
                 "is_connected": true, 
                 "is_locked": false, 
-                "status": "Idle" 
+                "status": "Idle",
+                "lead_mode": 5 
             }, ...
         ] 
     }
@@ -75,14 +76,22 @@ This document describes the real-time communication protocol for the ECG Platfor
     ```
 
 ### 4.2 Live Monitoring
-*   **`live_batch`**: High-frequency ECG samples for visualization.
+*   **`live_5leads_batch`**: High-frequency ECG samples for 5-lead devices.
     ```json
     { 
-      "type": "live_batch", 
+      "type": "live_5leads_batch", 
       "device_id": "string", 
-      "samples": [{ "i": 0.1, "ii": 0.2, "iii": 0.1, "avf": 0.1, "v1": 0.2 }, ...],
-      "counter": 12345,
-      "sampling_rate": 100
+      "samples": [{ "i": 0.1, "ii": 0.2, "v1": 0.1, ... }],
+      "counter": 12345
+    }
+    ```
+*   **`live_12leads_batch`**: High-frequency ECG samples for 12-lead devices.
+    ```json
+    { 
+      "type": "live_12leads_batch", 
+      "device_id": "string", 
+      "samples": [{ "i": 0.1, "ii": 0.2, "iii": 0.1, "avr": 0.1, "avl": 0.1, "avf": 0.1, "v1": 0.1, ... }],
+      "counter": 12345
     }
     ```
 *   **`calculate_live_bpm`**: Async result of a BPM calculation request.
@@ -90,10 +99,7 @@ This document describes the real-time communication protocol for the ECG Platfor
     { 
         "type": "calculate_live_bpm", 
         "device_id": "string", 
-        "data": 
-        { 
-            "bpm": 72 
-        } 
+        "data": { "bpm": 72 } 
     }
     ```
 *   **`performance_update`**: Real-time network health metrics.
@@ -108,17 +114,18 @@ This document describes the real-time communication protocol for the ECG Platfor
     ```
 
 ### 4.3 Recording Control
-*   **`state_update`**: Sent whenever recording starts, stops, or changes segment.
+*   **`state_update`**: Sent whenever recording starts, stops, or changes state.
     ```json
     { 
       "type": "state_update", 
+      "device_id": "string",
       "is_recording": true, 
-      "status_message": "Recording (Seg 1)...", 
+      "status_message": "Recording...", 
       "recording_id": "uuid", 
       "subject_id": "USR2024..." 
     }
     ```
-*   **`progress_update`**: Granular progress of the current buffer (sent every 25 samples).
+*   **`progress_update`**: Granular progress of the current recording buffer.
     ```json
     { 
         "type": "progress_update", 
@@ -136,7 +143,7 @@ This document describes the real-time communication protocol for the ECG Platfor
       "changed_dt": "ISO8601-Timestamp"
     }
     ```
-*   **`recording_cancelled`**: Notifies that an active recording was discarded (e.g., due to disconnect).
+*   **`recording_cancelled`**: Notifies that an active recording was discarded.
 *   **`history_updated`**: Global signal to refresh history lists/tables.
 
 ---
@@ -145,17 +152,15 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 ### 5.1 Single Session Enforcement (SSE)
 The system uses the `sid` (Session ID) claim in the JWT to identify unique logins.
-*   If a new login occurs, the old `sid` becomes invalid in the database.
+*   If a new login occurs, the old `sid` becomes invalid.
 *   The WebSocket `verify_session` check will fail.
-*   The server sends an `error` message with code `4003` and closes the connection.
+*   The server sends an `error` message and closes the connection.
 
 ### 5.2 Error Message Format
 ```json
 {
   "type": "error",
-  "message": "Session expired: User logged in from another device",
-  "code": "SESSION_EXPIRED",
-  "active_sid": "new-session-uuid"
+  "message": "Session expired: User logged in from another device"
 }
 ```
 
@@ -169,7 +174,7 @@ The system uses the `sid` (Session ID) claim in the JWT to identify unique login
 *   `Berpotensi Aritmia`
 *   `Sangat Berpotensi Aritmia`
 *   `Unknown`
-*   `Insufficient Data` (Triggered if < 500 samples are present)
+*   `Insufficient Data`
 
 ### Network Thresholds
 *   **Heartbeat Timeout:** 2.0s (Triggers `device_disconnected`)

@@ -3,7 +3,6 @@ from ..base import Base, AuditMixin
 
 
 class TbRPerformanceLog(Base, AuditMixin):
-
     __tablename__ = "tb_r_performance_log"
     id = Column(
         Integer,

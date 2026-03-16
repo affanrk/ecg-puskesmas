@@ -12,12 +12,15 @@ from ..doctor.schema import DoctorCreate, DoctorUpdate, DoctorResponse
 
 
 class UserBase(BaseModel):
-    email: EmailStr
-    username: str
+    email: EmailStr = Field(..., description="User's email address")
+    username: str = Field(..., description="User's username")
 
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
+        json_schema_extra={
+            "example": {"email": "user@example.com", "username": "user123"}
+        },
     )
 
     _sanitize_email = field_validator("email", mode="before")(sanitize_email)
@@ -25,50 +28,128 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
-    role: Optional[str] = "user"
-    source: Optional[str] = "WEB"
+    password: str = Field(..., description="User's password")
+    role: Optional[str] = Field(default="user", description="User's role")
+    source: Optional[str] = Field(
+        default="WEB", description="Source of the registration request"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "username": "user123",
+                "password": "SecurePassword123!",
+                "role": "patient",
+                "source": "WEB",
+            }
+        }
+    )
 
     _validate_password = field_validator("password")(validate_password)
 
 
 class UserUsernameUpdate(BaseModel):
-    new_username: str
+    new_username: str = Field(..., description="New username for the user")
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"new_username": "newuser456"}}
+    )
 
     _validate_username = field_validator("new_username")(validate_username)
 
 
 class UserPasswordUpdate(BaseModel):
-    current_password: str
-    new_password: str
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., description="New password")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "current_password": "OldPassword123!",
+                "new_password": "NewSecurePassword456!",
+            }
+        }
+    )
 
     _validate_password = field_validator("new_password")(validate_password)
 
 
 class UserApprovalUpdate(BaseModel):
-    action: str
-    reason: Optional[str] = Field(None, max_length=100)
+    action: str = Field(..., description="Approval action (e.g., APPROVE, REJECT)")
+    reason: Optional[str] = Field(
+        default=None, max_length=100, description="Reason for the approval action"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"action": "APPROVE", "reason": "Documents verified."}
+        }
+    )
 
 
 class UserAdminCreate(UserCreate):
-    account_status: Optional[str] = "ACTIVE"
-    activation_status: Optional[str] = "APPROVE"
+    account_status: Optional[str] = Field(
+        default="ACTIVE", description="Account status"
+    )
+    activation_status: Optional[str] = Field(
+        default="APPROVE", description="Activation status"
+    )
 
-    patient_profile: Optional[PatientCreate] = None
-    operator_profile: Optional[OperatorCreate] = None
-    doctor_profile: Optional[DoctorCreate] = None
+    patient_profile: Optional[PatientCreate] = Field(
+        default=None, description="Patient profile details"
+    )
+    operator_profile: Optional[OperatorCreate] = Field(
+        default=None, description="Operator profile details"
+    )
+    doctor_profile: Optional[DoctorCreate] = Field(
+        default=None, description="Doctor profile details"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "admin@example.com",
+                "username": "admin123",
+                "password": "SecurePassword123!",
+                "role": "admin",
+                "source": "WEB",
+                "account_status": "ACTIVE",
+                "activation_status": "APPROVE",
+            }
+        }
+    )
 
 
 class UserAdminUpdate(BaseModel):
-    username: Optional[str] = None
-    email: Optional[EmailStr] = None
-    role: Optional[str] = None
-    account_status: Optional[str] = None
-    activation_status: Optional[str] = None
+    username: Optional[str] = Field(default=None, description="User's username")
+    email: Optional[EmailStr] = Field(default=None, description="User's email address")
+    role: Optional[str] = Field(default=None, description="User's role")
+    account_status: Optional[str] = Field(default=None, description="Account status")
+    activation_status: Optional[str] = Field(
+        default=None, description="Activation status"
+    )
 
-    patient_profile: Optional[PatientUpdate] = None
-    operator_profile: Optional[OperatorUpdate] = None
-    doctor_profile: Optional[DoctorUpdate] = None
+    patient_profile: Optional[PatientUpdate] = Field(
+        default=None, description="Patient profile update details"
+    )
+    operator_profile: Optional[OperatorUpdate] = Field(
+        default=None, description="Operator profile update details"
+    )
+    doctor_profile: Optional[DoctorUpdate] = Field(
+        default=None, description="Doctor profile update details"
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "username": "updatedadmin",
+                "email": "updated@example.com",
+                "role": "admin",
+                "account_status": "SUSPENDED",
+            }
+        }
+    )
 
     _validate_username = field_validator("username")(validate_username)
 
@@ -81,23 +162,52 @@ class UserAdminUpdate(BaseModel):
 
 
 class UserResponse(UserBase):
-    id: str
-    is_active: bool
-    role: str
-    is_patient: bool
-    is_operator: bool
-    is_doctor: bool
-    is_activated: int
-    status: Optional[str] = None
-    rejection_reason: Optional[str] = None
-    created_dt: datetime
-    changed_dt: Optional[datetime] = None
+    id: str = Field(..., description="Unique identifier for the user")
+    is_active: bool = Field(..., description="Whether the user is active")
+    role: str = Field(..., description="User's role")
+    is_patient: bool = Field(..., description="Whether the user is a patient")
+    is_operator: bool = Field(..., description="Whether the user is an operator")
+    is_doctor: bool = Field(..., description="Whether the user is a doctor")
+    is_activated: int = Field(..., description="Activation status indicator")
+    status: Optional[str] = Field(
+        default=None, description="Current status of the user"
+    )
+    rejection_reason: Optional[str] = Field(
+        default=None, description="Reason for rejection, if any"
+    )
+    created_dt: datetime = Field(..., description="Timestamp of user creation")
+    changed_dt: Optional[datetime] = Field(
+        default=None, description="Timestamp of last update"
+    )
 
-    patient_profile: Optional[PatientResponse] = None
-    operator_profile: Optional[OperatorResponse] = None
-    doctor_profile: Optional[DoctorResponse] = None
+    patient_profile: Optional[PatientResponse] = Field(
+        default=None, description="Associated patient profile"
+    )
+    operator_profile: Optional[OperatorResponse] = Field(
+        default=None, description="Associated operator profile"
+    )
+    doctor_profile: Optional[DoctorResponse] = Field(
+        default=None, description="Associated doctor profile"
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "usr_12345",
+                "email": "user@example.com",
+                "username": "user123",
+                "full_name": "John Doe",
+                "role": "patient",
+                "is_active": True,
+                "is_patient": True,
+                "is_operator": False,
+                "is_doctor": False,
+                "is_activated": 1,
+                "status": "APPROVED",
+                "created_dt": "2024-01-01T12:00:00Z",
+                "changed_dt": "2024-01-01T12:00:00Z",
+            }
+        },
     )

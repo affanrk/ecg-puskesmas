@@ -1,7 +1,10 @@
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.orm import declarative_mixin
-from core.database import Base as Base
+from sqlalchemy.orm import declarative_mixin, DeclarativeBase
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 @declarative_mixin

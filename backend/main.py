@@ -93,20 +93,21 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    from typing import List, Dict, Any
+
     errors = exc.errors()
-    formatted_errors = []
+    formatted_errors: List[Dict[str, Any]] = []
     for error in errors:
-        msg = error.get("msg")
+        msg = str(error.get("msg", ""))
         if msg.startswith("Value error, "):
             msg = msg.replace("Value error, ", "")
 
-        formatted_errors.append(
-            {
-                "loc": error.get("loc"),
-                "msg": msg,
-                "type": error.get("type"),
-            }
-        )
+        formatted_error: Dict[str, Any] = {
+            "loc": error.get("loc"),
+            "msg": msg,
+            "type": error.get("type"),
+        }
+        formatted_errors.append(formatted_error)
 
     logger.warning(
         f"[Validation Error] {request.method} {request.url.path} -> {formatted_errors}"
@@ -167,8 +168,10 @@ async def app_exception_handler(request: Request, exc: AppException):
         else:
             logger.error(log_msg)
 
+    from typing import Any
+
     client_message = exc.message
-    client_details = exc.details
+    client_details: Any = exc.details
 
     if isinstance(exc, DatabaseException):
         client_message = "Database operation failed"
@@ -244,7 +247,7 @@ if __name__ == "__main__":
 
     config = uvicorn.Config(
         app=app,
-        host="0.0.0.0",
+        host="0.0.0.0",  # nosec B104
         port=settings.FLASK_PORT,
         log_level=settings.LOG_LEVEL.lower(),
         loop="asyncio",

@@ -10,15 +10,16 @@ This document describes the high-frequency data streaming protocol used for ECG 
 *   **Port:** Default `1883` (TCP) or `8883` (SSL/TLS).
 *   **Authentication:** Supports Username/Password and TLS/SSL (configurable).
 *   **QoS:** `0` (Fire and forget - recommended for high-frequency streaming).
-*   **Topic Pattern:** `raw/ecg/+` (Backend subscribes to all devices).
-*   **Device Topic:** `raw/ecg/{DEVICE_ID}` (Devices publish here).
+*   **Topic Pattern (5-Leads):** `raw/ecg/+` (Backend subscribes to all devices).
+*   **Topic Pattern (12-Leads):** `raw/ecg/12leads/+`
+*   **Device Topic:** `raw/ecg/{DEVICE_ID}` or `raw/ecg/12leads/{DEVICE_ID}`
 
 ---
 
 ## 2. Topic Structure
 
 All ECG data must be published to a topic following this structure:
-`raw/ecg/{device_id}`
+`raw/ecg/{device_id}` or `raw/ecg/12leads/{device_id}`
 
 *   `device_id`: A unique string identifying the ECG hardware or the mobile app instance.
 *   **Discovery:** When the backend receives a message from a new `device_id`, it automatically registers the device in the memory state and notifies all connected WebSocket clients via `device_list_update`.
@@ -27,64 +28,47 @@ All ECG data must be published to a topic following this structure:
 
 ## 3. Payload Formats
 
-The backend supports two JSON payload formats: **Single Sample** and **Batch** (optimized for network efficiency). The backend uses an internal **Jitter Buffer** (up to 20 packets) to handle out-of-order delivery and minor network fluctuations.
+The backend supports **Batch** formats (optimized for network efficiency). The backend uses an internal **Jitter Buffer** (up to 20 packets) to handle out-of-order delivery and minor network fluctuations.
 
-### A. Single Sample Format
+### 3.1. 5-Leads Format (Batch)
 ```json
 {
-  "id": "ECG_DEVICE_001",
+  "id": "ECG_001",
   "ts_us": 1700000000000000,
-  "cnt": 1001,
-  "r1": 123456,
-  "r2": 234567,
-  "r3": 345678,
-  "c1": 0.123,
-  "c2": 0.456,
-  "c3": -0.123,
-  "c4": 0.111,
-  "c5": 0.222,
+  "cnt": 1010,
+  "r1": [1234, ...], "r2": [...], "r3": [...],
+  "c1": [0.12, ...], "c2": [...], "c3": [...], "c4": [...], "c5": [...],
   "sps": 100
 }
 ```
 
-### B. Batch Format (Recommended)
-Use this to reduce network overhead by sending multiple samples in one packet. The `ts_us` and `cnt` should refer to the **last sample** in the batch.
+### 3.2. 12-Leads Format (Batch)
+For 12-lead devices, the payload includes all 12 chest and limb leads.
 
 ```json
 {
-  "id": "ECG_DEVICE_001",
+  "id": "ECG_12L_001",
   "ts_us": 1700000000000000,
-  "cnt": 1010,
-  "r1": [123456, 123457, 123458],
-  "r2": [234567, 234568, 234569],
-  "r3": [345678, 345679, 345680],
-  "c1": [0.123, 0.124, 0.125],
-  "c2": [0.456, 0.457, 0.458],
-  "c3": [-0.123, -0.122, -0.121],
-  "c4": [0.111, 0.112, 0.113],
-  "c5": [0.222, 0.223, 0.224],
-  "sps": 100
+  "cnt": 500,
+  "r1": [100, ...], "r2": [...], "r3": [...], "r4": [...], "r5": [...], "r6": [...], 
+  "r7": [...], "r8": [...], "r9": [...], "r10": [...], "r11": [...], "r12": [...],
+  "c1": [0.1, ...], "c2": [...], "c3": [...], "c4": [...], "c5": [...], "c6": [...],
+  "c7": [...], "c8": [...], "c9": [...], "c10": [...], "c11": [...], "c12": [...]
 }
 ```
 
 ---
 
-## 4. Field Definitions
+## 4. Field Definitions & Mappings
 
-| Field | Description | Mapping | Unit |
+| Field | 5-Leads Mapping | 12-Leads Mapping | Unit |
 | :--- | :--- | :--- | :--- |
-| `id` | Unique Device Identifier | - | String |
-| `ts_us` | Timestamp (Server/Device) | - | Microseconds (μs) |
-| `cnt` / `counter` | Sequential packet number | - | Integer |
-| `r1` / `raw_c1` | Raw ADC - Lead I | Lead I | Integer |
-| `r2` / `raw_c2` | Raw ADC - Lead II | Lead II | Integer |
-| `r3` / `raw_c3` | Raw ADC - Lead V1 | Lead V1 | Integer |
-| `c1` / `cal_mv_c1` | Calibrated mV - Lead I | Lead I | Millivolts (mV) |
-| `c2` / `cal_mv_c2` | Calibrated mV - Lead II | Lead II | Millivolts (mV) |
-| `c3` / `cal_mv_c3` | Calibrated mV - Lead V1 | Lead V1 | Millivolts (mV) |
-| `c4` / `cal_mv_c4` | Calibrated mV - Lead III | Lead III | Millivolts (mV) |
-| `c5` / `cal_mv_c5` | Calibrated mV - aVF | aVF | Millivolts (mV) |
-| `sps` / `rate` | Sampling Rate | - | Hz (default 100) |
+| `r1`..`r3` | Raw I, II, V1 | Raw I, II, III | Integer |
+| `r4`..`r6` | - | Raw aVR, aVL, aVF | Integer |
+| `r7`..`r12` | - | Raw V1, V2, V3, V4, V5, V6 | Integer |
+| `c1`..`c3` | Cal I, II, V1 | Cal I, II, III | mV |
+| `c4`..`c6` | Cal III, aVF | Cal aVR, aVL, aVF | mV |
+| `c7`..`c12` | - | Cal V1, V2, V3, V4, V5, V6 | mV |
 
 ---
 
@@ -96,12 +80,12 @@ Use this to reduce network overhead by sending multiple samples in one packet. T
 3.  **Sequence Break:** If a gap > 20 packets occurs, the system assumes a critical disconnect, clears buffers, and resets the device state (notifying UI via `device_disconnected`).
 
 ### 5.2 Real-time Processing
-*   **Filtering:** Lead I, II, III, aVF, and V1 are processed through a real-time Butterworth filter (Highpass 0.6Hz) before visualization.
+*   **Filtering:** Leads are processed through a real-time Butterworth filter (Highpass 0.6Hz) before visualization.
 *   **Live BPM:** The backend calculates HR from Lead II samples every 100 packets and broadcasts it via WebSocket.
 *   **Network Metrics:** Packet loss is calculated by comparing `cnt` jumps. Latency is measured via arrival intervals.
 
 ### 5.3 Recording Logic
 Incoming data is only stored in the database if the device's `is_recording` flag is `true`. The data is automatically routed to:
-*   `tb_r_ecg_raw_web`: If session source is `WEB` or `ADMIN`.
-*   `tb_r_ecg_raw_mobile`: If session source is `MOBILE`.
+*   `tb_r_ecg_raw_5leads_web/mobile`: For 5-Lead devices.
+*   `tb_r_ecg_raw_12leads_web/mobile`: For 12-Lead devices.
 *   Data is buffered and flushed in chunks (default 2000 samples) to ensure high-performance writes.

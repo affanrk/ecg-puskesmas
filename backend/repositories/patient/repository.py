@@ -1,6 +1,5 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, DataError
 
 from models import TbMPatient, TbMUser, TbRLogApproval
 from schemas.patient import PatientUpdate, PatientCreate
@@ -16,17 +15,29 @@ class PatientRepository(BaseRepository[TbMPatient]):
         super().__init__(TbMPatient, db)
 
     def find_by_user_id(self, user_id: str) -> Optional[TbMPatient]:
+        logger.debug("[PatientRepository] Starting find_by_user_id...")
         try:
-            return self.get_by(user_id=user_id)
+            result = self.get_by(user_id=user_id)
+            logger.debug("[PatientRepository] Successfully completed find_by_user_id.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find patient profile for user ID {user_id}: {e}")
+            logger.error(
+                f"[PatientRepository] Unexpected error in find_by_user_id: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def find_by_nik(self, nik: str) -> Optional[TbMPatient]:
+        logger.debug("[PatientRepository] Starting find_by_nik...")
         try:
-            return self.get_by(nik=nik)
+            result = self.get_by(nik=nik)
+            logger.debug("[PatientRepository] Successfully completed find_by_nik.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find patient by NIK {nik}: {e}")
+            logger.error(f"[PatientRepository] Unexpected error in find_by_nik: {e}")
             raise DatabaseException("Database operation failed")
 
     def create_profile(
@@ -36,6 +47,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         source: str = "WEB",
         initial_status: str = "QUEUE",
     ) -> TbMPatient:
+        logger.debug("[PatientRepository] Starting create_profile...")
         try:
             if patient_in.nik and check_global_nik(self.db, patient_in.nik, user_id):
                 raise DuplicateNIKException(nik=patient_in.nik)
@@ -73,29 +85,24 @@ class PatientRepository(BaseRepository[TbMPatient]):
 
             db_user = self.db.query(TbMUser).get(user_id)
             if db_user:
-                db_user.is_patient = True
-                db_user.is_operator = False
-                db_user.is_doctor = False
-                db_user.changed_by = source
+                setattr(db_user, "is_patient", True)
+                setattr(db_user, "is_operator", False)
+                setattr(db_user, "is_doctor", False)
+                setattr(db_user, "changed_by", source)
 
             self.db.commit()
             self.db.refresh(patient)
             logger.info(
                 f"[Patient] Created patient profile {patient_id} for User {user_id}"
             )
+            logger.debug("[PatientRepository] Successfully completed create_profile.")
             return patient
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
-        except IntegrityError as e:
-            self.db.rollback()
-            logger.error(
-                f"Integrity Error creating patient profile for user {user_id}: {e}"
-            )
-            raise DatabaseException("Database operation failed")
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error creating patient profile for user {user_id}: {e}")
+            logger.error(f"[PatientRepository] Unexpected error in create_profile: {e}")
             raise DatabaseException("Database operation failed")
 
     def update_by_user_id(
@@ -105,6 +112,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         admin_action: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> Optional[TbMPatient]:
+        logger.debug("[PatientRepository] Starting update_by_user_id...")
         try:
             patient = self.get_by(user_id=user_id)
             update_data = profile_data.model_dump(exclude_unset=True)
@@ -152,12 +160,12 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 log_status = initial_status
             else:
                 if is_approving and patient.status != "APPROVED":
-                    patient.status = "APPROVED"
+                    setattr(patient, "status", "APPROVED")
                     log_status = "APPROVED"
                     log_reason = "Approved by Admin"
                     should_log = True
                 elif patient.status == "REJECTED":
-                    patient.status = "QUEUE"
+                    setattr(patient, "status", "QUEUE")
                     log_status = "QUEUE"
                     log_reason = (
                         "Profile updated by Admin"
@@ -169,7 +177,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                     log_reason = "Profile created by Admin"
                     should_log = True
                 elif is_rejecting and patient.status == "APPROVED":
-                    patient.status = "QUEUE"
+                    setattr(patient, "status", "QUEUE")
                     log_status = "QUEUE"
                     log_reason = "Access revoked by Admin"
                     should_log = True
@@ -182,19 +190,19 @@ class PatientRepository(BaseRepository[TbMPatient]):
                         has_changes = True
 
             if should_log or has_changes:
-                patient.changed_by = source
+                setattr(patient, "changed_by", source)
 
                 db_user = self.db.query(TbMUser).get(user_id)
                 if db_user:
-                    db_user.changed_by = source
+                    setattr(db_user, "changed_by", source)
                     if is_approving:
-                        db_user.is_activated = 1
+                        setattr(db_user, "is_activated", 1)
                     elif is_rejecting:
-                        db_user.is_activated = 0
+                        setattr(db_user, "is_activated", 0)
 
-                    db_user.is_patient = True
-                    db_user.is_operator = False
-                    db_user.is_doctor = False
+                    setattr(db_user, "is_patient", True)
+                    setattr(db_user, "is_operator", False)
+                    setattr(db_user, "is_doctor", False)
 
                 if should_log:
                     log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
@@ -210,14 +218,16 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 self.db.commit()
                 self.db.refresh(patient)
 
+            logger.debug(
+                "[PatientRepository] Successfully completed update_by_user_id."
+            )
             return patient
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
-        except (IntegrityError, DataError):
-            self.db.rollback()
-            raise
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error updating patient profile for User ID {user_id}: {e}")
+            logger.error(
+                f"[PatientRepository] Unexpected error in update_by_user_id: {e}"
+            )
             raise DatabaseException("Database operation failed")

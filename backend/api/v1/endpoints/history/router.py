@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, cast
 
 from repositories.session import SessionRepository
 from repositories.calendar import CalendarRepository
@@ -12,10 +12,12 @@ from core.dependencies import (
     verify_session_access,
 )
 from core.exceptions import AppException
+from schemas.common import GenericResponse, ApiStatus
+from schemas.calendar import CalendarResponse, CalendarLevel
 from schemas.session import SessionResponse, ClassificationStatsResponse
-from schemas.calendar import CalendarResponse
 from utils import MAX_HISTORY_RESULTS
 from models import TbREcgSession, TbMUser
+from datetime import datetime
 
 router = APIRouter()
 
@@ -31,31 +33,58 @@ def _map_session_to_response(
         if isinstance(user_details, tuple):
             full_name, username, nik = user_details
             patient_name = full_name or username or "Unknown"
-            subject_id = nik or str(session.user_id)
+            subject_id = str(nik) if nik else str(session.user_id)
         elif isinstance(user_details, TbMUser):
-            patient_name = user_details.full_name or user_details.username or "Unknown"
-            subject_id = user_details.nik or str(user_details.id)
+            patient_name = (
+                cast(str, user_details.full_name)
+                or cast(str, user_details.username)
+                or "Unknown"
+            )
+            subject_id = (
+                str(user_details.nik)
+                if getattr(user_details, "nik", None)
+                else cast(str, str(user_details.id))
+            )
 
     return SessionResponse(
-        recording_id=session.recording_id,
-        device_id=session.device_id,
-        subject_id=subject_id,
-        patient_name=patient_name,
-        timestamp=session.created_dt,
-        changed_dt=session.changed_dt,
-        classification=session.classification_result,
-        confidence=session.confidence_score,
-        bpm=session.avg_bpm,
-        avg_rr_ms=session.avg_rr_ms,
-        avg_pr_ms=session.avg_pr_ms,
-        avg_qs_ms=session.avg_qs_ms,
-        avg_qtc_ms=session.avg_qtc_ms,
-        avg_st_ms=session.avg_st_ms,
-        rs_ratio_v1=session.rs_ratio_v1,
+        recording_id=str(session.recording_id) if session.recording_id else "",
+        device_id=str(session.device_id) if session.device_id else "",
+        subject_id=str(subject_id),
+        patient_name=str(patient_name),
+        timestamp=cast(datetime, session.created_dt),
+        changed_dt=cast(datetime, session.changed_dt),
+        classification=str(session.classification_result),
+        confidence=(
+            cast(float, session.confidence_score)
+            if session.confidence_score is not None
+            else None
+        ),
+        avg_bpm=cast(float, session.avg_bpm) if session.avg_bpm is not None else None,
+        avg_rr_ms=(
+            cast(float, session.avg_rr_ms) if session.avg_rr_ms is not None else None
+        ),
+        avg_pr_ms=(
+            cast(float, session.avg_pr_ms) if session.avg_pr_ms is not None else None
+        ),
+        avg_qs_ms=(
+            cast(float, session.avg_qs_ms) if session.avg_qs_ms is not None else None
+        ),
+        avg_qtc_ms=(
+            cast(float, session.avg_qtc_ms) if session.avg_qtc_ms is not None else None
+        ),
+        avg_st_ms=(
+            cast(float, session.avg_st_ms) if session.avg_st_ms is not None else None
+        ),
+        rs_ratio_v1=(
+            cast(float, session.rs_ratio_v1)
+            if session.rs_ratio_v1 is not None
+            else None
+        ),
+        device_type=str(session.device_type) if session.device_type else None,
     )
 
 
-@router.get("/calendar", response_model=CalendarResponse)
+@router.get("/calendar", response_model=GenericResponse[CalendarResponse])
 async def get_calendar_view(
     user_id: Optional[str] = Query(None, description="Filter by User ID"),
     year: Optional[int] = Query(None),
@@ -70,28 +99,32 @@ async def get_calendar_view(
         user_id = enforce_data_access(user_id, current_user)
         nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
 
-        level = "year"
+        level = CalendarLevel.YEAR
         if year is None:
-            level = "year"
+            level = CalendarLevel.YEAR
         elif month is None:
-            level = "month"
+            level = CalendarLevel.MONTH
         elif day is None:
-            level = "day"
+            level = CalendarLevel.DAY
         elif hour is None:
-            level = "hour"
+            level = CalendarLevel.HOUR
         elif minute is None:
-            level = "minute"
+            level = CalendarLevel.MINUTE
         else:
-            level = "second"
+            level = CalendarLevel.SECOND
 
-        return CalendarResponse(level=level, nodes=nodes)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=CalendarResponse(level=level, nodes=nodes),
+            message=f"Calendar data for level: {level.value}",
+        )
     except AppException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/stats", response_model=ClassificationStatsResponse)
+@router.get("/stats", response_model=GenericResponse[ClassificationStatsResponse])
 async def get_history_stats(
     user_id: Optional[str] = Query(None, description="Filter by User ID"),
     session_repo: SessionRepository = Depends(get_session_repository),
@@ -99,14 +132,19 @@ async def get_history_stats(
 ):
     try:
         user_id = enforce_data_access(user_id, current_user)
-        return session_repo.get_classification_stats(user_id)
+        stats = session_repo.get_classification_stats(user_id)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=stats,
+            message="Classification statistics retrieved successfully",
+        )
     except AppException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("", response_model=List[SessionResponse])
+@router.get("", response_model=GenericResponse[List[SessionResponse]])
 async def get_recording_history(
     device_id: Optional[str] = Query(
         None, description="Filter by device ID", max_length=50
@@ -137,17 +175,22 @@ async def get_recording_history(
             limit=limit,
         )
 
-        return [
+        data = [
             _map_session_to_response(session, (full_name, username, nik))
             for session, full_name, username, nik in results
         ]
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message=f"Retrieved {len(data)} recording history records",
+        )
     except AppException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/recent", response_model=List[SessionResponse])
+@router.get("/recent", response_model=GenericResponse[List[SessionResponse]])
 async def get_recent_history(
     user_id: str = Query(..., description="User ID is required"),
     limit: int = Query(10, le=20, description="Maximum results"),
@@ -155,16 +198,23 @@ async def get_recent_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
-        user_id = enforce_data_access(user_id, current_user)
-        sessions = session_repo.get_recent_sessions(user_id=user_id, limit=limit)
-        return [_map_session_to_response(session, session.user) for session in sessions]
+        enforced_id = enforce_data_access(user_id, current_user)
+        sessions = session_repo.get_recent_sessions(
+            user_id=str(enforced_id), limit=limit
+        )
+        data = [_map_session_to_response(session, session.user) for session in sessions]
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message=f"Retrieved {len(data)} recent sessions for user {user_id}",
+        )
     except AppException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/{recording_id}", response_model=SessionResponse)
+@router.get("/{recording_id}", response_model=GenericResponse[SessionResponse])
 async def get_recording_detail(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository),
@@ -172,15 +222,22 @@ async def get_recording_detail(
 ):
     try:
         session = session_repo.find_by_recording_id_or_fail(recording_id)
-        verify_session_access(session.user_id, current_user)
-        return _map_session_to_response(session, session.user)
+        verify_session_access(str(session.user_id), current_user)
+        data = _map_session_to_response(session, session.user)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message="Recording details retrieved successfully",
+        )
     except (HTTPException, AppException):
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/device/{device_id}", response_model=List[SessionResponse])
+@router.get(
+    "/device/{device_id}", response_model=GenericResponse[List[SessionResponse]]
+)
 async def get_device_history(
     device_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
@@ -199,14 +256,19 @@ async def get_device_history(
             )
 
         sessions = session_repo.list_by_device(device_id, limit=limit)
-        return [_map_session_to_response(session, session.user) for session in sessions]
+        data = [_map_session_to_response(session, session.user) for session in sessions]
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message=f"Retrieved {len(data)} records for device {device_id}",
+        )
     except AppException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.get("/user/{user_id}", response_model=List[SessionResponse])
+@router.get("/user/{user_id}", response_model=GenericResponse[List[SessionResponse]])
 async def get_user_history(
     user_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
@@ -214,9 +276,14 @@ async def get_user_history(
     current_user: TbMUser = Depends(get_current_user),
 ):
     try:
-        user_id = enforce_data_access(user_id, current_user)
-        sessions = session_repo.list_by_user(user_id, limit=limit)
-        return [_map_session_to_response(session, session.user) for session in sessions]
+        enforced_id = enforce_data_access(user_id, current_user)
+        sessions = session_repo.list_by_user(str(enforced_id), limit=limit)
+        data = [_map_session_to_response(session, session.user) for session in sessions]
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message=f"Retrieved {len(data)} records for user {user_id}",
+        )
     except AppException:
         raise
     except Exception:

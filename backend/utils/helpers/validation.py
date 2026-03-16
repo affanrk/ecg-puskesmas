@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
-from models import TbMPatient, TbMOperator, TbMDoctor
 from typing import Optional, Any
 from datetime import date
+from models import TbMPatient, TbMOperator, TbMDoctor
 import re
 
 
 def check_global_nik(
-    db_session: Session, nik: str, current_user_id: str = None
+    db_session: Session, nik: str, current_user_id: Optional[str] = None
 ) -> bool:
     if not nik:
         return False

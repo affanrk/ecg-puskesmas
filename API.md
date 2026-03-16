@@ -9,6 +9,17 @@ This document provides a comprehensive guide to all REST API endpoints available
 Unless specified otherwise, endpoints require a Bearer Token in the `Authorization` header:
 `Authorization: Bearer <your_jwt_token>`
 
+## Common Response Wrapper
+All API responses follow a standardized `GenericResponse` structure:
+
+```json
+{
+  "status": "success",
+  "message": "A human-readable message.",
+  "data": { ... } // The actual payload
+}
+```
+
 ---
 
 ## 1. Authentication & Profile (`/auth`)
@@ -27,7 +38,24 @@ Registers a new basic user account.
       "source": "WEB"
     }
     ```
-*   **Response:** `UserResponse` (See Common Response Models section at the bottom)
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "User registered successfully",
+      "data": {
+        "id": "USR...",
+        "email": "user@example.com",
+        "username": "johndoe",
+        "role": "user",
+        "is_active": true,
+        "is_patient": false,
+        "is_operator": false,
+        "is_doctor": false,
+        "status": "APPROVED"
+      }
+    }
+    ```
 
 ### 1.2 Login
 Authenticates a user and returns a JWT token. Enforces Single Session (Last Login Wins).
@@ -36,23 +64,27 @@ Authenticates a user and returns a JWT token. Enforces Single Session (Last Logi
 *   **Request Body (`UserLogin`):**
     ```json
     {
-      "username_or_email": "johndoe",
-      "password": "SecretPassword123!",
+      "username_or_email": "admin@gmail.com",
+      "password": "Admin123!",
       "source": "WEB"
     }
     ```
-*   **Response (`Token`):**
+*   **Response (`GenericResponse[Token]`):**
     ```json
     {
-      "access_token": "eyJhbGci...",
-      "token_type": "bearer",
-      "role": "user",
-      "user_id": "USR20240101000001",
-      "user_name": "johndoe",
-      "full_name": "John Doe",
-      "is_patient": false,
-      "is_operator": false,
-      "is_doctor": false
+      "status": "success",
+      "message": "Login successful",
+      "data": {
+        "access_token": "eyJhbGci...",
+        "token_type": "bearer",
+        "role": "admin",
+        "user_id": "USR20260213000001",
+        "user_name": "Admin",
+        "full_name": "System Administrator",
+        "is_patient": false,
+        "is_operator": true,
+        "is_doctor": false
+      }
     }
     ```
 
@@ -60,12 +92,25 @@ Authenticates a user and returns a JWT token. Enforces Single Session (Last Logi
 Invalidates the current session ID in the database.
 *   **Method:** `POST`
 *   **Endpoint:** `/auth/logout`
-*   **Response:** `{"message": "Logged out successfully"}`
+*   **Response (`MessageResponse`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Logged out successfully"
+    }
+    ```
 
 ### 1.4 Get Current User Profile
 *   **Method:** `GET`
 *   **Endpoint:** `/auth/me`
-*   **Response:** `UserResponse`
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "User profile retrieved successfully",
+      "data": { "id": "USR...", "username": "admin", ... }
+    }
+    ```
 
 ### 1.5 Create Patient Profile
 Converts a basic user into a Patient and submits their clinical profile.
@@ -85,10 +130,16 @@ Converts a basic user into a Patient and submits their clinical profile.
       "source": "WEB"
     }
     ```
-*   **Response:** `UserResponse`
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Patient profile created successfully",
+      "data": { ... }
+    }
+    ```
 
 ### 1.6 Create Operator Profile
-Converts a basic user into an Operator (Nurse/GP). Profile goes into `QUEUE` status.
 *   **Method:** `POST`
 *   **Endpoint:** `/auth/profile/operator`
 *   **Request Body (`OperatorCreate`):**
@@ -107,10 +158,16 @@ Converts a basic user into an Operator (Nurse/GP). Profile goes into `QUEUE` sta
       "source": "WEB"
     }
     ```
-*   **Response:** `UserResponse`
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Operator profile created successfully",
+      "data": { ... }
+    }
+    ```
 
 ### 1.7 Create Doctor Profile
-Converts a basic user into a Specialist Doctor. Profile goes into `QUEUE` status.
 *   **Method:** `POST`
 *   **Endpoint:** `/auth/profile/doctor`
 *   **Request Body (`DoctorCreate`):**
@@ -130,281 +187,191 @@ Converts a basic user into a Specialist Doctor. Profile goes into `QUEUE` status
       "source": "WEB"
     }
     ```
-*   **Response:** `UserResponse`
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Doctor profile created successfully",
+      "data": { ... }
+    }
+    ```
 
 ### 1.8 Update Patient Profile
 *   **Method:** `PUT`
 *   **Endpoint:** `/auth/profile/patient`
-*   **Request Body:** Same as Create Patient Profile, but all fields are optional.
-*   **Response:** `UserResponse`
+*   **Request Body:** Same as Create Patient Profile (Optional fields).
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.9 Update Operator Profile
 *   **Method:** `PUT`
 *   **Endpoint:** `/auth/profile/operator`
-*   **Request Body:** Same as Create Operator Profile, but all fields are optional.
-*   **Response:** `UserResponse`
+*   **Request Body:** Same as Create Operator Profile (Optional fields).
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.10 Update Doctor Profile
 *   **Method:** `PUT`
 *   **Endpoint:** `/auth/profile/doctor`
-*   **Request Body:** Same as Create Doctor Profile, but all fields are optional.
-*   **Response:** `UserResponse`
+*   **Request Body:** Same as Create Doctor Profile (Optional fields).
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.11 Change Username
 *   **Method:** `PUT`
 *   **Endpoint:** `/auth/change-username`
-*   **Request Body:**
-    ```json
-    { "new_username": "newjohndoe" }
-    ```
-*   **Response:** `UserResponse`
+*   **Request Body:** `{ "new_username": "newjohndoe" }`
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.12 Change Password
 *   **Method:** `PUT`
 *   **Endpoint:** `/auth/change-password`
-*   **Request Body:**
+*   **Request Body:** `{ "current_password": "...", "new_password": "..." }`
+*   **Response (`MessageResponse`):**
     ```json
-    { 
-      "current_password": "OldPassword1!", 
-      "new_password": "NewPassword2@" 
+    {
+      "status": "success",
+      "message": "Password updated successfully"
     }
     ```
-*   **Response:** `{"message": "Password updated successfully"}`
 
 ---
 
 ## 2. Admin Control (`/admin`)
 
-*Note: All endpoints in this section require an Admin role.*
-
 ### 2.1 Get Pending Approvals
 *   **Method:** `GET`
 *   **Endpoint:** `/admin/pending-approvals`
-*   **Query Params:** 
-    *   `skip` (int, default=0)
-    *   `limit` (int, default=100)
-    *   `search` (str)
-    *   `start_date` (str, YYYY-MM-DD)
-    *   `end_date` (str, YYYY-MM-DD)
-    *   `is_patient` (bool)
-    *   `is_operator` (bool)
-    *   `is_doctor` (bool)
-*   **Response:** `[UserResponse, ...]`
+*   **Query Params:** `skip`, `limit`, `search`, `start_date`, `end_date`, `is_patient`, `is_operator`, `is_doctor`
+*   **Response (`GenericResponse[List[UserResponse]]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Pending approvals retrieved successfully",
+      "data": [ { ... }, { ... } ]
+    }
+    ```
 
 ### 2.2 Get Approval Logs
 *   **Method:** `GET`
 *   **Endpoint:** `/admin/approval-logs`
-*   **Query Params:** Same as 2.1
-*   **Response:**
+*   **Response (`GenericResponse[List[ApprovalLogResponse]]`):**
     ```json
-    [
-      {
-        "id": "uuid...",
-        "user_id": "USR...",
-        "username": "dr_smith",
-        "full_name": "Dr. Smith",
-        "is_patient": false,
-        "is_operator": false,
-        "is_doctor": true,
-        "status": "APPROVED",
-        "reason": "Verified STR and SIP",
-        "created_dt": "2024-01-01T10:00:00Z",
-        "created_by": "ADMIN"
-      }
-    ]
+    {
+      "status": "success",
+      "message": "Approval logs retrieved successfully",
+      "data": [ { "id": "APP...", "status": "APPROVED", ... } ]
+    }
     ```
 
 ### 2.3 Update User Status
 *   **Method:** `POST`
 *   **Endpoint:** `/admin/update-status/{user_id}`
-*   **Path Variable:** `user_id` (str)
-*   **Request Body:**
+*   **Request Body:** `{ "action": "APPROVE", "reason": "..." }`
+*   **Response (`GenericResponse[UserResponse]`):**
     ```json
     {
-      "action": "APPROVE", 
-      "reason": "Documents verified"
+      "status": "success",
+      "message": "User status updated to APPROVE successfully",
+      "data": { "id": "USR...", "status": "APPROVED", ... }
     }
     ```
-    *Valid Actions: `APPROVE`, `REJECT`, `DEACTIVATE`, `ACTIVATE`*
-*   **Response:** `UserResponse`
 
 ### 2.4 Create User (Admin Bypass)
 *   **Method:** `POST`
 *   **Endpoint:** `/admin/users`
-*   **Request Body (`UserAdminCreate`):**
-    ```json
-    {
-      "email": "new@example.com",
-      "username": "newuser",
-      "password": "Password123!",
-      "role": "patient",
-      "account_status": "ACTIVE",
-      "activation_status": "APPROVE",
-      "patient_profile": {
-        "full_name": "New Patient",
-        "nik": "3201234567890009",
-        "pob": "Jakarta",
-        "dob": "1990-01-01",
-        "gender": "Laki-laki"
-      }
-    }
-    ```
-*   **Response:** `UserResponse`
+*   **Request Body (`UserAdminCreate`):** Similar to UserCreate but includes profile and status fields.
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 2.5 Get All Users
 *   **Method:** `GET`
 *   **Endpoint:** `/admin/users`
-*   **Query Params:** `skip` (int), `limit` (int), `search` (str), `role` (str)
-*   **Response:** `[UserResponse, ...]`
+*   **Query Params:** `skip`, `limit`, `search`, `role`
+*   **Response:** `GenericResponse[List[UserResponse]]`
 
 ### 2.6 Update User
 *   **Method:** `PUT`
 *   **Endpoint:** `/admin/users/{user_id}`
-*   **Path Variable:** `user_id` (str)
-*   **Request Body:** Similar to `UserAdminCreate` but all fields optional.
-*   **Response:** `UserResponse`
+*   **Response:** `GenericResponse[UserResponse]`
 
 ### 2.7 Delete User
 *   **Method:** `DELETE`
 *   **Endpoint:** `/admin/users/{user_id}`
-*   **Path Variable:** `user_id` (str)
-*   **Response:** `{"message": "User deleted successfully"}`
+*   **Response (`MessageResponse`):**
+    ```json
+    {
+      "status": "success",
+      "message": "User deleted successfully"
+    }
+    ```
 
 ---
 
 ## 3. History & Data (`/history`)
 
 ### 3.1 Get Calendar View
-Retrieves hierarchical data to build interactive calendar heatmaps (drilling down from Year -> Month -> Day -> Hour -> Minute). 
 *   **Method:** `GET`
 *   **Endpoint:** `/history/calendar`
-*   **Query Params:** 
-    *   `user_id` (str, optional)
-    *   `year` (int, optional)
-    *   `month` (int, optional)
-    *   `day` (int, optional)
-    *   `hour` (int, optional)
-    *   `minute` (int, optional)
-*   **How it works:** If you only provide `year=2024`, the API returns the 12 months inside that year. If you provide `year=2024` and `month=1`, it returns the days in January, and so on.
-*   **Response:**
+*   **Query Params:** `user_id`, `year`, `month`, `day`, `hour`, `minute`
+*   **Response (`GenericResponse[CalendarResponse]`):**
     ```json
     {
-      "level": "month",
-      "nodes": [
-        {
-          "label": "January",
-          "value": 1,
-          "level": "month",
-          "status": "has_data",
-          "count": 15,
-          "classifications": {
-            "Normal": 10,
-            "Abnormal": 5
-          }
-        },
-        {
-          "label": "February",
-          "value": 2,
-          "level": "month",
-          "status": "empty",
-          "count": 0,
-          "classifications": {}
-        }
-      ]
+      "status": "success",
+      "message": "Calendar data for level: month",
+      "data": {
+        "level": "month",
+        "nodes": [ { "label": "January", "count": 15, ... } ]
+      }
     }
     ```
 
 ### 3.2 Get History Stats
 *   **Method:** `GET`
 *   **Endpoint:** `/history/stats`
-*   **Query Params:** `user_id` (str)
-*   **Response:**
+*   **Response (`GenericResponse[ClassificationStatsResponse]`):**
     ```json
     {
-      "total_sessions": 10,
-      "classification_counts": [
-        {"classification": "Normal", "count": 8},
-        {"classification": "Abnormal", "count": 2}
-      ]
+      "status": "success",
+      "message": "Classification statistics retrieved successfully",
+      "data": { "total_sessions": 10, "classification_counts": [...] }
     }
     ```
 
 ### 3.3 Search Recording History
 *   **Method:** `GET`
 *   **Endpoint:** `/history`
-*   **Query Params:** 
-    *   `device_id` (str)
-    *   `user_id` (str)
-    *   `search` (str)
-    *   `classification` (str)
-    *   `start_date` (str)
-    *   `end_date` (str)
-    *   `limit` (int, default=200)
-*   **Response:** `[SessionResponse, ...]` (See Common Response Models)
+*   **Query Params:** `device_id`, `user_id`, `search`, `classification`, `start_date`, `end_date`, `limit`
+*   **Response (`GenericResponse[List[SessionResponse]]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Retrieved 15 recording history records",
+      "data": [ { "recording_id": "uuid-...", "classification": "Normal", ... } ]
+    }
+    ```
 
 ### 3.4 Get Recent History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/recent`
-*   **Query Params:** 
-    *   `user_id` (str, Required)
-    *   `limit` (int, default=10, max=20)
-*   **Response:** `[SessionResponse, ...]`
+*   **Response:** `GenericResponse[List[SessionResponse]]`
 
 ### 3.5 Get Recording Detail
 *   **Method:** `GET`
 *   **Endpoint:** `/history/{recording_id}`
-*   **Path Variable:** `recording_id` (str)
-*   **Response:** `SessionResponse`
+*   **Response:** `GenericResponse[SessionResponse]`
 
 ### 3.6 Get Device History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/device/{device_id}`
-*   **Path Variable:** `device_id` (str)
-*   **Query Params:** `limit` (int, default=100)
-*   **Response:** `[SessionResponse, ...]`
+*   **Response:** `GenericResponse[List[SessionResponse]]`
 
 ### 3.7 Get User History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/user/{user_id}`
-*   **Path Variable:** `user_id` (str)
-*   **Query Params:** `limit` (int, default=100)
-*   **Response:** `[SessionResponse, ...]`
+*   **Response:** `GenericResponse[List[SessionResponse]]`
 
 ---
 
 ## 4. Export (`/export`)
 
-All export endpoints return a downloadable file stream (`StreamingResponse`).
-
-### 4.1 Export Raw CSV
-*   **Method:** `GET`
-*   **Endpoint:** `/export/raw/{recording_id}`
-*   **Path Variable:** `recording_id` (str)
-*   **Response:** `text/csv` stream download. File: `ecg_raw_{id}.csv`
-
-### 4.2 Export Features CSV
-*   **Method:** `GET`
-*   **Endpoint:** `/export/features/{recording_id}`
-*   **Path Variable:** `recording_id` (str)
-*   **Response:** `text/csv` stream download containing AI metrics. File: `ecg_features_{id}.csv`
-
-### 4.3 Export ECG Plot
-*   **Method:** `GET`
-*   **Endpoint:** `/export/plot/{recording_id}`
-*   **Path Variable:** `recording_id` (str)
-*   **Response:** `image/png` stream download. File: `ecg_chart_{id}.png`
-
-### 4.4 Export Complete Package
-*   **Method:** `GET`
-*   **Endpoint:** `/export/complete/{recording_id}`
-*   **Path Variable:** `recording_id` (str)
-*   **Response:** Status 501 (Not Implemented).
-
-### 4.5 Export Batch
-*   **Method:** `GET`
-*   **Endpoint:** `/export/batch`
-*   **Query Params:** `recording_ids` (str, comma-separated), `format` (str)
-*   **Response:** Status 501 (Not Implemented).
+Export endpoints return a direct file stream (`StreamingResponse`) and do **not** use the `GenericResponse` wrapper.
 
 ---
 
@@ -413,31 +380,28 @@ All export endpoints return a downloadable file stream (`StreamingResponse`).
 ### 5.1 Basic Health Check
 *   **Method:** `GET`
 *   **Endpoint:** `/health`
-*   **Response:** `{"status": "healthy", "timestamp": 1700000000.0}`
+*   **Response (`GenericResponse[HealthCheckResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "System is healthy",
+      "data": { "status": "healthy", "timestamp": 1700000000.0 }
+    }
+    ```
 
 ### 5.2 Detailed Health Check (Admin)
 *   **Method:** `GET`
 *   **Endpoint:** `/health/detailed`
-*   **Response:**
+*   **Response (`GenericResponse[DetailedHealthCheckResponse]`):**
     ```json
     {
-      "status": "healthy",
-      "timestamp": 1700000000.0,
-      "components": {
-        "database": {"status": "healthy", "latency_ms": 2.5},
-        "mqtt": {"status": "connected"},
-        "ml_model": {"status": "loaded"},
-        "devices": {"active": 5, "recording": 1}
-      },
-      "buffers": {
-        "recording_buffer": 1500,
-        "performance_buffer": 20
-      },
-      "performance": {
-        "avg_latency_ms": 45.2,
-        "avg_jitter_ms": 5.1,
-        "avg_packet_loss_pct": 0.02,
-        "active_devices": 5
+      "status": "success",
+      "message": "Detailed health status retrieved",
+      "data": {
+        "status": "healthy",
+        "components": { "database": {"status": "healthy"}, "mqtt": {"status": "connected"}, ... },
+        "buffers": { "recording_buffer": 1500, ... },
+        "performance": { "avg_latency_ms": 45.2, ... }
       }
     }
     ```
@@ -445,75 +409,29 @@ All export endpoints return a downloadable file stream (`StreamingResponse`).
 ### 5.3 Device Monitoring
 *   **Method:** `GET`
 *   **Endpoint:** `/health/monitoring/devices`
-*   **Response:**
+*   **Response (`GenericResponse[DeviceMonitoringResponse]`):**
     ```json
     {
-      "devices": [
-        {
-          "device_id": "ECG001",
-          "is_connected": true,
-          "is_recording": false,
-          "status_message": "Idle",
-          "packet_format": "JSON",
-          "performance": {
-             "avg_latency_ms": 12.5,
-             "jitter_ms": 2.1,
-             "packet_loss_pct": 0.0,
-             "total_packets": 1000,
-             "lost_packets": 0
-          }
-        }
-      ],
-      "total_devices": 1
+      "status": "success",
+      "message": "Device monitoring data retrieved",
+      "data": {
+        "devices": [ { "device_id": "ECG001", "is_connected": true, ... } ],
+        "total_devices": 1
+      }
     }
     ```
 
 ### 5.4 Performance Monitoring (Admin)
 *   **Method:** `GET`
 *   **Endpoint:** `/health/monitoring/performance`
-*   **Query Params:** `hours` (int, default=24)
-*   **Response:**
+*   **Response (`GenericResponse[PerformanceMonitoringResponse]`):**
     ```json
     {
-      "time_window_hours": 24,
-      "system_summary": {
-        "avg_latency_ms": 45.2,
-        "avg_jitter_ms": 5.1,
-        "avg_packet_loss_pct": 0.02,
-        "active_devices": 5
-      },
-      "worst_performers": {
-        "by_latency": [
-          {"device_id": "ECG002", "avg_latency_ms": 150.0}
-        ],
-        "by_packet_loss": [
-          {"device_id": "ECG003", "avg_packet_loss_pct": 5.5}
-        ]
-      }
+      "status": "success",
+      "message": "Performance monitoring data retrieved",
+      "data": { "time_window_hours": 24, "system_summary": { ... }, "worst_performers": { ... } }
     }
     ```
-
-### 5.5 ML Monitoring
-*   **Method:** `GET`
-*   **Endpoint:** `/health/monitoring/ml`
-*   **Response:**
-    ```json
-    {
-      "model_info": {
-        "is_loaded": true,
-        "model_type": "h5",
-        "scaler_type": "pkl",
-        "executor_workers": 4
-      },
-      "status": "operational"
-    }
-    ```
-
-### 5.6 Cleanup Old Logs (Admin)
-*   **Method:** `POST`
-*   **Endpoint:** `/health/admin/cleanup/old-logs`
-*   **Query Params:** `days` (int, default=30)
-*   **Response:** `{"deleted_count": 500, "cutoff_days": 30}`
 
 ---
 
@@ -522,32 +440,16 @@ All export endpoints return a downloadable file stream (`StreamingResponse`).
 ### `UserResponse`
 ```json
 {
-  "email": "user@example.com",
+  "id": "USR20260213000001",
   "username": "johndoe",
-  "id": "USR20240101000001",
+  "email": "user@example.com",
   "is_active": true,
-  "role": "user",
+  "role": "patient",
   "is_patient": true,
   "is_operator": false,
   "is_doctor": false,
-  "is_activated": 1,
   "status": "APPROVED",
-  "rejection_reason": null,
-  "created_dt": "2024-01-01T10:00:00Z",
-  "changed_dt": null,
-  
-  "patient_profile": {
-    "full_name": "John Doe",
-    "nik": "3201234567890001",
-    "pob": "Jakarta",
-    "dob": "1990-01-01",
-    "gender": "Laki-laki",
-    "medical_history": "Hypertension",
-    "address": "Jl. Merdeka",
-    "contact_number": "081234567890",
-    "id": "PAT...",
-    "user_id": "USR..."
-  },
+  "patient_profile": { ... },
   "operator_profile": null,
   "doctor_profile": null
 }
@@ -556,20 +458,18 @@ All export endpoints return a downloadable file stream (`StreamingResponse`).
 ### `SessionResponse`
 ```json
 {
-  "recording_id": "123e4567-e89b-12d3-a456-426614174000",
+  "recording_id": "uuid-...",
   "device_id": "ECG001",
-  "subject_id": "1234567890123456",
   "patient_name": "John Doe",
-  "timestamp": "2024-01-09T10:30:00Z",
-  "changed_dt": "2024-01-09T10:31:05Z",
   "classification": "Normal",
-  "confidence": 0.95,
-  "bpm": 72.5,
-  "avg_rr_ms": 828.0,
+  "confidence": 0.98,
+  "bpm": 72.0,
+  "avg_rr_ms": 833.3,
   "avg_pr_ms": 160.0,
   "avg_qs_ms": 80.0,
   "avg_qtc_ms": 420.0,
   "avg_st_ms": 120.0,
-  "rs_ratio_v1": 0.5
+  "rs_ratio_v1": 0.5,
+  "device_type": "12LEADS"
 }
 ```

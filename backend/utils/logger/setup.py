@@ -1,25 +1,32 @@
 import logging
 import sys
 import time
-from typing import Optional
+from typing import Optional, cast, Any, Dict
 from pathlib import Path
 
-from core import settings
-from utils.constants import LOG_FORMAT, LOG_DATE_FORMAT
+from utils.constants import LOG_FORMAT, LOG_DATE_FORMAT, LOG_LEVEL
+
+__all__ = [
+    "ContextLogger",
+    "ColoredFormatter",
+    "setup_logger",
+    "get_logger",
+    "configure_library_loggers",
+    "logger",
+    "log_function_call",
+    "log_performance",
+]
 
 
 class ContextLogger(logging.Logger):
-
     def __init__(self, name: str):
         super().__init__(name)
-        self._context = {}
+        self._context: Dict[Any, Any] = {}
 
     def set_context(self, **kwargs):
-
         self._context.update(kwargs)
 
     def clear_context(self, *keys):
-
         if keys:
             for key in keys:
                 self._context.pop(key, None)
@@ -27,7 +34,6 @@ class ContextLogger(logging.Logger):
             self._context.clear()
 
     def get_context(self) -> dict:
-
         return self._context.copy()
 
     def _log(
@@ -40,7 +46,6 @@ class ContextLogger(logging.Logger):
         stack_info=False,
         stacklevel=1,
     ):
-
         if extra is None:
             extra = {}
         extra.update(self._context)
@@ -48,7 +53,6 @@ class ContextLogger(logging.Logger):
 
 
 class ColoredFormatter(logging.Formatter):
-
     COLORS = {
         "DEBUG": "\033[36m",
         "INFO": "\033[32m",
@@ -59,7 +63,6 @@ class ColoredFormatter(logging.Formatter):
     }
 
     def format(self, record):
-
         if sys.stdout.isatty():
             levelname = record.levelname
             if levelname in self.COLORS:
@@ -75,20 +78,20 @@ def setup_logger(
     log_file: Optional[str] = None,
     use_colors: bool = True,
 ) -> ContextLogger:
-
     logging.setLoggerClass(ContextLogger)
     logger = logging.getLogger(name)
 
-    log_level = (level or settings.LOG_LEVEL).upper()
+    log_level = (level or LOG_LEVEL).upper()
 
     logger.setLevel(getattr(logging, log_level))
 
     if logger.handlers:
-        return logger
+        return cast(ContextLogger, logger)
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logger.level)
 
+    console_formatter: logging.Formatter
     if use_colors:
         console_formatter = ColoredFormatter(LOG_FORMAT, datefmt=LOG_DATE_FORMAT)
     else:
@@ -98,7 +101,6 @@ def setup_logger(
     logger.addHandler(console_handler)
 
     if log_file:
-
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -113,17 +115,15 @@ def setup_logger(
 
     logger.propagate = False
 
-    return logger
+    return cast(ContextLogger, logger)
 
 
 def get_logger(name: str = "ECG-Platform") -> ContextLogger:
-
     logging.setLoggerClass(ContextLogger)
-    return logging.getLogger(name)
+    return cast(ContextLogger, logging.getLogger(name))
 
 
 def configure_library_loggers():
-
     logging.getLogger("aiomqtt").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -137,7 +137,6 @@ configure_library_loggers()
 
 
 def log_function_call(func):
-
     def wrapper(*args, **kwargs):
         logger.debug(f"Calling {func.__name__} with args={args}, kwargs={kwargs}")
         result = func(*args, **kwargs)
@@ -148,7 +147,6 @@ def log_function_call(func):
 
 
 def log_performance(func):
-
     def wrapper(*args, **kwargs):
         start = time.time()
         result = func(*args, **kwargs)

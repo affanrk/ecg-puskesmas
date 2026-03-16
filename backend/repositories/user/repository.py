@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 from sqlalchemy import or_, update, desc, asc
 from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy.sql import func
@@ -14,7 +14,7 @@ from models import (
     TbRPerformanceLog,
 )
 from schemas.user import UserCreate
-from core.exceptions import DatabaseException
+from core.exceptions import DatabaseException, AppException
 from core.security import get_password_hash
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
@@ -26,50 +26,73 @@ class UserRepository(BaseRepository[TbMUser]):
         super().__init__(TbMUser, db)
 
     def find_by_id(self, user_id: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting find_by_id...")
         try:
-            return (
+            result = (
                 self.db.query(TbMUser)
                 .options(joinedload(TbMUser.patient_profile))
                 .filter(TbMUser.id == user_id)
                 .first()
             )
+            logger.debug("[UserRepository] Successfully completed find_by_id.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find user by ID {user_id}: {e}")
+            logger.error(f"[UserRepository] Unexpected error in find_by_id: {e}")
             raise DatabaseException("Database operation failed")
 
     def refresh_user(self, user: TbMUser):
+        logger.debug("[UserRepository] Starting refresh_user...")
         try:
             self.db.refresh(user)
+            logger.debug("[UserRepository] Successfully completed refresh_user.")
+        except AppException as e:
+            raise e
         except Exception:
             self.db.expire(user)
+            logger.debug(
+                "[UserRepository] Successfully completed refresh_user (expired)."
+            )
 
     def find_by_email(self, email: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting find_by_email...")
         try:
-            return (
+            result = (
                 self.db.query(TbMUser)
                 .options(joinedload(TbMUser.patient_profile))
                 .filter(TbMUser.email == email)
                 .first()
             )
+            logger.debug("[UserRepository] Successfully completed find_by_email.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find user by email {email}: {e}")
+            logger.error(f"[UserRepository] Unexpected error in find_by_email: {e}")
             raise DatabaseException("Database operation failed")
 
     def find_by_username(self, username: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting find_by_username...")
         try:
-            return (
+            result = (
                 self.db.query(TbMUser)
                 .options(joinedload(TbMUser.patient_profile))
                 .filter(TbMUser.username == username)
                 .first()
             )
+            logger.debug("[UserRepository] Successfully completed find_by_username.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find user by username {username}: {e}")
+            logger.error(f"[UserRepository] Unexpected error in find_by_username: {e}")
             raise DatabaseException("Database operation failed")
 
     def find_by_identifier(self, identifier: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting find_by_identifier...")
         try:
-            return (
+            result = (
                 self.db.query(self.model)
                 .options(joinedload(TbMUser.patient_profile))
                 .filter(
@@ -80,8 +103,14 @@ class UserRepository(BaseRepository[TbMUser]):
                 )
                 .first()
             )
+            logger.debug("[UserRepository] Successfully completed find_by_identifier.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find user by identifier {identifier}: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in find_by_identifier: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def list_all(
@@ -92,6 +121,7 @@ class UserRepository(BaseRepository[TbMUser]):
         role: Optional[str] = None,
         exclude_admins: bool = True,
     ) -> List[TbMUser]:
+        logger.debug("[UserRepository] Starting list_all...")
         try:
             query = (
                 self.db.query(TbMUser)
@@ -104,17 +134,17 @@ class UserRepository(BaseRepository[TbMUser]):
 
             if role:
                 if role == "patient":
-                    query = query.filter(TbMUser.is_patient)
+                    query = query.filter(TbMUser.is_patient.is_(True))
                 elif role == "operator":
-                    query = query.filter(TbMUser.is_operator)
+                    query = query.filter(TbMUser.is_operator.is_(True))
                 elif role == "doctor":
-                    query = query.filter(TbMUser.is_doctor)
+                    query = query.filter(TbMUser.is_doctor.is_(True))
                 elif role == "user":
                     query = query.filter(
                         TbMUser.role == "user",
-                        ~TbMUser.is_patient,
-                        ~TbMUser.is_operator,
-                        ~TbMUser.is_doctor,
+                        TbMUser.is_patient.is_(False),
+                        TbMUser.is_operator.is_(False),
+                        TbMUser.is_doctor.is_(False),
                     )
                 else:
                     query = query.filter(TbMUser.role == role)
@@ -132,9 +162,13 @@ class UserRepository(BaseRepository[TbMUser]):
                 )
 
             query = query.order_by(desc(TbMUser.created_dt))
-            return query.offset(skip).limit(limit).all()
+            result = query.offset(skip).limit(limit).all()
+            logger.debug("[UserRepository] Successfully completed list_all.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to list all users: {e}")
+            logger.error(f"[UserRepository] Unexpected error in list_all: {e}")
             raise DatabaseException("Database operation failed")
 
     def list_pending_approval(
@@ -148,6 +182,7 @@ class UserRepository(BaseRepository[TbMUser]):
         is_operator: Optional[bool] = None,
         is_doctor: Optional[bool] = None,
     ) -> List[TbMUser]:
+        logger.debug("[UserRepository] Starting list_pending_approval...")
         try:
             query = (
                 self.db.query(TbMUser)
@@ -182,12 +217,21 @@ class UserRepository(BaseRepository[TbMUser]):
             query = query.order_by(
                 asc(func.coalesce(TbMPatient.changed_dt, TbMPatient.created_dt))
             )
-            return query.offset(skip).limit(limit).all()
+            result = query.offset(skip).limit(limit).all()
+            logger.debug(
+                "[UserRepository] Successfully completed list_pending_approval."
+            )
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to list pending approval users: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in list_pending_approval: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def create_from_dict(self, data: dict) -> TbMUser:
+        logger.debug("[UserRepository] Starting create_from_dict...")
         try:
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
             password = data.pop("password")
@@ -209,13 +253,18 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.add(db_user)
             self.db.commit()
             self.db.refresh(db_user)
+            logger.debug("[UserRepository] Successfully completed create_from_dict.")
             return db_user
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to create user from dict: {e}")
+            logger.error(f"[UserRepository] Unexpected error in create_from_dict: {e}")
             raise DatabaseException("Database operation failed")
 
-    def create(self, user_in: UserCreate) -> TbMUser:
+    def create_user(self, user_in: UserCreate) -> TbMUser:
+        logger.debug("[UserRepository] Starting create_user...")
         try:
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
             hashed_password = get_password_hash(user_in.password)
@@ -243,21 +292,26 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.add(db_user)
             self.db.commit()
             self.db.refresh(db_user)
+            logger.debug("[UserRepository] Successfully completed create_user.")
             return db_user
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to create user {user_in.email}: {e}")
+            logger.error(f"[UserRepository] Unexpected error in create_user: {e}")
             raise DatabaseException("Database operation failed")
 
     def update_record_login(
         self, user_id: str, source: str, session_id: Optional[str] = None
     ):
+        logger.debug("[UserRepository] Starting update_record_login...")
         try:
             logger.debug(
                 f"[User] Updating login record for user {user_id}. Source: {source}, Session: {session_id}"
             )
 
-            values = {
+            values: dict[str, Any] = {
                 "current_session_id": session_id,
                 "changed_dt": TbMUser.changed_dt,
                 "changed_by": TbMUser.changed_by,
@@ -277,50 +331,69 @@ class UserRepository(BaseRepository[TbMUser]):
             logger.debug(
                 f"[User] Successfully updated session state for user {user_id} (Session: {session_id})"
             )
+            logger.debug("[UserRepository] Successfully completed update_record_login.")
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
             logger.error(
-                f"[User] Failed to update login record for user {user_id}: {e}"
+                f"[UserRepository] Unexpected error in update_record_login for user {user_id}: {e}"
             )
 
     def update_username(self, user_id: str, new_username: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting update_username...")
         try:
             db_user = self.get(user_id)
             if not db_user:
                 return None
 
-            db_user.username = new_username
-            db_user.changed_by = "USER"
+            setattr(db_user, "username", new_username)
+            setattr(db_user, "changed_by", "USER")
             self.db.commit()
             self.db.refresh(db_user)
+            logger.debug("[UserRepository] Successfully completed update_username.")
             return db_user
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except (IntegrityError, DataError):
             self.db.rollback()
             raise
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to update username for ID {user_id}: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in update_username for ID {user_id}: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def update_password(self, user_id: str, new_password: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting update_password...")
         try:
             db_user = self.get(user_id)
             if not db_user:
                 return None
 
-            db_user.hashed_password = get_password_hash(new_password)
-            db_user.changed_by = "USER"
+            setattr(db_user, "hashed_password", get_password_hash(new_password))
+            setattr(db_user, "changed_by", "USER")
             self.db.commit()
             self.db.refresh(db_user)
+            logger.debug("[UserRepository] Successfully completed update_password.")
             return db_user
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to update password for ID {user_id}: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in update_password for ID {user_id}: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def update_activation_status(
         self, user_id: str, admin_action: str, reason: Optional[str] = None
     ) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting update_activation_status...")
         try:
             db_user = self.get(user_id)
             if not db_user:
@@ -328,14 +401,14 @@ class UserRepository(BaseRepository[TbMUser]):
 
             is_approving = admin_action.upper() == "APPROVE"
 
-            db_user.is_activated = 1 if is_approving else 0
+            setattr(db_user, "is_activated", 1 if is_approving else 0)
             status = "APPROVED" if is_approving else "REJECTED"
 
             log_reason = reason
             if not log_reason and status == "APPROVED":
                 log_reason = "Approved by Admin"
 
-            profile = None
+            profile: Any = None
             if db_user.is_patient:
                 profile = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
             elif db_user.is_operator:
@@ -344,10 +417,10 @@ class UserRepository(BaseRepository[TbMUser]):
                 profile = self.db.query(TbMDoctor).filter_by(user_id=user_id).first()
 
             if profile:
-                profile.status = status
-                profile.changed_by = "ADMIN"
+                setattr(profile, "status", status)
+                setattr(profile, "changed_by", "ADMIN")
                 if status == "REJECTED" and hasattr(profile, "nik"):
-                    profile.nik = None
+                    setattr(profile, "nik", None)
 
             log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(
@@ -361,15 +434,22 @@ class UserRepository(BaseRepository[TbMUser]):
 
             self.db.commit()
             self.db.refresh(db_user)
+            logger.debug(
+                "[UserRepository] Successfully completed update_activation_status."
+            )
             return db_user
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
             logger.error(
-                f"Failed to update activation status for user ID {user_id}: {e}"
+                f"[UserRepository] Unexpected error in update_activation_status for user ID {user_id}: {e}"
             )
             raise DatabaseException("Database operation failed")
 
     def cleanup_patient_data(self, user_id: str):
+        logger.debug("[UserRepository] Starting cleanup_patient_data...")
         try:
             logger.info("[User] Cleaning up patient data for user %s", user_id)
 
@@ -394,12 +474,21 @@ class UserRepository(BaseRepository[TbMUser]):
             )
 
             self.db.commit()
+            logger.debug(
+                "[UserRepository] Successfully completed cleanup_patient_data."
+            )
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to cleanup patient data for user {user_id}: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in cleanup_patient_data for user {user_id}: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def delete(self, user_id: str) -> bool:
+        logger.debug("[UserRepository] Starting delete...")
         try:
             obj = self.get(user_id)
             if not obj:
@@ -425,8 +514,14 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.delete(obj)
 
             self.db.commit()
+            logger.debug("[UserRepository] Successfully completed delete.")
             return True
+        except AppException as e:
+            self.db.rollback()
+            raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Failed to delete user with ID {user_id}: {e}")
+            logger.error(
+                f"[UserRepository] Unexpected error in delete for user with ID {user_id}: {e}"
+            )
             raise DatabaseException("Database operation failed")

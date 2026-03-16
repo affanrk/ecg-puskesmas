@@ -1,10 +1,13 @@
 from sqlalchemy import Column, String, Date, Text, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..user.model import TbMUser
 
 
 class TbMPatient(Base, AuditMixin):
-
     __tablename__ = "tb_m_patient"
     id = Column(
         String(30),
@@ -46,4 +49,4 @@ class TbMPatient(Base, AuditMixin):
         comment="Patient status (QUEUE, APPROVED, REJECTED)",
     )
 
-    user = relationship("TbMUser", back_populates="patient_profile")
+    user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="patient_profile")

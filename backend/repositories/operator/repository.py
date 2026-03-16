@@ -1,6 +1,5 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError, DataError
 
 from models import TbMOperator, TbMUser, TbRLogApproval
 from schemas.operator import OperatorUpdate, OperatorCreate
@@ -16,17 +15,29 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         super().__init__(TbMOperator, db)
 
     def find_by_user_id(self, user_id: str) -> Optional[TbMOperator]:
+        logger.debug("[OperatorRepository] Starting find_by_user_id...")
         try:
-            return self.get_by(user_id=user_id)
+            result = self.get_by(user_id=user_id)
+            logger.debug("[OperatorRepository] Successfully completed find_by_user_id.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find operator profile for user ID {user_id}: {e}")
+            logger.error(
+                f"[OperatorRepository] Unexpected error in find_by_user_id: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def find_by_nik(self, nik: str) -> Optional[TbMOperator]:
+        logger.debug("[OperatorRepository] Starting find_by_nik...")
         try:
-            return self.get_by(nik=nik)
+            result = self.get_by(nik=nik)
+            logger.debug("[OperatorRepository] Successfully completed find_by_nik.")
+            return result
+        except AppException as e:
+            raise e
         except Exception as e:
-            logger.error(f"Failed to find operator by NIK {nik}: {e}")
+            logger.error(f"[OperatorRepository] Unexpected error in find_by_nik: {e}")
             raise DatabaseException("Database operation failed")
 
     def create_profile(
@@ -36,6 +47,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         source: str = "WEB",
         initial_status: str = "QUEUE",
     ) -> TbMOperator:
+        logger.debug("[OperatorRepository] Starting create_profile...")
         try:
             if operator_in.nik and check_global_nik(self.db, operator_in.nik, user_id):
                 raise DuplicateNIKException(nik=operator_in.nik)
@@ -75,29 +87,26 @@ class OperatorRepository(BaseRepository[TbMOperator]):
 
             db_user = self.db.query(TbMUser).get(user_id)
             if db_user:
-                db_user.is_patient = False
-                db_user.is_operator = True
-                db_user.is_doctor = False
-                db_user.changed_by = source
+                setattr(db_user, "is_patient", False)
+                setattr(db_user, "is_operator", True)
+                setattr(db_user, "is_doctor", False)
+                setattr(db_user, "changed_by", source)
 
             self.db.commit()
             self.db.refresh(operator)
             logger.info(
                 f"[Operator] Created operator profile {operator_id} for User {user_id}"
             )
+            logger.debug("[OperatorRepository] Successfully completed create_profile.")
             return operator
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
-        except IntegrityError as e:
-            self.db.rollback()
-            logger.error(
-                f"Integrity Error creating operator profile for user {user_id}: {e}"
-            )
-            raise DatabaseException("Database operation failed")
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error creating operator profile for user {user_id}: {e}")
+            logger.error(
+                f"[OperatorRepository] Unexpected error in create_profile: {e}"
+            )
             raise DatabaseException("Database operation failed")
 
     def update_by_user_id(
@@ -107,6 +116,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         admin_action: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> Optional[TbMOperator]:
+        logger.debug("[OperatorRepository] Starting update_by_user_id...")
         try:
             operator = self.get_by(user_id=user_id)
             update_data = profile_data.model_dump(exclude_unset=True)
@@ -154,12 +164,12 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 log_status = initial_status
             else:
                 if is_approving and operator.status != "APPROVED":
-                    operator.status = "APPROVED"
+                    setattr(operator, "status", "APPROVED")
                     log_status = "APPROVED"
                     log_reason = "Approved by Admin"
                     should_log = True
                 elif operator.status == "REJECTED":
-                    operator.status = "QUEUE"
+                    setattr(operator, "status", "QUEUE")
                     log_status = "QUEUE"
                     log_reason = (
                         "Profile updated by Admin"
@@ -173,7 +183,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                     log_reason = "Profile created by Admin"
                     should_log = True
                 elif is_rejecting and operator.status == "APPROVED":
-                    operator.status = "QUEUE"
+                    setattr(operator, "status", "QUEUE")
                     log_status = "QUEUE"
                     log_reason = "Access revoked by Admin"
                     should_log = True
@@ -186,19 +196,19 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                         has_changes = True
 
             if should_log or has_changes:
-                operator.changed_by = source
+                setattr(operator, "changed_by", source)
 
                 db_user = self.db.query(TbMUser).get(user_id)
                 if db_user:
-                    db_user.changed_by = source
+                    setattr(db_user, "changed_by", source)
                     if is_approving:
-                        db_user.is_activated = 1
+                        setattr(db_user, "is_activated", 1)
                     elif is_rejecting:
-                        db_user.is_activated = 0
+                        setattr(db_user, "is_activated", 0)
 
-                    db_user.is_patient = False
-                    db_user.is_operator = True
-                    db_user.is_doctor = False
+                    setattr(db_user, "is_patient", False)
+                    setattr(db_user, "is_operator", True)
+                    setattr(db_user, "is_doctor", False)
 
                 if should_log:
                     log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
@@ -214,14 +224,16 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 self.db.commit()
                 self.db.refresh(operator)
 
+            logger.debug(
+                "[OperatorRepository] Successfully completed update_by_user_id."
+            )
             return operator
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
-        except (IntegrityError, DataError):
-            self.db.rollback()
-            raise
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error updating operator profile for User ID {user_id}: {e}")
+            logger.error(
+                f"[OperatorRepository] Unexpected error in update_by_user_id: {e}"
+            )
             raise DatabaseException("Database operation failed")

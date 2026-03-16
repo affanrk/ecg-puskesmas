@@ -1,4 +1,5 @@
 from .auth import Token, TokenData, UserLogin
+from .common import MessageResponse
 from .user import (
     UserBase,
     UserCreate,
