@@ -50,60 +50,76 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             )
             raise DatabaseException("Database operation failed")
 
+    def _get_classification_count_expressions(self):
+        logger.debug(
+            "[CalendarRepository] Starting _get_classification_count_expressions..."
+        )
+        try:
+            c_sangat = func.count(
+                case(
+                    (
+                        TbREcgSession.classification_result.ilike(
+                            "%sangat berpotensi%"
+                        ),
+                        1,
+                    )
+                )
+            )
+            c_berpotensi = func.count(
+                case(
+                    (
+                        (TbREcgSession.classification_result.ilike("%berpotensi%"))
+                        & (
+                            ~TbREcgSession.classification_result.ilike(
+                                "%sangat berpotensi%"
+                            )
+                        ),
+                        1,
+                    )
+                )
+            )
+            c_abnormal = func.count(
+                case(
+                    (
+                        (
+                            TbREcgSession.classification_result.ilike("%abnormal%")
+                            | TbREcgSession.classification_result.ilike("%aritmia%")
+                        )
+                        & ~TbREcgSession.classification_result.ilike("%berpotensi%"),
+                        1,
+                    )
+                )
+            )
+            c_normal = func.count(
+                case(
+                    (
+                        TbREcgSession.classification_result.ilike("%normal%")
+                        & ~TbREcgSession.classification_result.ilike("%abnormal%")
+                        & ~TbREcgSession.classification_result.ilike("%aritmia%")
+                        & ~TbREcgSession.classification_result.ilike("%berpotensi%"),
+                        1,
+                    )
+                )
+            )
+            return c_sangat, c_berpotensi, c_abnormal, c_normal
+        except Exception as e:
+            logger.error(
+                f"[CalendarRepository] Error in _get_classification_count_expressions: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
     def _get_classification_counts(self):
         logger.debug("[CalendarRepository] Starting _get_classification_counts...")
         try:
+            c_sangat, c_berpotensi, c_abnormal, c_normal = (
+                self._get_classification_count_expressions()
+            )
+
             result = [
-                func.count(
-                    case(
-                        (
-                            TbREcgSession.classification_result.ilike(
-                                "%sangat berpotensi%"
-                            ),
-                            1,
-                        )
-                    )
-                ).label("count_sangat_berpotensi"),
-                func.count(
-                    case(
-                        (
-                            (TbREcgSession.classification_result.ilike("%berpotensi%"))
-                            & (
-                                ~TbREcgSession.classification_result.ilike(
-                                    "%sangat berpotensi%"
-                                )
-                            ),
-                            1,
-                        )
-                    )
-                ).label("count_berpotensi"),
-                func.count(
-                    case(
-                        (
-                            (
-                                TbREcgSession.classification_result.ilike("%abnormal%")
-                                | TbREcgSession.classification_result.ilike("%aritmia%")
-                            )
-                            & ~TbREcgSession.classification_result.ilike(
-                                "%berpotensi%"
-                            ),
-                            1,
-                        )
-                    )
-                ).label("count_abnormal"),
-                func.count(
-                    case(
-                        (
-                            TbREcgSession.classification_result.ilike("%normal%")
-                            & ~TbREcgSession.classification_result.ilike("%abnormal%")
-                            & ~TbREcgSession.classification_result.ilike("%aritmia%")
-                            & ~TbREcgSession.classification_result.ilike(
-                                "%berpotensi%"
-                            ),
-                            1,
-                        )
-                    )
-                ).label("count_normal"),
+                c_sangat.label("count_sangat_berpotensi"),
+                c_berpotensi.label("count_berpotensi"),
+                c_abnormal.label("count_abnormal"),
+                c_normal.label("count_normal"),
             ]
             logger.debug(
                 "[CalendarRepository] Successfully completed _get_classification_counts."
@@ -114,6 +130,39 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
         except Exception as e:
             logger.error(
                 f"[CalendarRepository] Unexpected error in _get_classification_counts: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def _get_classifications_counts_mostly(self):
+        logger.debug(
+            "[CalendarRepository] Starting _get_classifications_counts_mostly..."
+        )
+        try:
+            c_sangat, c_berpotensi, c_abnormal, c_normal = (
+                self._get_classification_count_expressions()
+            )
+
+            result = case(
+                (
+                    (c_sangat >= c_berpotensi)
+                    & (c_sangat >= c_abnormal)
+                    & (c_sangat >= c_normal),
+                    3,
+                ),
+                ((c_berpotensi >= c_abnormal) & (c_berpotensi >= c_normal), 2),
+                (c_abnormal >= c_normal, 1),
+                else_=0,
+            )
+
+            logger.debug(
+                "[CalendarRepository] Successfully completed _get_classifications_counts_mostly."
+            )
+            return result
+        except AppException:
+            raise
+        except Exception as e:
+            logger.error(
+                f"[CalendarRepository] Unexpected error in _get_classifications_counts_mostly: {e}"
             )
             raise DatabaseException("Database operation failed")
 
@@ -148,12 +197,13 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 if r[0] is not None:
                     data_map[int(r[0])] = {
                         "severity": r[1],
-                        "count": r[2],
+                        "mostly_severity": r[2],
+                        "count": r[3],
                         "classifications": {
-                            "Sangat Berpotensi Aritmia": r[3] if len(r) > 3 else 0,
-                            "Berpotensi Aritmia": r[4] if len(r) > 4 else 0,
-                            "Abnormal": r[5] if len(r) > 5 else 0,
-                            "Normal": r[6] if len(r) > 6 else 0,
+                            "Sangat Berpotensi Aritmia": r[4] if len(r) > 4 else 0,
+                            "Berpotensi Aritmia": r[5] if len(r) > 5 else 0,
+                            "Abnormal": r[6] if len(r) > 6 else 0,
+                            "Normal": r[7] if len(r) > 7 else 0,
                         },
                     }
 
@@ -176,7 +226,13 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
 
             for val_int in range(range_start, range_end):
                 item_data = data_map.get(
-                    val_int, {"severity": 0, "count": 0, "classifications": {}}
+                    val_int,
+                    {
+                        "severity": 0,
+                        "mostly_severity": 0,
+                        "count": 0,
+                        "classifications": {},
+                    },
                 )
 
                 label = str(val_int)
@@ -191,6 +247,9 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                         value=val_int,
                         level=level,
                         status=self._map_severity_to_status(item_data["severity"] or 0),
+                        status_mostly=self._map_severity_to_status(
+                            item_data["mostly_severity"] or 0
+                        ),
                         count=item_data["count"],
                         classifications=item_data.get("classifications", {}),
                     )
@@ -216,12 +275,14 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
         try:
             local_dt = self._get_local_dt()
             severity_case = self._get_severity_case()
+            mostly_status_case = self._get_classifications_counts_mostly()
             class_counts = self._get_classification_counts()
 
             if year is None:
                 query = self.db.query(
                     func.extract("year", local_dt).label("year"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )
@@ -249,6 +310,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 query = self.db.query(
                     func.extract("month", local_dt).label("month"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )
@@ -265,6 +327,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 query = self.db.query(
                     func.extract("day", local_dt).label("day"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )
@@ -285,6 +348,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 query = self.db.query(
                     func.extract("hour", local_dt).label("hour"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )
@@ -305,6 +369,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 query = self.db.query(
                     func.extract("minute", local_dt).label("minute"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )
@@ -326,6 +391,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 query = self.db.query(
                     func.extract("second", local_dt).label("second"),
                     func.max(severity_case).label("max_severity"),
+                    mostly_status_case.label("mostly_severity"),
                     func.count(TbREcgSession.recording_id).label("total_count"),
                     *class_counts,
                 )

@@ -27,7 +27,10 @@ class CalendarNode(BaseModel):
     value: int = Field(..., description="The numeric value of the time node")
     level: CalendarLevel = Field(..., description="The granularity level of this node")
     status: CalendarStatus = Field(
-        ..., description="The overall health status of this time period"
+        ..., description="The overall health status of this time period (Worst-case)"
+    )
+    status_mostly: CalendarStatus = Field(
+        ..., description="The most frequent health status in this time period"
     )
     count: int = Field(
         default=0, description="Total number of ECG sessions in this period"
@@ -44,6 +47,7 @@ class CalendarNode(BaseModel):
                 "value": 1,
                 "level": "month",
                 "status": "normal",
+                "status_mostly": "normal",
                 "count": 10,
                 "classifications": {"Normal": 8, "Abnormal": 2},
             }
@@ -67,6 +71,7 @@ class CalendarResponse(BaseModel):
                         "value": 1,
                         "level": "month",
                         "status": "normal",
+                        "status_mostly": "normal",
                         "count": 10,
                         "classifications": {"Normal": 8, "Abnormal": 2},
                     }
