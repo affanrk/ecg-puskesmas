@@ -10,12 +10,15 @@ import { getActiveProfile } from '@/utils/helpers';
 type SocketMessage =
     | { type: 'ping' | 'pong' }
     | { type: 'device_list_update'; devices: Device[] }
-    | { type: 'live_batch'; device_id?: string; samples: Array<{ i: number; ii: number; iii: number; avf: number; v1: number }>; counter?: number; sampling_rate?: number }
+    | { type: 'live_5leads_batch'; device_id?: string; samples: Array<{ i: number; ii: number; iii: number; avf: number; v1: number }>; counter?: number; sampling_rate?: number }
+    | { type: 'live_12leads_batch'; device_id?: string; samples: Array<{ i: number; ii: number; iii: number; avr: number; avl: number; avf: number; v1: number; v2: number; v3: number; v4: number; v5: number; v6: number }>; counter?: number; sampling_rate?: number }
     | { type: 'live_result'; device_id: string; classification: string; confidence?: number; recording_id?: string }
     | { type: 'state_update'; device_id?: string; is_recording: boolean }
     | { type: 'performance_update'; device_id?: string; latency_ms: number; jitter_ms: number; packet_loss_pct: number }
     | { type: 'calculate_live_bpm'; device_id?: string; data: { bpm: number } }
     | { type: 'device_disconnected'; device_id: string }
+    | { type: 'subscription_success'; device_id: string }
+    | { type: 'unsubscription_success'; device_id: string }
     | { type: 'error'; message: string };
 
 class WebSocketService {
@@ -27,33 +30,41 @@ class WebSocketService {
     private isTerminated = false;
 
     private getWsUrl(): string {
-        const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-        const port = '8080';
-        const defaultUrl = `${protocol}//${host}:${port}/ws`;
-
         const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
-        let finalUrl = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || defaultUrl;
+        let url = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
 
-        if (!finalUrl.startsWith('ws://') && !finalUrl.startsWith('wss://')) {
-            const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-            finalUrl = `${wsProtocol}${finalUrl}`;
+        // console.log('[getWsUrl] Runtime Env:', env.NEXT_PUBLIC_WS_URL);
+        // console.log('[getWsUrl] Build-time Env:', process.env.NEXT_PUBLIC_WS_URL);
+
+        url = url.replace(/\/$/, '');
+
+        if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+            const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            url = `${protocol}${url}`;
         }
 
-        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && finalUrl.startsWith('ws://')) {
-            finalUrl = finalUrl.replace('ws://', 'wss://');
-        }
+        // if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('ws://')) {
+        //     url = url.replace('ws://', 'wss://');
+        // }
 
         const token = typeof window !== 'undefined' ? localStorage.getItem('ecg_token') : null;
         if (token) {
-            finalUrl += (finalUrl.includes('?') ? '&' : '?') + `token=${token}`;
+            url += (url.includes('?') ? '&' : '?') + `token=${token}`;
         }
 
-        return finalUrl;
+        // console.log('[getWsUrl] Final URL:', url);
+        return url;
     }
 
     public connect() {
         if (this.isTerminated) return;
+
+        const token = typeof window !== 'undefined' ? localStorage.getItem('ecg_token') : null;
+        if (!token) {
+            console.debug("[WS] Connection skipped: No authentication token found.");
+            return;
+        }
+
         if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -112,7 +123,7 @@ class WebSocketService {
         globalEventBus.emit(EVENTS.WS.DISCONNECTED);
         useStore.getState().setIsConnected(false);
         this.socket = null;
-        
+
         if (this.isTerminated) return;
 
         setTimeout(() => this.connect(), this.reconnectInterval);
@@ -127,11 +138,17 @@ class WebSocketService {
     private startHeartbeat() {
         this.stopHeartbeat();
         this.pingInterval = setInterval(() => {
-            this.sendJson({ type: 'ping' });
-            this.pingTimeout = setTimeout(() => {
-                this.socket?.close();
-            }, 5000);
-        }, 10000);
+            if (this.socket?.readyState === WebSocket.OPEN) {
+                const { isRecording } = useStore.getState();
+                if (!isRecording) {
+                    this.sendJson({ type: 'ping' });
+                    this.pingTimeout = setTimeout(() => {
+                        console.warn("[WS] Ping timeout, reconnecting...");
+                        this.socket?.close();
+                    }, 5000);
+                }
+            }
+        }, 30000);
     }
 
     private stopHeartbeat() {
@@ -156,7 +173,7 @@ class WebSocketService {
             return;
         }
         if ('device_id' in msg && msg.device_id) {
-            const isDataMessage = ['live_data', 'live_batch', 'live_result', 'calculate_live_bpm', 'performance_update'].includes(msg.type);
+            const isDataMessage = ['live_data', 'live_5leads_batch', 'live_12leads_batch', 'live_result', 'calculate_live_bpm', 'performance_update'].includes(msg.type);
             if (isDataMessage) {
                 if (!store.currentDeviceId || msg.device_id !== store.currentDeviceId) return;
             } else {
@@ -164,13 +181,25 @@ class WebSocketService {
             }
         }
         switch (msg.type) {
-            case "live_batch": {
+            case "live_5leads_batch": {
                 if (msg.samples?.length) {
                     const batchData = msg.samples.map(s => ({
-                        leadI: s.i, leadII: s.ii, leadIII: s.iii, avF: s.avf, v1: s.v1
+                        i: s.i, ii: s.ii, iii: s.iii, avf: s.avf, v1: s.v1
                     }));
-                    store.pushEcgData(batchData);
-                    globalEventBus.emit(EVENTS.CHART.ECG_BATCH, { samples: batchData, counter: msg.counter, sampling_rate: msg.sampling_rate });
+                    store.pushEcgData5Leads(batchData);
+                    globalEventBus.emit(EVENTS.CHART.ECG_BATCH_5, { samples: batchData, counter: msg.counter, sampling_rate: msg.sampling_rate });
+                }
+                break;
+            }
+            case "live_12leads_batch": {
+                if (msg.samples?.length) {
+                    const batchData = msg.samples.map(s => ({
+                        i: s.i, ii: s.ii, iii: s.iii,
+                        avr: s.avr, avl: s.avl, avf: s.avf,
+                        v1: s.v1, v2: s.v2, v3: s.v3, v4: s.v4, v5: s.v5, v6: s.v6
+                    }));
+                    store.pushEcgData12Leads(batchData);
+                    globalEventBus.emit(EVENTS.CHART.ECG_BATCH_12, { samples: batchData, counter: msg.counter, sampling_rate: msg.sampling_rate });
                 }
                 break;
             }
@@ -195,6 +224,7 @@ class WebSocketService {
             }
             case "state_update":
                 store.setRecording(msg.is_recording);
+                store.setWsPendingAction(null);
                 break;
             case "performance_update":
                 store.updatePerformance(msg.latency_ms, msg.jitter_ms, msg.packet_loss_pct);
@@ -204,6 +234,14 @@ class WebSocketService {
                 break;
             case "device_disconnected":
                 globalEventBus.emit(EVENTS.DEVICE.DISCONNECTED, { device_id: msg.device_id });
+                break;
+            case "subscription_success":
+                store.setDeviceId(msg.device_id);
+                store.setWsPendingAction(null);
+                break;
+            case "unsubscription_success":
+                store.setDeviceId(null);
+                store.setWsPendingAction(null);
                 break;
             case "error":
                 console.error("[WS] Server Error:", msg.message);
@@ -219,7 +257,7 @@ class WebSocketService {
                     localStorage.removeItem('ecg_user');
                     store.setUser(null);
                     this.terminate();
-                    
+
                     if (typeof window !== 'undefined') {
                         window.__is_logging_out = true;
                         window.location.replace('/login?reason=expired');

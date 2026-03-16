@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { AnalysisResult } from '@/types/models';
 import { api } from '@/services/api';
-import SummaryCards from './SummaryCards';
-import RecentAnalysisTable from './RecentAnalysisTable';
-import DistributionChart from './DistributionChart';
+import SummaryCards from './parts/SummaryCards';
+import RecentAnalysisTable from './parts/RecentAnalysisTable';
+import DistributionChart from './parts/DistributionChart';
 
 export default function DashboardSummary() {
-    const { user } = useStore();
+    const user = useStore(state => state.user);
     const [recentRecords, setRecentRecords] = useState<AnalysisResult[]>([]);
     const [stats, setStats] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);

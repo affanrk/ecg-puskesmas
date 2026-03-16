@@ -70,6 +70,9 @@ export function getApiUrl(): string {
     const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
     let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
+    // console.log('[getApiUrl] Runtime Env:', env.NEXT_PUBLIC_API_URL);
+    // console.log('[getApiUrl] Build-time Env:', process.env.NEXT_PUBLIC_API_URL);
+
     url = url.replace(/\/$/, '');
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -77,14 +80,15 @@ export function getApiUrl(): string {
         url = `${protocol}${url}`;
     }
 
-    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
-        url = url.replace('http://', 'https://');
-    }
+    // if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
+    //     url = url.replace('http://', 'https://');
+    // }
 
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }
 
+    // console.log('[getApiUrl] Final URL:', url);
     return url;
 }
 

@@ -6,7 +6,7 @@ import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
 
 export function useSessionManager() {
-    const { isRecording, currentDeviceId, user } = useStore();
+    const { isRecording, currentDeviceId, user, selectedLeadMode } = useStore();
     const { show: toast } = useToast();
 
     useEffect(() => {
@@ -29,6 +29,7 @@ export function useSessionManager() {
         }
 
         if (isRecording) {
+            useStore.getState().setWsPendingAction('stopping');
             sendJson({ type: "stop_recording", device_id: currentDeviceId });
         } else {
             if (!user) {
@@ -36,12 +37,14 @@ export function useSessionManager() {
                 return;
             }
 
+            useStore.getState().setWsPendingAction('starting');
             const payload = {
                 type: "start_recording",
                 device_id: currentDeviceId,
                 user_id: user.id,
                 username: user.username,
-                subject_id: user.id
+                subject_id: user.id,
+                lead_mode: selectedLeadMode
             };
             sendJson(payload);
         }

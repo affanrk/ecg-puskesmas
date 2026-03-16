@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
 import { getActiveProfile } from '@/utils/helpers';
-import ReviewSummaryTable from '@/components/admin/users/ReviewSummaryTable';
+import ReviewSummaryTable from '@/components/admin/users/parts/ReviewSummaryTable';
 
 export function useProfileManager() {
     const { user, setUser } = useStore();

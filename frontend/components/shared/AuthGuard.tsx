@@ -11,7 +11,8 @@ import { connectWebSocket } from '@/services/socket';
 export default function AuthGuard({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { setUser, user: storeUser } = useStore();
+    const setUser = useStore(state => state.setUser);
+    const storeUser = useStore(state => state.user);
     const [authorized, setAuthorized] = useState(false);
     const redirectingRef = useRef(false);
 

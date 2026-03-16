@@ -23,7 +23,12 @@ axiosInstance.interceptors.request.use(
 );
 
 axiosInstance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        if (response.data && response.data.status && 'data' in response.data) {
+            response.data = response.data.data;
+        }
+        return response;
+    },
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('ecg_token');

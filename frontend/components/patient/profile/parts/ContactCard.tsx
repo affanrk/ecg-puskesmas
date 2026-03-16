@@ -44,7 +44,7 @@ export default function ContactCard({
     onSaveProfileClick,
     loading
 }: ContactCardProps) {
-    const { user } = useStore();
+    const user = useStore(state => state.user);
     const canEditMedical = !isLocked || isEditingMedical;
 
     return (

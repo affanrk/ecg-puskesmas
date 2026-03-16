@@ -12,7 +12,9 @@ import { useToast } from '@/hooks/useToast';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
-    const { user, isRecording, updateTimer } = useStore();
+    const user = useStore(state => state.user);
+    const isRecording = useStore(state => state.isRecording);
+    const updateTimer = useStore(state => state.updateTimer);
     const { show: toast } = useToast();
     const isMounted = useRef(false);
 

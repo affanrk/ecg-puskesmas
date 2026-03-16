@@ -42,7 +42,7 @@ export default function IdentityCard({
     onSaveProfileClick,
     loading
 }: IdentityCardProps) {
-    const { user } = useStore();
+    const user = useStore(state => state.user);
     const roleTitle = user?.is_doctor ? "Doctor Specialist" : user?.is_operator ? "Medical Staff" : "Patient Identity";
 
     return (

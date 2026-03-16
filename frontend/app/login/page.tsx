@@ -3,11 +3,11 @@
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import axiosInstance from '@/services/axiosInstance';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';
 import { useToast } from '@/hooks/useToast';
-import { getApiUrl, parseApiError } from '@/utils/helpers';
+import { parseApiError } from '@/utils/helpers';
 import { reconnectWebSocket } from '@/services/socket';
 import { api } from '@/services/api';
 import { useStore } from '@/store/useStore';
@@ -29,7 +29,7 @@ function LoginContent() {
     useEffect(() => {
         const reason = searchParams.get('reason');
         if (reason === 'expired') {
-            setServerError('Your session has expired because you logged in from another device.');
+            setServerError('Your session has expired');
             toast('Session expired: Logged in from another device', 'error');
             triggerErrorEffect();
         }
@@ -84,18 +84,16 @@ function LoginContent() {
         setLoading(true);
         localStorage.removeItem('ecg_token');
         localStorage.removeItem('ecg_user');
-        const API_BASE_URL = getApiUrl();
         try {
-            const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+            const response = await axiosInstance.post(`/auth/login`, {
                 username_or_email: usernameOrEmail,
                 password
             });
             const data = response.data;
-            
+
             localStorage.setItem('ecg_token', data.access_token);
 
-            const fullProfile = await api.fetchUserProfile(data.access_token);
-            
+            const fullProfile = await api.fetchUserProfile(data.access_token);            
             localStorage.setItem('ecg_user', JSON.stringify(fullProfile));
             setUser(fullProfile);
             

@@ -12,7 +12,7 @@ import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/admin/users/ReviewSummaryTable';
+import ReviewSummaryTable from '@/components/admin/users/parts/ReviewSummaryTable';
 
 export default function DoctorOnboardingForm() {
     const router = useRouter();

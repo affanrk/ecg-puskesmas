@@ -5,12 +5,14 @@ import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
 import { useToast } from '@/hooks/useToast';
 import { useStore } from '@/store/useStore';
-import ClassifierToolbar from './ClassifierToolbar';
-import ClassifierTable from './ClassifierTable';
-import ClassifierPagination from './ClassifierPagination';
+import ClassifierToolbar from './parts/ClassifierToolbar';
+import ClassifierTable from './parts/ClassifierTable';
+import ClassifierPagination from './parts/ClassifierPagination';
 
 export default function ResultTable() {
-    const { user, archiveData, setArchiveData } = useStore();
+    const user = useStore(state => state.user);
+    const archiveData = useStore(state => state.archiveData);
+    const setArchiveData = useStore(state => state.setArchiveData);
     const { show: toast } = useToast();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);

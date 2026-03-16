@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import AuthGuard from "@/components/shared/AuthGuard";
 import ToastContainer from "@/components/shared/ToastContainer";
+import NextTopLoader from 'nextjs-toploader';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased bg-slate-50 text-slate-900 h-screen overflow-hidden selection:bg-sky-100 selection:text-sky-900 font-sans">
+        <NextTopLoader color="#0ea5e9" showSpinner={false} height={3} />
         <Script src="/env-config.js" strategy="beforeInteractive" />
         <AuthGuard>
           {children}

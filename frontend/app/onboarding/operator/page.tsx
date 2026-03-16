@@ -12,7 +12,7 @@ import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/admin/users/ReviewSummaryTable';
+import ReviewSummaryTable from '@/components/admin/users/parts/ReviewSummaryTable';
 
 export default function OperatorOnboardingForm() {
     const router = useRouter();
@@ -180,7 +180,7 @@ export default function OperatorOnboardingForm() {
                                     options={[
                                         { value: '', label: 'Select Role' }, 
                                         { value: 'Nurse', label: 'Nurse' }, 
-                                        { value: 'General Practitioner', label: 'General Practitioner' }
+                                        { value: 'Dokter Umum', label: 'General Practitioner' }
                                     ]} 
                                 />
                                 <StandardInput label="STR Number" value={formData.str_number} onChange={(e) => handleFieldChange('str_number', e.target.value)} errorMessage={errors.str_number} placeholder="Surat Tanda Registrasi" />

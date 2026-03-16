@@ -8,11 +8,16 @@ import { Wifi, WifiOff, ChevronDown, Info, Power, XCircle, Loader2 } from 'lucid
 import clsx from 'clsx';
 
 export default function DeviceDropdown() {
-    const { user, isConnected, isRecording } = useStore();
+    const user = useStore(state => state.user);
+    const isConnected = useStore(state => state.isConnected);
+    const isRecording = useStore(state => state.isRecording);
+    const selectedLeadMode = useStore(state => state.selectedLeadMode);
+    const wsPendingAction = useStore(state => state.wsPendingAction);
+    
     const { devices, currentDeviceId, selectDevice, disconnectDevice } = useDeviceManager();
+    const filteredDevices = devices.filter(d => d.lead_mode === selectedLeadMode);
     const [isOpen, setIsOpen] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
     const [pendingAction, setPendingAction] = useState<{ type: 'switch' | 'disconnect', deviceId?: string } | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -32,9 +37,7 @@ export default function DeviceDropdown() {
             setShowConfirm(true);
             setIsOpen(false);
         } else {
-            setIsProcessing(true);
             selectDevice(deviceId);
-            setIsProcessing(false);
             setIsOpen(false);
         }
     };
@@ -45,26 +48,24 @@ export default function DeviceDropdown() {
             setShowConfirm(true);
             setIsOpen(false);
         } else {
-            setIsProcessing(true);
             disconnectDevice();
-            setIsProcessing(false);
             setIsOpen(false);
         }
     };
 
     const confirmAction = async () => {
-        setIsProcessing(true);
         if (pendingAction?.type === 'switch' && pendingAction.deviceId) {
             selectDevice(pendingAction.deviceId);
         } else if (pendingAction?.type === 'disconnect') {
             disconnectDevice();
         }
-        setIsProcessing(false);
         setShowConfirm(false);
         setPendingAction(null);
     };
 
     if (!user || !user.is_patient) return null;
+
+    const isProcessing = wsPendingAction === 'switching' || wsPendingAction === 'disconnecting';
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -98,7 +99,7 @@ export default function DeviceDropdown() {
                 </div>
                 <ChevronDown size={14} className={clsx("transition-transform duration-200 text-slate-300", isOpen && "rotate-180")} />
             </button>
-            {isOpen && (
+            {isOpen && !isProcessing && (
                 <div className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-slate-100 py-2 z-[100] animate-in fade-in slide-in-from-bottom-2 overflow-hidden ring-1 ring-black/5">
                     {currentDeviceId && (
                         <div className="px-4 py-4 border-b border-slate-50 bg-emerald-50/30">
@@ -118,20 +119,18 @@ export default function DeviceDropdown() {
                             </div>
                             <button 
                                 onClick={initiateDisconnect}
-                                disabled={isProcessing}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-rose-100 text-rose-600 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-rose-100 text-rose-600 rounded-md text-xs font-bold uppercase tracking-wider hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm active:scale-95 cursor-pointer"
                             >
-                                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Power size={14} />} 
-                                {isProcessing ? "Disconnecting..." : "Disconnect Device"}
+                                <Power size={14} /> Disconnect Device
                             </button>
                         </div>
                     )}
                     <div className="px-4 py-2.5 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Available Sources</p>
-                        <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-2 py-0.5 rounded-md shadow-sm">{devices.length}</span>
+                        <span className="text-[10px] font-bold text-slate-500 bg-white border border-slate-100 px-2 py-0.5 rounded-md shadow-sm">{filteredDevices.length}</span>
                     </div>
                     <div className="max-h-60 overflow-y-auto custom-scrollbar p-1.5 space-y-0.5">
-                        {devices.length === 0 ? (
+                        {filteredDevices.length === 0 ? (
                             <div className="px-4 py-8 text-center">
                                 <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3 text-slate-300 border border-slate-100 border-dashed">
                                     <WifiOff size={20} />
@@ -140,17 +139,17 @@ export default function DeviceDropdown() {
                                 <p className="text-[10px] text-slate-400 mt-1 max-w-[200px] mx-auto leading-relaxed">Ensure the ECG device is powered on and within range.</p>
                             </div>
                         ) : (
-                            devices.map((device) => {
+                            filteredDevices.map((device) => {
                                 const isSelected = currentDeviceId === device.id;
                                 if (isSelected) return null;
                                 return (
                                     <button
                                         key={device.id}
                                         onClick={() => initiateSwitch(device.id)}
-                                        disabled={device.is_locked || isProcessing}
+                                        disabled={device.is_locked}
                                         className={clsx(
                                             "w-full flex items-center justify-between px-3 py-3 rounded-md transition-all text-left group border border-transparent cursor-pointer",
-                                            (device.is_locked || isProcessing)
+                                            (device.is_locked)
                                                 ? "opacity-60 cursor-not-allowed bg-slate-50/50 grayscale" 
                                                 : "hover:bg-slate-50 hover:border-slate-100"
                                         )}

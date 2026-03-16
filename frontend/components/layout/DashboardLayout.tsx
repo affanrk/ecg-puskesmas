@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, sidebar, header }: DashboardLayoutProps) {
-    const { isSidebarPinned } = useStore();
+    const isSidebarPinned = useStore(state => state.isSidebarPinned);
 
     return (
         <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-600">

@@ -10,8 +10,8 @@ import {
     Plus
 } from 'lucide-react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import EditUserModal from '@/components/admin/users/EditUserModal';
-import CreateUserModal from '@/components/admin/users/CreateUserModal';
+import EditUserModal from '@/components/admin/users/parts/EditUserModal';
+import CreateUserModal from '@/components/admin/users/parts/CreateUserModal';
 import { parseApiError } from '@/utils/helpers';
 import { useToast } from '@/hooks/useToast';
 import { useStore } from '@/store/useStore';

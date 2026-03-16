@@ -1,6 +1,7 @@
 export interface Device {
     id: string;
     is_locked: boolean;
+    lead_mode?: 5 | 12;
 }
 
 export interface AnalysisResult {
@@ -16,12 +17,27 @@ export interface AnalysisResult {
     avg_bpm?: number | string;
 }
 
-export interface EcgSample {
-    leadI: number;
-    leadII: number;
-    leadIII: number;
-    avF: number;
+export interface EcgSample5Leads {
+    i: number;
+    ii: number;
+    iii: number;
+    avf: number;
     v1: number;
+}
+
+export interface EcgSample12Leads {
+    i: number;
+    ii: number;
+    iii: number;
+    avf: number;
+    v1: number;
+    avr: number;
+    avl: number;
+    v2: number;
+    v3: number;
+    v4: number;
+    v5: number;
+    v6: number;
 }
 
 export interface PerformanceMetrics {
@@ -38,7 +54,8 @@ export interface HealthData {
     components: {
         database: { status: string; latency_ms?: number; error?: string };
         mqtt: { status: string };
-        ml_model: { status: string };
+        ml_model_5leads: { status: string };
+        ml_model_12leads: { status: string };
         devices: { active: number; recording: number };
     };
     buffers: {

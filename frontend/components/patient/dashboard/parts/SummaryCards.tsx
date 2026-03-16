@@ -19,7 +19,7 @@ interface SummaryCardsProps {
 }
 
 export default function SummaryCards({ lastResult, lastResultTime }: SummaryCardsProps) {
-    const { user } = useStore();
+    const user = useStore(state => state.user);
     if (!user) return null;
     const isNormal = lastResult?.classification === 'Normal';
     const cardClass = "bg-white px-8 pt-6 pb-6 2xl:px-10 2xl:pt-8 2xl:pb-8 transition-all duration-500 relative overflow-hidden group h-full w-full flex flex-col";

@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { CONFIG } from '@/config/constants';
 import { getActiveProfile } from '@/utils/helpers';
 import { User } from '@/types/user';
-import { Device, AnalysisResult, EcgSample, PerformanceMetrics, HealthData } from '@/types/models';
+import { Device, AnalysisResult, EcgSample5Leads, EcgSample12Leads, PerformanceMetrics, HealthData } from '@/types/models';
 
 interface AppState {
     currentDeviceId: string | null;
@@ -32,21 +32,27 @@ interface AppState {
     };
     user: User | null;
     devices: Device[];
+    selectedLeadMode: 5 | 12;
     liveData: AnalysisResult[];
     archiveData: AnalysisResult[];
-    ecgBuffer: EcgSample[];
+    ecgBuffer5Leads: EcgSample5Leads[];
+    ecgBuffer12Leads: EcgSample12Leads[];
     performance: PerformanceMetrics;
-    visibleLeads: { leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean };
+    visibleLeads: { leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean; avr?: boolean; avl?: boolean; v2?: boolean; v3?: boolean; v4?: boolean; v5?: boolean; v6?: boolean };
     healthData: HealthData | null;
+    wsPendingAction: 'starting' | 'stopping' | 'switching' | 'disconnecting' | null;
+    setWsPendingAction: (action: 'starting' | 'stopping' | 'switching' | 'disconnecting' | null) => void;
     setDeviceId: (id: string | null) => void;
     setDevices: (devices: Device[]) => void;
+    setSelectedLeadMode: (mode: 5 | 12) => void;
     setRecording: (isRecording: boolean) => void;
     setIsConnected: (connected: boolean) => void;
     updateTimer: () => void;
     setUser: (user: User | null) => void;
     setArchiveData: (data: AnalysisResult[]) => void;
     addLiveResult: (result: AnalysisResult) => void;
-    pushEcgData: (data: EcgSample[]) => void;
+    pushEcgData5Leads: (data: EcgSample5Leads[]) => void;
+    pushEcgData12Leads: (data: EcgSample12Leads[]) => void;
     setBpm: (bpm: number | string) => void;
     updatePerformance: (l: number, j: number, p: number) => void;
     setPerformanceTrackingEnabled: (enabled: boolean) => void;
@@ -86,9 +92,11 @@ export const useStore = create<AppState>((set, get) => ({
     },
     user: null,
     devices: [],
+    selectedLeadMode: 12,
     liveData: [],
     archiveData: [],
-    ecgBuffer: [],
+    ecgBuffer5Leads: [],
+    ecgBuffer12Leads: [],
     performance: {
         latency: 0,
         jitter: 0,
@@ -104,7 +112,10 @@ export const useStore = create<AppState>((set, get) => ({
         v1: true
     },
     healthData: null,
+    wsPendingAction: null,
+    setWsPendingAction: (action) => set({ wsPendingAction: action }),
     setHealthData: (healthData) => set({ healthData }),
+    setSelectedLeadMode: (mode) => set({ selectedLeadMode: mode }),
     setDeviceId: (id) => set((state) => ({
         currentDeviceId: id,
         isRecording: false,
@@ -116,7 +127,8 @@ export const useStore = create<AppState>((set, get) => ({
         recordingSeconds: state.recordingSeconds,
         recordingStartTime: state.recordingStartTime,
         accumulatedTime: state.accumulatedTime,
-        ecgBuffer: []
+        ecgBuffer5Leads: [],
+        ecgBuffer12Leads: []
     })),
     setDevices: (devices) => set({ devices }),
     setRecording: (isRecording) => set((state) => {
@@ -132,6 +144,7 @@ export const useStore = create<AppState>((set, get) => ({
                 recordingSeconds: Math.floor(finalAccumulated)
             };
         }
+        
         const newLiveData = [...state.liveData.filter(r => r.recording_id !== 'placeholder-live')];
         newLiveData.unshift({
             timestamp: new Date().toISOString(),
@@ -141,6 +154,7 @@ export const useStore = create<AppState>((set, get) => ({
             classification: "Recording...",
             recording_id: 'placeholder-live'
         });
+
         const startTime = state.isRecording ? state.recordingStartTime : Date.now();
         return {
             isRecording,
@@ -160,6 +174,7 @@ export const useStore = create<AppState>((set, get) => ({
             set({ recordingSeconds: totalRounded });
         }
     },
+
     setUser: (user) => set(() => {
         if (!user) {
             return {
@@ -167,7 +182,8 @@ export const useStore = create<AppState>((set, get) => ({
                 currentDeviceId: null,
                 liveData: [],
                 archiveData: [],
-                ecgBuffer: [],
+                ecgBuffer5Leads: [],
+        ecgBuffer12Leads: [],
                 recordingSeconds: 0,
                 accumulatedTime: 0,
                 recordingStartTime: null,
@@ -200,10 +216,15 @@ export const useStore = create<AppState>((set, get) => ({
         }
         return { liveData: newLive, archiveData: [resultWithTime, ...state.archiveData] };
     }),
-    pushEcgData: (data) => set((state) => {
+    pushEcgData5Leads: (data) => set((state) => {
         const limit = CONFIG.MAX_DATA_POINTS * 2;
-        const newBuffer = [...state.ecgBuffer, ...data].slice(-limit);
-        return { ecgBuffer: newBuffer };
+        const newBuffer = [...state.ecgBuffer5Leads, ...data].slice(-limit);
+        return { ecgBuffer5Leads: newBuffer };
+    }),
+    pushEcgData12Leads: (data) => set((state) => {
+        const limit = CONFIG.MAX_DATA_POINTS * 2;
+        const newBuffer = [...state.ecgBuffer12Leads, ...data].slice(-limit);
+        return { ecgBuffer12Leads: newBuffer };
     }),
     setBpm: (bpm) => set({ bpm }),
     updatePerformance: (latency, jitter, loss) => set((state) => ({
@@ -229,7 +250,8 @@ export const useStore = create<AppState>((set, get) => ({
     resetSession: () => set({
         liveData: [],
         archiveData: [],
-        ecgBuffer: [],
+        ecgBuffer5Leads: [],
+        ecgBuffer12Leads: [],
         isRecording: false,
         isSessionActive: false,
         recordingSeconds: 0,

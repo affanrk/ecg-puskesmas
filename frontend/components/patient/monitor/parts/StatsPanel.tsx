@@ -11,7 +11,8 @@ interface StatsPanelProps {
 }
 
 export default function StatsPanel({ className }: StatsPanelProps) {
-    const { recordingSeconds, bpm } = useStore();
+    const recordingSeconds = useStore(state => state.recordingSeconds);
+    const bpm = useStore(state => state.bpm);
     const cardBase = "bg-white p-4 h-full flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 border-none group";
 
     return (
