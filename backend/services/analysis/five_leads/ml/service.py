@@ -285,6 +285,7 @@ class MLEngineService:
                 classification=classification,
                 confidence=confidence,
                 features=features,
+                device_type="5LEADS",
                 analyzed_by="AI_ENGINE",
             )
             logger.debug("[MLEngineService] Successfully completed _save_results.")
@@ -307,10 +308,6 @@ class MLEngineService:
                     "confidence": result["confidence"],
                     "changed_dt": datetime.now(timezone.utc).isoformat(),
                 },
-            )
-
-            await device_state_manager.broadcast_to_all(
-                {"type": WSMessageType.HISTORY_UPDATED.value}
             )
             logger.debug("[MLEngineService] Successfully completed _broadcast_result.")
         except AppException as e:

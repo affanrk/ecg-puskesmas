@@ -71,7 +71,7 @@ class MQTTClientService:
                 )
 
                 await client.subscribe(MQTT_TOPIC_PATTERN_5LEADS, qos=MQTT_QOS)
-                await client.subscribe(MQTT_TOPIC_PATTERN_12LEADS, qos=MQTT_QOS)
+                # await client.subscribe(MQTT_TOPIC_PATTERN_12LEADS, qos=MQTT_QOS)
 
                 async for message in client.messages:
                     if message.retain:
@@ -124,11 +124,22 @@ class MQTTClientService:
         logger.info(
             f"[MQTTClientService] Starting _device_worker_loop for device: {device_id}"
         )
-        jitter_buffer_limit = 20
+        device_state_manager.get_state(device_id)
 
         try:
             while True:
-                topic_str, raw_payload = await queue.get()
+                if not device_state_manager.has_device(device_id):
+                    logger.info(
+                        f"[MQTTClientService] Device {device_id} removed from manager. Stopping worker."
+                    )
+                    break
+
+                try:
+                    topic_str, raw_payload = await asyncio.wait_for(
+                        queue.get(), timeout=5.0
+                    )
+                except asyncio.TimeoutError:
+                    continue
 
                 try:
                     payload = orjson.loads(raw_payload)
@@ -141,6 +152,10 @@ class MQTTClientService:
                     )
 
                     state = device_state_manager.get_state(device_id)
+
+                    if state.locked_by is None and not state.is_recording:
+                        pass
+
                     state.current_lead_mode = 12 if is_12_leads else 5
 
                     should_update_list = False
@@ -218,7 +233,7 @@ class MQTTClientService:
                                         p_sampling_rate,
                                     )
                             else:
-                                if len(state.packet_buffer) > jitter_buffer_limit:
+                                if len(state.packet_buffer) > state.jitter_buffer_limit:
                                     reason = "Data buffer limit exceeded"
                                     state.packet_buffer.clear()
                                     state.last_packet_num = 0
@@ -243,7 +258,10 @@ class MQTTClientService:
             logger.info(f"[MQTTClientService] Worker stopped for {device_id}")
         except Exception as e:
             logger.error(f"[MQTTClientService] Worker fatal error for {device_id}: {e}")
+        finally:
+            logger.info(f"[MQTTClientService] Cleaning up worker state for {device_id}")
             self._device_workers.pop(device_id, None)
+            self._device_queues.pop(device_id, None)
 
     def _build_connection_config(self) -> dict:
         logger.debug("[MQTTClientService] Starting _build_connection_config...")
@@ -278,7 +296,7 @@ class MQTTClientService:
                     await self.client.disconnect()
                 except Exception:
                     pass
-            logger.info("[MQTTClientService] Disconnected from broker.")
+            logger.info("[MQTT] Disconnected from broker.")
             logger.debug("[MQTTClientService] Successfully completed disconnect.")
         except AppException as e:
             raise e

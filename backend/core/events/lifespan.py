@@ -10,7 +10,7 @@ from core.exceptions.definitions import AppException
 from services import (
     recording_storage_service,
     ml_engine_5leads,
-    ml_engine_12leads,
+    # ml_engine_12leads,
     mqtt_service,
     device_watchdog_service,
     device_state_manager,
@@ -92,7 +92,7 @@ class ApplicationState:
 
             logger.info("[Lifecycle] Shutting down ML services...")
             ml_engine_5leads.shutdown()
-            ml_engine_12leads.shutdown()
+            # ml_engine_12leads.shutdown()
             logger.info("[Lifecycle] ML services stopped")
 
             logger.info("[Lifecycle] Closing WebSocket connections...")
@@ -129,7 +129,7 @@ class ApplicationState:
         try:
             logger.info("[Lifecycle] Loading ML models...")
             ml_engine_5leads.load_model()
-            ml_engine_12leads.load_model()
+            # ml_engine_12leads.load_model()
             logger.info("[Lifecycle] ML models loaded")
             logger.debug("[events.lifespan] Successfully completed _init_ml_service.")
         except AppException:
@@ -251,7 +251,7 @@ async def startup_for_testing() -> None:
 
         Base.metadata.create_all(bind=engine)
         ml_engine_5leads.load_model()
-        ml_engine_12leads.load_model()
+        # ml_engine_12leads.load_model()
 
         logger.info("[Lifecycle] Test environment ready")
         logger.debug("[events.lifespan] Successfully completed startup_for_testing.")
@@ -266,7 +266,7 @@ async def shutdown_for_testing() -> None:
     logger.debug("[events.lifespan] Starting shutdown_for_testing...")
     try:
         ml_engine_5leads.shutdown()
-        ml_engine_12leads.shutdown()
+        # ml_engine_12leads.shutdown()
         logger.info("[Lifecycle] Test environment cleaned up")
         logger.debug("[events.lifespan] Successfully completed shutdown_for_testing.")
     except AppException:

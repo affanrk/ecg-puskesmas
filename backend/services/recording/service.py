@@ -179,9 +179,15 @@ class RecordingStorageService:
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
                         )
                     except Exception as e:
-                        logger.error(
-                            f"[RecordingStorageService] Batch insert failed for WEB 5-leads: {e}"
-                        )
+                        if "foreign key constraint" in str(e).lower():
+                            logger.warning(
+                                "[RecordingStorageService] Skipping 5-lead batch insert due to session deletion (FK violation)"
+                            )
+                            db.rollback()
+                        else:
+                            logger.error(
+                                f"[RecordingStorageService] Batch insert failed for WEB 5-leads: {e}"
+                            )
 
             if mobile_items:
                 mobile_repo = RawData5LeadsMobileRepository(db)
@@ -194,10 +200,15 @@ class RecordingStorageService:
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
                         )
                     except Exception as e:
-                        logger.error(
-                            f"[RecordingStorageService] Failed to insert MOBILE 5-leads ECG chunk: {e}"
-                        )
-                        raise
+                        if "foreign key constraint" in str(e).lower():
+                            logger.warning(
+                                "[RecordingStorageService] Skipping mobile 5-lead batch insert due to session deletion"
+                            )
+                            db.rollback()
+                        else:
+                            logger.error(
+                                f"[RecordingStorageService] Failed to insert MOBILE 5-leads ECG chunk: {e}"
+                            )
             logger.debug(
                 "[RecordingStorageService] Successfully completed _insert_5leads_recording_batch."
             )
@@ -246,9 +257,15 @@ class RecordingStorageService:
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
                         )
                     except Exception as e:
-                        logger.error(
-                            f"[RecordingStorageService] Batch insert failed for WEB 12-leads: {e}"
-                        )
+                        if "foreign key constraint" in str(e).lower():
+                            logger.warning(
+                                "[RecordingStorageService] Skipping 12-lead batch insert due to session deletion (FK violation)"
+                            )
+                            db.rollback()
+                        else:
+                            logger.error(
+                                f"[RecordingStorageService] Batch insert failed for WEB 12-leads: {e}"
+                            )
 
             if mobile_items:
                 mobile_repo = RawData12LeadsMobileRepository(db)
@@ -261,10 +278,15 @@ class RecordingStorageService:
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
                         )
                     except Exception as e:
-                        logger.error(
-                            f"[RecordingStorageService] Failed to insert MOBILE 12-leads ECG chunk: {e}"
-                        )
-                        raise
+                        if "foreign key constraint" in str(e).lower():
+                            logger.warning(
+                                "[RecordingStorageService] Skipping mobile 12-lead batch insert due to session deletion"
+                            )
+                            db.rollback()
+                        else:
+                            logger.error(
+                                f"[RecordingStorageService] Failed to insert MOBILE 12-leads ECG chunk: {e}"
+                            )
             logger.debug(
                 "[RecordingStorageService] Successfully completed _insert_12leads_recording_batch."
             )

@@ -19,8 +19,11 @@ from .helpers import (
 )
 from .constants import (
     SAMPLING_RATE,
+    SAMPLING_RATE_12LEADS,
     BUFFER_SIZE,
+    BUFFER_SIZE_12LEADS,
     LIVE_BUFFER_SIZE,
+    LIVE_BUFFER_SIZE_12LEADS,
     MIN_SAMPLES_FOR_ANALYSIS,
     BUTTER_ORDER,
     BUTTER_CUTOFF,
@@ -83,8 +86,11 @@ __all__ = [
     "validate_username",
     "validate_password",
     "SAMPLING_RATE",
+    "SAMPLING_RATE_12LEADS",
     "BUFFER_SIZE",
+    "BUFFER_SIZE_12LEADS",
     "LIVE_BUFFER_SIZE",
+    "LIVE_BUFFER_SIZE_12LEADS",
     "MIN_SAMPLES_FOR_ANALYSIS",
     "BUTTER_ORDER",
     "BUTTER_CUTOFF",

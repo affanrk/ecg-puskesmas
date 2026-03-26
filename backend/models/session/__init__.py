@@ -1,3 +1,3 @@
-from .model import TbREcgSession
+from .model import TbREcgSession, TbREcgSessionParameter
 
-__all__ = ["TbREcgSession"]
+__all__ = ["TbREcgSession", "TbREcgSessionParameter"]

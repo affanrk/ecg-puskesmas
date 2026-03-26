@@ -75,7 +75,7 @@ class WebSocketHandler:
         elif m_type == WSMessageType.CALCULATE_LIVE_BPM.value:
             logger.debug(f"[WS] Received calculation request from {self.user_id}")
         else:
-            logger.info(f"[WS] Received {m_type} from User ID {self.user_id}")
+            logger.debug(f"[WS] Received {m_type} from User ID {self.user_id}")
 
         handlers = {
             WSMessageType.SUBSCRIBE.value: self._handle_subscribe,

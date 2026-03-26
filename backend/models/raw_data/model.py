@@ -31,16 +31,6 @@ class TbREcgRaw5LeadsWeb(Base):
         nullable=False,
         comment="Foreign key to the recording session",
     )
-    created_dt = Column(
-        DateTime(timezone=True),
-        index=True,
-        comment="Timestamp of when the raw data point was created",
-    )
-    created_by = Column(
-        String(50),
-        default="DEVICE",
-        comment="Source of the raw data (e.g., DEVICE, SIMULATOR)",
-    )
 
     mv_lead_i = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_ii = Column(Float, comment="Calibrated Lead II value in mV")
@@ -53,6 +43,17 @@ class TbREcgRaw5LeadsWeb(Base):
     raw_lead_i = Column(Integer, nullable=True, comment="Raw ADC value for Lead I")
     raw_lead_ii = Column(Integer, nullable=True, comment="Raw ADC value for Lead II")
     raw_v1 = Column(Integer, nullable=True, comment="Raw ADC value for V1")
+
+    created_dt = Column(
+        DateTime(timezone=True),
+        index=True,
+        comment="Timestamp of when the raw data point was created",
+    )
+    created_by = Column(
+        String(50),
+        default="DEVICE",
+        comment="Source of the raw data (e.g., DEVICE, SIMULATOR)",
+    )
 
     session: Mapped["TbREcgSession"] = relationship(
         "TbREcgSession", back_populates="raw_data_5leads_web"
@@ -78,16 +79,6 @@ class TbREcgRaw5LeadsMobile(Base):
         nullable=False,
         comment="Foreign key to the recording session",
     )
-    created_dt = Column(
-        DateTime(timezone=True),
-        index=True,
-        comment="Timestamp of when the raw data point was created",
-    )
-    created_by = Column(
-        String(50),
-        default="MOBILE",
-        comment="Source of the raw data (MOBILE)",
-    )
 
     mv_lead_i = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_ii = Column(Float, comment="Calibrated Lead II value in mV")
@@ -100,6 +91,17 @@ class TbREcgRaw5LeadsMobile(Base):
     raw_lead_i = Column(Integer, nullable=True, comment="Raw ADC value for Lead I")
     raw_lead_ii = Column(Integer, nullable=True, comment="Raw ADC value for Lead II")
     raw_v1 = Column(Integer, nullable=True, comment="Raw ADC value for V1")
+
+    created_dt = Column(
+        DateTime(timezone=True),
+        index=True,
+        comment="Timestamp of when the raw data point was created",
+    )
+    created_by = Column(
+        String(50),
+        default="MOBILE",
+        comment="Source of the raw data (MOBILE)",
+    )
 
     session: Mapped["TbREcgSession"] = relationship(
         "TbREcgSession", back_populates="raw_data_5leads_mobile"
@@ -125,16 +127,6 @@ class TbREcgRaw12LeadsWeb(Base):
         nullable=False,
         comment="Foreign key to the recording session",
     )
-    created_dt = Column(
-        DateTime(timezone=True),
-        index=True,
-        comment="Timestamp of when the raw data point was created",
-    )
-    created_by = Column(
-        String(50),
-        default="DEVICE",
-        comment="Source of the raw data (e.g., DEVICE, SIMULATOR)",
-    )
 
     mv_lead_i = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_ii = Column(Float, comment="Calibrated Lead II value in mV")
@@ -163,6 +155,17 @@ class TbREcgRaw12LeadsWeb(Base):
     raw_v4 = Column(Integer, nullable=True, comment="Raw ADC value for V4")
     raw_v5 = Column(Integer, nullable=True, comment="Raw ADC value for V5")
     raw_v6 = Column(Integer, nullable=True, comment="Raw ADC value for V6")
+
+    created_dt = Column(
+        DateTime(timezone=True),
+        index=True,
+        comment="Timestamp of when the raw data point was created",
+    )
+    created_by = Column(
+        String(50),
+        default="DEVICE",
+        comment="Source of the raw data (e.g., DEVICE, SIMULATOR)",
+    )
 
     session: Mapped["TbREcgSession"] = relationship(
         "TbREcgSession", back_populates="raw_data_12leads_web"
@@ -188,16 +191,6 @@ class TbREcgRaw12LeadsMobile(Base):
         nullable=False,
         comment="Foreign key to the recording session",
     )
-    created_dt = Column(
-        DateTime(timezone=True),
-        index=True,
-        comment="Timestamp of when the raw data point was created",
-    )
-    created_by = Column(
-        String(50),
-        default="MOBILE",
-        comment="Source of the raw data (MOBILE)",
-    )
 
     mv_lead_i = Column(Float, comment="Calibrated Lead I value in mV")
     mv_lead_ii = Column(Float, comment="Calibrated Lead II value in mV")
@@ -226,6 +219,17 @@ class TbREcgRaw12LeadsMobile(Base):
     raw_v4 = Column(Integer, nullable=True, comment="Raw ADC value for V4")
     raw_v5 = Column(Integer, nullable=True, comment="Raw ADC value for V5")
     raw_v6 = Column(Integer, nullable=True, comment="Raw ADC value for V6")
+
+    created_dt = Column(
+        DateTime(timezone=True),
+        index=True,
+        comment="Timestamp of when the raw data point was created",
+    )
+    created_by = Column(
+        String(50),
+        default="MOBILE",
+        comment="Source of the raw data (MOBILE)",
+    )
 
     session: Mapped["TbREcgSession"] = relationship(
         "TbREcgSession", back_populates="raw_data_12leads_mobile"

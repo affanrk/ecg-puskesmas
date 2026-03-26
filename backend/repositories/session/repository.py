@@ -1,8 +1,8 @@
 from typing import List, Optional, Tuple, Dict, cast
-from sqlalchemy.orm import Session, joinedload, contains_eager
+from sqlalchemy.orm import Session, joinedload, contains_eager, selectinload
 from sqlalchemy import desc, or_, func
 
-from models.session import TbREcgSession
+from models.session import TbREcgSession, TbREcgSessionParameter
 from models.user import TbMUser
 from models.patient import TbMPatient
 from core.exceptions import DatabaseException, RecordingNotFoundException, AppException
@@ -24,7 +24,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             result = (
                 self.db.query(TbREcgSession)
                 .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile)
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    selectinload(TbREcgSession.parameters),
                 )
                 .filter(TbREcgSession.recording_id == recording_id)
                 .first()
@@ -65,7 +66,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             result = (
                 self.db.query(TbREcgSession)
                 .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile)
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    selectinload(TbREcgSession.parameters),
                 )
                 .filter(TbREcgSession.device_id == device_id)
                 .order_by(desc(TbREcgSession.changed_dt))
@@ -86,7 +88,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             result = (
                 self.db.query(TbREcgSession)
                 .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile)
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    selectinload(TbREcgSession.parameters),
                 )
                 .filter(TbREcgSession.user_id == user_id)
                 .order_by(desc(TbREcgSession.changed_dt))
@@ -107,7 +110,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             result = (
                 self.db.query(self.model)
                 .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile)
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    selectinload(TbREcgSession.parameters),
                 )
                 .filter(
                     self.model.user_id == user_id,
@@ -154,7 +158,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 .options(
                     contains_eager(TbREcgSession.user).contains_eager(
                         TbMUser.patient_profile
-                    )
+                    ),
+                    selectinload(TbREcgSession.parameters),
                 )
             )
 
@@ -279,9 +284,13 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         classification: str,
         confidence: float,
         features: dict,
+        device_type: str,
         analyzed_by: str = "AI_ENGINE",
+        is_normal: Optional[bool] = None,
     ) -> Optional[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting update_analysis_results...")
+        logger.debug(
+            f"[SessionRepository] Starting update_analysis_results for {device_type}..."
+        )
         try:
             session = self.get(recording_id)
             if not session:
@@ -292,20 +301,40 @@ class SessionRepository(BaseRepository[TbREcgSession]):
 
             setattr(session, "classification_result", classification)
             setattr(session, "confidence_score", confidence)
-            setattr(session, "avg_bpm", features.get("bpm", 0.0))
-            setattr(session, "avg_rr_ms", features.get("rr_avg", 0.0))
-            setattr(session, "avg_pr_ms", features.get("pr_avg", 0.0))
-            setattr(session, "avg_qs_ms", features.get("qs_avg", 0.0))
-            setattr(session, "avg_qtc_ms", features.get("qtc_avg", 0.0))
-            setattr(session, "avg_st_ms", features.get("st_avg", 0.0))
-            setattr(session, "rs_ratio_v1", features.get("rs_ratio", 0.0))
             setattr(session, "changed_by", analyzed_by)
+            setattr(session, "device_type", device_type)
+
+            if is_normal is not None:
+                setattr(session, "is_normal", is_normal)
+            elif classification.lower() == "normal":
+                setattr(session, "is_normal", True)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id == recording_id
+            ).delete()
+
+            params = []
+            if device_type == "5LEADS":
+                params = self._map_5leads_parameters(
+                    recording_id, features, analyzed_by
+                )
+            elif device_type == "12LEADS":
+                params = self._map_12leads_parameters(
+                    recording_id, features, analyzed_by
+                )
+            else:
+                logger.warning(
+                    f"[Session] Unknown device_type {device_type}, skipping parameters."
+                )
+
+            if params:
+                self.db.bulk_save_objects(params)
+                logger.info(
+                    f"[Session] Updated {device_type} results for session {recording_id}: {classification}"
+                )
 
             self.db.commit()
             self.db.refresh(session)
-            logger.info(
-                f"[Session] Updated results for session {recording_id}: {classification}"
-            )
             logger.debug(
                 "[SessionRepository] Successfully completed update_analysis_results."
             )
@@ -319,6 +348,66 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in update_analysis_results: {e}"
             )
             raise DatabaseException("Database operation failed")
+
+    def _map_5leads_parameters(
+        self, recording_id: str, features: dict, created_by: str = "ML_ENGINE"
+    ) -> List[TbREcgSessionParameter]:
+        params = []
+        params.append(
+            TbREcgSessionParameter(
+                recording_id=recording_id,
+                lead_name="lead_ii",
+                heart_rate_bpm=features.get("bpm"),
+                rr_ms=features.get("rr_avg"),
+                pr_ms=features.get("pr_avg"),
+                qrs_ms=features.get("qs_avg"),
+                qtc_ms=features.get("qtc_avg"),
+                created_by=created_by,
+            )
+        )
+        if features.get("st_avg") is not None:
+            params.append(
+                TbREcgSessionParameter(
+                    recording_id=recording_id,
+                    lead_name="lead_i",
+                    st_amplitude_mv=features.get("st_avg"),
+                    created_by=created_by,
+                )
+            )
+        if features.get("rs_ratio") is not None:
+            params.append(
+                TbREcgSessionParameter(
+                    recording_id=recording_id,
+                    lead_name="v1",
+                    rs_ratio=features.get("rs_ratio"),
+                    created_by=created_by,
+                )
+            )
+        return params
+
+    def _map_12leads_parameters(
+        self, recording_id: str, features: dict, created_by: str = "ML_ENGINE"
+    ) -> List[TbREcgSessionParameter]:
+        params = []
+        for lead_name, metrics in features.items():
+            if isinstance(metrics, dict):
+                params.append(
+                    TbREcgSessionParameter(
+                        recording_id=recording_id,
+                        lead_name=lead_name,
+                        heart_rate_bpm=metrics.get("heart_rate_bpm"),
+                        rr_ms=metrics.get("rr_ms"),
+                        rr_std_ms=metrics.get("rr_std_ms"),
+                        pr_ms=metrics.get("pr_ms"),
+                        qrs_ms=metrics.get("qrs_ms"),
+                        qtc_ms=metrics.get("qtc_ms"),
+                        st_amplitude_mv=metrics.get("st_amplitude_mv"),
+                        st_deviation_mv=metrics.get("st_deviation_mv"),
+                        rs_ratio=metrics.get("rs_ratio"),
+                        created_by=created_by,
+                    )
+                )
+        return params
 
     def delete_zombie_sessions(self) -> int:
         logger.debug("[SessionRepository] Starting delete_zombie_sessions...")

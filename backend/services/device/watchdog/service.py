@@ -15,8 +15,6 @@ from core.database import SessionLocal
 from core.exceptions.definitions import AppException
 from utils import (
     logger,
-    DEVICE_TIMEOUT_SECONDS,
-    DEVICE_OFFLINE_THRESHOLD,
     WATCHDOG_CHECK_INTERVAL,
     WSMessageType,
 )
@@ -67,10 +65,10 @@ class DeviceWatchdogService:
                 state = device_state_manager.get_state(device_id)
                 time_since_last_seen = state.get_time_since_last_seen()
 
-                if (
-                    time_since_last_seen > DEVICE_OFFLINE_THRESHOLD
-                    and state.is_connected
-                ):
+                offline_limit = state.offline_threshold
+                timeout_limit = state.timeout_seconds
+
+                if time_since_last_seen > offline_limit and state.is_connected:
                     state.update_connection_status(False)
                     await device_state_manager.broadcast_to_device(
                         device_id,
@@ -82,7 +80,7 @@ class DeviceWatchdogService:
                         },
                     )
 
-                if time_since_last_seen > DEVICE_TIMEOUT_SECONDS:
+                if time_since_last_seen > timeout_limit:
                     logger.info(
                         f"[Watchdog] Device {device_id} timed out ({time_since_last_seen:.1f}s inactivity). Cleaning up."
                     )

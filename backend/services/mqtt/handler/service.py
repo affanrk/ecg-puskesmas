@@ -247,6 +247,9 @@ class MQTTDataHandler:
             if rec_data:
                 async with device_state_manager.batch_lock:
                     for entry in rec_data:
+                        if state.samples_collected >= state.target_buffer_size:
+                            break
+
                         state.samples_collected += 1
                         device_state_manager.buffer_recording_12leads_batch.append(
                             entry
@@ -267,6 +270,19 @@ class MQTTDataHandler:
 
                 if state.samples_collected >= state.target_buffer_size:
                     await self._complete_segment(state)
+
+                    remaining_idx = (
+                        rec_data.index(entry) if "entry" in locals() else len(rec_data)
+                    )
+                    if remaining_idx < len(rec_data):
+                        leftover = rec_data[remaining_idx:]
+                        async with device_state_manager.batch_lock:
+                            for item in leftover:
+                                item["recording_id"] = state.recording_id
+                                state.samples_collected += 1
+                                device_state_manager.buffer_recording_12leads_batch.append(
+                                    item
+                                )
 
             await self._broadcast_ui_12leads_batch(
                 state, samples, filtered_leads, end_counter
@@ -329,7 +345,7 @@ class MQTTDataHandler:
             f"[MQTTDataHandler] Starting _apply_dsp_5leads_filters for {state.device_id}..."
         )
         try:
-            lead_names = ["lead_i", "lead_ii", "lead_iii", "av", "v1"]
+            lead_names = ["lead_i", "lead_ii", "lead_iii", "avf", "v1"]
             raw_signals = {
                 name: np.array(state.live_raw_buffer_5leads[name])
                 for name in lead_names
@@ -354,7 +370,7 @@ class MQTTDataHandler:
             )
             return {
                 name: np.array([getattr(s, f"cal_{name}") for s in samples])
-                for name in ["lead_i", "lead_ii", "lead_iii", "av", "v1"]
+                for name in ["lead_i", "lead_ii", "lead_iii", "avf", "v1"]
             }
 
     def _execute_filters_5leads(self, signals: dict, sampling_rate: int) -> dict:
@@ -429,7 +445,7 @@ class MQTTDataHandler:
                     "lead_iii",
                     "avr",
                     "avl",
-                    "av",
+                    "avf",
                     "v1",
                     "v2",
                     "v3",
@@ -478,7 +494,7 @@ class MQTTDataHandler:
                         "i": round(float(filtered_leads["lead_i"][i]), 3),
                         "ii": round(float(filtered_leads["lead_ii"][i]), 3),
                         "iii": round(float(filtered_leads["lead_iii"][i]), 3),
-                        "av": round(float(filtered_leads["avf"][i]), 3),
+                        "avf": round(float(filtered_leads["avf"][i]), 3),
                         "v1": round(float(filtered_leads["v1"][i]), 3),
                     }
                 )
@@ -522,7 +538,7 @@ class MQTTDataHandler:
                         "iii": round(float(filtered_leads["lead_iii"][i]), 3),
                         "avr": round(float(filtered_leads["avr"][i]), 3),
                         "avl": round(float(filtered_leads["avl"][i]), 3),
-                        "av": round(float(filtered_leads["avf"][i]), 3),
+                        "avf": round(float(filtered_leads["avf"][i]), 3),
                         "v1": round(float(filtered_leads["v1"][i]), 3),
                         "v2": round(float(filtered_leads["v2"][i]), 3),
                         "v3": round(float(filtered_leads["v3"][i]), 3),
@@ -657,6 +673,7 @@ class MQTTDataHandler:
                     str(old_id), str(state.subject_id), str(state.device_id)
                 )
             )
+
             new_id = str(uuid.uuid4())
             self._create_session(
                 new_id,
@@ -670,6 +687,7 @@ class MQTTDataHandler:
             state.segment_count += 1
             state.status_message = f"Recording (Seg {state.segment_count})..."
             await device_state_manager.notify_state_update(state.device_id)
+
             logger.info(
                 f"[MQTTDataHandler] Started new segment {state.segment_count} for {state.device_id}: {new_id}"
             )

@@ -2,6 +2,7 @@ import os
 import asyncio
 import joblib
 import pandas as pd
+import httpx
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Dict
@@ -26,6 +27,8 @@ from utils import (
     ECGClassification,
     WSMessageType,
     DEFAULT_MODEL_DIR,
+    SAMPLING_RATE_12LEADS,
+    BUFFER_SIZE_12LEADS,
 )
 
 
@@ -37,6 +40,7 @@ class MLEngineService:
         self.kmeans_abnormal = None
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.is_loaded = False
+        self.api_url = "https://ecg-12.vps.ctailab.com/api/v1/analyze"
 
     def load_model(self):
         logger.debug("[MLEngineService] Starting load_model...")
@@ -56,7 +60,7 @@ class MLEngineService:
             ):
                 logger.warning(
                     f"[ML Engine] Model files not found at {model_dir}. "
-                    "Prediction will be disabled."
+                    "Prediction will use external API as primary."
                 )
                 return
 
@@ -129,17 +133,34 @@ class MLEngineService:
             logger.debug(
                 f"[ML Engine] Processing classification for recording {recording_id}"
             )
-            raw_data = self._fetch_raw_data(db, recording_id)
+            raw_df = self._fetch_raw_data(db, recording_id, limit=BUFFER_SIZE_12LEADS)
 
-            features = self._extract_features_from_data(raw_data, device_id)
-
-            classification, confidence = self._predict(features)
+            try:
+                classification, features = self._call_external_api(raw_df, device_id)
+                confidence = 1.0
+                logger.info(
+                    f"[ML Engine] External API Success for {recording_id}: {classification}"
+                )
+            except Exception as api_err:
+                logger.error(
+                    f"[ML Engine] External API Failed: {api_err}. Falling back to local model."
+                )
+                features = self._extract_features_from_data(raw_df, device_id)
+                classification, confidence = self._predict(features)
 
             self._save_results(db, recording_id, classification, confidence, features)
 
+            bpm = 0
+            if "II" in features:
+                bpm = features["II"].get("heart_rate_bpm", 0)
+            elif "lead_ii" in features:
+                bpm = features["lead_ii"].get("heart_rate_bpm", 0)
+            else:
+                bpm = features.get("heartrate_ii", 0)
+
             logger.info(
                 f"[ML Engine] Successfully classified {recording_id} as '{classification}' "
-                f"(BPM: {int(features.get('heartrate_ii', 0))}, confidence: {confidence:.2%})"
+                f"(BPM: {int(bpm or 0)}, confidence: {confidence:.2%})"
             )
 
             logger.debug("[MLEngineService] Successfully completed _analyze_recording.")
@@ -165,7 +186,55 @@ class MLEngineService:
         finally:
             db.close()
 
-    def _fetch_raw_data(self, db: Session, recording_id: str) -> pd.DataFrame:
+    def _call_external_api(self, df: pd.DataFrame, device_id: str) -> tuple[str, Dict]:
+        logger.debug("[MLEngineService] Starting _call_external_api...")
+
+        state = device_state_manager.get_state(device_id)
+        s_rate = (
+            state.sampling_rate
+            if (state and state.sampling_rate > 100)
+            else SAMPLING_RATE_12LEADS
+        )
+
+        payload = {
+            "sampling_rate": s_rate,
+            "leads": {
+                "I": df["i"].tolist(),
+                "II": df["ii"].tolist(),
+                "III": df["iii"].tolist(),
+                "AVR": df["avr"].tolist(),
+                "AVL": df["avl"].tolist(),
+                "AVF": df["avf"].tolist(),
+                "V1": df["v1"].tolist(),
+                "V2": df["v2"].tolist(),
+                "V3": df["v3"].tolist(),
+                "V4": df["v4"].tolist(),
+                "V5": df["v5"].tolist(),
+                "V6": df["v6"].tolist(),
+            },
+        }
+
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.post(self.api_url, json=payload)
+                response.raise_for_status()
+                data = response.json()
+
+                classification = data.get("classification", {}).get("label", "Unknown")
+                parameters = data.get("parameters", {})
+
+                logger.debug(
+                    "[MLEngineService] Successfully completed _call_external_api."
+                )
+                return classification, parameters
+
+        except Exception as e:
+            logger.error(f"[MLEngineService] External API Call Error: {e}")
+            raise
+
+    def _fetch_raw_data(
+        self, db: Session, recording_id: str, limit: int = 8530
+    ) -> pd.DataFrame:
         logger.debug("[MLEngineService] Starting _fetch_raw_data...")
         try:
             session_repo = SessionRepository(db)
@@ -180,7 +249,7 @@ class MLEngineService:
             else:
                 repo = RawData12LeadsRepository(db)
 
-            rows = repo.find_by_recording_id(recording_id)
+            rows = repo.find_by_recording_id(recording_id, limit=limit)
 
             if not rows:
                 raise RecordingNotFoundException(recording_id)
@@ -194,18 +263,18 @@ class MLEngineService:
             for r in rows:
                 data.append(
                     {
-                        "i": getattr(r, "raw_lead_i", None),
-                        "ii": getattr(r, "raw_lead_ii", None),
-                        "iii": getattr(r, "raw_lead_iii", None),
-                        "avr": getattr(r, "raw_avr", None),
-                        "avl": getattr(r, "raw_avl", None),
-                        "av": getattr(r, "raw_avf", None),
-                        "v1": getattr(r, "raw_v1", None),
-                        "v2": getattr(r, "raw_v2", None),
-                        "v3": getattr(r, "raw_v3", None),
-                        "v4": getattr(r, "raw_v4", None),
-                        "v5": getattr(r, "raw_v5", None),
-                        "v6": getattr(r, "raw_v6", None),
+                        "i": getattr(r, "mv_lead_i", 0.0),
+                        "ii": getattr(r, "mv_lead_ii", 0.0),
+                        "iii": getattr(r, "mv_lead_iii", 0.0),
+                        "avr": getattr(r, "mv_avr", 0.0),
+                        "avl": getattr(r, "mv_avl", 0.0),
+                        "avf": getattr(r, "mv_avf", 0.0),
+                        "v1": getattr(r, "mv_v1", 0.0),
+                        "v2": getattr(r, "mv_v2", 0.0),
+                        "v3": getattr(r, "mv_v3", 0.0),
+                        "v4": getattr(r, "mv_v4", 0.0),
+                        "v5": getattr(r, "mv_v5", 0.0),
+                        "v6": getattr(r, "mv_v6", 0.0),
                     }
                 )
 
@@ -352,27 +421,71 @@ class MLEngineService:
         recording_id: str,
         classification: str,
         confidence: float,
-        features: Dict[str, float],
+        features: Dict,
     ):
         logger.debug("[MLEngineService] Starting _save_results...")
         try:
             session_repo = SessionRepository(db)
 
-            mapped_features = {
-                "bpm": features.get("heartrate_ii", 0.0),
-                "rr_avg": features.get("rr_ii", 0.0),
-                "pr_avg": features.get("pr_ii", 0.0),
-                "qs_avg": features.get("qs_ii", 0.0),
-                "qtc_avg": features.get("qtc_ii", 0.0),
-                "st_avg": features.get("st_i", 0.0),
-                "rs_ratio": features.get("rs_ratio_v1", 0.0),
-            }
+            nested_features = {}
+
+            is_nested = any(k in features for k in ["I", "II", "AVR", "AVL", "AVF"])
+
+            if is_nested:
+                key_map = {
+                    "I": "lead_i",
+                    "II": "lead_ii",
+                    "III": "lead_iii",
+                    "AVR": "avr",
+                    "AVL": "avl",
+                    "AVF": "avf",
+                    "V1": "v1",
+                    "V2": "v2",
+                    "V3": "v3",
+                    "V4": "v4",
+                    "V5": "v5",
+                    "V6": "v6",
+                }
+                for api_key, our_key in key_map.items():
+                    if api_key in features:
+                        nested_features[our_key] = features[api_key]
+                    elif our_key in features:
+                        nested_features[our_key] = features[our_key]
+            else:
+                LEAD_KEYS = [
+                    "i",
+                    "ii",
+                    "iii",
+                    "avr",
+                    "avl",
+                    "avf",
+                    "v1",
+                    "v2",
+                    "v3",
+                    "v4",
+                    "v5",
+                    "v6",
+                ]
+                for lead in LEAD_KEYS:
+                    nested_features[
+                        f"lead_{lead}" if lead in ["i", "ii", "iii"] else lead
+                    ] = {
+                        "heart_rate_bpm": features.get(f"heartrate_{lead}"),
+                        "rr_ms": features.get(f"rr_{lead}"),
+                        "rr_std_ms": features.get(f"rr_std_{lead}"),
+                        "pr_ms": features.get(f"pr_{lead}"),
+                        "qrs_ms": features.get(f"qs_{lead}"),
+                        "qtc_ms": features.get(f"qtc_{lead}"),
+                        "st_amplitude_mv": features.get(f"st_{lead}"),
+                        "rs_ratio": features.get(f"rs_ratio_{lead}"),
+                    }
 
             session_repo.update_analysis_results(
                 recording_id=recording_id,
                 classification=classification,
                 confidence=confidence,
-                features=mapped_features,
+                features=nested_features,
+                device_type="12LEADS",
                 analyzed_by="AI_ENGINE",
             )
             logger.debug("[MLEngineService] Successfully completed _save_results.")
@@ -395,10 +508,6 @@ class MLEngineService:
                     "confidence": result["confidence"],
                     "changed_dt": datetime.now(timezone.utc).isoformat(),
                 },
-            )
-
-            await device_state_manager.broadcast_to_all(
-                {"type": WSMessageType.HISTORY_UPDATED.value}
             )
             logger.debug("[MLEngineService] Successfully completed _broadcast_result.")
         except AppException as e:
@@ -427,6 +536,7 @@ class MLEngineService:
                 "model_type": "XGB+KMeans" if self.model_xgb else None,
                 "scaler_type": "StandardScaler" if self.scaler else None,
                 "executor_workers": self.executor._max_workers,
+                "external_api_url": self.api_url,
             }
             logger.debug("[MLEngineService] Successfully completed get_model_info.")
             return result

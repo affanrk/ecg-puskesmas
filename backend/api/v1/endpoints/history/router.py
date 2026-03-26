@@ -54,33 +54,14 @@ def _map_session_to_response(
         timestamp=cast(datetime, session.created_dt),
         changed_dt=cast(datetime, session.changed_dt),
         classification=str(session.classification_result),
+        is_normal=cast(Optional[bool], session.is_normal),
         confidence=(
             cast(float, session.confidence_score)
             if session.confidence_score is not None
             else None
         ),
-        avg_bpm=cast(float, session.avg_bpm) if session.avg_bpm is not None else None,
-        avg_rr_ms=(
-            cast(float, session.avg_rr_ms) if session.avg_rr_ms is not None else None
-        ),
-        avg_pr_ms=(
-            cast(float, session.avg_pr_ms) if session.avg_pr_ms is not None else None
-        ),
-        avg_qs_ms=(
-            cast(float, session.avg_qs_ms) if session.avg_qs_ms is not None else None
-        ),
-        avg_qtc_ms=(
-            cast(float, session.avg_qtc_ms) if session.avg_qtc_ms is not None else None
-        ),
-        avg_st_ms=(
-            cast(float, session.avg_st_ms) if session.avg_st_ms is not None else None
-        ),
-        rs_ratio_v1=(
-            cast(float, session.rs_ratio_v1)
-            if session.rs_ratio_v1 is not None
-            else None
-        ),
         device_type=str(session.device_type) if session.device_type else None,
+        parameters=[p for p in getattr(session, "parameters", [])],
     )
 
 

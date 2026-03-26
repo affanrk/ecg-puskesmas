@@ -2,7 +2,14 @@ import time
 from collections import deque
 from typing import List, Optional, Deque, Dict
 from fastapi import WebSocket
-from utils import logger, SAMPLING_RATE, LIVE_BUFFER_SIZE
+from utils import (
+    logger,
+    SAMPLING_RATE,
+    BUFFER_SIZE,
+    LIVE_BUFFER_SIZE,
+    LIVE_BUFFER_SIZE_12LEADS,
+    BUFFER_SIZE_12LEADS,
+)
 from core.exceptions.definitions import AppException
 
 
@@ -57,18 +64,18 @@ class DeviceState:
             }
 
             self.live_raw_buffer_12leads: Dict[str, Deque[float]] = {
-                "lead_i": deque(maxlen=LIVE_BUFFER_SIZE),
-                "lead_ii": deque(maxlen=LIVE_BUFFER_SIZE),
-                "lead_iii": deque(maxlen=LIVE_BUFFER_SIZE),
-                "avr": deque(maxlen=LIVE_BUFFER_SIZE),
-                "avl": deque(maxlen=LIVE_BUFFER_SIZE),
-                "avf": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v1": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v2": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v3": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v4": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v5": deque(maxlen=LIVE_BUFFER_SIZE),
-                "v6": deque(maxlen=LIVE_BUFFER_SIZE),
+                "lead_i": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "lead_ii": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "lead_iii": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "avr": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "avl": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "avf": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v1": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v2": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v3": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v4": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v5": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
+                "v6": deque(maxlen=LIVE_BUFFER_SIZE_12LEADS),
             }
             logger.debug(
                 f"[DeviceState] Successfully completed __init__ for {device_id}."
@@ -78,21 +85,36 @@ class DeviceState:
             raise AppException(status_code=500, message="Internal Service Error")
 
     @property
+    def offline_threshold(self) -> float:
+        if self.current_lead_mode == 12:
+            return 5.0
+        return 1.0
+
+    @property
+    def timeout_seconds(self) -> float:
+        if self.current_lead_mode == 12:
+            return 10.0
+        return 2.5
+
+    @property
+    def jitter_buffer_limit(self) -> int:
+        if self.current_lead_mode == 12:
+            return 40
+        return 20
+
+    @property
     def target_buffer_size(self) -> int:
         logger.debug(
             f"[DeviceState] Starting target_buffer_size for {self.device_id}..."
         )
         try:
-            from utils import BUFFER_SIZE
+            if self.current_lead_mode == 12:
+                return BUFFER_SIZE_12LEADS
 
-            result = BUFFER_SIZE
-            logger.debug(
-                f"[DeviceState] Successfully completed target_buffer_size for {self.device_id}."
-            )
-            return result
+            return BUFFER_SIZE
         except Exception as e:
             logger.error(f"[DeviceState] Unexpected error in target_buffer_size: {e}")
-            return 1250
+            return 1000
 
     def reset_recording_state(self):
         logger.debug(
@@ -138,7 +160,7 @@ class DeviceState:
     def clear_buffers(self):
         logger.debug(f"[DeviceState] Starting clear_buffers for {self.device_id}...")
         try:
-            for lead in ["lead_i", "lead_ii", "lead_iii", "av", "v1"]:
+            for lead in ["lead_i", "lead_ii", "lead_iii", "avf", "v1"]:
                 self.live_raw_buffer_5leads[lead].clear()
 
             for lead in [

@@ -142,19 +142,24 @@ async def export_analysis_features(
         session = session_repo.find_by_recording_id_or_fail(recording_id)
         verify_session_access(str(session.user_id), current_user)
 
+        params = {str(p.lead_name): p for p in session.parameters}
+        lead_ii = params.get("lead_ii")
+        lead_i = params.get("lead_i")
+        v1 = params.get("v1")
+
         feature_data = {
             "recording_id": recording_id,
             "user_id": session.user_id,
             "timestamp": session.created_dt.isoformat() if session.created_dt else "",
             "classification": session.classification_result,
             "confidence": session.confidence_score,
-            "bpm": session.avg_bpm,
-            "avg_rr_ms": session.avg_rr_ms,
-            "avg_pr_ms": session.avg_pr_ms,
-            "avg_qs_ms": session.avg_qs_ms,
-            "avg_qtc_ms": session.avg_qtc_ms,
-            "avg_st_ms": session.avg_st_ms,
-            "rs_ratio_v1": session.rs_ratio_v1,
+            "bpm": lead_ii.heart_rate_bpm if lead_ii else None,
+            "avg_rr_ms": lead_ii.rr_ms if lead_ii else None,
+            "avg_pr_ms": lead_ii.pr_ms if lead_ii else None,
+            "avg_qs_ms": lead_ii.qrs_ms if lead_ii else None,
+            "avg_qtc_ms": lead_ii.qtc_ms if lead_ii else None,
+            "avg_st_ms": lead_i.st_amplitude_mv if lead_i else None,
+            "rs_ratio_v1": v1.rs_ratio if v1 else None,
             "analyzed_by": session.changed_by,
         }
 

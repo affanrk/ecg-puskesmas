@@ -159,8 +159,8 @@ class FeatureExtractor:
                         continue
 
                     ecg_adc = ecg_adc.astype(float)
-                    ecg_adc, _ = desaturate_edges(ecg_adc)
-                    ecg_adc, _ = despike_hampel(ecg_adc, k=7, nsigma=6.0)
+                    ecg_adc = desaturate_edges(ecg_adc)
+                    ecg_adc = despike_hampel(ecg_adc, k=7, nsigma=6.0)
 
                     ecgmv = to_mV(ecg_adc)
                     detr_ecg = scipy.signal.detrend(ecgmv, type="constant")

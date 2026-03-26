@@ -1,6 +1,29 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+
+
+class SessionParameterSchema(BaseModel):
+    lead_name: str = Field(..., description="Name of the lead")
+    heart_rate_bpm: Optional[float] = Field(None, description="Heart rate in BPM")
+    rr_ms: Optional[float] = Field(None, description="Average RR interval in ms")
+    rr_std_ms: Optional[float] = Field(
+        None, description="Standard deviation of RR interval in ms"
+    )
+    pr_ms: Optional[float] = Field(None, description="Average PR interval in ms")
+    qrs_ms: Optional[float] = Field(None, description="Average QRS (QS) duration in ms")
+    qtc_ms: Optional[float] = Field(
+        None, description="Average corrected QT interval in ms"
+    )
+    st_amplitude_mv: Optional[float] = Field(
+        None, description="ST segment amplitude in mV"
+    )
+    st_deviation_mv: Optional[float] = Field(
+        None, description="ST segment deviation in mV"
+    )
+    rs_ratio: Optional[float] = Field(None, description="R/S ratio")
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionResponse(BaseModel):
@@ -12,21 +35,15 @@ class SessionResponse(BaseModel):
     changed_dt: Optional[datetime] = Field(None, description="Last update timestamp")
 
     classification: str = Field("Pending", description="AI classification result")
+    is_normal: Optional[bool] = Field(None, description="Whether the rhythm is normal")
     confidence: Optional[float] = Field(None, description="Confidence score (0-1)")
-    bpm: Optional[float] = Field(
-        None, description="Average heart rate (BPM)", alias="avg_bpm"
-    )
 
-    avg_rr_ms: Optional[float] = Field(None, description="Average RR interval (ms)")
-    avg_pr_ms: Optional[float] = Field(None, description="Average PR interval (ms)")
-    avg_qs_ms: Optional[float] = Field(None, description="Average QS interval (ms)")
-    avg_qtc_ms: Optional[float] = Field(
-        None, description="Average corrected QT interval (ms)"
-    )
-    avg_st_ms: Optional[float] = Field(None, description="Average ST interval (ms)")
-    rs_ratio_v1: Optional[float] = Field(None, description="RS ratio in V1")
     device_type: Optional[str] = Field(
         None, description="Type of device (5LEADS, 12LEADS)"
+    )
+
+    parameters: List[SessionParameterSchema] = Field(
+        default=[], description="List of parameters per lead"
     )
 
     model_config = ConfigDict(
@@ -40,14 +57,19 @@ class SessionResponse(BaseModel):
                 "patient_name": "John Doe",
                 "timestamp": "2024-01-09T10:30:00Z",
                 "classification": "Normal",
+                "is_normal": True,
                 "confidence": 0.95,
-                "bpm": 72.5,
-                "avg_rr_ms": 828.0,
-                "avg_pr_ms": 160.0,
-                "avg_qs_ms": 80.0,
-                "avg_qtc_ms": 420.0,
-                "avg_st_ms": 120.0,
-                "rs_ratio_v1": 0.5,
+                "device_type": "12LEADS",
+                "parameters": [
+                    {
+                        "lead_name": "lead_ii",
+                        "heart_rate_bpm": 72.5,
+                        "rr_ms": 828.0,
+                        "pr_ms": 160.0,
+                        "qrs_ms": 80.0,
+                        "qtc_ms": 420.0,
+                    }
+                ],
             }
         },
     )
