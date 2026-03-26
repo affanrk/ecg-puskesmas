@@ -70,8 +70,8 @@ export function getApiUrl(): string {
     const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
     let url = env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
 
-    // console.log('[getApiUrl] Runtime Env:', env.NEXT_PUBLIC_API_URL);
-    // console.log('[getApiUrl] Build-time Env:', process.env.NEXT_PUBLIC_API_URL);
+    console.log('[getApiUrl] Runtime Env:', env.NEXT_PUBLIC_API_URL);
+    console.log('[getApiUrl] Build-time Env:', process.env.NEXT_PUBLIC_API_URL);
 
     url = url.replace(/\/$/, '');
 
@@ -88,7 +88,7 @@ export function getApiUrl(): string {
         url = `${url}/api/v1`;
     }
 
-    // console.log('[getApiUrl] Final URL:', url);
+    console.log('[getApiUrl] Final URL:', url);
     return url;
 }
 

@@ -60,14 +60,13 @@ export default function MonthCalendar({ year, month, nodes, onDateClick, onViewC
                             if (isCurrentMonth && cell.dayNodes) {
                                 const dayNode = cell.dayNodes[0]; 
                                 if (dayNode && dayNode.classifications) {
-                                    const highCount = filters.highRisk ? (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) : 0;
-                                    const potentialCount = filters.potential ? (dayNode.classifications['Berpotensi Aritmia'] || 0) : 0;
+                                    const highCount = filters.highRisk ? ((dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) + (dayNode.classifications['Sangat Berpotensi'] || 0)) : 0;
+                                    const potentialCount = filters.potential ? ((dayNode.classifications['Berpotensi Aritmia'] || 0) + (dayNode.classifications['Berpotensi'] || 0)) : 0;
                                     const abnormalCount = filters.abnormal ? (dayNode.classifications['Abnormal'] || 0) : 0;
-                                    
-                                    totalActiveCount = (dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) + 
-                                                       (dayNode.classifications['Berpotensi Aritmia'] || 0) + 
-                                                       (dayNode.classifications['Abnormal'] || 0);
-                                    
+
+                                    totalActiveCount = ((dayNode.classifications['Sangat Berpotensi Aritmia'] || 0) + (dayNode.classifications['Sangat Berpotensi'] || 0)) +
+                                                       ((dayNode.classifications['Berpotensi Aritmia'] || 0) + (dayNode.classifications['Berpotensi'] || 0)) +
+                                                       (dayNode.classifications['Abnormal'] || 0);                                    
                                     if (highCount > 0) {
                                         priorityEvent = { color: 'bg-rose-500 shadow-rose-100', label: 'Sangat Berpotensi', count: highCount };
                                     } else if (potentialCount > 0) {

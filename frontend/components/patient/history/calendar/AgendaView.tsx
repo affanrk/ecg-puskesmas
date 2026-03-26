@@ -41,7 +41,7 @@ export default function AgendaView({
     filters
 }: AgendaViewProps) {
     const filteredResults = results.filter(r => {
-        const cls = r.classification?.toLowerCase().trim() || '';
+        const cls = (r.classification || r.classification_result)?.toLowerCase().trim() || '';
         if (cls === 'normal') return false;
         const isHigh = cls.includes('sangat berpotensi');
         const isPot = !isHigh && cls.includes('berpotensi');

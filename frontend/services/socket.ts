@@ -33,8 +33,8 @@ class WebSocketService {
         const env = (typeof window !== 'undefined' ? window.__ENV__ : null) || {};
         let url = env.NEXT_PUBLIC_WS_URL || process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
 
-        // console.log('[getWsUrl] Runtime Env:', env.NEXT_PUBLIC_WS_URL);
-        // console.log('[getWsUrl] Build-time Env:', process.env.NEXT_PUBLIC_WS_URL);
+        console.log('[getWsUrl] Runtime Env:', env.NEXT_PUBLIC_WS_URL);
+        console.log('[getWsUrl] Build-time Env:', process.env.NEXT_PUBLIC_WS_URL);
 
         url = url.replace(/\/$/, '');
 
@@ -52,7 +52,7 @@ class WebSocketService {
             url += (url.includes('?') ? '&' : '?') + `token=${token}`;
         }
 
-        // console.log('[getWsUrl] Final URL:', url);
+        console.log('[getWsUrl] Final URL:', url);
         return url;
     }
 

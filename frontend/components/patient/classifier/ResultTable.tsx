@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
 import { useStore } from '@/store/useStore';
 import ClassifierToolbar from './parts/ClassifierToolbar';
 import ClassifierTable from './parts/ClassifierTable';
@@ -13,7 +12,6 @@ export default function ResultTable() {
     const user = useStore(state => state.user);
     const archiveData = useStore(state => state.archiveData);
     const setArchiveData = useStore(state => state.setArchiveData);
-    const { show: toast } = useToast();
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [limit, setLimit] = useState<number | ''>('');
@@ -22,7 +20,7 @@ export default function ResultTable() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const isFetching = useRef(false);
 
-    const loadHistory = useCallback(async (showToast = false) => {
+    const loadHistory = useCallback(async () => {
         if (!user?.id || isFetching.current) return;
         isFetching.current = true;
         setLoading(true);
@@ -36,15 +34,13 @@ export default function ResultTable() {
             });
             setArchiveData(data);
             setCurrentPage(1);
-            if (showToast) toast("Synchronized", "success");
         } catch (error) {
             console.error(error);
-            toast("Sync failed", "error");
         } finally {
             setLoading(false);
             isFetching.current = false;
         }
-    }, [limit, dateRange, user?.id, setArchiveData, toast]);
+    }, [limit, dateRange, user?.id, setArchiveData]);
 
     useEffect(() => {
         const dateParam = searchParams.get('date');

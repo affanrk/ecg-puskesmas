@@ -31,9 +31,9 @@ export default function DashboardSummary() {
             if (statsData) {
                 const normalizedStats: Record<string, number> = {};
                 if (statsData.classification_counts && Array.isArray(statsData.classification_counts)) {
-                    statsData.classification_counts.forEach((item: { classification: string; count: number }) => {
-                        if (item.classification && typeof item.count === 'number') {
-                            normalizedStats[item.classification] = item.count;
+                    statsData.classification_counts.forEach((item: { classification: string; classification_result?: string; count: number }) => {
+                        if ((item.classification || item.classification_result) && typeof item.count === 'number') {
+                            normalizedStats[(item.classification || item.classification_result) as string] = item.count;
                         }
                     });
                 } else {

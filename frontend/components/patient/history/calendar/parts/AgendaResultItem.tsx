@@ -11,7 +11,7 @@ interface AgendaResultItemProps {
 export function AgendaResultItem({ result, onClick }: AgendaResultItemProps) {
     const time = new Date(result.changed_dt || result.timestamp);
     const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    const cls = result.classification?.toLowerCase() || '';
+    const cls = (result.classification || result.classification_result)?.toLowerCase() || '';
     const isHighRisk = cls.includes('sangat berpotensi') || cls.includes('high risk');
     const isPotential = cls.includes('berpotensi') || cls.includes('potential');
 
@@ -48,7 +48,7 @@ export function AgendaResultItem({ result, onClick }: AgendaResultItemProps) {
                         </div>
                     </div>
                     <h4 className="text-base 2xl:text-xl font-black text-slate-800 truncate leading-tight tracking-tight">
-                        {result.classification}
+                        {(result.classification || result.classification_result)}
                     </h4>
                     <div className="flex items-center gap-4 mt-2 2xl:mt-3">
                         <div className="flex items-center gap-1.5">
@@ -56,7 +56,7 @@ export function AgendaResultItem({ result, onClick }: AgendaResultItemProps) {
                                 <HeartPulse size={12} className="text-rose-500 2xl:w-4 2xl:h-4" />
                             </div>
                             <span className="text-sm 2xl:text-lg font-black text-slate-700">
-                                {result.bpm ? Math.round(Number(result.bpm)) : (result.avg_bpm ? Math.round(Number(result.avg_bpm)) : '--')} 
+                                {result.parameters?.find(p => p.heart_rate_bpm)?.heart_rate_bpm ? Math.round(Number(result.parameters.find(p => p.heart_rate_bpm)?.heart_rate_bpm)) : '--'} 
                             </span>
                             <span className="text-[9px] 2xl:text-[11px] font-black text-slate-400 uppercase tracking-tighter">BPM Avg</span>
                         </div>

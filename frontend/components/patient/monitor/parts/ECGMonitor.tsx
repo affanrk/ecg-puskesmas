@@ -33,6 +33,8 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
         responsive: true,
         maintainAspectRatio: false,
         animation: false,
+        parsing: false,
+        normalized: true,
         devicePixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1,
         layout: {
             padding: { left: 5, right: 5, top: 15, bottom: 15 }
@@ -73,7 +75,10 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
             point: { radius: 0, hitRadius: 0, hoverRadius: 0 },
             line: {
                 borderWidth: 1.5,
-                tension: 0.2,
+                tension: 0.4,
+                cubicInterpolationMode: 'monotone',
+                borderJoinStyle: 'round',
+                borderCapStyle: 'round',
                 borderColor: '#0f172a',
                 stepped: false
             }
@@ -81,9 +86,20 @@ const createChartConfig = (totalPoints: number, minY: number = -2, maxY: number 
     };
 };
 
-const adjustScaleSingle = (chart: Chart, localMin: number, localMax: number) => {
-    const limit = Math.max(Math.abs(localMin), Math.abs(localMax), 0.15) * 1.5;
-    const roundedLimit = Math.ceil(limit * 100) / 100;
+const adjustScaleSingle = (chart: Chart, data: {x: number, y: number | null}[]) => {
+    let min = Infinity;
+    let max = -Infinity;
+    for (let i = 0; i < data.length; i++) {
+        const val = data[i].y;
+        if (val !== null) {
+            if (val < min) min = val;
+            if (val > max) max = val;
+        }
+    }
+    if (min === Infinity) return;
+
+    const limit = Math.max(Math.abs(min), Math.abs(max), 0.5) * 1.3;
+    const roundedLimit = Math.ceil(limit * 10) / 10;
 
     const currentScales = chart.options.scales?.y;
     if (currentScales && (currentScales.min !== -roundedLimit || currentScales.max !== roundedLimit)) {
@@ -98,13 +114,17 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
     
     const cursorRef = useRef(0);
     const bufferRef = useRef<EcgSample[]>([]);
-    const currentSpsRef = useRef(100);
+    const currentSpsRef = useRef<number>(CONFIG.SAMPLING_RATE[selectedLeadMode]);
     const accumulatedPointsRef = useRef(0);
     const lastFrameTimeRef = useRef(0);
     const isMounted = useRef(false);
 
     const activeLeads = useMemo(() => {
         return LEAD_CONFIGS[selectedLeadMode as 5 | 12] || LEAD_CONFIGS[12];
+    }, [selectedLeadMode]);
+
+    const maxDataPoints = useMemo(() => {
+        return CONFIG.MAX_DATA_POINTS[selectedLeadMode];
     }, [selectedLeadMode]);
 
     const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
@@ -158,13 +178,12 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
     }, [activeLeads, selectedLeadMode]);
 
     useEffect(() => {
-        const totalPoints = CONFIG.MAX_DATA_POINTS;
-        const initialData = new Array(totalPoints).fill(null);
+        const totalPoints = maxDataPoints;
+        const initialData = Array.from({ length: totalPoints }, (_, idx) => ({ x: idx, y: null as number | null }));
         const signalColor = '#0f172a';
         
         chartRefs.current.forEach(chart => chart?.destroy());
         chartRefs.current = new Array(activeLeads.length).fill(null);
-        canvasRefs.current = new Array(activeLeads.length).fill(null);
 
         const initTimeout = setTimeout(() => {
             activeLeads.forEach((_, i) => {
@@ -175,8 +194,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
                         chartRefs.current[i] = new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: Array.from({ length: totalPoints }, (_, idx) => idx),
-                                datasets: [{ data: [...initialData], borderColor: signalColor }]
+                                datasets: [{ data: [...initialData.map(d => ({...d}))], borderColor: signalColor }]
                             },
                             options: createChartConfig(totalPoints)
                         });
@@ -191,17 +209,17 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
                 activeLeads.forEach((lead, i) => {
                     const chart = chartRefs.current[i];
                     if (chart) {
-                        const ds = chart.data.datasets[0].data;
+                        const ds = chart.data.datasets[0].data as {x: number, y: number | null}[];
                         let lMin = Infinity;
                         let lMax = -Infinity;
                         pointsToRestore.forEach((pt, j) => {
                             const val = pt[lead.key as keyof EcgSample] as number;
-                            ds[j] = val;
+                            ds[j].y = val;
                             if (val < lMin) lMin = val;
                             if (val > lMax) lMax = val;
                         });
                         if (lMin !== Infinity) {
-                            adjustScaleSingle(chart, lMin, lMax);
+                            adjustScaleSingle(chart, ds);
                         }
                         chart.update('none');
                     }
@@ -230,13 +248,16 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
 
             const dynamicEraseGap = Math.round((currentSpsRef.current / 100) * CONFIG.ERASE_GAP);
             const bufferSize = bufferRef.current.length;
-            const targetBuffer = currentSpsRef.current * 0.3;
+            const targetBuffer = currentSpsRef.current * 0.4;
             let speedMultiplier = 1.0;
 
-            if (bufferSize > targetBuffer * 3) speedMultiplier = 1.5;
-            else if (bufferSize > targetBuffer * 2) speedMultiplier = 1.2;
-            else if (bufferSize > targetBuffer * 1.5) speedMultiplier = 1.1;
-            else if (bufferSize < targetBuffer * 0.5) speedMultiplier = 0.9;
+            if (bufferSize > targetBuffer) {
+                speedMultiplier = 1.0 + ((bufferSize - targetBuffer) / targetBuffer) * 0.15;
+                speedMultiplier = Math.min(speedMultiplier, 1.3);
+            } else if (bufferSize < targetBuffer) {
+                speedMultiplier = 1.0 - ((targetBuffer - bufferSize) / targetBuffer) * 0.15;
+                speedMultiplier = Math.max(speedMultiplier, 0.85);
+            }
 
             accumulatedPointsRef.current += (currentSpsRef.current * deltaTime) * speedMultiplier;
 
@@ -249,7 +270,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
             if (pointsToProcess.length === 0) return;
 
             let lastCursor = cursorRef.current;
-            const totalPointsLimit = CONFIG.MAX_DATA_POINTS;
+            const totalPointsLimit = maxDataPoints;
             
             const localMins = new Array(activeLeads.length).fill(Infinity);
             const localMaxs = new Array(activeLeads.length).fill(-Infinity);
@@ -260,14 +281,14 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
                     const chart = chartRefs.current[idx];
                     if (chart) {
                         const val = (data[lead.key as keyof EcgSample] as number) ?? 0;
-                        const ds = chart.data.datasets[0].data;
-                        ds[lastCursor] = val;
+                        const ds = chart.data.datasets[0].data as {x: number, y: number | null}[];
+                        ds[lastCursor].y = val;
 
                         if (val < localMins[idx]) localMins[idx] = val;
                         if (val > localMaxs[idx]) localMaxs[idx] = val;
 
                         for (let j = 1; j <= dynamicEraseGap; j++) {
-                            ds[(lastCursor + j) % totalPointsLimit] = null;
+                            ds[(lastCursor + j) % totalPointsLimit].y = null;
                         }
                     }
                 });
@@ -279,7 +300,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
             if (lastCursor % 50 === 0) {
                 chartRefs.current.forEach((chart, idx) => {
                     if (chart && localMins[idx] !== Infinity) {
-                        adjustScaleSingle(chart, localMins[idx], localMaxs[idx]);
+                        adjustScaleSingle(chart, chart.data.datasets[0].data as {x: number, y: number | null}[]);
                     }
                 });
             }
@@ -303,7 +324,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
             cancelAnimationFrame(animationFrameId);
             chartRefs.current.forEach(chart => chart?.destroy());
         };
-    }, [activeLeads, selectedLeadMode]);
+    }, [activeLeads, selectedLeadMode, maxDataPoints]);
 
     useEffect(() => {
         const storeState = useStore.getState();
@@ -313,7 +334,8 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
             bufferRef.current = [];
             chartRefs.current.forEach(chart => {
                 if (chart) {
-                    chart.data.datasets[0].data.fill(null);
+                    const ds = chart.data.datasets[0].data as {x: number, y: number | null}[];
+                    for (let i=0; i<ds.length; i++) ds[i].y = null;
                     if (chart.options.scales?.y) {
                         chart.options.scales.y.min = -2;
                         chart.options.scales.y.max = 2;

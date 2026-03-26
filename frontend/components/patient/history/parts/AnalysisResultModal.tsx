@@ -27,18 +27,18 @@ export function AnalysisResultModal({ result, onClose }: AnalysisResultModalProp
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className={clsx(
                             "p-6 rounded-md border shadow-sm transition-all flex flex-col justify-center",
-                            (result.classification?.toLowerCase() || '').includes('sangat berpotensi') 
+                            ((result.classification || result.classification_result)?.toLowerCase() || '').includes('sangat berpotensi') 
                                 ? "bg-rose-50 border-rose-100 text-rose-700" 
-                                : (result.classification?.toLowerCase() || '').includes('berpotensi')
+                                : ((result.classification || result.classification_result)?.toLowerCase() || '').includes('berpotensi')
                                 ? "bg-orange-50 border-orange-100 text-orange-700"
                                 : "bg-white border-slate-100 text-slate-700"
                         )}>
                             <span className="text-[10px] font-black uppercase tracking-widest block mb-2 opacity-60">Klasifikasi</span>
                             <span className="text-xl font-black leading-tight">
-                                {result.classification}
+                                {(result.classification || result.classification_result)}
                             </span>
                         </div>
-                        <MetricCard label="Detak Jantung" value={`${Math.round(Number(result.bpm || result.avg_bpm || 0))} BPM`} />
+                        <MetricCard label="Detak Jantung" value={`${Math.round(Number(result.parameters?.find(p => p.heart_rate_bpm)?.heart_rate_bpm || 0))} BPM`} />
                     </div>
                     <div className="p-5 bg-slate-50 rounded-md border border-slate-100">
                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
@@ -47,7 +47,7 @@ export function AnalysisResultModal({ result, onClose }: AnalysisResultModalProp
                         </h3>
                         <p className="text-sm text-slate-700 leading-relaxed font-medium italic">
                             &quot;{(() => {
-                                const cls = result.classification?.toLowerCase() || '';
+                                const cls = (result.classification || result.classification_result)?.toLowerCase() || '';
                                 if (cls.includes('normal')) return "Irama jantung tampak stabil dan dalam batas normal. Lanjutkan pemantauan rutin.";
                                 if (cls.includes('sangat berpotensi')) return "Ketidakteraturan signifikan terdeteksi. Analisis menunjukkan risiko tinggi. Harap segera konsultasikan dengan profesional.";
                                 if (cls.includes('berpotensi')) return "Variasi irama jantung terdeteksi. Harap diskusikan hasil ini dengan tenaga medis untuk memastikan kesehatan jantung Anda.";

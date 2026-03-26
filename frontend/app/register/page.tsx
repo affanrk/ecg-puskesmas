@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'nextjs-toploader/app';
 import axios from 'axios';
 import { UserPlus, User, Mail, Check, AlertCircle, Eye, EyeOff, Sparkles, ShieldCheck, Stethoscope, Lock } from 'lucide-react';
 import Link from 'next/link';

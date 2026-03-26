@@ -67,7 +67,7 @@ export default function ClassifierTable({
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {data.map((rec, index) => {
-                                const status = (rec.classification || '').toString();
+                                const status = ((rec.classification || rec.classification_result) || '').toString();
                                 const cls = status.toLowerCase();
                                 const isHighRisk = cls.includes('sangat') || cls.includes('high');
                                 const isPotential = cls.includes('berpotensi') || cls.includes('potential');

@@ -129,7 +129,7 @@ export default function CalendarDrillDown() {
                 end_date: endDt,
                 limit: 200
             });
-            const filteredResults = (results as AnalysisResult[]).filter((r: AnalysisResult) => r.classification !== 'Unknown' && r.classification !== 'Insufficient Data');
+            const filteredResults = (results as AnalysisResult[]).filter((r: AnalysisResult) => (r.classification || r.classification_result) !== 'Unknown' && (r.classification || r.classification_result) !== 'Insufficient Data');
             setDayResults(filteredResults);
         } catch (error) {
             console.error(error);

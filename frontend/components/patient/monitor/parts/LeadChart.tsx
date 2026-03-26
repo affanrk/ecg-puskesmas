@@ -29,7 +29,7 @@ export const LeadChart = React.memo(forwardRef<HTMLCanvasElement, LeadChartProps
                 <canvas
                     ref={ref}
                     style={{ height: canvasHeight ? `${canvasHeight}px` : '100%' }}
-                    className="w-full relative z-0 block"
+                    className="w-full relative z-0 block transform-gpu"
                 ></canvas>
             </div>
         );

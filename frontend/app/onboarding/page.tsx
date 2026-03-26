@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'nextjs-toploader/app';
 import { useState } from 'react';
 import { Shield, User, Clock, Activity, ArrowRight, ArrowLeft, Stethoscope, LogOut, Loader2 } from 'lucide-react';
 import clsx from 'clsx';

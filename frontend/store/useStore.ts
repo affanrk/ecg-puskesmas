@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { CONFIG } from '@/config/constants';
+import { CONFIG, LEAD_MODES } from '@/config/constants';
 import { getActiveProfile } from '@/utils/helpers';
 import { User } from '@/types/user';
 import { Device, AnalysisResult, EcgSample5Leads, EcgSample12Leads, PerformanceMetrics, HealthData } from '@/types/models';
@@ -92,7 +92,8 @@ export const useStore = create<AppState>((set, get) => ({
     },
     user: null,
     devices: [],
-    selectedLeadMode: 12,
+    // selectedLeadMode: 12,
+    selectedLeadMode: 5,
     liveData: [],
     archiveData: [],
     ecgBuffer5Leads: [],
@@ -217,12 +218,12 @@ export const useStore = create<AppState>((set, get) => ({
         return { liveData: newLive, archiveData: [resultWithTime, ...state.archiveData] };
     }),
     pushEcgData5Leads: (data) => set((state) => {
-        const limit = CONFIG.MAX_DATA_POINTS * 2;
+        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.FIVE] * 2;
         const newBuffer = [...state.ecgBuffer5Leads, ...data].slice(-limit);
         return { ecgBuffer5Leads: newBuffer };
     }),
     pushEcgData12Leads: (data) => set((state) => {
-        const limit = CONFIG.MAX_DATA_POINTS * 2;
+        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.TWELVE] * 2;
         const newBuffer = [...state.ecgBuffer12Leads, ...data].slice(-limit);
         return { ecgBuffer12Leads: newBuffer };
     }),

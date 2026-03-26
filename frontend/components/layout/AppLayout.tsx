@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, ReactNode, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'nextjs-toploader/app';
 import DashboardLayout from './DashboardLayout';
 import { useStore } from '@/store/useStore';
 import { connectWebSocket } from '@/services/socket';

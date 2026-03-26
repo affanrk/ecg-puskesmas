@@ -20,7 +20,7 @@ export function AnalysisTableRow({ row, idx, highlight, currentPage }: AnalysisT
     };
 
     const dt = formatDateTime(row.changed_dt || row.timestamp);
-    const cls = row.classification?.toLowerCase() || '';
+    const cls = (row.classification || row.classification_result)?.toLowerCase() || '';
     const isHighRisk = cls.includes('sangat') || cls.includes('high');
     const isPotential = cls.includes('berpotensi') || cls.includes('potential');
     const isAbnormal = cls.includes('abnormal');
@@ -56,12 +56,12 @@ export function AnalysisTableRow({ row, idx, highlight, currentPage }: AnalysisT
                         isNormal && "bg-emerald-500",
                         !isHighRisk && !isPotential && !isAbnormal && !isNormal && "bg-slate-300"
                     )}></span>
-                    <span className="truncate">{row.classification}</span>
+                    <span className="truncate">{(row.classification || row.classification_result)}</span>
                 </span>
             </td>
             <td className="w-[130px] 2xl:w-[180px] pr-12 text-right whitespace-nowrap">
                 <span className="font-mono text-[10px] 2xl:text-xs font-black text-slate-600 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-100 shadow-inner inline-block">
-                    {row.confidence ? (row.confidence * 100).toFixed(0) + '%' : '-'}
+                    {(row.confidence ?? row.confidence_score) !== undefined && (row.confidence ?? row.confidence_score) !== null ? (((row.confidence ?? row.confidence_score) || 0) * 100).toFixed(0) + '%' : '-'}
                 </span>
             </td>
         </tr>

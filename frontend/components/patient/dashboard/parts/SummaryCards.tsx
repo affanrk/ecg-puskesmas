@@ -9,6 +9,7 @@ import { getActiveProfile } from '@/utils/helpers';
 interface SummaryCardsProps {
     lastResult: {
         classification?: string;
+        classification_result?: string;
         confidence?: number;
     } | null;
     lastResultTime: {
@@ -21,7 +22,7 @@ interface SummaryCardsProps {
 export default function SummaryCards({ lastResult, lastResultTime }: SummaryCardsProps) {
     const user = useStore(state => state.user);
     if (!user) return null;
-    const isNormal = lastResult?.classification === 'Normal';
+    const isNormal = (lastResult?.classification || lastResult?.classification_result) === 'Normal';
     const cardClass = "bg-white px-8 pt-6 pb-6 2xl:px-10 2xl:pt-8 2xl:pb-8 transition-all duration-500 relative overflow-hidden group h-full w-full flex flex-col";
 
     return (
@@ -62,7 +63,7 @@ export default function SummaryCards({ lastResult, lastResultTime }: SummaryCard
                                 !lastResult ? "text-slate-300" :
                                 isNormal ? "text-emerald-600" : "text-rose-600"
                             )}>
-                                {lastResult?.classification || 'Waiting...'}
+                                {(lastResult?.classification || lastResult?.classification_result) || 'Waiting...'}
                             </span>
                         </div>
                     </div>

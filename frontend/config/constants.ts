@@ -48,7 +48,14 @@ export const LEAD_CONFIGS = {
 };
 
 export const CONFIG = {
-    MAX_DATA_POINTS: 500,
+    SAMPLING_RATE: {
+        [LEAD_MODES.FIVE]: 100,
+        [LEAD_MODES.TWELVE]: 853,
+    },
+    MAX_DATA_POINTS: {
+        [LEAD_MODES.FIVE]: 500, // 5 seconds at 100Hz
+        [LEAD_MODES.TWELVE]: 4265, // 5 seconds at 853Hz
+    },
     ERASE_GAP: 20,
     COLORS: {
         leadI: '#3b82f6',

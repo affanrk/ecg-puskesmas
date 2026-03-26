@@ -2,7 +2,8 @@
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'nextjs-toploader/app';
 import axiosInstance from '@/services/axiosInstance';
 import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
 import clsx from 'clsx';

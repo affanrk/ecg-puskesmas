@@ -12,8 +12,8 @@ export default function AIAnalysisCard() {
         const validResult = liveData.find(r => r.classification !== 'Recording...' && r.classification !== 'Pending');
         if (validResult) {
             prediction = {
-                classification: validResult.classification,
-                confidence: validResult.confidence || 0
+                classification: (validResult.classification || validResult.classification_result) || "Unknown",
+                confidence: (validResult.confidence || validResult.confidence_score) || 0
             };
         }
     }

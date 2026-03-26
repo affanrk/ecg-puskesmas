@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'nextjs-toploader/app';
 import { Activity, ArrowRight, ArrowLeft, Loader2, Stethoscope } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';

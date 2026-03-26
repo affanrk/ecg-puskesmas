@@ -123,7 +123,7 @@ export default function CalendarSidebar({
     };
 
     return (
-        <div className="w-56 2xl:w-80 shrink-0 flex flex-col gap-6 2xl:gap-8 p-4 2xl:p-8 border-r border-slate-100 bg-white h-full hidden lg:flex select-none overflow-y-auto 2xl:overflow-hidden min-h-0 custom-scrollbar">
+        <div className="w-56 2xl:w-80 shrink-0 flex flex-col gap-6 2xl:gap-8 p-4 2xl:p-8 border-r border-slate-100 bg-white h-full hidden lg:flex select-none overflow-y-auto min-h-0 custom-scrollbar">
             <div className="border-b border-slate-50 pb-4 2xl:pb-8 shrink-0">
                 <div className="flex items-center justify-between mb-4 2xl:mb-6">
                     <span className="text-[10px] 2xl:text-sm font-black text-slate-400 uppercase tracking-[0.15em] px-1">

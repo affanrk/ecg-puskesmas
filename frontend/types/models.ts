@@ -4,17 +4,33 @@ export interface Device {
     lead_mode?: 5 | 12;
 }
 
+export interface SessionParameter {
+    lead_name: string;
+    heart_rate_bpm?: number;
+    rr_ms?: number;
+    rr_std_ms?: number;
+    pr_ms?: number;
+    qrs_ms?: number;
+    qtc_ms?: number;
+    st_amplitude_mv?: number;
+    st_deviation_mv?: number;
+    rs_ratio?: number;
+}
+
 export interface AnalysisResult {
     recording_id: string;
-    classification: string;
+    classification?: string;
+    classification_result?: string;
+    is_normal?: boolean;
     confidence?: number;
+    confidence_score?: number;
     timestamp: string;
     changed_dt?: string;
     device_id: string;
     subject_id: string;
     patient_name: string;
-    bpm?: number | string;
-    avg_bpm?: number | string;
+    device_type?: string;
+    parameters?: SessionParameter[];
 }
 
 export interface EcgSample5Leads {
