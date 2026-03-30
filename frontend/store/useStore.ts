@@ -92,8 +92,7 @@ export const useStore = create<AppState>((set, get) => ({
     },
     user: null,
     devices: [],
-    // selectedLeadMode: 12,
-    selectedLeadMode: 5,
+    selectedLeadMode: 12,
     liveData: [],
     archiveData: [],
     ecgBuffer5Leads: [],
@@ -218,12 +217,12 @@ export const useStore = create<AppState>((set, get) => ({
         return { liveData: newLive, archiveData: [resultWithTime, ...state.archiveData] };
     }),
     pushEcgData5Leads: (data) => set((state) => {
-        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.FIVE] * 2;
+        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.FIVE];
         const newBuffer = [...state.ecgBuffer5Leads, ...data].slice(-limit);
         return { ecgBuffer5Leads: newBuffer };
     }),
     pushEcgData12Leads: (data) => set((state) => {
-        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.TWELVE] * 2;
+        const limit = CONFIG.MAX_DATA_POINTS[LEAD_MODES.TWELVE];
         const newBuffer = [...state.ecgBuffer12Leads, ...data].slice(-limit);
         return { ecgBuffer12Leads: newBuffer };
     }),

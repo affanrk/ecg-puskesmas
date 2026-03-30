@@ -55,12 +55,12 @@ export const ECGHeader = React.memo(function ECGHeader({ user, selectedLeadMode,
                             selectedLeadMode === 12 ? "translate-x-0" : "translate-x-[calc(100%+2px)]"
                         )} 
                     />
-                    {/* <button
+                    <button
                         onClick={() => onModeSwitch(12)}
                         className={clsx("relative z-10 flex-1 py-1 rounded text-[10px] font-bold transition-colors duration-300 cursor-pointer", selectedLeadMode === 12 ? "text-slate-800" : "text-slate-400 hover:text-slate-600")}
                     >
                         12 LEADS
-                    </button> */}                    <button 
+                    </button>                    <button 
                         onClick={() => onModeSwitch(5)} 
                         className={clsx("relative z-10 flex-1 py-1 rounded text-[10px] font-bold transition-colors duration-300 cursor-pointer", selectedLeadMode === 5 ? "text-slate-800" : "text-slate-400 hover:text-slate-600")}
                     >

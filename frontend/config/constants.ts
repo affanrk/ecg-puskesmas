@@ -53,8 +53,8 @@ export const CONFIG = {
         [LEAD_MODES.TWELVE]: 853,
     },
     MAX_DATA_POINTS: {
-        [LEAD_MODES.FIVE]: 500, // 5 seconds at 100Hz
-        [LEAD_MODES.TWELVE]: 4265, // 5 seconds at 853Hz
+        [LEAD_MODES.FIVE]: 500,
+        [LEAD_MODES.TWELVE]: 853,
     },
     ERASE_GAP: 20,
     COLORS: {

@@ -246,7 +246,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
                 accumulatedPointsRef.current = 0;
             }
 
-            const dynamicEraseGap = Math.round((currentSpsRef.current / 100) * CONFIG.ERASE_GAP);
+            const dynamicEraseGap = Math.max(8, Math.round(maxDataPoints * 0.04));
             const bufferSize = bufferRef.current.length;
             const targetBuffer = currentSpsRef.current * 0.4;
             let speedMultiplier = 1.0;
@@ -286,18 +286,24 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
 
                         if (val < localMins[idx]) localMins[idx] = val;
                         if (val > localMaxs[idx]) localMaxs[idx] = val;
-
-                        for (let j = 1; j <= dynamicEraseGap; j++) {
-                            ds[(lastCursor + j) % totalPointsLimit].y = null;
-                        }
                     }
                 });
                 lastCursor = (lastCursor + 1) % totalPointsLimit;
             }
 
+            activeLeads.forEach((_, idx) => {
+                const chart = chartRefs.current[idx];
+                if (chart) {
+                    const ds = chart.data.datasets[0].data as {x: number, y: number | null}[];
+                    for (let j = 1; j <= dynamicEraseGap; j++) {
+                        ds[(lastCursor + j) % totalPointsLimit].y = null;
+                    }
+                }
+            });
+
             cursorRef.current = lastCursor;
 
-            if (lastCursor % 50 === 0) {
+            if (lastCursor % Math.max(50, Math.floor(totalPointsLimit / 10)) === 0) {
                 chartRefs.current.forEach((chart, idx) => {
                     if (chart && localMins[idx] !== Infinity) {
                         adjustScaleSingle(chart, chart.data.datasets[0].data as {x: number, y: number | null}[]);
@@ -391,7 +397,7 @@ export const ECGMonitor = React.memo(function ECGMonitor({ selectedLeadMode }: E
             ref={containerRef}
             className={clsx(
                 "w-full flex-1 bg-white border-y border-slate-950 overflow-hidden shrink-0",
-                selectedLeadMode === 12 ? "grid grid-cols-2 grid-rows-6 gap-px bg-slate-950" : "flex flex-col divide-y divide-slate-950"
+                selectedLeadMode === 12 ? "grid grid-cols-2 grid-rows-6 grid-flow-col gap-px bg-slate-950" : "flex flex-col divide-y divide-slate-950"
             )}
             style={{ height: snappedHeight ? `${snappedHeight}px` : 'auto' }}
         >
