@@ -18,7 +18,11 @@ from repositories.session import SessionRepository
 from core.database import SessionLocal
 from core.exceptions.definitions import AppException
 from utils import logger
-from utils import WSMessageType
+from utils import (
+    WSMessageType,
+    UI_BROADCAST_THROTTLE_5LEADS,
+    UI_BROADCAST_THROTTLE_12LEADS,
+)
 
 
 class MQTTDataHandler:
@@ -118,9 +122,16 @@ class MQTTDataHandler:
                 if state.samples_collected >= state.target_buffer_size:
                     await self._complete_segment(state)
 
-            await self._broadcast_ui_5leads_batch(
-                state, samples, filtered_leads, end_counter
+            asyncio.create_task(
+                self._broadcast_ui_5leads_batch(
+                    state, samples, filtered_leads, end_counter
+                )
             )
+
+            # await self._broadcast_ui_5leads_batch(
+            #     state, samples, filtered_leads, end_counter
+            # )
+
             logger.debug(
                 f"[MQTTDataHandler] Successfully completed process_5leads_samples for {device_id}."
             )
@@ -284,9 +295,16 @@ class MQTTDataHandler:
                                     item
                                 )
 
-            await self._broadcast_ui_12leads_batch(
-                state, samples, filtered_leads, end_counter
+            asyncio.create_task(
+                self._broadcast_ui_12leads_batch(
+                    state, samples, filtered_leads, end_counter
+                )
             )
+
+            # await self._broadcast_ui_12leads_batch(
+            #     state, samples, filtered_leads, end_counter
+            # )
+
             logger.debug(
                 f"[MQTTDataHandler] Successfully completed process_12leads_samples for {device_id}."
             )
@@ -499,7 +517,8 @@ class MQTTDataHandler:
                     }
                 )
 
-            if ui_batch:
+            state.broadcast_count += 1
+            if ui_batch and state.broadcast_count % UI_BROADCAST_THROTTLE_5LEADS == 0:
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
                     WSMessageType.LIVE_5LEADS_BATCH.value,
@@ -548,7 +567,8 @@ class MQTTDataHandler:
                     }
                 )
 
-            if ui_batch:
+            state.broadcast_count += 1
+            if ui_batch and state.broadcast_count % UI_BROADCAST_THROTTLE_12LEADS == 0:
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
                     WSMessageType.LIVE_12LEADS_BATCH.value,
@@ -675,6 +695,11 @@ class MQTTDataHandler:
             )
 
             new_id = str(uuid.uuid4())
+            state.recording_id = new_id
+            state.samples_collected = 0
+            state.segment_count += 1
+            state.status_message = f"Recording (Seg {state.segment_count})..."
+
             self._create_session(
                 new_id,
                 str(state.device_id),
@@ -682,10 +707,13 @@ class MQTTDataHandler:
                 str(state.recording_source),
                 device_type=device_type,
             )
-            state.recording_id = new_id
-            state.samples_collected = 0
-            state.segment_count += 1
-            state.status_message = f"Recording (Seg {state.segment_count})..."
+
+            asyncio.create_task(
+                analysis_engine.trigger_analysis(
+                    str(old_id), str(state.subject_id), str(state.device_id)
+                )
+            )
+
             await device_state_manager.notify_state_update(state.device_id)
 
             logger.info(

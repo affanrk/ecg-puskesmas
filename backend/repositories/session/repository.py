@@ -258,6 +258,13 @@ class SessionRepository(BaseRepository[TbREcgSession]):
     ) -> TbREcgSession:
         logger.debug("[SessionRepository] Starting create_session...")
         try:
+            existing = self.find_by_recording_id(recording_id)
+            if existing:
+                logger.warning(
+                    f"[SessionRepository] Session {recording_id} already exists. Skipping create."
+                )
+                return existing
+
             session = TbREcgSession(
                 recording_id=recording_id,
                 device_id=device_id,

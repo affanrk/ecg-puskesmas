@@ -71,7 +71,7 @@ class MQTTClientService:
                 )
 
                 await client.subscribe(MQTT_TOPIC_PATTERN_5LEADS, qos=MQTT_QOS)
-                # await client.subscribe(MQTT_TOPIC_PATTERN_12LEADS, qos=MQTT_QOS)
+                await client.subscribe(MQTT_TOPIC_PATTERN_12LEADS, qos=MQTT_QOS)
 
                 async for message in client.messages:
                     if message.retain:
@@ -174,7 +174,6 @@ class MQTTClientService:
                     if mqtt_protocol.is_duplicate_packet(
                         end_counter, state.last_packet_num
                     ):
-                        queue.task_done()
                         continue
 
                     start_counter = end_counter - len(samples) + 1

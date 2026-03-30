@@ -54,6 +54,7 @@ class DeviceState:
             self.last_seen = time.time()
             self.is_connected = False
             self.locked_by: Optional[WebSocket] = None
+            self.broadcast_count = 0
 
             self.live_raw_buffer_5leads: Dict[str, Deque[float]] = {
                 "lead_i": deque(maxlen=LIVE_BUFFER_SIZE),
@@ -85,22 +86,8 @@ class DeviceState:
             raise AppException(status_code=500, message="Internal Service Error")
 
     @property
-    def offline_threshold(self) -> float:
-        if self.current_lead_mode == 12:
-            return 5.0
-        return 1.0
-
-    @property
-    def timeout_seconds(self) -> float:
-        if self.current_lead_mode == 12:
-            return 10.0
-        return 2.5
-
-    @property
     def jitter_buffer_limit(self) -> int:
-        if self.current_lead_mode == 12:
-            return 40
-        return 20
+        return 40
 
     @property
     def target_buffer_size(self) -> int:

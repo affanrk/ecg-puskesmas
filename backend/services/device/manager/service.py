@@ -446,10 +446,19 @@ class DeviceStateManager:
             active_connections = self.websocket_connections[device_id].copy()
 
             for ws in active_connections:
-                try:
-                    await ws.send_json(message)
-                except Exception:
-                    await self._cleanup_dead_websocket(ws, f"broadcast to {device_id}")
+
+                async def send_task(w=ws):
+                    try:
+                        # Use a small timeout to prevent task accumulation if WS is slow
+                        await asyncio.wait_for(w.send_json(message), timeout=0.05)
+                    except (asyncio.TimeoutError, Exception):
+                        # Force cleanup if we can't send data within timeout
+                        await self._cleanup_dead_websocket(
+                            w, f"broadcast timeout to {device_id}"
+                        )
+
+                asyncio.create_task(send_task())
+
             logger.debug(
                 f"[DeviceStateManager] Successfully completed broadcast_to_device for {device_id}."
             )

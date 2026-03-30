@@ -17,6 +17,8 @@ from utils import (
     logger,
     WATCHDOG_CHECK_INTERVAL,
     WSMessageType,
+    DEVICE_TIMEOUT_SECONDS,
+    DEVICE_OFFLINE_THRESHOLD,
 )
 
 
@@ -65,8 +67,8 @@ class DeviceWatchdogService:
                 state = device_state_manager.get_state(device_id)
                 time_since_last_seen = state.get_time_since_last_seen()
 
-                offline_limit = state.offline_threshold
-                timeout_limit = state.timeout_seconds
+                offline_limit = DEVICE_OFFLINE_THRESHOLD
+                timeout_limit = DEVICE_TIMEOUT_SECONDS
 
                 if time_since_last_seen > offline_limit and state.is_connected:
                     state.update_connection_status(False)
@@ -94,6 +96,14 @@ class DeviceWatchdogService:
                             "reason": "Timeout",
                             "was_recording": was_recording_active,
                         },
+                    )
+
+                    await device_state_manager.broadcast_to_all(
+                        {
+                            "type": WSMessageType.DEVICE_DISCONNECTED.value,
+                            "device_id": device_id,
+                            "reason": "Timeout",
+                        }
                     )
 
                     if was_recording_active:
