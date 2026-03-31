@@ -11,11 +11,16 @@ class SignalProcessor:
         self.sampling_rate = sampling_rate
 
     def apply_filters(
-        self, signal: np.ndarray, sampling_rate: Optional[int] = None
+        self,
+        signal: np.ndarray,
+        sampling_rate: Optional[int] = None,
+        is_live: bool = False,
     ) -> np.ndarray:
         logger.debug("[SignalProcessor] Starting apply_filters...")
         try:
-            result = apply_filters(signal, sampling_rate or self.sampling_rate)
+            result = apply_filters(
+                signal, sampling_rate or self.sampling_rate, is_live=is_live
+            )
             logger.debug("[SignalProcessor] Successfully completed apply_filters.")
             return result
         except AppException as e:

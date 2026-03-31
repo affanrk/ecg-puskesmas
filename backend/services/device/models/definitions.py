@@ -1,4 +1,5 @@
 import time
+import asyncio
 from collections import deque
 from typing import List, Optional, Deque, Dict
 from fastapi import WebSocket
@@ -56,6 +57,13 @@ class DeviceState:
             self.locked_by: Optional[WebSocket] = None
             self.broadcast_count = 0
 
+            self.last_performance_update = 0.0
+            self.last_bpm_update = 0.0
+            self.last_ui_update = 0.0
+            self.last_state_update = 0.0
+
+            self.ui_tasks: List[asyncio.Task] = []
+
             self.live_raw_buffer_5leads: Dict[str, Deque[float]] = {
                 "lead_i": deque(maxlen=LIVE_BUFFER_SIZE),
                 "lead_ii": deque(maxlen=LIVE_BUFFER_SIZE),
@@ -87,6 +95,8 @@ class DeviceState:
 
     @property
     def jitter_buffer_limit(self) -> int:
+        if self.current_lead_mode == 12:
+            return 40
         return 40
 
     @property
@@ -206,3 +216,16 @@ class DeviceState:
                 f"[DeviceState] Unexpected error in get_time_since_last_seen: {e}"
             )
             return 999.9
+
+    def cancel_ui_tasks(self):
+        logger.debug(f"[DeviceState] Starting cancel_ui_tasks for {self.device_id}...")
+        try:
+            for task in self.ui_tasks:
+                if not task.done():
+                    task.cancel()
+            self.ui_tasks.clear()
+            logger.debug(
+                f"[DeviceState] Successfully completed cancel_ui_tasks for {self.device_id}."
+            )
+        except Exception as e:
+            logger.error(f"[DeviceState] Unexpected error in cancel_ui_tasks: {e}")

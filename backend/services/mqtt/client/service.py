@@ -1,4 +1,5 @@
 import asyncio
+import time
 import aiomqtt
 import orjson
 import ssl
@@ -7,7 +8,7 @@ from typing import Optional, cast, Dict
 
 from services.mqtt import mqtt_protocol, mqtt_data_handler
 from services.mqtt.protocol.definitions import ECGSample12Leads, ECGSample5Leads
-from services.device import device_state_manager
+from services.device import device_state_manager, device_watchdog_service
 from core.config import settings
 from core.exceptions.definitions import AppException
 from utils import (
@@ -86,11 +87,21 @@ class MQTTClientService:
                             continue
 
                         if device_id not in self._device_workers:
+                            is_12_leads = (
+                                "/12leads/" in topic_str or "/12leads" in topic_str
+                            )
+
+                            state = device_state_manager.get_state(device_id)
+                            state.is_connected = True
+                            state.last_seen = time.time()
+                            state.current_lead_mode = 12 if is_12_leads else 5
+
                             queue = asyncio.Queue(maxsize=100)
                             self._device_queues[device_id] = queue
                             self._device_workers[device_id] = asyncio.create_task(
                                 self._device_worker_loop(device_id, queue)
                             )
+                            await device_state_manager.notify_device_list_update()
 
                         try:
                             self._device_queues[device_id].put_nowait(
@@ -147,16 +158,33 @@ class MQTTClientService:
                         "/12leads"
                     )
 
+                    state = device_state_manager.get_state(device_id)
+
+                    if (
+                        not state.is_connected
+                        and state.last_seen > 0
+                        and (time.time() - state.last_seen) > 1.0
+                    ):
+                        logger.warning(
+                            f"[MQTTClientService] Device {device_id} disconnected. Stopping worker loop."
+                        )
+                        break
+
+                    state.current_lead_mode = 12 if is_12_leads else 5
+
+                    state.update_connection_status(True)
+
+                    is_active = (state.locked_by is not None) or state.is_recording
+
+                    if not is_active:
+                        if state.last_packet_num != 0:
+                            state.last_packet_num = 0
+                            state.packet_buffer.clear()
+                        continue
+
                     _, samples, end_counter, packet_format, sampling_rate = (
                         mqtt_protocol.parse_packet(payload, is_12_leads)
                     )
-
-                    state = device_state_manager.get_state(device_id)
-
-                    if state.locked_by is None and not state.is_recording:
-                        pass
-
-                    state.current_lead_mode = 12 if is_12_leads else 5
 
                     should_update_list = False
                     if not device_state_manager.has_device(device_id):
@@ -167,7 +195,6 @@ class MQTTClientService:
                     ):
                         should_update_list = True
 
-                    state.update_connection_status(True)
                     if should_update_list:
                         await device_state_manager.notify_device_list_update()
 
@@ -234,15 +261,25 @@ class MQTTClientService:
                             else:
                                 if len(state.packet_buffer) > state.jitter_buffer_limit:
                                     reason = "Data buffer limit exceeded"
+
+                                    if state.is_recording:
+                                        await device_watchdog_service.force_cancel_recording(
+                                            device_id, reason
+                                        )
+
                                     state.packet_buffer.clear()
                                     state.last_packet_num = 0
                                     state.reset_recording_state()
                                     state.update_connection_status(False)
+
+                                    state.locked_by = None
+
                                     await device_state_manager.broadcast_to_device(
                                         device_id,
                                         WSMessageType.DEVICE_DISCONNECTED.value,
                                         {"device_id": device_id, "reason": reason},
                                     )
+                                    await device_state_manager.notify_device_list_update()
                                     break
                                 break
 

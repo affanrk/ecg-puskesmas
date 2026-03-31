@@ -449,10 +449,8 @@ class DeviceStateManager:
 
                 async def send_task(w=ws):
                     try:
-                        # Use a small timeout to prevent task accumulation if WS is slow
-                        await asyncio.wait_for(w.send_json(message), timeout=0.05)
+                        await asyncio.wait_for(w.send_json(message), timeout=0.15)
                     except (asyncio.TimeoutError, Exception):
-                        # Force cleanup if we can't send data within timeout
                         await self._cleanup_dead_websocket(
                             w, f"broadcast timeout to {device_id}"
                         )
@@ -567,6 +565,7 @@ class DeviceStateManager:
 
             if self.has_device(device_id):
                 state = self.get_state(device_id)
+                state.cancel_ui_tasks()
                 state.clear_buffers()
             logger.debug(
                 f"[DeviceStateManager] Successfully completed clear_device_buffers for {device_id}."

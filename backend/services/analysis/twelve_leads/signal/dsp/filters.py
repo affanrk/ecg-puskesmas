@@ -101,7 +101,9 @@ def wavelet_denoise(x, fs, wavelet_name="sym6"):
     return y[: len(x)]
 
 
-def apply_filters(signal: np.ndarray, sampling_rate: int) -> np.ndarray:
+def apply_filters(
+    signal: np.ndarray, sampling_rate: int, is_live: bool = False
+) -> np.ndarray:
     logger.debug("[DSP-Filters] Starting apply_filters...")
     try:
         sig = np.nan_to_num(signal, nan=0.0, posinf=0.0, neginf=0.0)
@@ -112,9 +114,11 @@ def apply_filters(signal: np.ndarray, sampling_rate: int) -> np.ndarray:
 
         sig = apply_iec_diagnostic_filter(sig, sampling_rate)
 
-        result = wavelet_denoise(sig, sampling_rate)
+        if not is_live:
+            sig = wavelet_denoise(sig, sampling_rate)
+
         logger.debug("[DSP-Filters] Successfully completed apply_filters.")
-        return result
+        return sig
 
     except Exception as e:
         logger.error(f"[DSP-Filters] Full filter application failed: {e}")

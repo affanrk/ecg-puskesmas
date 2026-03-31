@@ -319,6 +319,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             self.db.query(TbREcgSessionParameter).filter(
                 TbREcgSessionParameter.recording_id == recording_id
             ).delete()
+            self.db.flush()
 
             params = []
             if device_type == "5LEADS":

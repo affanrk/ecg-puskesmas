@@ -37,7 +37,7 @@ class DeviceWatchdogService:
                 try:
                     await self._check_all_devices()
                     await self._cleanup_cancelled_recordings()
-                    await self._broadcast_global_performance()
+                    # await self._broadcast_global_performance()
                 except Exception as e:
                     logger.error(f"[DeviceWatchdogService] Error in main loop: {e}")
 
@@ -335,13 +335,23 @@ class DeviceWatchdogService:
 
             state.reset_recording_state()
 
-            await self._delete_recording_from_db(recording_id)
-
             await device_state_manager.broadcast_to_device(
                 device_id,
                 WSMessageType.RECORDING_CANCELLED.value,
-                {"device_id": device_id, "reason": reason},
+                {"device_id": device_id, "reason": reason, "clear_buffer": True},
             )
+
+            async def background_db_cleanup():
+                try:
+                    await self._delete_recording_from_db(recording_id)
+                    logger.info(
+                        f"[Watchdog] Background cleanup finished for {recording_id}"
+                    )
+                except Exception as e:
+                    logger.error(f"[Watchdog] Background cleanup error: {e}")
+
+            asyncio.create_task(background_db_cleanup())
+
             await device_state_manager.notify_state_update(device_id)
             logger.debug(
                 f"[DeviceWatchdogService] Successfully completed force_cancel_recording for {device_id}."
