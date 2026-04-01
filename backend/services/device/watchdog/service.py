@@ -138,6 +138,10 @@ class DeviceWatchdogService:
             device_state_manager.mark_recording_cancelled(recording_id)
             state.reset_recording_state()
             await self._delete_recording_from_db(recording_id)
+            try:
+                device_state_manager.cleanup_recording_buffers(recording_id)
+            except Exception:
+                pass
             await device_state_manager.broadcast_to_device(
                 device_id,
                 WSMessageType.RECORDING_CANCELLED.value,
@@ -344,6 +348,10 @@ class DeviceWatchdogService:
             async def background_db_cleanup():
                 try:
                     await self._delete_recording_from_db(recording_id)
+                    try:
+                        device_state_manager.cleanup_recording_buffers(recording_id)
+                    except Exception:
+                        pass
                     logger.info(
                         f"[Watchdog] Background cleanup finished for {recording_id}"
                     )

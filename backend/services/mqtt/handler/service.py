@@ -97,11 +97,13 @@ class MQTTDataHandler:
                         if task in state.ui_tasks:
                             state.ui_tasks.remove(task)
 
-            ui_task = asyncio.create_task(
-                background_ui_processing_5leads(
-                    raw_signals_5, samples_count_5, end_counter
-                )
-            )
+            async def _guarded_ui_task_5():
+                async with state.ui_semaphore:
+                    await background_ui_processing_5leads(
+                        raw_signals_5, samples_count_5, end_counter
+                    )
+
+            ui_task = asyncio.create_task(_guarded_ui_task_5())
             state.ui_tasks.append(ui_task)
 
             if now - state.last_bpm_update >= 1.0:
@@ -142,41 +144,28 @@ class MQTTDataHandler:
                     "v1": sample.cal_v1,
                 }
 
-            if rec_data:
+            if rec_data and state.is_recording and state.recording_id:
                 try:
-                    await asyncio.wait_for(
-                        device_state_manager.batch_lock.acquire(), timeout=0.5
+                    remaining = max(
+                        0, state.target_buffer_size - state.samples_collected
                     )
-                    try:
+                    first_chunk = rec_data[:remaining] if remaining > 0 else []
+                    if first_chunk:
+                        await device_state_manager.append_recording_5(
+                            state.recording_id, first_chunk
+                        )
+                        state.samples_collected += len(first_chunk)
+
+                    leftover = rec_data[remaining:]
+                    if leftover:
+                        await self._complete_segment(state)
                         if state.is_recording and state.recording_id:
-                            current_idx = 0
-                            for entry in rec_data:
-                                if state.samples_collected >= state.target_buffer_size:
-                                    break
-                                state.samples_collected += 1
-                                device_state_manager.buffer_recording_5leads_batch.append(
-                                    entry
-                                )
-                                current_idx += 1
-
-                            if state.samples_collected >= state.target_buffer_size:
-                                device_state_manager.batch_lock.release()
-                                await self._complete_segment(state)
-                                await asyncio.wait_for(
-                                    device_state_manager.batch_lock.acquire(),
-                                    timeout=0.5,
-                                )
-
-                                if state.is_recording and state.recording_id:
-                                    for entry in rec_data[current_idx:]:
-                                        entry["recording_id"] = state.recording_id
-                                        state.samples_collected += 1
-                                        device_state_manager.buffer_recording_5leads_batch.append(
-                                            entry
-                                        )
-                    finally:
-                        if device_state_manager.batch_lock.locked():
-                            device_state_manager.batch_lock.release()
+                            for e in leftover:
+                                e["recording_id"] = state.recording_id
+                            await device_state_manager.append_recording_5(
+                                state.recording_id, leftover
+                            )
+                            state.samples_collected = len(leftover)
                 except Exception as e:
                     logger.error(
                         f"[MQTTDataHandler] 5-leads recording processing error: {e}"
@@ -298,11 +287,13 @@ class MQTTDataHandler:
                         if task in state.ui_tasks:
                             state.ui_tasks.remove(task)
 
-            ui_task = asyncio.create_task(
-                background_ui_processing_12leads(
-                    raw_signals_12, samples_count_12, end_counter
-                )
-            )
+            async def _guarded_ui_task_12():
+                async with state.ui_semaphore:
+                    await background_ui_processing_12leads(
+                        raw_signals_12, samples_count_12, end_counter
+                    )
+
+            ui_task = asyncio.create_task(_guarded_ui_task_12())
             state.ui_tasks.append(ui_task)
 
             if now - state.last_bpm_update >= 2.0:
@@ -375,47 +366,32 @@ class MQTTDataHandler:
                     "v6": sample.cal_v6,
                 }
 
-            if rec_data:
+            if rec_data and state.is_recording and state.recording_id:
                 try:
-                    await asyncio.wait_for(
-                        device_state_manager.batch_lock.acquire(), timeout=0.5
+                    remaining = max(
+                        0, state.target_buffer_size - state.samples_collected
                     )
-                    try:
+                    first_chunk = rec_data[:remaining] if remaining > 0 else []
+                    if first_chunk:
+                        await device_state_manager.append_recording_12(
+                            state.recording_id, first_chunk
+                        )
+                        state.samples_collected += len(first_chunk)
+
+                    leftover = rec_data[remaining:]
+                    if leftover:
+                        await self._complete_segment(state)
                         if state.is_recording and state.recording_id:
-                            current_idx = 0
-                            for entry in rec_data:
-                                if state.samples_collected >= state.target_buffer_size:
-                                    break
-                                state.samples_collected += 1
-                                device_state_manager.buffer_recording_12leads_batch.append(
-                                    entry
-                                )
-                                current_idx += 1
-
-                            if state.samples_collected >= state.target_buffer_size:
-                                device_state_manager.batch_lock.release()
-                                await self._complete_segment(state)
-                                await asyncio.wait_for(
-                                    device_state_manager.batch_lock.acquire(),
-                                    timeout=0.5,
-                                )
-
-                                if state.is_recording and state.recording_id:
-                                    for entry in rec_data[current_idx:]:
-                                        entry["recording_id"] = state.recording_id
-                                        state.samples_collected += 1
-                                        device_state_manager.buffer_recording_12leads_batch.append(
-                                            entry
-                                        )
-                    finally:
-                        if device_state_manager.batch_lock.locked():
-                            device_state_manager.batch_lock.release()
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        f"[MQTTDataHandler] Batch lock timeout for {device_id} (12-leads)."
-                    )
+                            for e in leftover:
+                                e["recording_id"] = state.recording_id
+                            await device_state_manager.append_recording_12(
+                                state.recording_id, leftover
+                            )
+                            state.samples_collected = len(leftover)
                 except Exception as e:
-                    logger.error(f"[MQTTDataHandler] Error acquiring batch lock: {e}")
+                    logger.error(
+                        f"[MQTTDataHandler] Error recording append (12-leads): {e}"
+                    )
 
                 if state.samples_collected % 25 == 0:
                     asyncio.create_task(
@@ -832,6 +808,10 @@ class MQTTDataHandler:
                         f"[MQTTDataHandler] Background flush and analysis for {old_id}"
                     )
                     await recording_storage_service.flush_all_buffers()
+                    try:
+                        device_state_manager.cleanup_recording_buffers(str(old_id))
+                    except Exception:
+                        pass
 
                     analysis_engine = (
                         ml_engine_12leads
@@ -874,7 +854,6 @@ class MQTTDataHandler:
     ):
         logger.debug(f"[MQTTDataHandler] Starting _create_session for {rec_id}...")
 
-        # Critical Fix: Validate patient ID to prevent SQL ForeignKey errors
         if not pat_id or pat_id == "None":
             logger.warning(
                 f"[MQTTDataHandler] Skipping session creation for {rec_id}: Invalid patient ID '{pat_id}'"

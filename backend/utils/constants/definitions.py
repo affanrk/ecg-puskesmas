@@ -35,6 +35,8 @@ MAX_EXPORT_RECORDS = 10000
 PLOT_DPI = 150
 PLOT_FIGURE_SIZE = (24, 12)
 
+MAX_PACKET_SAMPLES = 1000
+
 
 class ECGClassification(str, Enum):
     NORMAL = "Normal"

@@ -96,25 +96,32 @@ class MQTTClientService:
                             state.last_seen = time.time()
                             state.current_lead_mode = 12 if is_12_leads else 5
 
-                            queue = asyncio.Queue(maxsize=100)
+                            qsize = 50 if is_12_leads else 20
+                            queue = asyncio.Queue(maxsize=qsize)
                             self._device_queues[device_id] = queue
                             self._device_workers[device_id] = asyncio.create_task(
                                 self._device_worker_loop(device_id, queue)
                             )
                             await device_state_manager.notify_device_list_update()
 
-                        try:
-                            self._device_queues[device_id].put_nowait(
-                                (topic_str, message.payload)
+                        q = self._device_queues.get(device_id)
+                        if q is None or device_id not in self._device_workers:
+                            is_12_leads = (
+                                "/12leads/" in topic_str or "/12leads" in topic_str
                             )
-                        except asyncio.QueueFull:
-                            try:
-                                self._device_queues[device_id].get_nowait()
-                            except asyncio.QueueEmpty:
-                                pass
-                            self._device_queues[device_id].put_nowait(
-                                (topic_str, message.payload)
+                            state = device_state_manager.get_state(device_id)
+                            state.is_connected = True
+                            state.last_seen = time.time()
+                            state.current_lead_mode = 12 if is_12_leads else 5
+                            qsize = 50 if is_12_leads else 20
+                            q = asyncio.Queue(maxsize=qsize)
+                            self._device_queues[device_id] = q
+                            self._device_workers[device_id] = asyncio.create_task(
+                                self._device_worker_loop(device_id, q)
                             )
+                            await device_state_manager.notify_device_list_update()
+
+                        await q.put((topic_str, message.payload))
 
                     except Exception as e:
                         logger.error(
@@ -259,7 +266,38 @@ class MQTTClientService:
                                         p_sampling_rate,
                                     )
                             else:
-                                if len(state.packet_buffer) > state.jitter_buffer_limit:
+
+                                def _buffered_seconds():
+                                    try:
+                                        total_samples = 0
+                                        min_start = None
+                                        max_end = None
+                                        for s, e, _ in state.packet_buffer:
+                                            total_samples += e - s + 1
+                                            min_start = (
+                                                s
+                                                if min_start is None
+                                                else min(min_start, s)
+                                            )
+                                            max_end = (
+                                                e
+                                                if max_end is None
+                                                else max(max_end, e)
+                                            )
+                                        sps = (
+                                            state.observed_sps
+                                            if state.observed_sps > 0
+                                            else state.sampling_rate
+                                        )
+                                        if sps <= 0:
+                                            return 0.0
+                                        return float(total_samples) / float(sps)
+                                    except Exception:
+                                        return 0.0
+
+                                buffered_secs = _buffered_seconds()
+                                jitter_budget = DEVICE_OFFLINE_THRESHOLD * 0.5
+                                if buffered_secs > jitter_budget:
                                     reason = "Data buffer limit exceeded"
 
                                     if state.is_recording:
@@ -310,8 +348,6 @@ class MQTTClientService:
             }
             if settings.MQTT_USE_TLS:
                 ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
                 config["tls_context"] = ctx
             logger.debug(
                 "[MQTTClientService] Successfully completed _build_connection_config."

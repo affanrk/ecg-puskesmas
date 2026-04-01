@@ -49,7 +49,7 @@ class WebSocketHandler:
             return True
         except Exception as e:
             logger.error(f"[WS] Error verifying session in WebSocket: {e}")
-            return True
+            return False
 
     async def handle_message(self, message: dict) -> bool:
         m_type = message.get("type", "")

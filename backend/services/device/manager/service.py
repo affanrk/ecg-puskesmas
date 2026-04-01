@@ -34,6 +34,10 @@ class DeviceStateManager:
 
         self.on_lock_lost_callback: Optional[Callable[[str, str], Coroutine]] = None
 
+        self.recording_buffers_5: Dict[str, List[dict]] = defaultdict(list)
+        self.recording_buffers_12: Dict[str, List[dict]] = defaultdict(list)
+        self.recording_locks: Dict[str, asyncio.Lock] = {}
+
     def get_state(self, device_id: str) -> DeviceState:
         logger.debug(f"[DeviceStateManager] Starting get_state for {device_id}...")
         try:
@@ -474,10 +478,14 @@ class DeviceStateManager:
             active_connections = self.broadcast_connections.copy()
 
             for ws in active_connections:
-                try:
-                    await ws.send_json(message)
-                except Exception:
-                    await self._cleanup_dead_websocket(ws, "broadcast to all")
+
+                async def send_task(w=ws):
+                    try:
+                        await asyncio.wait_for(w.send_json(message), timeout=0.15)
+                    except (asyncio.TimeoutError, Exception):
+                        await self._cleanup_dead_websocket(w, "broadcast to all")
+
+                asyncio.create_task(send_task())
             logger.debug(
                 "[DeviceStateManager] Successfully completed broadcast_to_all."
             )
@@ -611,6 +619,70 @@ class DeviceStateManager:
                 f"[DeviceStateManager] Unexpected error in cleanup_cancelled_recordings: {e}"
             )
             raise AppException(status_code=500, message="Internal Service Error")
+
+    def _get_recording_lock(self, recording_id: str) -> asyncio.Lock:
+        if recording_id not in self.recording_locks:
+            self.recording_locks[recording_id] = asyncio.Lock()
+        return self.recording_locks[recording_id]
+
+    async def append_recording_5(self, recording_id: str, entries: List[dict]) -> None:
+        if not recording_id or not entries:
+            return
+        lock = self._get_recording_lock(recording_id)
+        async with lock:
+            self.recording_buffers_5[recording_id].extend(entries)
+
+    async def append_recording_12(self, recording_id: str, entries: List[dict]) -> None:
+        if not recording_id or not entries:
+            return
+        lock = self._get_recording_lock(recording_id)
+        async with lock:
+            self.recording_buffers_12[recording_id].extend(entries)
+
+    def cleanup_recording_buffers(self, recording_id: str) -> None:
+        try:
+            if recording_id in self.recording_buffers_5:
+                self.recording_buffers_5.pop(recording_id, None)
+            if recording_id in self.recording_buffers_12:
+                self.recording_buffers_12.pop(recording_id, None)
+            if recording_id in self.recording_locks:
+                self.recording_locks.pop(recording_id, None)
+        except Exception:
+            pass
+
+    async def drain_recording_buffers_locked(self) -> tuple[List[dict], List[dict]]:
+        rec5: List[dict] = []
+        rec12: List[dict] = []
+
+        for rec_id in list(self.recording_buffers_5.keys()):
+            lock = self._get_recording_lock(rec_id)
+            try:
+                await asyncio.wait_for(lock.acquire(), timeout=0.05)
+                try:
+                    items = self.recording_buffers_5.get(rec_id, [])
+                    if items:
+                        rec5.extend(items)
+                        self.recording_buffers_5[rec_id] = []
+                finally:
+                    lock.release()
+            except Exception:
+                pass
+
+        for rec_id in list(self.recording_buffers_12.keys()):
+            lock = self._get_recording_lock(rec_id)
+            try:
+                await asyncio.wait_for(lock.acquire(), timeout=0.05)
+                try:
+                    items = self.recording_buffers_12.get(rec_id, [])
+                    if items:
+                        rec12.extend(items)
+                        self.recording_buffers_12[rec_id] = []
+                finally:
+                    lock.release()
+            except Exception:
+                pass
+
+        return rec5, rec12
 
 
 device_state_manager = DeviceStateManager()

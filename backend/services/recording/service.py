@@ -70,12 +70,17 @@ class RecordingStorageService:
         try:
             async with device_state_manager.batch_lock:
                 idle_items = device_state_manager.buffer_idle_batch.copy()
+                drained_5, drained_12 = (
+                    await device_state_manager.drain_recording_buffers_locked()
+                )
                 rec_5leads_items = (
                     device_state_manager.buffer_recording_5leads_batch.copy()
                 )
                 rec_12leads_items = (
                     device_state_manager.buffer_recording_12leads_batch.copy()
                 )
+                rec_5leads_items.extend(drained_5)
+                rec_12leads_items.extend(drained_12)
                 perf_items = device_state_manager.perf_batch.copy()
 
                 device_state_manager.buffer_idle_batch.clear()

@@ -1,6 +1,9 @@
 import os
 import logging
+import secrets
+from typing import List
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +15,10 @@ class Settings(BaseSettings):
     DATABASE_PORT: str = "5432"
     DATABASE_NAME: str = "ecg_db"
 
-    MQTT_BROKER: str = "34.50.65.132"
+    MQTT_BROKER: str = "localhost"
     MQTT_PORT: int = 1883
-    MQTT_USERNAME: str = "ecg-client"
-    MQTT_PASSWORD: str = "mqttECG2026!"
+    MQTT_USERNAME: str = ""
+    MQTT_PASSWORD: str = ""
     MQTT_USE_TLS: bool = False
 
     FLASK_PORT: int = 8080
@@ -26,9 +29,22 @@ class Settings(BaseSettings):
     TIMEZONE: str = "Asia/Jakarta"
     LOG_LEVEL: str = "INFO"
 
-    SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+    SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_PROXY_HOSTS: str = "127.0.0.1,localhost"
+    @model_validator(mode="after")
+    def _ensure_secret_key(self):
+        if not self.SECRET_KEY:
+            self.SECRET_KEY = secrets.token_hex(32)
+        return self
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+    @property
+    def allowed_proxy_hosts_list(self) -> List[str]:
+        return [h.strip() for h in self.ALLOWED_PROXY_HOSTS.split(",") if h.strip()]
 
     @property
     def DATABASE_URL(self) -> str:

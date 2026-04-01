@@ -2,7 +2,7 @@ import heapq
 import time
 from typing import List, Tuple, Union
 from dataclasses import dataclass
-from utils import logger, SAMPLING_RATE
+from utils import logger, SAMPLING_RATE, SAMPLING_RATE_12LEADS, MAX_PACKET_SAMPLES
 from core.exceptions.definitions import AppException
 
 
@@ -101,6 +101,11 @@ class MQTTProtocolHandler:
             list_c1 = payload.get("c1", [])
             batch_size = len(list_c1)
 
+            if batch_size > MAX_PACKET_SAMPLES:
+                start_idx = batch_size - MAX_PACKET_SAMPLES
+                list_c1 = list_c1[start_idx:]
+                batch_size = len(list_c1)
+
             list_c2 = payload.get("c2", [0.0] * batch_size)
             list_c3 = payload.get("c3", [0.0] * batch_size)
             list_c4 = payload.get("c4", [0.0] * batch_size)
@@ -126,10 +131,35 @@ class MQTTProtocolHandler:
             list_r11 = payload.get("r11", [0] * batch_size)
             list_r12 = payload.get("r12", [0] * batch_size)
 
+            if len(list_c2) > batch_size: list_c2 = list_c2[-batch_size:]
+            if len(list_c3) > batch_size: list_c3 = list_c3[-batch_size:]
+            if len(list_c4) > batch_size: list_c4 = list_c4[-batch_size:]
+            if len(list_c5) > batch_size: list_c5 = list_c5[-batch_size:]
+            if len(list_c6) > batch_size: list_c6 = list_c6[-batch_size:]
+            if len(list_c7) > batch_size: list_c7 = list_c7[-batch_size:]
+            if len(list_c8) > batch_size: list_c8 = list_c8[-batch_size:]
+            if len(list_c9) > batch_size: list_c9 = list_c9[-batch_size:]
+            if len(list_c10) > batch_size: list_c10 = list_c10[-batch_size:]
+            if len(list_c11) > batch_size: list_c11 = list_c11[-batch_size:]
+            if len(list_c12) > batch_size: list_c12 = list_c12[-batch_size:]
+            if len(list_r1) > batch_size: list_r1 = list_r1[-batch_size:]
+            if len(list_r2) > batch_size: list_r2 = list_r2[-batch_size:]
+            if len(list_r3) > batch_size: list_r3 = list_r3[-batch_size:]
+            if len(list_r4) > batch_size: list_r4 = list_r4[-batch_size:]
+            if len(list_r5) > batch_size: list_r5 = list_r5[-batch_size:]
+            if len(list_r6) > batch_size: list_r6 = list_r6[-batch_size:]
+            if len(list_r7) > batch_size: list_r7 = list_r7[-batch_size:]
+            if len(list_r8) > batch_size: list_r8 = list_r8[-batch_size:]
+            if len(list_r9) > batch_size: list_r9 = list_r9[-batch_size:]
+            if len(list_r10) > batch_size: list_r10 = list_r10[-batch_size:]
+            if len(list_r11) > batch_size: list_r11 = list_r11[-batch_size:]
+            if len(list_r12) > batch_size: list_r12 = list_r12[-batch_size:]
             end_ts_us = payload.get("ts_us") or int(time.time() * 1_000_000)
             end_counter = payload.get("cnt") or payload.get("counter", 0)
 
-            current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
+            current_sps = (
+                payload.get("sps") or payload.get("rate") or SAMPLING_RATE_12LEADS
+            )
             interval_us = int((1 / current_sps) * 1_000_000)
 
             samples = []
@@ -174,7 +204,7 @@ class MQTTProtocolHandler:
             logger.error(
                 f"[MQTTProtocolHandler] Unexpected error in _parse_batch_packet_12leads: {e}"
             )
-            return [], 0, "Error", SAMPLING_RATE
+            return [], 0, "Error", SAMPLING_RATE_12LEADS
 
     def _parse_single_packet_12leads(
         self, payload: dict
@@ -216,7 +246,9 @@ class MQTTProtocolHandler:
             )
 
             counter = payload.get("cnt", payload.get("counter", 0))
-            current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
+            current_sps = (
+                payload.get("sps") or payload.get("rate") or SAMPLING_RATE_12LEADS
+            )
 
             logger.debug(
                 "[MQTTProtocolHandler] Successfully completed _parse_single_packet_12leads."
@@ -226,7 +258,7 @@ class MQTTProtocolHandler:
             logger.error(
                 f"[MQTTProtocolHandler] Unexpected error in _parse_single_packet_12leads: {e}"
             )
-            return [], 0, "Error", SAMPLING_RATE
+            return [], 0, "Error", SAMPLING_RATE_12LEADS
 
     def _parse_batch_packet(
         self, payload: dict
@@ -247,8 +279,20 @@ class MQTTProtocolHandler:
             end_counter = payload.get("cnt") or payload.get("counter", 0)
 
             batch_size = len(list_c1)
+            if batch_size > MAX_PACKET_SAMPLES:
+                start_idx = batch_size - MAX_PACKET_SAMPLES
+                list_c1 = list_c1[start_idx:]
+                list_c2 = list_c2[start_idx:]
+                list_c3 = list_c3[start_idx:]
+                list_c4 = list_c4[start_idx:]
+                list_c5 = list_c5[start_idx:]
+                list_r1 = list_r1[start_idx:]
+                list_r2 = list_r2[start_idx:]
+                list_r3 = list_r3[start_idx:]
+                batch_size = len(list_c1)
             current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
             interval_us = int((1 / current_sps) * 1_000_000)
+
 
             samples = self._build_samples_array(
                 batch_size,

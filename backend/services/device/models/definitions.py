@@ -63,6 +63,7 @@ class DeviceState:
             self.last_state_update = 0.0
 
             self.ui_tasks: List[asyncio.Task] = []
+            self.ui_semaphore = asyncio.Semaphore(1)
 
             self.live_raw_buffer_5leads: Dict[str, Deque[float]] = {
                 "lead_i": deque(maxlen=LIVE_BUFFER_SIZE),
