@@ -62,7 +62,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=settings.allowed_proxy_hosts_list)
+app.add_middleware(
+    ProxyHeadersMiddleware, trusted_hosts=settings.allowed_proxy_hosts_list
+)
 
 
 @app.middleware("http")

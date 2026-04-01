@@ -34,17 +34,22 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     ALLOWED_PROXY_HOSTS: str = "127.0.0.1,localhost"
+
     @model_validator(mode="after")
     def _ensure_secret_key(self):
         if not self.SECRET_KEY:
             self.SECRET_KEY = secrets.token_hex(32)
         return self
+
     @property
     def allowed_origins_list(self) -> List[str]:
-        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+        items = [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+        return items or ["http://localhost:3000"]
+
     @property
     def allowed_proxy_hosts_list(self) -> List[str]:
-        return [h.strip() for h in self.ALLOWED_PROXY_HOSTS.split(",") if h.strip()]
+        items = [h.strip() for h in self.ALLOWED_PROXY_HOSTS.split(",") if h.strip()]
+        return items or ["127.0.0.1", "localhost"]
 
     @property
     def DATABASE_URL(self) -> str:

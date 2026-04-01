@@ -131,29 +131,52 @@ class MQTTProtocolHandler:
             list_r11 = payload.get("r11", [0] * batch_size)
             list_r12 = payload.get("r12", [0] * batch_size)
 
-            if len(list_c2) > batch_size: list_c2 = list_c2[-batch_size:]
-            if len(list_c3) > batch_size: list_c3 = list_c3[-batch_size:]
-            if len(list_c4) > batch_size: list_c4 = list_c4[-batch_size:]
-            if len(list_c5) > batch_size: list_c5 = list_c5[-batch_size:]
-            if len(list_c6) > batch_size: list_c6 = list_c6[-batch_size:]
-            if len(list_c7) > batch_size: list_c7 = list_c7[-batch_size:]
-            if len(list_c8) > batch_size: list_c8 = list_c8[-batch_size:]
-            if len(list_c9) > batch_size: list_c9 = list_c9[-batch_size:]
-            if len(list_c10) > batch_size: list_c10 = list_c10[-batch_size:]
-            if len(list_c11) > batch_size: list_c11 = list_c11[-batch_size:]
-            if len(list_c12) > batch_size: list_c12 = list_c12[-batch_size:]
-            if len(list_r1) > batch_size: list_r1 = list_r1[-batch_size:]
-            if len(list_r2) > batch_size: list_r2 = list_r2[-batch_size:]
-            if len(list_r3) > batch_size: list_r3 = list_r3[-batch_size:]
-            if len(list_r4) > batch_size: list_r4 = list_r4[-batch_size:]
-            if len(list_r5) > batch_size: list_r5 = list_r5[-batch_size:]
-            if len(list_r6) > batch_size: list_r6 = list_r6[-batch_size:]
-            if len(list_r7) > batch_size: list_r7 = list_r7[-batch_size:]
-            if len(list_r8) > batch_size: list_r8 = list_r8[-batch_size:]
-            if len(list_r9) > batch_size: list_r9 = list_r9[-batch_size:]
-            if len(list_r10) > batch_size: list_r10 = list_r10[-batch_size:]
-            if len(list_r11) > batch_size: list_r11 = list_r11[-batch_size:]
-            if len(list_r12) > batch_size: list_r12 = list_r12[-batch_size:]
+            if len(list_c2) > batch_size:
+                list_c2 = list_c2[-batch_size:]
+            if len(list_c3) > batch_size:
+                list_c3 = list_c3[-batch_size:]
+            if len(list_c4) > batch_size:
+                list_c4 = list_c4[-batch_size:]
+            if len(list_c5) > batch_size:
+                list_c5 = list_c5[-batch_size:]
+            if len(list_c6) > batch_size:
+                list_c6 = list_c6[-batch_size:]
+            if len(list_c7) > batch_size:
+                list_c7 = list_c7[-batch_size:]
+            if len(list_c8) > batch_size:
+                list_c8 = list_c8[-batch_size:]
+            if len(list_c9) > batch_size:
+                list_c9 = list_c9[-batch_size:]
+            if len(list_c10) > batch_size:
+                list_c10 = list_c10[-batch_size:]
+            if len(list_c11) > batch_size:
+                list_c11 = list_c11[-batch_size:]
+            if len(list_c12) > batch_size:
+                list_c12 = list_c12[-batch_size:]
+            if len(list_r1) > batch_size:
+                list_r1 = list_r1[-batch_size:]
+            if len(list_r2) > batch_size:
+                list_r2 = list_r2[-batch_size:]
+            if len(list_r3) > batch_size:
+                list_r3 = list_r3[-batch_size:]
+            if len(list_r4) > batch_size:
+                list_r4 = list_r4[-batch_size:]
+            if len(list_r5) > batch_size:
+                list_r5 = list_r5[-batch_size:]
+            if len(list_r6) > batch_size:
+                list_r6 = list_r6[-batch_size:]
+            if len(list_r7) > batch_size:
+                list_r7 = list_r7[-batch_size:]
+            if len(list_r8) > batch_size:
+                list_r8 = list_r8[-batch_size:]
+            if len(list_r9) > batch_size:
+                list_r9 = list_r9[-batch_size:]
+            if len(list_r10) > batch_size:
+                list_r10 = list_r10[-batch_size:]
+            if len(list_r11) > batch_size:
+                list_r11 = list_r11[-batch_size:]
+            if len(list_r12) > batch_size:
+                list_r12 = list_r12[-batch_size:]
             end_ts_us = payload.get("ts_us") or int(time.time() * 1_000_000)
             end_counter = payload.get("cnt") or payload.get("counter", 0)
 
@@ -292,7 +315,6 @@ class MQTTProtocolHandler:
                 batch_size = len(list_c1)
             current_sps = payload.get("sps") or payload.get("rate") or SAMPLING_RATE
             interval_us = int((1 / current_sps) * 1_000_000)
-
 
             samples = self._build_samples_array(
                 batch_size,
