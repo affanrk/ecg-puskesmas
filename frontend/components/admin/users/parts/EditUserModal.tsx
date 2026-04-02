@@ -8,7 +8,7 @@ import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { validators } from '@/utils/validators';
-import { PatientIdentitySection } from './UserFormFields';
+import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
 import ReviewSummaryTable from './ReviewSummaryTable';
 import { getActiveProfile } from '@/utils/helpers';
 
@@ -23,6 +23,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [serverError, setServerError] = useState('');
     const [showPatientForm, setShowPatientForm] = useState(user.is_patient);
+    const [showOperatorForm, setShowOperatorForm] = useState(!!user.is_operator);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
     const getInitialRole = useCallback(() => {
@@ -39,7 +40,8 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         account_status: user.is_active ? 'ACTIVE' : 'INACTIVE', 
         activation_status: user.is_activated === 1 ? 'APPROVE' : 'REJECT',
         full_name: (getActiveProfile(user)?.full_name || "") || '', nik: (getActiveProfile(user)?.nik || "") || '', pob: (getActiveProfile(user)?.pob || "") || '', dob: (getActiveProfile(user)?.dob || "") || '',
-        gender: (getActiveProfile(user)?.gender || "") || 'L', contact_number: (getActiveProfile(user)?.contact_number || "") || '', address: (getActiveProfile(user)?.address || "") || '', medical_history: (getActiveProfile(user)?.medical_history || "") || ''
+        gender: (getActiveProfile(user)?.gender || "") || 'L', contact_number: (getActiveProfile(user)?.contact_number || "") || '', address: (getActiveProfile(user)?.address || "") || '', medical_history: (getActiveProfile(user)?.medical_history || "") || '',
+        operator_role: (getActiveProfile(user)?.operator_role || "") || '', str_number: (getActiveProfile(user)?.str_number || "") || '', work_location: (getActiveProfile(user)?.work_location || "") || ''
     });
 
     const getChangedFields = useCallback(() => {
@@ -81,6 +83,33 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 'contact_number': { label: 'Contact', value: formData.contact_number },
                 'address': { label: 'Address', value: formData.address },
                 'medical_history': { label: 'Medical History', value: formData.medical_history }
+            });
+        } else if (formData.role === 'operator') {
+            Object.assign(initialMap, {
+                'activation_status': { label: 'Verification Status', value: user.is_activated === 1 ? 'FULL-ACCESS' : 'RESTRICTED' },
+                'full_name': { label: 'Full Name', value: (getActiveProfile(user)?.full_name || "") },
+                'nik': { label: 'NIK', value: (getActiveProfile(user)?.nik || "") },
+                'pob': { label: 'Place of Birth', value: (getActiveProfile(user)?.pob || "") },
+                'dob': { label: 'Date of Birth', value: (getActiveProfile(user)?.dob || "") },
+                'gender': { label: 'Gender', value: (getActiveProfile(user)?.gender || "") ? ((getActiveProfile(user)?.gender || "") === 'L' ? 'Male' : 'Female') : null },
+                'contact_number': { label: 'Contact', value: (getActiveProfile(user)?.contact_number || "") },
+                'address': { label: 'Address', value: (getActiveProfile(user)?.address || "") },
+                'operator_role': { label: 'Professional Role', value: (getActiveProfile(user)?.operator_role || "") },
+                'str_number': { label: 'STR Number', value: (getActiveProfile(user)?.str_number || "") },
+                'work_location': { label: 'Work Location', value: (getActiveProfile(user)?.work_location || "") }
+            });
+            Object.assign(currentMap, {
+                'activation_status': { label: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS' : 'RESTRICTED' },
+                'full_name': { label: 'Full Name', value: formData.full_name },
+                'nik': { label: 'NIK', value: formData.nik },
+                'pob': { label: 'Place of Birth', value: formData.pob },
+                'dob': { label: 'Date of Birth', value: formData.dob },
+                'gender': { label: 'Gender', value: formData.gender === 'L' ? 'Male' : 'Female' },
+                'contact_number': { label: 'Contact', value: formData.contact_number },
+                'address': { label: 'Address', value: formData.address },
+                'operator_role': { label: 'Professional Role', value: formData.operator_role },
+                'str_number': { label: 'STR Number', value: formData.str_number },
+                'work_location': { label: 'Work Location', value: formData.work_location }
             });
         }
 
@@ -128,6 +157,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 if (value === getInitialRole()) newState.activation_status = user.is_activated === 1 ? 'APPROVE' : 'REJECT';
                 else if (user.is_patient && value !== 'patient') newState.activation_status = 'REJECT';
                 setShowPatientForm(value === 'patient');
+                setShowOperatorForm(value === 'operator');
             }
             return newState;
         });
@@ -142,6 +172,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         setServerError('');
 
         const isNewlyPatient = formData.role === 'patient' && !user.is_patient;
+        const isNewlyOperator = formData.role === 'operator' && !user.is_operator;
         const payload: UserFormPayload = {
             username: formData.username, 
             email: formData.email, 
@@ -152,6 +183,12 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
                 contact_number: formData.contact_number || undefined, medical_history: formData.medical_history || undefined
+            }),
+            ...((formData.role === 'operator' && (isNewlyOperator || showOperatorForm)) && {
+                full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
+                gender: formData.gender, address: formData.address || undefined,
+                contact_number: formData.contact_number || undefined,
+                operator_role: formData.operator_role, str_number: formData.str_number, work_location: formData.work_location || undefined
             })
         };
 
@@ -195,10 +232,26 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
             const dobErr = validators.dob(formData.dob);
             if (dobErr) newErrors.dob = dobErr;
         }
+        if (formData.role === 'operator') {
+            const nameErr = validators.name(formData.full_name);
+            if (nameErr) newErrors.full_name = nameErr;
+            const nikErr = validators.nik(formData.nik);
+            if (nikErr) newErrors.nik = nikErr;
+            if (validators.required(formData.pob)) newErrors.pob = 'Required';
+            const dobErr = validators.dob(formData.dob);
+            if (dobErr) newErrors.dob = dobErr;
+            if (validators.required(formData.operator_role)) newErrors.operator_role = 'Required';
+            if (validators.required(formData.str_number)) newErrors.str_number = 'Required';
+            const phoneErr = validators.phone(formData.contact_number);
+            if (phoneErr) newErrors.contact_number = phoneErr;
+        }
 
         if (Object.keys(newErrors).length > 0) {
             if (formData.role === 'patient' && !showPatientForm) {
                 setShowPatientForm(true);
+            }
+            if (formData.role === 'operator' && !showOperatorForm) {
+                setShowOperatorForm(true);
             }
             return setErrors(newErrors);
         }
@@ -262,6 +315,30 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                             )}
 
                             {showPatientForm && <PatientIdentitySection formData={formData} errors={errors} handleFieldChange={handleFieldChange} />}
+                        </div>
+                    )}
+
+                    {formData.role === 'operator' && (
+                        <div className="space-y-4 pt-2 border-t border-slate-100">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operator Identity</h3>
+                                    {user.status && (
+                                        <span className={clsx(
+                                            "ml-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border",
+                                            user.status === 'APPROVED' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                                user.status === 'REJECTED' ? "bg-rose-50 text-rose-600 border-rose-100" :
+                                                    "bg-amber-50 text-amber-600 border-amber-100"
+                                        )}>
+                                            {user.status}
+                                        </span>
+                                    )}
+                                </div>
+                                <button type="button" onClick={() => setShowOperatorForm(!showOperatorForm)} className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", showOperatorForm ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100")}>{showOperatorForm ? <><ChevronUp size={14} /> Hide Details</> : <><UserCircle size={14} /> {user.is_operator ? "Edit Operator Profile" : "Add Operator Profile"}</>}</button>
+                            </div>
+
+                            {showOperatorForm && <OperatorIdentitySection formData={formData} errors={errors} handleFieldChange={handleFieldChange} />}
                         </div>
                     )}
 

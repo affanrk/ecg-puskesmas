@@ -115,7 +115,7 @@ export default function UserApprovals() {
                 };
                 let data;
                 if (adminViewMode === 'queue') {
-                    if (approvalType === 'patient') {
+                    if (approvalType === 'patient' || approvalType === 'operator') {
                         data = await api.fetchPendingApprovals(filters);
                         if (currentFetchId === fetchIdRef.current) setPendingUsers(data);
                     } else {
@@ -239,21 +239,23 @@ export default function UserApprovals() {
                         <RefreshCcw size={40} className="text-rose-200 animate-spin mb-4" />
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
                     </div>
-                ) : approvalType !== 'patient' ? (
-                    <ApprovalsComingSoon type={approvalType} />
                 ) : adminViewMode === 'queue' ? (
-                    <ApprovalsQueue
-                        users={pendingUsers}
-                        rowsPerPage={rowsPerPage}
-                        setRowsPerPage={setRowsPerPage}
-                        currentPage={queuePage}
-                        setCurrentPage={setQueuePage}
-                        searchTerm={searchTerm}
-                        dateRange={{ start: startDate, end: endDate }}
-                        onApprove={(id, name) => setApprovingUser({ id, name })}
-                        onReject={(id, name) => { setRejectingUser({ id, name }); setRejectionReason(''); }}
-                        onViewDetails={setSelectedUser}
-                    />
+                    approvalType === 'doctor' ? (
+                        <ApprovalsComingSoon type={approvalType} />
+                    ) : (
+                        <ApprovalsQueue
+                            users={pendingUsers}
+                            rowsPerPage={rowsPerPage}
+                            setRowsPerPage={setRowsPerPage}
+                            currentPage={queuePage}
+                            setCurrentPage={setQueuePage}
+                            searchTerm={searchTerm}
+                            dateRange={{ start: startDate, end: endDate }}
+                            onApprove={(id, name) => setApprovingUser({ id, name })}
+                            onReject={(id, name) => { setRejectingUser({ id, name }); setRejectionReason(''); }}
+                            onViewDetails={setSelectedUser}
+                        />
+                    )
                 ) : (
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <ApprovalLogs logs={logs} rowsPerPage={rowsPerPage} setRowsPerPage={setRowsPerPage} currentPage={currentPage} setCurrentPage={setCurrentPage} />

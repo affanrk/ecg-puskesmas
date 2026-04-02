@@ -13,6 +13,7 @@ interface SidebarItemProps {
     isDark?: boolean;
     lockReason?: string;
     showBadge?: boolean;
+    variant?: 'teal' | 'amber' | 'rose';
 }
 
 export function SidebarItem({
@@ -24,7 +25,8 @@ export function SidebarItem({
     allowed = true,
     isDark = false,
     lockReason,
-    showBadge = false
+    showBadge = false,
+    variant
 }: SidebarItemProps) {
     const isActive = pathname === href;
     const isVisible = clsx(
@@ -46,21 +48,47 @@ export function SidebarItem({
         );
     }
 
-    const activeColors = isDark 
-        ? "bg-rose-500/10 text-rose-500 shadow-sm ring-1 ring-rose-500/20" 
-        : "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100";
-    
-    const activeBar = isDark ? "bg-rose-500" : "bg-teal-500";
-    const hoverColors = isDark ? "hover:bg-slate-800 hover:text-white" : "hover:bg-slate-50 hover:text-slate-900";
-    const iconBaseColor = isDark ? "text-slate-500" : "text-slate-400";
-    const iconActiveColor = isDark ? "text-rose-500" : "text-teal-600";
+    const theme = isDark ? (variant || 'rose') : (variant || 'teal');
+
+    let activeColors = "";
+    let activeBar = "";
+    let iconActiveColor = "";
+
+    if (isDark) {
+        activeColors = "bg-rose-500/10 text-rose-500 shadow-sm ring-1 ring-rose-500/20";
+        activeBar = "bg-rose-500";
+        iconActiveColor = "text-rose-500";
+    } else {
+        if (theme === 'amber') {
+            activeColors = "bg-amber-50 text-amber-700 shadow-sm ring-1 ring-amber-100";
+            activeBar = "bg-amber-500";
+            iconActiveColor = "text-amber-600";
+        } else {
+            activeColors = "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100";
+            activeBar = "bg-teal-500";
+            iconActiveColor = "text-teal-600";
+        }
+    }
+
+    const isAmber = !isDark && theme === 'amber';
+    const hoverColors = isDark
+        ? "hover:bg-slate-800 hover:text-white"
+        : (isAmber
+            ? "hover:bg-amber-50 hover:text-amber-900"
+            : "hover:bg-slate-50 hover:text-slate-900");
+    const inactiveBase = isDark
+        ? "text-slate-500"
+        : (isAmber
+            ? "text-slate-600"
+            : "text-slate-500");
+    const iconBaseColor = isDark ? "text-slate-500" : (isAmber ? "text-amber-500" : "text-slate-400");
 
     return (
         <Link
             href={href}
             className={clsx(
                 "flex items-center gap-3 px-4 py-3.5 rounded-md transition-all duration-200 font-bold text-sm w-full group relative overflow-hidden",
-                isActive ? activeColors : `text-slate-500 ${hoverColors}`
+                isActive ? activeColors : `${inactiveBase} ${hoverColors}`
             )}
         >
             {isActive && <div className={clsx("absolute left-0 top-0 bottom-0 w-1 rounded-r-full", activeBar)} />}

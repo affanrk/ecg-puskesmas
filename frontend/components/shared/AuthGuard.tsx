@@ -37,6 +37,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             const isPatient = userData.is_patient;
             const isOperator = userData.is_operator;
             const isDoctor = userData.is_doctor;
+            const unlockOperator = process.env.NEXT_PUBLIC_UNLOCK_OPERATOR === '1' || process.env.NEXT_PUBLIC_UNLOCK_OPERATOR === 'true';
 
             const isDashboardRoute = pathname === '/dashboard';
             const isOnboarding = pathname.startsWith('/onboarding');
@@ -44,6 +45,10 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             const isOperatorRoute = pathname.startsWith('/operator');
             const isDoctorRoute = pathname.startsWith('/doctor');
             const isAdminRoute = pathname.startsWith('/admin');
+
+            if (unlockOperator && isOperatorRoute) {
+                return true;
+            }
 
             const hasRole = isPatient || isOperator || isDoctor || role === 'admin';
 

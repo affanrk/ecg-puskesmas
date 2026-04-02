@@ -25,6 +25,7 @@ export default function SidebarContainer({ children, className }: SidebarContain
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const isAmber = !!className && (className.includes('bg-amber') || className.includes('theme-amber'));
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
@@ -52,7 +53,10 @@ export default function SidebarContainer({ children, className }: SidebarContain
             >
                 {!isSidebarPinned && !isHovered && (
                     <div className="absolute right-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-pointer group">
-                        <div className="w-1 h-12 bg-slate-300 rounded-full group-hover:bg-teal-400 transition-colors" />
+                        <div className={clsx(
+                            "w-1 h-12 bg-slate-300 rounded-full transition-colors",
+                            isAmber ? "group-hover:bg-amber-500" : "group-hover:bg-teal-400"
+                        )} />
                         <ChevronsRight size={16} className="text-slate-400 absolute opacity-0 group-hover:opacity-100 transition-opacity animate-pulse" />
                     </div>
                 )}

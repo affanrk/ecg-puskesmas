@@ -7,7 +7,7 @@ import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { validators } from '@/utils/validators';
-import { PatientIdentitySection } from './UserFormFields';
+import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
 import ReviewSummaryTable from './ReviewSummaryTable';
 
 interface CreateUserModalProps {
@@ -23,7 +23,8 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
 
     const [formData, setFormData] = useState({
         username: '', email: '', password: '', role: 'user', account_status: 'ACTIVE', activation_status: 'REJECT',
-        full_name: '', nik: '', pob: '', dob: '', gender: 'L', contact_number: '', address: '', medical_history: ''
+        full_name: '', nik: '', pob: '', dob: '', gender: 'L', contact_number: '', address: '', medical_history: '',
+        operator_role: '', str_number: '', work_location: ''
     });
 
     const validateField = (field: string, value: string) => {
@@ -42,7 +43,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         setFormData(prev => {
             const newState = { ...prev, [field]: value };
 
-            if (field === 'role' && value !== 'patient') {
+            if (field === 'role') {
                 newState.activation_status = 'REJECT';
             }
 
@@ -69,6 +70,12 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
                 contact_number: formData.contact_number || undefined, medical_history: formData.medical_history || undefined
+            },
+            ...(formData.role === 'operator') && {
+                full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
+                gender: formData.gender, address: formData.address || undefined,
+                contact_number: formData.contact_number || undefined,
+                operator_role: formData.operator_role, str_number: formData.str_number, work_location: formData.work_location || undefined
             }
         };
 
@@ -102,6 +109,20 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
             
             const dobErr = validators.dob(formData.dob);
             if (dobErr) newErrors.dob = dobErr;
+        }
+
+        if (formData.role === 'operator') {
+            const nameErr = validators.name(formData.full_name);
+            if (nameErr) newErrors.full_name = nameErr;
+            const nikErr = validators.nik(formData.nik);
+            if (nikErr) newErrors.nik = nikErr;
+            if (validators.required(formData.pob)) newErrors.pob = 'Required';
+            const dobErr = validators.dob(formData.dob);
+            if (dobErr) newErrors.dob = dobErr;
+            if (validators.required(formData.operator_role)) newErrors.operator_role = 'Required';
+            if (validators.required(formData.str_number)) newErrors.str_number = 'Required';
+            const phoneErr = validators.phone(formData.contact_number);
+            if (phoneErr) newErrors.contact_number = phoneErr;
         }
 
         if (Object.keys(newErrors).length > 0) return setErrors(newErrors);
@@ -144,6 +165,15 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                         </div>
                     )}
 
+                    {formData.role === 'operator' && (
+                        <div className="space-y-4 pt-2 border-t border-slate-50">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Operator Information
+                            </h3>
+                            <OperatorIdentitySection formData={formData} errors={errors} handleFieldChange={handleFieldChange} />
+                        </div>
+                    )}
+
                     <div className="pt-4 pb-6 -bottom-6 sticky bg-white z-10 border-t border-slate-50 mt-4">
                         {serverError && !Object.keys(errors).length && <p className="text-[10px] font-bold text-rose-500 text-center mb-2">{serverError}</p>}
                         <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
@@ -162,6 +192,13 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                             { field: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS (Auto-Approved)' : 'RESTRICTED (Queue)' },
                             { field: 'NIK', value: formData.nik },
                             { field: 'Full Name', value: formData.full_name }
+                        ] : []),
+                        ...(formData.role === 'operator' ? [
+                            { field: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS (Auto-Approved)' : 'RESTRICTED (Queue)' },
+                            { field: 'NIK', value: formData.nik },
+                            { field: 'Full Name', value: formData.full_name },
+                            { field: 'Role', value: formData.operator_role },
+                            { field: 'STR Number', value: formData.str_number }
                         ] : [])
                     ]} />
                 </div>} confirmText="Create User Account" />
