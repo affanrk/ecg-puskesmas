@@ -118,6 +118,20 @@ class PatientRepository(BaseRepository[TbMPatient]):
             update_data = profile_data.model_dump(exclude_unset=True)
             source = update_data.pop("source", "WEB")
 
+            if patient and source != "ADMIN":
+                status_val = getattr(patient, "status", None)
+                if status_val == "QUEUE":
+                    raise AppException(
+                        message="Profile under admin review", status_code=423
+                    )
+                if status_val == "APPROVED":
+                    immutable_fields = {"full_name", "nik", "dob", "gender", "pob"}
+                    if any(f in update_data for f in immutable_fields):
+                        raise AppException(
+                            message="Immutable fields cannot be changed after approval",
+                            status_code=403,
+                        )
+
             if "nik" in update_data and update_data["nik"]:
                 new_nik = update_data["nik"]
                 if not patient or patient.nik != new_nik:

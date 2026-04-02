@@ -38,8 +38,7 @@ async def health_check():
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in health_check: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -112,8 +111,7 @@ async def detailed_health_check(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in detailed_health_check: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -159,8 +157,7 @@ async def get_device_monitoring(admin: TbMUser = Depends(get_admin_user)):
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in get_device_monitoring: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -198,8 +195,7 @@ async def get_performance_monitoring(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in get_performance_monitoring: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -224,8 +220,7 @@ async def get_ml_monitoring(admin: TbMUser = Depends(get_admin_user)):
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in get_ml_monitoring: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -248,6 +243,5 @@ async def cleanup_old_performance_logs(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in cleanup_old_performance_logs: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")

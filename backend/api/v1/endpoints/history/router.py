@@ -6,7 +6,8 @@ from repositories.calendar import CalendarRepository
 from core.dependencies import (
     get_session_repository,
     get_calendar_repository,
-    get_current_user,
+    get_patient_user,
+    get_activated_patient_user,
     DateRangeParams,
     enforce_data_access,
     verify_session_access,
@@ -74,7 +75,7 @@ async def get_calendar_view(
     hour: Optional[int] = Query(None),
     minute: Optional[int] = Query(None),
     calendar_repo: CalendarRepository = Depends(get_calendar_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_patient_user),
 ):
     try:
         user_id = enforce_data_access(user_id, current_user)
@@ -109,7 +110,7 @@ async def get_calendar_view(
 async def get_history_stats(
     user_id: Optional[str] = Query(None, description="Filter by User ID"),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_patient_user),
 ):
     try:
         user_id = enforce_data_access(user_id, current_user)
@@ -142,7 +143,7 @@ async def get_recording_history(
         MAX_HISTORY_RESULTS, le=MAX_HISTORY_RESULTS, description="Maximum results"
     ),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_patient_user),
 ):
     try:
         user_id = enforce_data_access(user_id, current_user)
@@ -176,7 +177,7 @@ async def get_recent_history(
     user_id: str = Query(..., description="User ID is required"),
     limit: int = Query(10, le=20, description="Maximum results"),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_patient_user),
 ):
     try:
         enforced_id = enforce_data_access(user_id, current_user)
@@ -199,7 +200,7 @@ async def get_recent_history(
 async def get_recording_detail(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_patient_user),
 ):
     try:
         session = session_repo.find_by_recording_id_or_fail(recording_id)
@@ -223,7 +224,7 @@ async def get_device_history(
     device_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_patient_user),
 ):
     try:
         if (
@@ -254,7 +255,7 @@ async def get_user_history(
     user_id: str,
     limit: int = Query(100, le=MAX_HISTORY_RESULTS),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_patient_user),
 ):
     try:
         enforced_id = enforce_data_access(user_id, current_user)

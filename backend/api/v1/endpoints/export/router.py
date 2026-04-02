@@ -15,7 +15,7 @@ from repositories.raw_data import (
 from services import plot_generator
 from core.dependencies import (
     get_session_repository,
-    get_current_user,
+    get_activated_user,
     verify_session_access,
 )
 from core import SessionLocal, RecordingNotFoundException, AppException
@@ -31,7 +31,7 @@ plot_executor = ThreadPoolExecutor(max_workers=2)
 async def export_raw_ecg_data(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_user),
 ):
     try:
         logger.info(
@@ -124,8 +124,7 @@ async def export_raw_ecg_data(
             db.close()
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in export_raw_ecg_data: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -133,7 +132,7 @@ async def export_raw_ecg_data(
 async def export_analysis_features(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_user),
 ):
     try:
         logger.info(
@@ -177,8 +176,7 @@ async def export_analysis_features(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in export_analysis_features: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -186,7 +184,7 @@ async def export_analysis_features(
 async def export_ecg_chart(
     recording_id: str = Path(..., max_length=100, description="Recording identifier"),
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_user),
 ):
     try:
         logger.info(
@@ -219,8 +217,7 @@ async def export_ecg_chart(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in export_ecg_chart: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -228,7 +225,7 @@ async def export_ecg_chart(
 async def export_complete_package(
     recording_id: str,
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_user),
 ):
     try:
         raise HTTPException(
@@ -236,8 +233,7 @@ async def export_complete_package(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in export_complete_package: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -246,12 +242,11 @@ async def export_batch_recordings(
     recording_ids: str,
     format: str = "csv",
     session_repo: SessionRepository = Depends(get_session_repository),
-    current_user: TbMUser = Depends(get_current_user),
+    current_user: TbMUser = Depends(get_activated_user),
 ):
     try:
         raise HTTPException(status_code=501, detail="Batch export not yet implemented")
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in export_batch_recordings: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")

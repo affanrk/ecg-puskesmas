@@ -28,7 +28,6 @@ def get_session_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_session_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_session_repository: {e}")
         raise AppException(
             message=f"Error initializing SessionRepository: {e}", status_code=500
         )
@@ -41,7 +40,6 @@ def get_calendar_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_calendar_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_calendar_repository: {e}")
         raise AppException(
             message=f"Error initializing CalendarRepository: {e}", status_code=500
         )
@@ -56,7 +54,6 @@ def get_performance_repository(db: Session = Depends(get_db)):
         )
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_performance_repository: {e}")
         raise AppException(
             message=f"Error initializing PerformanceRepository: {e}", status_code=500
         )
@@ -69,7 +66,6 @@ def get_user_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_user_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_user_repository: {e}")
         raise AppException(
             message=f"Error initializing UserRepository: {e}", status_code=500
         )
@@ -82,7 +78,6 @@ def get_patient_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_patient_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_patient_repository: {e}")
         raise AppException(
             message=f"Error initializing PatientRepository: {e}", status_code=500
         )
@@ -95,7 +90,6 @@ def get_operator_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_operator_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_operator_repository: {e}")
         raise AppException(
             message=f"Error initializing OperatorRepository: {e}", status_code=500
         )
@@ -108,7 +102,6 @@ def get_doctor_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_doctor_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_doctor_repository: {e}")
         raise AppException(
             message=f"Error initializing DoctorRepository: {e}", status_code=500
         )
@@ -121,7 +114,6 @@ def get_approval_repository(db: Session = Depends(get_db)):
         logger.debug("[injection/None] Successfully completed get_approval_repository.")
         return repo
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_approval_repository: {e}")
         raise AppException(
             message=f"Error initializing ApprovalRepository: {e}", status_code=500
         )
@@ -135,7 +127,6 @@ def get_device_state_manager():
         )
         return device_state_manager
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_device_state_manager: {e}")
         raise AppException(
             message=f"Error accessing device state manager: {e}", status_code=500
         )
@@ -150,10 +141,8 @@ def validate_device_exists(device_id: str):
         )
         return device_id
     except AppException as e:
-        logger.error(f"[injection] AppException in validate_device_exists: {e}")
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in validate_device_exists: {e}")
         raise AppException(message=f"Device validation error: {e}", status_code=500)
 
 
@@ -178,10 +167,7 @@ async def get_current_user(
         token_data = TokenData(email=username, sid=sid)
     except JWTError:
         raise credentials_exception
-    except Exception as e:
-        logger.error(
-            f"[injection] Unexpected error in get_current_user token decode: {e}"
-        )
+    except Exception:
         raise credentials_exception
 
     try:
@@ -205,9 +191,6 @@ async def get_current_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(
-            f"[injection] Unexpected error in get_current_user repo access: {e}"
-        )
         raise AppException(message=f"User retrieval error: {e}", status_code=500)
 
 
@@ -223,7 +206,6 @@ async def get_current_active_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_current_active_user: {e}")
         raise AppException(message=f"Active user check error: {e}", status_code=500)
 
 
@@ -242,7 +224,6 @@ async def get_admin_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_admin_user: {e}")
         raise AppException(message=f"Admin check error: {e}", status_code=500)
 
 
@@ -261,7 +242,6 @@ async def get_patient_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_patient_user: {e}")
         raise AppException(message=f"Patient role check error: {e}", status_code=500)
 
 
@@ -280,7 +260,6 @@ async def get_operator_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_operator_user: {e}")
         raise AppException(message=f"Operator role check error: {e}", status_code=500)
 
 
@@ -299,7 +278,6 @@ async def get_doctor_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_doctor_user: {e}")
         raise AppException(message=f"Doctor role check error: {e}", status_code=500)
 
 
@@ -322,8 +300,72 @@ async def get_unassigned_user(
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in get_unassigned_user: {e}")
         raise AppException(message=f"Unassigned role check error: {e}", status_code=500)
+
+
+async def get_activated_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    logger.debug("[injection/None] Starting get_activated_user...")
+    try:
+        if (
+            current_user.role != "admin"
+            and getattr(current_user, "is_activated", 0) != 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account not activated",
+            )
+        logger.debug("[injection/None] Successfully completed get_activated_user.")
+        return current_user
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise AppException(message=f"Activated user check error: {e}", status_code=500)
+
+
+async def get_activated_patient_user(
+    current_user: TbMUser = Depends(get_patient_user),
+) -> TbMUser:
+    logger.debug("[injection/None] Starting get_activated_patient_user...")
+    try:
+        if getattr(current_user, "is_activated", 0) != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account not activated",
+            )
+        logger.debug(
+            "[injection/None] Successfully completed get_activated_patient_user."
+        )
+        return current_user
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise AppException(
+            message=f"Activated patient check error: {e}", status_code=500
+        )
+
+
+async def get_activated_operator_user(
+    current_user: TbMUser = Depends(get_operator_user),
+) -> TbMUser:
+    logger.debug("[injection/None] Starting get_activated_operator_user...")
+    try:
+        if getattr(current_user, "is_activated", 0) != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Account not activated",
+            )
+        logger.debug(
+            "[injection/None] Successfully completed get_activated_operator_user."
+        )
+        return current_user
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise AppException(
+            message=f"Activated operator check error: {e}", status_code=500
+        )
 
 
 def enforce_data_access(user_id: str | None, current_user: TbMUser) -> str | None:
@@ -352,7 +394,6 @@ def enforce_data_access(user_id: str | None, current_user: TbMUser) -> str | Non
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in enforce_data_access: {e}")
         raise AppException(
             message=f"Data access enforcement error: {e}", status_code=500
         )
@@ -377,7 +418,6 @@ def verify_session_access(session_user_id: str, current_user: TbMUser):
     except HTTPException as e:
         raise e
     except Exception as e:
-        logger.error(f"[injection] Unexpected error in verify_session_access: {e}")
         raise AppException(
             message=f"Session access verification error: {e}", status_code=500
         )

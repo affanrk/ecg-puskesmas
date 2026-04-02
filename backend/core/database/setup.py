@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 from core.config.setup import settings
 from utils import logger
 
@@ -18,8 +20,12 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
-    except Exception as e:
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
         logger.error(f"Database session error: {e}")
+        raise
+    except Exception:
         raise
     finally:
         db.close()

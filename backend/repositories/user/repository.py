@@ -186,9 +186,15 @@ class UserRepository(BaseRepository[TbMUser]):
         try:
             query = (
                 self.db.query(TbMUser)
-                .join(TbMUser.patient_profile)
-                .options(contains_eager(TbMUser.patient_profile))
-                .filter(TbMPatient.status == "QUEUE", TbMUser.is_active == 1)
+                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+                .outerjoin(TbMOperator, TbMUser.id == TbMOperator.user_id)
+                .outerjoin(TbMDoctor, TbMUser.id == TbMDoctor.user_id)
+                .options(
+                    joinedload(TbMUser.patient_profile),
+                    joinedload(TbMUser.operator_profile),
+                    joinedload(TbMUser.doctor_profile),
+                )
+                .filter(TbMUser.is_active == 1)
             )
 
             if search:
@@ -199,6 +205,10 @@ class UserRepository(BaseRepository[TbMUser]):
                         TbMUser.email.ilike(search_filter),
                         TbMPatient.full_name.ilike(search_filter),
                         TbMPatient.nik.ilike(search_filter),
+                        TbMOperator.full_name.ilike(search_filter),
+                        TbMOperator.nik.ilike(search_filter),
+                        TbMDoctor.full_name.ilike(search_filter),
+                        TbMDoctor.nik.ilike(search_filter),
                     )
                 )
 
@@ -207,15 +217,42 @@ class UserRepository(BaseRepository[TbMUser]):
             if end_date:
                 query = query.filter(TbMUser.changed_dt <= f"{end_date} 23:59:59")
 
+            role_status_filters = []
             if is_patient is not None:
                 query = query.filter(TbMUser.is_patient == is_patient)
+                if is_patient:
+                    role_status_filters.append(TbMPatient.status == "QUEUE")
             if is_operator is not None:
                 query = query.filter(TbMUser.is_operator == is_operator)
+                if is_operator:
+                    role_status_filters.append(TbMOperator.status == "QUEUE")
             if is_doctor is not None:
                 query = query.filter(TbMUser.is_doctor == is_doctor)
+                if is_doctor:
+                    role_status_filters.append(TbMDoctor.status == "QUEUE")
+
+            if role_status_filters:
+                query = query.filter(or_(*role_status_filters))
+            else:
+                query = query.filter(
+                    or_(
+                        TbMPatient.status == "QUEUE",
+                        TbMOperator.status == "QUEUE",
+                        TbMDoctor.status == "QUEUE",
+                    )
+                )
 
             query = query.order_by(
-                asc(func.coalesce(TbMPatient.changed_dt, TbMPatient.created_dt))
+                asc(
+                    func.coalesce(
+                        TbMPatient.changed_dt,
+                        TbMPatient.created_dt,
+                        TbMOperator.changed_dt,
+                        TbMOperator.created_dt,
+                        TbMDoctor.changed_dt,
+                        TbMDoctor.created_dt,
+                    )
+                )
             )
             result = query.offset(skip).limit(limit).all()
             logger.debug(

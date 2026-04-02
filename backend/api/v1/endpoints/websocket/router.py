@@ -378,6 +378,16 @@ async def websocket_endpoint(
             )
             raise JWTError("User not found or inactive")
 
+        # if getattr(db_user, "is_activated", 0) != 1:
+        #     logger.warning(
+        #         f"[WS] Connection rejected: User not activated ({email})"
+        #     )
+        #     await websocket.send_json(
+        #         {"type": "error", "message": "Account not activated"}
+        #     )
+        #     await websocket.close(code=4003)
+        #     return
+
         if db_user.current_session_id and db_user.current_session_id != sid:
             logger.warning(f"[WS] Connection rejected: Session expired for {email}")
             await websocket.send_json({"type": "error", "message": "Session expired"})

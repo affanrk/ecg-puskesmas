@@ -56,8 +56,7 @@ def register(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in register: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -117,8 +116,7 @@ async def login(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in login: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -137,8 +135,7 @@ def logout(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in logout: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -152,8 +149,7 @@ def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in get_current_user_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -181,8 +177,7 @@ def create_patient_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in create_patient_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -210,8 +205,7 @@ def create_operator_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in create_operator_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -237,8 +231,7 @@ def create_doctor_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in create_doctor_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -263,8 +256,7 @@ def update_patient_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in update_patient_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -289,8 +281,7 @@ def update_operator_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in update_operator_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -315,8 +306,7 @@ def update_doctor_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in update_doctor_profile: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -339,8 +329,7 @@ def update_user_username(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in update_user_username: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -363,6 +352,5 @@ def update_user_password(
         )
     except (HTTPException, AppException):
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in update_user_password: {e}")
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
