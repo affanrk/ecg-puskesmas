@@ -50,6 +50,9 @@ class ECGSample12Leads:
 
 
 class MQTTProtocolHandler:
+    def __init__(self):
+        self._tie_breaker = 0
+
     def parse_packet(
         self, payload: dict, is_12_leads: bool
     ) -> Tuple[
@@ -451,8 +454,9 @@ class MQTTProtocolHandler:
     ):
         logger.debug("[MQTTProtocolHandler] Starting add_to_jitter_buffer...")
         try:
+            self._tie_breaker += 1
             heapq.heappush(
-                buffer, (start_counter, end_counter, time.time_ns(), payload)
+                buffer, (start_counter, end_counter, self._tie_breaker, payload)
             )
             logger.debug(
                 "[MQTTProtocolHandler] Successfully completed add_to_jitter_buffer."
@@ -476,11 +480,11 @@ class MQTTProtocolHandler:
             start_counter, end_counter, _, payload = buffer[0]
 
             if last_processed == 0 or start_counter == last_processed + 1:
-                result = heapq.heappop(buffer)
+                start_c, end_c, _, payload_data = heapq.heappop(buffer)
                 logger.debug(
                     "[MQTTProtocolHandler] Successfully completed get_next_from_buffer."
                 )
-                return result
+                return start_c, end_c, payload_data
 
             logger.debug(
                 "[MQTTProtocolHandler] Successfully completed get_next_from_buffer (None)."
