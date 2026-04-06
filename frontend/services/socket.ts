@@ -170,6 +170,13 @@ class WebSocketService {
         if (msg.type === "device_list_update") {
             store.setDevices(msg.devices);
             globalEventBus.emit(EVENTS.DEVICE.LIST_UPDATED, msg.devices);
+
+            if (store.currentDeviceId && !msg.devices.some(d => d.id === store.currentDeviceId)) {
+                store.setDeviceId(null);
+                store.setBpm('--');
+                if (store.isRecording) store.setRecording(false);
+                toast(`Device ${store.currentDeviceId} disconnected`, "warning");
+            }
             return;
         }
         if ('device_id' in msg && msg.device_id) {
@@ -233,6 +240,21 @@ class WebSocketService {
                 });
                 break;
             case "device_disconnected":
+                if (store.currentDeviceId === msg.device_id) {
+                    const wasRec = store.isRecording;
+                    store.setDeviceId(null);
+                    store.setBpm('--');
+                    if (wasRec) {
+                        store.setRecording(false);
+                        toast(`Recording PAUSED! Device ${msg.device_id} lost connection.`, "error");
+                    } else {
+                        toast(`Device ${msg.device_id} disconnected`, "warning");
+                    }
+                } else if (!store.currentDeviceId) {
+                    store.setDeviceId(null);
+                    store.setBpm('--');
+                    if (store.isRecording) store.setRecording(false);
+                }
                 globalEventBus.emit(EVENTS.DEVICE.DISCONNECTED, { device_id: msg.device_id });
                 break;
             case "subscription_success":

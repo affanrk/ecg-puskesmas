@@ -3,6 +3,7 @@
 import { useStore } from '@/store/useStore';
 import { formatDuration } from '@/utils/helpers';
 import { Timer, Heart } from 'lucide-react';
+import { useEffect } from 'react';
 import clsx from 'clsx';
 
 interface StatsPanelProps {
@@ -12,8 +13,18 @@ interface StatsPanelProps {
 
 export default function StatsPanel({ className }: StatsPanelProps) {
     const recordingSeconds = useStore(state => state.recordingSeconds);
+    const isRecording = useStore(state => state.isRecording);
+    const updateTimer = useStore(state => state.updateTimer);
     const bpm = useStore(state => state.bpm);
     const cardBase = "bg-white p-4 h-full flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500 border-none group";
+
+    useEffect(() => {
+        if (!isRecording) return;
+        const interval = setInterval(() => {
+            updateTimer();
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isRecording, updateTimer]);
 
     return (
         <div className={clsx("grid gap-px bg-slate-200 h-full", className || "grid-cols-2")}>
