@@ -109,9 +109,9 @@ export default function UserApprovals() {
                     search: debouncedSearch,
                     start_date: startDate,
                     end_date: endDate,
-                    is_patient: approvalType === 'patient' ? true : undefined,
-                    is_operator: approvalType === 'operator' ? true : undefined,
-                    is_doctor: approvalType === 'doctor' ? true : undefined,
+                    is_patient: approvalType === 'patient',
+                    is_operator: approvalType === 'operator',
+                    is_doctor: approvalType === 'doctor',
                 };
                 let data;
                 if (adminViewMode === 'queue') {
