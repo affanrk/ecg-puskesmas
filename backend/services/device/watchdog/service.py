@@ -325,18 +325,6 @@ class DeviceWatchdogService:
 
             device_state_manager.mark_recording_cancelled(recording_id)
 
-            async with device_state_manager.batch_lock:
-                device_state_manager.buffer_recording_5leads_batch[:] = [
-                    item
-                    for item in device_state_manager.buffer_recording_5leads_batch
-                    if item.get("recording_id") != recording_id
-                ]
-                device_state_manager.buffer_recording_12leads_batch[:] = [
-                    item
-                    for item in device_state_manager.buffer_recording_12leads_batch
-                    if item.get("recording_id") != recording_id
-                ]
-
             state.reset_recording_state()
 
             await device_state_manager.broadcast_to_device(

@@ -69,26 +69,15 @@ class RecordingStorageService:
         logger.debug("[RecordingStorageService] Starting _process_batches...")
         try:
             async with device_state_manager.batch_lock:
-                idle_items = device_state_manager.buffer_idle_batch.copy()
                 drained_5, drained_12 = (
                     await device_state_manager.drain_recording_buffers_locked()
                 )
-                rec_5leads_items = (
-                    device_state_manager.buffer_recording_5leads_batch.copy()
-                )
-                rec_12leads_items = (
-                    device_state_manager.buffer_recording_12leads_batch.copy()
-                )
-                rec_5leads_items.extend(drained_5)
-                rec_12leads_items.extend(drained_12)
+                rec_5leads_items = drained_5
+                rec_12leads_items = drained_12
                 perf_items = device_state_manager.perf_batch.copy()
-
-                device_state_manager.buffer_idle_batch.clear()
-                device_state_manager.buffer_recording_5leads_batch.clear()
-                device_state_manager.buffer_recording_12leads_batch.clear()
                 device_state_manager.perf_batch.clear()
 
-            if not (idle_items or rec_5leads_items or rec_12leads_items or perf_items):
+            if not (rec_5leads_items or rec_12leads_items or perf_items):
                 logger.debug(
                     "[RecordingStorageService] Successfully completed _process_batches (no items)."
                 )
@@ -152,7 +141,7 @@ class RecordingStorageService:
             "[RecordingStorageService] Starting _insert_5leads_recording_batch..."
         )
         try:
-            cancelled = device_state_manager.cancelled_recordings
+            cancelled = frozenset(device_state_manager.cancelled_recordings)
             valid_items = [
                 item for item in items if item["recording_id"] not in cancelled
             ]
@@ -230,7 +219,7 @@ class RecordingStorageService:
             "[RecordingStorageService] Starting _insert_12leads_recording_batch..."
         )
         try:
-            cancelled = device_state_manager.cancelled_recordings
+            cancelled = frozenset(device_state_manager.cancelled_recordings)
             valid_items = [
                 item for item in items if item["recording_id"] not in cancelled
             ]
@@ -392,12 +381,11 @@ class RecordingStorageService:
         logger.debug("[RecordingStorageService] Starting get_buffer_stats...")
         try:
             stats = {
-                "idle_buffer": len(device_state_manager.buffer_idle_batch),
-                "recording_5leads_buffer": len(
-                    device_state_manager.buffer_recording_5leads_batch
+                "recording_5leads_buffer": sum(
+                    len(v) for v in device_state_manager.recording_buffers_5.values()
                 ),
-                "recording_12leads_buffer": len(
-                    device_state_manager.buffer_recording_12leads_batch
+                "recording_12leads_buffer": sum(
+                    len(v) for v in device_state_manager.recording_buffers_12.values()
                 ),
                 "performance_buffer": len(device_state_manager.perf_batch),
                 "cancelled_recordings": len(device_state_manager.cancelled_recordings),

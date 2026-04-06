@@ -55,7 +55,8 @@ class DeviceState:
             self.last_seen = time.time()
             self.is_connected = False
             self.locked_by: Optional[WebSocket] = None
-            self.broadcast_count = 0
+            self.broadcast_count_5leads: int = 0
+            self.broadcast_count_12leads: int = 0
 
             self.last_performance_update = 0.0
             self.last_bpm_update = 0.0
@@ -64,6 +65,7 @@ class DeviceState:
 
             self.ui_tasks: List[asyncio.Task] = []
             self.ui_semaphore = asyncio.Semaphore(1)
+            self.last_ui_sent_counter: int = 0
 
             self.live_raw_buffer_5leads: Dict[str, Deque[float]] = {
                 "lead_i": deque(maxlen=LIVE_BUFFER_SIZE),

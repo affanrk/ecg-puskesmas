@@ -68,7 +68,7 @@ class MQTTDataHandler:
 
             async def background_ui_processing_5leads(signals, count, task_counter):
                 try:
-                    if task_counter < getattr(state, "last_ui_sent_counter", 0):
+                    if task_counter < state.last_ui_sent_counter:
                         return
 
                     loop = asyncio.get_running_loop()
@@ -80,7 +80,7 @@ class MQTTDataHandler:
                         name: filtered_results[name][-count:] for name in lead_names_5
                     }
 
-                    if task_counter >= getattr(state, "last_ui_sent_counter", 0):
+                    if task_counter >= state.last_ui_sent_counter:
                         state.last_ui_sent_counter = task_counter
                         await self._broadcast_ui_5leads_batch(
                             state, samples, filtered_leads, end_counter
@@ -103,8 +103,9 @@ class MQTTDataHandler:
                         raw_signals_5, samples_count_5, end_counter
                     )
 
-            ui_task = asyncio.create_task(_guarded_ui_task_5())
-            state.ui_tasks.append(ui_task)
+            if len(state.ui_tasks) < 3:
+                ui_task = asyncio.create_task(_guarded_ui_task_5())
+                state.ui_tasks.append(ui_task)
 
             if now - state.last_bpm_update >= 1.0:
                 state.last_bpm_update = now
@@ -254,7 +255,7 @@ class MQTTDataHandler:
 
             async def background_ui_processing_12leads(signals, count, task_counter):
                 try:
-                    if task_counter < getattr(state, "last_ui_sent_counter", 0):
+                    if task_counter < state.last_ui_sent_counter:
                         return
 
                     loop = asyncio.get_running_loop()
@@ -270,7 +271,7 @@ class MQTTDataHandler:
                         name: filtered_results[name][-count:] for name in lead_names_12
                     }
 
-                    if task_counter >= getattr(state, "last_ui_sent_counter", 0):
+                    if task_counter >= state.last_ui_sent_counter:
                         state.last_ui_sent_counter = task_counter
                         await self._broadcast_ui_12leads_batch(
                             state, samples, filtered_leads, end_counter
@@ -293,8 +294,10 @@ class MQTTDataHandler:
                         raw_signals_12, samples_count_12, end_counter
                     )
 
-            ui_task = asyncio.create_task(_guarded_ui_task_12())
-            state.ui_tasks.append(ui_task)
+            # Cap pending UI tasks to prevent memory growth under high MQTT load
+            if len(state.ui_tasks) < 3:
+                ui_task = asyncio.create_task(_guarded_ui_task_12())
+                state.ui_tasks.append(ui_task)
 
             if now - state.last_bpm_update >= 2.0:
                 state.last_bpm_update = now
@@ -632,8 +635,11 @@ class MQTTDataHandler:
                     }
                 )
 
-            state.broadcast_count += 1
-            if ui_batch and state.broadcast_count % UI_BROADCAST_THROTTLE_5LEADS == 0:
+            state.broadcast_count_5leads += 1
+            if (
+                ui_batch
+                and state.broadcast_count_5leads % UI_BROADCAST_THROTTLE_5LEADS == 0
+            ):
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
                     WSMessageType.LIVE_5LEADS_BATCH.value,
@@ -682,8 +688,11 @@ class MQTTDataHandler:
                     }
                 )
 
-            state.broadcast_count += 1
-            if ui_batch and state.broadcast_count % UI_BROADCAST_THROTTLE_12LEADS == 0:
+            state.broadcast_count_12leads += 1
+            if (
+                ui_batch
+                and state.broadcast_count_12leads % UI_BROADCAST_THROTTLE_12LEADS == 0
+            ):
                 await device_state_manager.broadcast_to_device(
                     state.device_id,
                     WSMessageType.LIVE_12LEADS_BATCH.value,
@@ -831,12 +840,16 @@ class MQTTDataHandler:
 
             asyncio.create_task(background_segment_completion())
 
-            self._create_session(
+            # Run synchronous DB call in thread pool to avoid blocking the event loop
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                None,
+                self._create_session,
                 new_id,
                 str(state.device_id),
                 str(state.subject_id),
                 str(state.recording_source),
-                device_type=device_type,
+                device_type,
             )
 
             await device_state_manager.notify_state_update(state.device_id)

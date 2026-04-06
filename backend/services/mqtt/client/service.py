@@ -86,42 +86,13 @@ class MQTTClientService:
                         if not device_id:
                             continue
 
-                        if device_id not in self._device_workers:
-                            is_12_leads = (
-                                "/12leads/" in topic_str or "/12leads" in topic_str
+                        q = await self._ensure_device_worker(device_id, topic_str)
+                        try:
+                            q.put_nowait((topic_str, message.payload))
+                        except asyncio.QueueFull:
+                            logger.warning(
+                                f"[MQTTClientService] Queue full for device {device_id}, dropping packet"
                             )
-
-                            state = device_state_manager.get_state(device_id)
-                            state.is_connected = True
-                            state.last_seen = time.time()
-                            state.current_lead_mode = 12 if is_12_leads else 5
-
-                            qsize = 50 if is_12_leads else 20
-                            queue = asyncio.Queue(maxsize=qsize)
-                            self._device_queues[device_id] = queue
-                            self._device_workers[device_id] = asyncio.create_task(
-                                self._device_worker_loop(device_id, queue)
-                            )
-                            await device_state_manager.notify_device_list_update()
-
-                        q = self._device_queues.get(device_id)
-                        if q is None or device_id not in self._device_workers:
-                            is_12_leads = (
-                                "/12leads/" in topic_str or "/12leads" in topic_str
-                            )
-                            state = device_state_manager.get_state(device_id)
-                            state.is_connected = True
-                            state.last_seen = time.time()
-                            state.current_lead_mode = 12 if is_12_leads else 5
-                            qsize = 50 if is_12_leads else 20
-                            q = asyncio.Queue(maxsize=qsize)
-                            self._device_queues[device_id] = q
-                            self._device_workers[device_id] = asyncio.create_task(
-                                self._device_worker_loop(device_id, q)
-                            )
-                            await device_state_manager.notify_device_list_update()
-
-                        await q.put((topic_str, message.payload))
 
                     except Exception as e:
                         logger.error(
@@ -137,6 +108,32 @@ class MQTTClientService:
                 f"[MQTTClientService] Unexpected error in _connect_and_listen: {e}"
             )
             raise AppException(status_code=500, message="Internal Service Error")
+
+    async def _ensure_device_worker(
+        self, device_id: str, topic_str: str
+    ) -> asyncio.Queue:
+        """Get or create a per-device queue + worker. Returns the device queue."""
+        existing_worker = self._device_workers.get(device_id)
+        existing_q = self._device_queues.get(device_id)
+
+        if existing_worker and not existing_worker.done() and existing_q is not None:
+            return existing_q
+
+        is_12_leads = "/12leads/" in topic_str or topic_str.endswith("/12leads")
+        state = device_state_manager.get_state(device_id)
+        state.is_connected = True
+        state.last_seen = time.time()
+        state.current_lead_mode = 12 if is_12_leads else 5
+
+        qsize = 50 if is_12_leads else 20
+        q: asyncio.Queue = asyncio.Queue(maxsize=qsize)
+        self._device_queues[device_id] = q
+        self._device_workers[device_id] = asyncio.create_task(
+            self._device_worker_loop(device_id, q)
+        )
+        logger.info(f"[MQTTClientService] Created new worker for device: {device_id}")
+        await device_state_manager.notify_device_list_update()
+        return q
 
     async def _device_worker_loop(self, device_id: str, queue: asyncio.Queue):
         logger.info(
