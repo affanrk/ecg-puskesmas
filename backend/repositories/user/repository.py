@@ -190,9 +190,9 @@ class UserRepository(BaseRepository[TbMUser]):
                 .outerjoin(TbMOperator, TbMUser.id == TbMOperator.user_id)
                 .outerjoin(TbMDoctor, TbMUser.id == TbMDoctor.user_id)
                 .options(
-                    joinedload(TbMUser.patient_profile),
-                    joinedload(TbMUser.operator_profile),
-                    joinedload(TbMUser.doctor_profile),
+                    contains_eager(TbMUser.patient_profile),
+                    contains_eager(TbMUser.operator_profile),
+                    contains_eager(TbMUser.doctor_profile),
                 )
                 .filter(TbMUser.is_active == 1)
             )

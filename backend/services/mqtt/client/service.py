@@ -234,7 +234,7 @@ class MQTTClientService:
                         )
 
                         while state.packet_buffer:
-                            p_start, p_end, p_payload = state.packet_buffer[0]
+                            p_start, p_end, _, p_payload = state.packet_buffer[0]
                             is_next = (state.last_packet_num == 0) or (
                                 p_start == state.last_packet_num + 1
                             )
@@ -269,7 +269,7 @@ class MQTTClientService:
                                         total_samples = 0
                                         min_start = None
                                         max_end = None
-                                        for s, e, _ in state.packet_buffer:
+                                        for s, e, _, _ in state.packet_buffer:
                                             total_samples += e - s + 1
                                             min_start = (
                                                 s

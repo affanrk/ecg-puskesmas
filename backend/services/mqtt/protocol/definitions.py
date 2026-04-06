@@ -451,7 +451,9 @@ class MQTTProtocolHandler:
     ):
         logger.debug("[MQTTProtocolHandler] Starting add_to_jitter_buffer...")
         try:
-            heapq.heappush(buffer, (start_counter, end_counter, payload))
+            heapq.heappush(
+                buffer, (start_counter, end_counter, time.time_ns(), payload)
+            )
             logger.debug(
                 "[MQTTProtocolHandler] Successfully completed add_to_jitter_buffer."
             )
@@ -471,7 +473,7 @@ class MQTTProtocolHandler:
                 )
                 return None
 
-            start_counter, end_counter, payload = buffer[0]
+            start_counter, end_counter, _, payload = buffer[0]
 
             if last_processed == 0 or start_counter == last_processed + 1:
                 result = heapq.heappop(buffer)
