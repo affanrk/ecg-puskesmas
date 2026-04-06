@@ -338,6 +338,18 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                                 <button type="button" onClick={() => setShowOperatorForm(!showOperatorForm)} className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", showOperatorForm ? "bg-slate-100 text-slate-600 hover:bg-slate-200" : "bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-100")}>{showOperatorForm ? <><ChevronUp size={14} /> Hide Details</> : <><UserCircle size={14} /> {user.is_operator ? "Edit Operator Profile" : "Add Operator Profile"}</>}</button>
                             </div>
 
+                            {user.status === 'REJECTED' && user.rejection_reason && (
+                                <div className="p-3 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                                    <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600 shrink-0">
+                                        <X size={16} strokeWidth={3} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-rose-800 uppercase tracking-tight">Current Rejection Reason</p>
+                                        <p className="text-[11px] font-bold text-rose-600 leading-tight mt-0.5 italic">&quot;{user.rejection_reason}&quot;</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {showOperatorForm && <OperatorIdentitySection formData={formData} errors={errors} handleFieldChange={handleFieldChange} />}
                         </div>
                     )}
