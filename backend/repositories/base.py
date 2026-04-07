@@ -179,7 +179,6 @@ class BaseRepository(Generic[ModelType]):
                 if "changed_by" in data:
                     setattr(obj, "changed_by", data["changed_by"])
                 self.db.commit()
-                self.db.refresh(obj)
 
             logger.debug(
                 f"[BaseRepository] Successfully completed update {self.model.__name__}."

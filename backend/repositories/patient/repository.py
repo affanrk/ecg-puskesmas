@@ -230,7 +230,6 @@ class PatientRepository(BaseRepository[TbMPatient]):
                     self.db.add(log)
 
                 self.db.commit()
-                self.db.refresh(patient)
 
             logger.debug(
                 "[PatientRepository] Successfully completed update_by_user_id."

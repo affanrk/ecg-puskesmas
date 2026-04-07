@@ -226,7 +226,6 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
                     self.db.add(log)
 
                 self.db.commit()
-                self.db.refresh(doctor)
 
             logger.debug("[DoctorRepository] Successfully completed update_by_user_id.")
             return doctor

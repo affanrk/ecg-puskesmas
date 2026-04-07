@@ -236,7 +236,6 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                     self.db.add(log)
 
                 self.db.commit()
-                self.db.refresh(operator)
 
             logger.debug(
                 "[OperatorRepository] Successfully completed update_by_user_id."

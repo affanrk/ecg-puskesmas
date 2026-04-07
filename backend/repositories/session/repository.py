@@ -342,7 +342,6 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 )
 
             self.db.commit()
-            self.db.refresh(session)
             logger.debug(
                 "[SessionRepository] Successfully completed update_analysis_results."
             )
