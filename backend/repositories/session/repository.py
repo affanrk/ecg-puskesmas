@@ -1,5 +1,5 @@
-from typing import List, Optional, Tuple, Dict, cast
 import traceback
+from typing import List, Optional, Tuple, Dict, cast
 from sqlalchemy.orm import Session, joinedload, contains_eager, selectinload
 from sqlalchemy import desc, or_, func
 from sqlalchemy.dialects.postgresql import insert
@@ -42,7 +42,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in find_by_recording_id: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def find_by_recording_id_or_fail(self, recording_id: str) -> TbREcgSession:
         logger.debug("[SessionRepository] Starting find_by_recording_id_or_fail...")
@@ -60,7 +61,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in find_by_recording_id_or_fail: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def list_by_device(self, device_id: str, limit: int = 100) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting list_by_device...")
@@ -82,7 +84,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise e
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in list_by_device: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def list_by_user(self, user_id: str, limit: int = 100) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting list_by_user...")
@@ -104,7 +107,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise e
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in list_by_user: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_recent_sessions(self, user_id: str, limit: int) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting get_recent_sessions...")
@@ -134,7 +138,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in get_recent_sessions: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def search_sessions(
         self,
@@ -209,7 +214,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in search_sessions: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_classification_stats(self, user_id: Optional[str] = None) -> Dict:
         logger.debug("[SessionRepository] Starting get_classification_stats...")
@@ -247,7 +253,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in get_classification_stats: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def create_session(
         self,
@@ -285,7 +292,8 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise e
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in create_session: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def update_analysis_results(
         self,
@@ -384,10 +392,10 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise e
         except Exception as e:
             self.db.rollback()
-            traceback.print_exc()
             logger.error(
                 f"[SessionRepository] Unexpected error in update_analysis_results: {e}"
             )
+            traceback.print_exc()
             raise DatabaseException(f"Database operation failed: {e}")
 
     def _map_5leads_parameters(
@@ -476,4 +484,5 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[SessionRepository] Unexpected error in delete_zombie_sessions: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")

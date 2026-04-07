@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -34,7 +35,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_logs_for_recording: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_logs_for_device(
         self, device_id: str, hours: int = 24, limit: int = 1000
@@ -62,7 +64,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_logs_for_device: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_average_metrics_for_recording(self, recording_id: str) -> Dict[str, float]:
         logger.debug(
@@ -101,7 +104,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_average_metrics_for_recording: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_device_statistics(self, device_id: str, hours: int = 24) -> Dict[str, Any]:
         logger.debug("[PerformanceRepository] Starting get_device_statistics...")
@@ -153,7 +157,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_device_statistics: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_system_health_summary(self) -> Dict[str, Any]:
         logger.debug("[PerformanceRepository] Starting get_system_health_summary...")
@@ -196,7 +201,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_system_health_summary: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_worst_performing_devices(
         self, metric: str = "latency", limit: int = 5, hours: int = 24
@@ -244,7 +250,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in get_worst_performing_devices: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def bulk_insert_logs(self, logs: List[dict]) -> int:
         logger.debug("[PerformanceRepository] Starting bulk_insert_logs...")
@@ -264,7 +271,8 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in bulk_insert_logs: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def delete_old_logs(self, days: int = 30) -> int:
         logger.debug("[PerformanceRepository] Starting delete_old_logs...")
@@ -291,4 +299,5 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
             logger.error(
                 f"[PerformanceRepository] Unexpected error in delete_old_logs: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")

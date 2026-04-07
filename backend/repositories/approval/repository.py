@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Optional
 from sqlalchemy.orm import Session, contains_eager
 from sqlalchemy import or_
@@ -67,7 +68,8 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
             raise
         except Exception as e:
             logger.error(f"[ApprovalRepository] Unexpected error in list_logs: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def create_log(
         self,
@@ -98,4 +100,5 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
             raise
         except Exception as e:
             logger.error(f"[ApprovalRepository] Unexpected error in create_log: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")

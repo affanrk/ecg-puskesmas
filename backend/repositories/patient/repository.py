@@ -1,3 +1,4 @@
+import traceback
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,8 @@ class PatientRepository(BaseRepository[TbMPatient]):
             logger.error(
                 f"[PatientRepository] Unexpected error in find_by_user_id: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def find_by_nik(self, nik: str) -> Optional[TbMPatient]:
         logger.debug("[PatientRepository] Starting find_by_nik...")
@@ -38,7 +40,8 @@ class PatientRepository(BaseRepository[TbMPatient]):
             raise e
         except Exception as e:
             logger.error(f"[PatientRepository] Unexpected error in find_by_nik: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def create_profile(
         self,
@@ -103,7 +106,8 @@ class PatientRepository(BaseRepository[TbMPatient]):
         except Exception as e:
             self.db.rollback()
             logger.error(f"[PatientRepository] Unexpected error in create_profile: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def update_by_user_id(
         self,
@@ -243,4 +247,5 @@ class PatientRepository(BaseRepository[TbMPatient]):
             logger.error(
                 f"[PatientRepository] Unexpected error in update_by_user_id: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")

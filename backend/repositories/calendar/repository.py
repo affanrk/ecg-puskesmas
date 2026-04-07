@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import case, func
@@ -26,7 +27,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             raise
         except Exception as e:
             logger.error(f"[CalendarRepository] Unexpected error in _get_local_dt: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _get_severity_case(self):
         logger.debug("[CalendarRepository] Starting _get_severity_case...")
@@ -48,7 +50,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[CalendarRepository] Unexpected error in _get_severity_case: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _get_classification_count_expressions(self):
         logger.debug(
@@ -106,7 +109,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[CalendarRepository] Error in _get_classification_count_expressions: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _get_classification_counts(self):
         logger.debug("[CalendarRepository] Starting _get_classification_counts...")
@@ -131,7 +135,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[CalendarRepository] Unexpected error in _get_classification_counts: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _get_classifications_counts_mostly(self):
         logger.debug(
@@ -164,7 +169,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[CalendarRepository] Unexpected error in _get_classifications_counts_mostly: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _map_severity_to_status(self, severity: int) -> str:
         logger.debug("[CalendarRepository] Starting _map_severity_to_status...")
@@ -187,7 +193,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             logger.error(
                 f"[CalendarRepository] Unexpected error in _map_severity_to_status: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _build_nodes(self, results, range_start, range_end, level, months_map=None):
         logger.debug("[CalendarRepository] Starting _build_nodes...")
@@ -260,7 +267,8 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             raise
         except Exception as e:
             logger.error(f"[CalendarRepository] Unexpected error in _build_nodes: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def get_nodes(
         self,
@@ -413,4 +421,5 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             raise
         except Exception as e:
             logger.error(f"[CalendarRepository] Unexpected error in get_nodes: {e}")
-            raise DatabaseException("Database operation failed")
+            traceback.print_exc()
+            raise DatabaseException(f"Database operation failed: {e}")
