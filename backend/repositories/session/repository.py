@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Dict, cast
 from sqlalchemy.orm import Session, joinedload, contains_eager, selectinload
 from sqlalchemy import desc, or_, func
+from sqlalchemy.dialects.postgresql import insert
 
 from models.session import TbREcgSession, TbREcgSessionParameter
 from models.user import TbMUser
@@ -321,11 +322,6 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             elif classification.lower() == "normal":
                 setattr(session, "is_normal", True)
 
-            self.db.query(TbREcgSessionParameter).filter(
-                TbREcgSessionParameter.recording_id == recording_id
-            ).delete()
-            self.db.flush()
-
             params = []
             if device_type == "5LEADS":
                 params = self._map_5leads_parameters(
@@ -341,7 +337,38 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 )
 
             if params:
-                self.db.bulk_save_objects(params)
+                for param in params:
+                    stmt = insert(TbREcgSessionParameter).values(
+                        recording_id=param.recording_id,
+                        lead_name=param.lead_name,
+                        heart_rate_bpm=param.heart_rate_bpm,
+                        rr_ms=param.rr_ms,
+                        rr_std_ms=param.rr_std_ms,
+                        pr_ms=param.pr_ms,
+                        qrs_ms=param.qrs_ms,
+                        qtc_ms=param.qtc_ms,
+                        st_amplitude_mv=param.st_amplitude_mv,
+                        st_deviation_mv=param.st_deviation_mv,
+                        rs_ratio=param.rs_ratio,
+                        created_by=param.created_by
+                    )
+                    stmt = stmt.on_conflict_do_update(
+                        index_elements=['recording_id', 'lead_name'],
+                        set_={
+                            'heart_rate_bpm': stmt.excluded.heart_rate_bpm,
+                            'rr_ms': stmt.excluded.rr_ms,
+                            'rr_std_ms': stmt.excluded.rr_std_ms,
+                            'pr_ms': stmt.excluded.pr_ms,
+                            'qrs_ms': stmt.excluded.qrs_ms,
+                            'qtc_ms': stmt.excluded.qtc_ms,
+                            'st_amplitude_mv': stmt.excluded.st_amplitude_mv,
+                            'st_deviation_mv': stmt.excluded.st_deviation_mv,
+                            'rs_ratio': stmt.excluded.rs_ratio,
+                            'created_by': stmt.excluded.created_by
+                        }
+                    )
+                    self.db.execute(stmt)
+
                 logger.info(
                     f"[Session] Updated {device_type} results for session {recording_id}: {classification}"
                 )
