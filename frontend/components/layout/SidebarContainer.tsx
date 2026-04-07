@@ -42,7 +42,8 @@ export default function SidebarContainer({ children, className }: SidebarContain
             <aside
                 className={clsx(
                     "fixed top-0 left-0 h-full w-72 border-r z-[60] transition-all duration-300 ease-in-out flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] group/sidebar",
-                    className || "bg-white border-slate-200",
+                    className,
+                    (!className || !className.includes('bg-')) && "bg-white border-slate-200",
                     isMobileOpen ? "translate-x-0" : "-translate-x-full",
                     (isSidebarPinned || isHovered)
                         ? "lg:translate-x-0 lg:shadow-xl"
