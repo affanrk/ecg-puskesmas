@@ -28,34 +28,36 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 ## 3. Client-to-Server Messages (Commands)
 
-| Type (`type`) | Payload Description | Purpose |
-| :--- | :--- | :--- |
-| `ping` | `{}` | Standard heartbeat request. Server responds with `pong`. |
-| `pong` | `{}` | Response to server-initiated `ping`. |
-| `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts receiving live data batches and performance updates. |
-| `unsubscribe` | `{}` | Releases current device lock and stops data stream. |
-| `start_recording` | `{ "device_id": "string", "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. `source` defaults to `WEB`. `lead_mode` (5 or 12) is optional and used for validation. |
-| `stop_recording` | `{ "device_id": "string" }` | Forces current recording to complete and triggers analysis. |
-| `calculate_live_bpm` | `{ "device_id": "string", "data": [0.12, ...] }` | Request server-side HR calculation from raw samples. |
+| Type (`type`) | Payload Description | Purpose | Server Response (Success Flow) |
+| :--- | :--- | :--- | :--- |
+| `ping` | `{}` | Standard heartbeat request. | `pong` |
+| `pong` | `{}` | Response to server-initiated `ping`. | (None) |
+| `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts live data stream. | `subscription_success`, `device_status_update`, `state_update` |
+| `unsubscribe` | `{}` | Releases current device lock and stops data stream. | `unsubscription_success`, then global `device_list_update` |
+| `start_recording` | `{ "device_id": "string", "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. `source` defaults to `WEB`. | `state_update` (is_recording status changes to true) |
+| `stop_recording` | `{ "device_id": "string" }` | Forces current recording to complete and triggers analysis. | `state_update` (is_recording status changes to false) |
+| `calculate_live_bpm` | `{ "device_id": "string", "data": [0.12, ...] }` | Request server-side HR calculation from raw samples. | `calculate_live_bpm` (Async result) |
+
+> [!NOTE]
+> The server responds with an `error` message for unauthorized requests, invalid parameters, or unexpected application errors.
 
 ---
 
 ## 4. Server-to-Client Messages (Events)
 
 ### 4.1 System & Discovery
-*   **`device_list_update`**: Sent on connect and whenever any device's connectivity or lock status changes.
+*   **`device_list_update`**: Sent on connect and whenever any device's connectivity or lock status changes globally.
     ```json
     { 
         "type": "device_list_update", 
-        "devices": 
-        [
+        "devices": [
             { 
                 "id": "ECG001", 
                 "is_connected": true, 
                 "is_locked": false, 
                 "status": "Idle",
                 "lead_mode": 5 
-            }, ...
+            }
         ] 
     }
     ```
@@ -67,11 +69,27 @@ This document describes the real-time communication protocol for the ECG Platfor
         "status": "Connected" 
     }
     ```
-*   **`device_disconnected`**: Sent when a device heartbeat is lost (Watchdog > 2.0s).
+*   **`device_disconnected`**: Sent when a device heartbeat is lost (Watchdog > 2.0s) or gracefully disconnects.
     ```json
     { 
         "type": "device_disconnected", 
-        "device_id": "ECG001" 
+        "device_id": "ECG001",
+        "reason": "Timeout",
+        "was_recording": false
+    }
+    ```
+*   **`subscription_success`**: Confirms lock acquisition successfully completed on a device.
+    ```json
+    {
+        "type": "subscription_success",
+        "device_id": "ECG001"
+    }
+    ```
+*   **`unsubscription_success`**: Confirms lock release.
+    ```json
+    {
+        "type": "unsubscription_success",
+        "device_id": "ECG001"
     }
     ```
 
@@ -99,7 +117,7 @@ This document describes the real-time communication protocol for the ECG Platfor
     { 
         "type": "calculate_live_bpm", 
         "device_id": "string", 
-        "data": { "bpm": 72 } 
+        "data": { "bpm": 72.5 } 
     }
     ```
 *   **`performance_update`**: Real-time network health metrics.
@@ -137,14 +155,28 @@ This document describes the real-time communication protocol for the ECG Platfor
     ```json
     { 
       "type": "live_result", 
+      "device_id": "ECG001",
       "recording_id": "uuid", 
       "classification": "Normal", 
       "confidence": 0.98,
-      "changed_dt": "ISO8601-Timestamp"
+      "changed_dt": "2026-04-07T08:20:34+00:00"
     }
     ```
-*   **`recording_cancelled`**: Notifies that an active recording was discarded.
-*   **`history_updated`**: Global signal to refresh history lists/tables.
+*   **`recording_cancelled`**: Notifies that an active recording was discarded (e.g. timeout or manual cancel).
+    ```json
+    {
+      "type": "recording_cancelled",
+      "device_id": "ECG001",
+      "reason": "Device timeout",
+      "clear_buffer": true
+    }
+    ```
+*   **`history_updated`**: Global signal to refresh history lists/tables (Reserved for future synchronization).
+    ```json
+    {
+      "type": "history_updated"
+    }
+    ```
 
 ---
 
@@ -152,11 +184,12 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 ### 5.1 Single Session Enforcement (SSE)
 The system uses the `sid` (Session ID) claim in the JWT to identify unique logins.
-*   If a new login occurs, the old `sid` becomes invalid.
-*   The WebSocket `verify_session` check will fail.
-*   The server sends an `error` message and closes the connection.
+*   If a new login occurs, the old `sid` becomes invalid in the database.
+*   The WebSocket `verify_session` check handles this gracefully.
+*   The server sends an `error` message and closes the connection with code `4003`.
 
-### 5.2 Error Message Format
+### 5.2 Error Messages
+General error format. Used for application errors, unauthorized actions, or session expiration.
 ```json
 {
   "type": "error",
@@ -174,9 +207,11 @@ The system uses the `sid` (Session ID) claim in the JWT to identify unique login
 *   `Berpotensi Aritmia`
 *   `Sangat Berpotensi Aritmia`
 *   `Unknown`
+*   `Pending`
+*   `Recording...`
 *   `Insufficient Data`
 
 ### Network Thresholds
 *   **Heartbeat Timeout:** 2.0s (Triggers `device_disconnected`)
 *   **Offline Indicator:** 1.0s (UI marks device as yellow/offline)
-*   **Sampling Rate:** Default 100 Hz.
+*   **Sampling Rate:** Default 100 Hz (5 Leads) / 853 Hz (12 Leads).
