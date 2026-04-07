@@ -299,7 +299,12 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             f"[SessionRepository] Starting update_analysis_results for {device_type}..."
         )
         try:
-            session = self.get(recording_id)
+            session = (
+                self.db.query(TbREcgSession)
+                .filter(TbREcgSession.recording_id == recording_id)
+                .with_for_update()
+                .first()
+            )
             if not session:
                 logger.warning(
                     f"[Session] Attempted to update results for non-existent session {recording_id}"
