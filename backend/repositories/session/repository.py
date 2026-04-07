@@ -1,4 +1,5 @@
 from typing import List, Optional, Tuple, Dict, cast
+import traceback
 from sqlalchemy.orm import Session, joinedload, contains_eager, selectinload
 from sqlalchemy import desc, or_, func
 from sqlalchemy.dialects.postgresql import insert
@@ -350,22 +351,22 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                         st_amplitude_mv=param.st_amplitude_mv,
                         st_deviation_mv=param.st_deviation_mv,
                         rs_ratio=param.rs_ratio,
-                        created_by=param.created_by
+                        created_by=param.created_by,
                     )
                     stmt = stmt.on_conflict_do_update(
-                        index_elements=['recording_id', 'lead_name'],
+                        index_elements=["recording_id", "lead_name"],
                         set_={
-                            'heart_rate_bpm': stmt.excluded.heart_rate_bpm,
-                            'rr_ms': stmt.excluded.rr_ms,
-                            'rr_std_ms': stmt.excluded.rr_std_ms,
-                            'pr_ms': stmt.excluded.pr_ms,
-                            'qrs_ms': stmt.excluded.qrs_ms,
-                            'qtc_ms': stmt.excluded.qtc_ms,
-                            'st_amplitude_mv': stmt.excluded.st_amplitude_mv,
-                            'st_deviation_mv': stmt.excluded.st_deviation_mv,
-                            'rs_ratio': stmt.excluded.rs_ratio,
-                            'created_by': stmt.excluded.created_by
-                        }
+                            "heart_rate_bpm": stmt.excluded.heart_rate_bpm,
+                            "rr_ms": stmt.excluded.rr_ms,
+                            "rr_std_ms": stmt.excluded.rr_std_ms,
+                            "pr_ms": stmt.excluded.pr_ms,
+                            "qrs_ms": stmt.excluded.qrs_ms,
+                            "qtc_ms": stmt.excluded.qtc_ms,
+                            "st_amplitude_mv": stmt.excluded.st_amplitude_mv,
+                            "st_deviation_mv": stmt.excluded.st_deviation_mv,
+                            "rs_ratio": stmt.excluded.rs_ratio,
+                            "created_by": stmt.excluded.created_by,
+                        },
                     )
                     self.db.execute(stmt)
 
@@ -383,10 +384,11 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise e
         except Exception as e:
             self.db.rollback()
+            traceback.print_exc()
             logger.error(
                 f"[SessionRepository] Unexpected error in update_analysis_results: {e}"
             )
-            raise DatabaseException("Database operation failed")
+            raise DatabaseException(f"Database operation failed: {e}")
 
     def _map_5leads_parameters(
         self, recording_id: str, features: dict, created_by: str = "ML_ENGINE"
