@@ -175,6 +175,9 @@ class UserResponse(UserBase):
     rejection_reason: Optional[str] = Field(
         default=None, description="Reason for rejection, if any"
     )
+    must_reset_password: int = Field(
+        default=0, description="Whether user must reset password on next login"
+    )
     created_dt: datetime = Field(..., description="Timestamp of user creation")
     changed_dt: Optional[datetime] = Field(
         default=None, description="Timestamp of last update"
@@ -199,6 +202,7 @@ class UserResponse(UserBase):
                 "email": "user@example.com",
                 "username": "user123",
                 "full_name": "John Doe",
+                "must_reset_password": 1,
                 "role": "patient",
                 "is_active": True,
                 "is_patient": True,

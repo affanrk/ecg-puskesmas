@@ -236,7 +236,9 @@ class WebSocketHandler:
     async def _handle_start_recording(self, message: dict):
         try:
             device_id = message.get("device_id")
+            patient_id = message.get("patient_id")
             user_id = self.user_id
+            subject_id = patient_id if patient_id else str(user_id)
             source = message.get("source", "WEB")
             lead_mode_req = message.get("lead_mode")
 
@@ -269,14 +271,15 @@ class WebSocketHandler:
             self.session_repo.create_session(
                 recording_id,
                 device_id,
-                user_id,
+                user_id=None if patient_id else str(user_id),
+                patient_id=patient_id,
                 created_by=source,
                 device_type=device_type,
             )
 
             state.is_recording = True
             state.recording_id = recording_id
-            state.subject_id = str(user_id)
+            state.subject_id = subject_id
             state.segment_count = 1
             state.recording_source = source
             state.status_message = "Recording..."
@@ -377,16 +380,6 @@ async def websocket_endpoint(
                 f"[WS] Connection rejected: User inactive or not found ({email})"
             )
             raise JWTError("User not found or inactive")
-
-        # if getattr(db_user, "is_activated", 0) != 1:
-        #     logger.warning(
-        #         f"[WS] Connection rejected: User not activated ({email})"
-        #     )
-        #     await websocket.send_json(
-        #         {"type": "error", "message": "Account not activated"}
-        #     )
-        #     await websocket.close(code=4003)
-        #     return
 
         if db_user.current_session_id and db_user.current_session_id != sid:
             logger.warning(f"[WS] Connection rejected: Session expired for {email}")

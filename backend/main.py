@@ -162,7 +162,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     error_details = f" | Details: {exc.details}" if exc.details else ""
-    log_msg = f"[Exception] {request.method} {request.url.path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
+    req_method = getattr(request, "method", "WS")
+    req_path = getattr(request.url, "path", str(getattr(request, "url", "unknown")))
+    log_msg = f"[Exception] {req_method} {req_path} -> {exc.__class__.__name__}: {exc.message}{error_details}"
 
     if not isinstance(exc, DatabaseException):
         if 400 <= exc.status_code < 500:

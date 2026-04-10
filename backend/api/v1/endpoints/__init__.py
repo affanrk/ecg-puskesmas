@@ -4,6 +4,7 @@ from .health import router as health_router
 from .history import router as history_router
 from .websocket import router as websocket_router
 from .admin import router as admin_router
+from .operator import router as operator_router
 
 __all__ = [
     "auth_router",
@@ -12,4 +13,5 @@ __all__ = [
     "history_router",
     "websocket_router",
     "admin_router",
+    "operator_router",
 ]

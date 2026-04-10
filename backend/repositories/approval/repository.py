@@ -69,7 +69,7 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
         except Exception as e:
             logger.error(f"[ApprovalRepository] Unexpected error in list_logs: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_log(
         self,
@@ -101,4 +101,4 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
         except Exception as e:
             logger.error(f"[ApprovalRepository] Unexpected error in create_log: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

@@ -36,7 +36,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_logs_for_recording: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_logs_for_device(
         self, device_id: str, hours: int = 24, limit: int = 1000
@@ -65,7 +65,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_logs_for_device: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_average_metrics_for_recording(self, recording_id: str) -> Dict[str, float]:
         logger.debug(
@@ -105,7 +105,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_average_metrics_for_recording: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_device_statistics(self, device_id: str, hours: int = 24) -> Dict[str, Any]:
         logger.debug("[PerformanceRepository] Starting get_device_statistics...")
@@ -158,7 +158,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_device_statistics: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_system_health_summary(self) -> Dict[str, Any]:
         logger.debug("[PerformanceRepository] Starting get_system_health_summary...")
@@ -202,7 +202,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_system_health_summary: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_worst_performing_devices(
         self, metric: str = "latency", limit: int = 5, hours: int = 24
@@ -251,7 +251,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in get_worst_performing_devices: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def bulk_insert_logs(self, logs: List[dict]) -> int:
         logger.debug("[PerformanceRepository] Starting bulk_insert_logs...")
@@ -272,7 +272,7 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in bulk_insert_logs: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete_old_logs(self, days: int = 30) -> int:
         logger.debug("[PerformanceRepository] Starting delete_old_logs...")
@@ -300,4 +300,4 @@ class PerformanceRepository(BaseRepository[TbRPerformanceLog]):
                 f"[PerformanceRepository] Unexpected error in delete_old_logs: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

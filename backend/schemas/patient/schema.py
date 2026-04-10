@@ -1,5 +1,5 @@
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from utils.helpers.validation import (
     validate_full_name,
@@ -7,6 +7,7 @@ from utils.helpers.validation import (
     validate_contact_number,
     validate_dob,
     validate_gender,
+    validate_password_optional,
 )
 
 
@@ -117,7 +118,10 @@ class PatientUpdate(BaseModel):
 
 class PatientResponse(PatientBase):
     id: str = Field(..., description="Unique identifier for the patient profile")
-    user_id: str = Field(..., description="Associated user account identifier")
+    user_id: Optional[str] = Field(
+        default=None,
+        description="Associated user account identifier (None for walk-in patients)",
+    )
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -132,6 +136,116 @@ class PatientResponse(PatientBase):
                 "address": "Jl. Sudirman No. 5",
                 "contact_number": "081999888777",
                 "medical_history": "Hipertensi",
+            }
+        }
+    )
+
+
+class WalkinPatientCreate(BaseModel):
+
+    full_name: str = Field(..., description="Patient's full name")
+    nik: str = Field(..., description="National Identity Number (NIK)")
+    pob: str = Field(..., description="Place of birth")
+    dob: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender of the patient (L/P)")
+    address: Optional[str] = Field(default=None, description="Residential address")
+    contact_number: Optional[str] = Field(
+        default=None, description="Contact phone number"
+    )
+    medical_history: Optional[str] = Field(
+        default=None, description="Patient's medical history"
+    )
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "full_name": "John Walk-in",
+                "nik": "3171234567890123",
+                "pob": "Jakarta",
+                "dob": "1990-01-15",
+                "gender": "L",
+                "address": "Jl. Merdeka No. 1",
+                "contact_number": "081234567890",
+                "medical_history": "Diabetes",
+            }
+        },
+    )
+
+    _validate_full_name = field_validator("full_name")(validate_full_name)
+    _validate_nik = field_validator("nik")(validate_nik)
+    _validate_contact_number = field_validator("contact_number")(
+        validate_contact_number
+    )
+    _validate_dob = field_validator("dob")(validate_dob)
+    _validate_gender = field_validator("gender")(validate_gender)
+
+
+class WalkinPatientUpdate(BaseModel):
+
+    full_name: Optional[str] = Field(default=None, description="Patient's full name")
+    nik: Optional[str] = Field(
+        default=None, description="National Identity Number (NIK)"
+    )
+    pob: Optional[str] = Field(default=None, description="Place of birth")
+    dob: Optional[date] = Field(default=None, description="Date of birth")
+    gender: Optional[str] = Field(default=None, description="Gender of the patient")
+    address: Optional[str] = Field(default=None, description="Residential address")
+    contact_number: Optional[str] = Field(
+        default=None, description="Contact phone number"
+    )
+    medical_history: Optional[str] = Field(
+        default=None, description="Patient's medical history"
+    )
+
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    _validate_full_name = field_validator("full_name")(validate_full_name)
+    _validate_nik = field_validator("nik")(validate_nik)
+    _validate_contact_number = field_validator("contact_number")(
+        validate_contact_number
+    )
+    _validate_dob = field_validator("dob")(validate_dob)
+    _validate_gender = field_validator("gender")(validate_gender)
+
+
+class WalkinPatientResponse(BaseModel):
+
+    id: str
+    user_id: Optional[str] = None
+    full_name: str
+    nik: Optional[str] = None
+    pob: str
+    dob: date
+    gender: str
+    address: Optional[str] = None
+    contact_number: Optional[str] = None
+    medical_history: Optional[str] = None
+    status: str
+    created_by: Optional[str] = None
+    created_dt: Optional[datetime] = None
+    changed_dt: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConvertWalkinRequest(BaseModel):
+
+    username: str = Field(..., min_length=3, description="Username for the new account")
+    email: str = Field(..., description="Email for the new account")
+    password: Optional[str] = Field(
+        default=None, description="Temporary password for the new account (optional)"
+    )
+
+    _validate_password = field_validator("password")(validate_password_optional)
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "username": "john_walkin",
+                "email": "john@example.com",
+                "password": "Temp1234!",
             }
         }
     )

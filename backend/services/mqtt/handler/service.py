@@ -294,7 +294,6 @@ class MQTTDataHandler:
                         raw_signals_12, samples_count_12, end_counter
                     )
 
-            # Cap pending UI tasks to prevent memory growth under high MQTT load
             if len(state.ui_tasks) < 3:
                 ui_task = asyncio.create_task(_guarded_ui_task_12())
                 state.ui_tasks.append(ui_task)
@@ -840,7 +839,6 @@ class MQTTDataHandler:
 
             asyncio.create_task(background_segment_completion())
 
-            # Run synchronous DB call in thread pool to avoid blocking the event loop
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(
                 None,

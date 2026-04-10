@@ -1,4 +1,5 @@
 import uuid
+import traceback
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -56,7 +57,9 @@ def register(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"[AuthEndpoint] Unexpected error in register: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -67,9 +70,13 @@ async def login(
     try:
         user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
 
-        if not user or not verify_password(
-            login_data.password, str(user.hashed_password)
-        ):
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not registered",
+            )
+
+        if not verify_password(login_data.password, str(user.hashed_password)):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username/email or password",
@@ -116,7 +123,9 @@ async def login(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"[AuthEndpoint] Unexpected error in login: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -135,7 +144,9 @@ def logout(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"[AuthEndpoint] Unexpected error in logout: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -149,7 +160,11 @@ def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in get_current_user_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -177,7 +192,11 @@ def create_patient_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in create_patient_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -205,7 +224,11 @@ def create_operator_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in create_operator_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -231,7 +254,11 @@ def create_doctor_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in create_doctor_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -256,7 +283,11 @@ def update_patient_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in update_patient_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -281,7 +312,11 @@ def update_operator_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in update_operator_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -306,7 +341,11 @@ def update_doctor_profile(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in update_doctor_profile: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -329,7 +368,11 @@ def update_user_username(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in update_user_username: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -352,5 +395,9 @@ def update_user_password(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[AuthEndpoint] Unexpected error in update_user_password: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

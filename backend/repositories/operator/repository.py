@@ -28,7 +28,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 f"[OperatorRepository] Unexpected error in find_by_user_id: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def find_by_nik(self, nik: str) -> Optional[TbMOperator]:
         logger.debug("[OperatorRepository] Starting find_by_nik...")
@@ -41,7 +41,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         except Exception as e:
             logger.error(f"[OperatorRepository] Unexpected error in find_by_nik: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_profile(
         self,
@@ -111,7 +111,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 f"[OperatorRepository] Unexpected error in create_profile: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_by_user_id(
         self,
@@ -254,4 +254,4 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 f"[OperatorRepository] Unexpected error in update_by_user_id: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

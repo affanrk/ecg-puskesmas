@@ -1,5 +1,6 @@
+import traceback
 from fastapi import APIRouter, Depends, Query, HTTPException
-from typing import List, Optional, Tuple, Union, cast
+from typing import List, Optional, cast
 
 from repositories.session import SessionRepository
 from repositories.calendar import CalendarRepository
@@ -16,7 +17,7 @@ from core.exceptions import AppException
 from schemas.common import GenericResponse, ApiStatus
 from schemas.calendar import CalendarResponse, CalendarLevel
 from schemas.session import SessionResponse, ClassificationStatsResponse
-from utils import MAX_HISTORY_RESULTS
+from utils import MAX_HISTORY_RESULTS, logger
 from models import TbREcgSession, TbMUser
 from datetime import datetime
 
@@ -25,27 +26,31 @@ router = APIRouter()
 
 def _map_session_to_response(
     session: TbREcgSession,
-    user_details: Optional[Union[Tuple[str, str, str], TbMUser]] = None,
 ) -> SessionResponse:
     patient_name = "Unknown"
-    subject_id = str(session.user_id)
+    subject_id = ""
 
-    if user_details:
-        if isinstance(user_details, tuple):
-            full_name, username, nik = user_details
-            patient_name = full_name or username or "Unknown"
-            subject_id = str(nik) if nik else str(session.user_id)
-        elif isinstance(user_details, TbMUser):
-            patient_name = (
-                cast(str, user_details.full_name)
-                or cast(str, user_details.username)
-                or "Unknown"
-            )
-            subject_id = (
-                str(user_details.nik)
-                if getattr(user_details, "nik", None)
-                else cast(str, str(user_details.id))
-            )
+    if getattr(session, "patient_id", None) and getattr(session, "patient", None):
+        patient_name = (
+            str(session.patient.full_name) if session.patient.full_name else "Unknown"
+        )
+        subject_id = (
+            str(session.patient.nik) if session.patient.nik else str(session.patient_id)
+        )
+    elif getattr(session, "user_id", None) and getattr(session, "user", None):
+        user_details = session.user
+        patient_name = (
+            cast(str, user_details.full_name)
+            or cast(str, user_details.username)
+            or "Unknown"
+        )
+        subject_id = (
+            str(user_details.nik)
+            if getattr(user_details, "nik", None)
+            else cast(str, str(user_details.id))
+        )
+    else:
+        subject_id = str(session.patient_id or session.user_id or "Unknown")
 
     return SessionResponse(
         recording_id=str(session.recording_id) if session.recording_id else "",
@@ -102,7 +107,11 @@ async def get_calendar_view(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_calendar_view: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -122,7 +131,11 @@ async def get_history_stats(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_history_stats: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -157,10 +170,7 @@ async def get_recording_history(
             limit=limit,
         )
 
-        data = [
-            _map_session_to_response(session, (full_name, username, nik))
-            for session, full_name, username, nik in results
-        ]
+        data = [_map_session_to_response(session) for session in results]
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=data,
@@ -168,7 +178,11 @@ async def get_recording_history(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_recording_history: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -184,7 +198,7 @@ async def get_recent_history(
         sessions = session_repo.get_recent_sessions(
             user_id=str(enforced_id), limit=limit
         )
-        data = [_map_session_to_response(session, session.user) for session in sessions]
+        data = [_map_session_to_response(session) for session in sessions]
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=data,
@@ -192,7 +206,11 @@ async def get_recent_history(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_recent_history: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -204,8 +222,8 @@ async def get_recording_detail(
 ):
     try:
         session = session_repo.find_by_recording_id_or_fail(recording_id)
-        verify_session_access(str(session.user_id), current_user)
-        data = _map_session_to_response(session, session.user)
+        verify_session_access(str(session.user_id or session.patient_id), current_user)
+        data = _map_session_to_response(session)
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=data,
@@ -213,7 +231,11 @@ async def get_recording_detail(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_recording_detail: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -238,7 +260,7 @@ async def get_device_history(
             )
 
         sessions = session_repo.list_by_device(device_id, limit=limit)
-        data = [_map_session_to_response(session, session.user) for session in sessions]
+        data = [_map_session_to_response(session) for session in sessions]
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=data,
@@ -246,7 +268,11 @@ async def get_device_history(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_device_history: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -260,7 +286,7 @@ async def get_user_history(
     try:
         enforced_id = enforce_data_access(user_id, current_user)
         sessions = session_repo.list_by_user(str(enforced_id), limit=limit)
-        data = [_map_session_to_response(session, session.user) for session in sessions]
+        data = [_map_session_to_response(session) for session in sessions]
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=data,
@@ -268,5 +294,9 @@ async def get_user_history(
         )
     except AppException:
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HistoryEndpoint] Unexpected error in get_user_history: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

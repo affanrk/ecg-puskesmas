@@ -112,7 +112,6 @@ class MQTTClientService:
     async def _ensure_device_worker(
         self, device_id: str, topic_str: str
     ) -> asyncio.Queue:
-        """Get or create a per-device queue + worker. Returns the device queue."""
         existing_worker = self._device_workers.get(device_id)
         existing_q = self._device_queues.get(device_id)
 

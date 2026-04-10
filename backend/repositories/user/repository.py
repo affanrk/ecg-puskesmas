@@ -42,7 +42,7 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(f"[UserRepository] Unexpected error in find_by_id: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def refresh_user(self, user: TbMUser):
         logger.debug("[UserRepository] Starting refresh_user...")
@@ -73,7 +73,7 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(f"[UserRepository] Unexpected error in find_by_email: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def find_by_username(self, username: str) -> Optional[TbMUser]:
         logger.debug("[UserRepository] Starting find_by_username...")
@@ -91,7 +91,7 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(f"[UserRepository] Unexpected error in find_by_username: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def find_by_identifier(self, identifier: str) -> Optional[TbMUser]:
         logger.debug("[UserRepository] Starting find_by_identifier...")
@@ -116,7 +116,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in find_by_identifier: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def list_all(
         self,
@@ -175,7 +175,7 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(f"[UserRepository] Unexpected error in list_all: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def list_pending_approval(
         self,
@@ -272,7 +272,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in list_pending_approval: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_from_dict(self, data: dict) -> TbMUser:
         logger.debug("[UserRepository] Starting create_from_dict...")
@@ -280,6 +280,7 @@ class UserRepository(BaseRepository[TbMUser]):
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
             password = data.pop("password")
             hashed_password = get_password_hash(password)
+            must_reset = int(data.pop("must_reset_password", 0))
 
             db_user = TbMUser(
                 id=user_id,
@@ -293,6 +294,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 is_active=data.get("is_active", 1),
                 is_activated=data.get("is_activated", 0),
                 created_by=data.get("source", "SYSTEM"),
+                must_reset_password=must_reset,
             )
             self.db.add(db_user)
             self.db.commit()
@@ -306,7 +308,7 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.rollback()
             logger.error(f"[UserRepository] Unexpected error in create_from_dict: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_user(self, user_in: UserCreate) -> TbMUser:
         logger.debug("[UserRepository] Starting create_user...")
@@ -346,7 +348,7 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.rollback()
             logger.error(f"[UserRepository] Unexpected error in create_user: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_record_login(
         self, user_id: str, source: str, session_id: Optional[str] = None
@@ -412,7 +414,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in update_username for ID {user_id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_password(self, user_id: str, new_password: str) -> Optional[TbMUser]:
         logger.debug("[UserRepository] Starting update_password...")
@@ -423,6 +425,9 @@ class UserRepository(BaseRepository[TbMUser]):
 
             setattr(db_user, "hashed_password", get_password_hash(new_password))
             setattr(db_user, "changed_by", "USER")
+            if getattr(db_user, "must_reset_password", None) == 1:
+                setattr(db_user, "must_reset_password", 0)
+
             self.db.commit()
             self.db.refresh(db_user)
             logger.debug("[UserRepository] Successfully completed update_password.")
@@ -436,7 +441,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in update_password for ID {user_id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_activation_status(
         self, user_id: str, admin_action: str, reason: Optional[str] = None
@@ -495,7 +500,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in update_activation_status for user ID {user_id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def cleanup_patient_data(self, user_id: str):
         logger.debug("[UserRepository] Starting cleanup_patient_data...")
@@ -535,7 +540,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in cleanup_patient_data for user {user_id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete(self, user_id: str) -> bool:
         logger.debug("[UserRepository] Starting delete...")
@@ -575,4 +580,4 @@ class UserRepository(BaseRepository[TbMUser]):
                 f"[UserRepository] Unexpected error in delete for user with ID {user_id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

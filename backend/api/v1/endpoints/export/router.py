@@ -1,5 +1,6 @@
 import asyncio
 import pandas as pd
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import StreamingResponse
@@ -124,7 +125,11 @@ async def export_raw_ecg_data(
             db.close()
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[ExportEndpoint] Unexpected error in export_raw_ecg_data: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -176,7 +181,11 @@ async def export_analysis_features(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[ExportEndpoint] Unexpected error in export_analysis_features: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -217,7 +226,9 @@ async def export_ecg_chart(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"[ExportEndpoint] Unexpected error in export_ecg_chart: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -233,7 +244,11 @@ async def export_complete_package(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[ExportEndpoint] Unexpected error in export_complete_package: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -248,5 +263,9 @@ async def export_batch_recordings(
         raise HTTPException(status_code=501, detail="Batch export not yet implemented")
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[ExportEndpoint] Unexpected error in export_batch_recordings: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

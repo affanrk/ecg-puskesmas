@@ -6,6 +6,7 @@ from api.v1.endpoints import (
     health_router as health,
     auth_router as auth,
     admin_router as admin,
+    operator_router as operator,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -13,6 +14,8 @@ api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(auth, prefix="/auth", tags=["Authentication & Profile"])
 
 api_router.include_router(admin, prefix="/admin", tags=["Admin Control"])
+
+api_router.include_router(operator, prefix="/operator", tags=["Operator Control"])
 
 api_router.include_router(history, prefix="/history", tags=["History & Data"])
 

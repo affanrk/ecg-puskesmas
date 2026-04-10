@@ -1,6 +1,6 @@
 import traceback
-from typing import List, Optional, Tuple, Dict, cast
-from sqlalchemy.orm import Session, joinedload, contains_eager, selectinload
+from typing import List, Optional, Dict
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import desc, or_, func
 from sqlalchemy.dialects.postgresql import insert
 
@@ -27,6 +27,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 self.db.query(TbREcgSession)
                 .options(
                     joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
                     selectinload(TbREcgSession.parameters),
                 )
                 .filter(TbREcgSession.recording_id == recording_id)
@@ -43,7 +44,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in find_by_recording_id: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def find_by_recording_id_or_fail(self, recording_id: str) -> TbREcgSession:
         logger.debug("[SessionRepository] Starting find_by_recording_id_or_fail...")
@@ -62,7 +63,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in find_by_recording_id_or_fail: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def list_by_device(self, device_id: str, limit: int = 100) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting list_by_device...")
@@ -71,6 +72,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 self.db.query(TbREcgSession)
                 .options(
                     joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
                     selectinload(TbREcgSession.parameters),
                 )
                 .filter(TbREcgSession.device_id == device_id)
@@ -85,7 +87,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in list_by_device: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def list_by_user(self, user_id: str, limit: int = 100) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting list_by_user...")
@@ -94,9 +96,15 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 self.db.query(TbREcgSession)
                 .options(
                     joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
                     selectinload(TbREcgSession.parameters),
                 )
-                .filter(TbREcgSession.user_id == user_id)
+                .filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
                 .order_by(desc(TbREcgSession.changed_dt))
                 .limit(limit)
                 .all()
@@ -108,7 +116,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in list_by_user: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_recent_sessions(self, user_id: str, limit: int) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting get_recent_sessions...")
@@ -117,10 +125,13 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 self.db.query(self.model)
                 .options(
                     joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
                     selectinload(TbREcgSession.parameters),
                 )
                 .filter(
-                    self.model.user_id == user_id,
+                    or_(
+                        self.model.user_id == user_id, self.model.patient_id == user_id
+                    ),
                     self.model.classification_result
                     != ECGClassification.RECORDING.value,
                 )
@@ -139,7 +150,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in get_recent_sessions: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def search_sessions(
         self,
@@ -150,36 +161,39 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         limit: int = 200,
-    ) -> List[Tuple[TbREcgSession, str, str, str]]:
+    ) -> List[TbREcgSession]:
         logger.debug("[SessionRepository] Starting search_sessions...")
         try:
-            query = (
-                self.db.query(
-                    TbREcgSession,
-                    TbMPatient.full_name,
-                    TbMUser.username,
-                    TbMPatient.nik,
-                )
-                .outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
-                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
-                .options(
-                    contains_eager(TbREcgSession.user).contains_eager(
-                        TbMUser.patient_profile
-                    ),
-                    selectinload(TbREcgSession.parameters),
-                )
+            query = self.db.query(TbREcgSession).options(
+                joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                joinedload(TbREcgSession.patient),
+                selectinload(TbREcgSession.parameters),
             )
 
             if device_id:
                 query = query.filter(TbREcgSession.device_id == device_id)
             if user_id:
-                query = query.filter(TbREcgSession.user_id == user_id)
+                query = query.filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
             if classification:
                 query = query.filter(
                     TbREcgSession.classification_result == classification
                 )
 
             if search_query:
+                query = query.outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
+                query = query.outerjoin(
+                    TbMPatient,
+                    or_(
+                        TbREcgSession.patient_id == TbMPatient.id,
+                        TbMUser.id == TbMPatient.user_id,
+                    ),
+                )
+
                 keywords = search_query.split()
                 for kw in keywords:
                     pattern = f"%{kw}%"
@@ -202,10 +216,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                     end_date = f"{end_date} 23:59:59"
                 query = query.filter(local_dt <= end_date)
 
-            rows = query.order_by(desc(TbREcgSession.changed_dt)).limit(limit).all()
-            result = cast(
-                List[Tuple[TbREcgSession, str, str, str]], [tuple(r) for r in rows]
-            )
+            result = query.order_by(desc(TbREcgSession.changed_dt)).limit(limit).all()
             logger.debug("[SessionRepository] Successfully completed search_sessions.")
             return result
         except AppException as e:
@@ -215,14 +226,19 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in search_sessions: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_classification_stats(self, user_id: Optional[str] = None) -> Dict:
         logger.debug("[SessionRepository] Starting get_classification_stats...")
         try:
             query = self.db.query(TbREcgSession)
             if user_id:
-                query = query.filter(TbREcgSession.user_id == user_id)
+                query = query.filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
 
             total_sessions = query.count()
 
@@ -254,13 +270,14 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in get_classification_stats: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_session(
         self,
         recording_id: str,
         device_id: str,
-        user_id: str,
+        user_id: Optional[str] = None,
+        patient_id: Optional[str] = None,
         created_by: str = "WEB",
         classification: str = ECGClassification.RECORDING.value,
         device_type: Optional[str] = None,
@@ -278,6 +295,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 recording_id=recording_id,
                 device_id=device_id,
                 user_id=user_id,
+                patient_id=patient_id,
                 created_by=created_by,
                 classification_result=classification,
                 device_type=device_type,
@@ -293,7 +311,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         except Exception as e:
             logger.error(f"[SessionRepository] Unexpected error in create_session: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update_analysis_results(
         self,
@@ -396,7 +414,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in update_analysis_results: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def _map_5leads_parameters(
         self, recording_id: str, features: dict, created_by: str = "ML_ENGINE"
@@ -485,4 +503,4 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 f"[SessionRepository] Unexpected error in delete_zombie_sessions: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

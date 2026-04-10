@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
 
@@ -19,6 +19,13 @@ class GenericResponse(BaseModel, Generic[T]):
     data: Optional[T] = Field(
         default=None, description="The actual response data payload"
     )
+
+
+class PaginatedData(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    limit: int
+    skip: int
 
 
 class MessageResponse(BaseModel):

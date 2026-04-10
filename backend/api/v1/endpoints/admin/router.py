@@ -1,3 +1,4 @@
+import traceback
 from datetime import datetime
 from typing import List, Optional, cast
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -21,11 +22,16 @@ from schemas.user import (
     UserAdminUpdate,
     UserAdminCreate,
 )
-from schemas.patient import PatientUpdate
+from schemas.patient import (
+    PatientUpdate,
+    WalkinPatientUpdate,
+    ConvertWalkinRequest,
+    WalkinPatientResponse,
+)
 from schemas.operator import OperatorUpdate
 from schemas.doctor import DoctorUpdate
 from schemas.approval import ApprovalLogResponse
-from schemas.common import GenericResponse, MessageResponse, ApiStatus
+from schemas.common import GenericResponse, MessageResponse, ApiStatus, PaginatedData
 from core.exceptions import AppException, DuplicateNIKException
 from models import TbMUser, TbRLogApproval
 from utils import logger
@@ -65,7 +71,10 @@ def get_pending_approvals(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in get_pending_approvals: {e}")
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in get_pending_approvals: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -119,7 +128,8 @@ def get_approval_logs(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in get_approval_logs: {e}")
+        logger.error(f"[AdminEndpoint] Unexpected error in get_approval_logs: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -148,7 +158,10 @@ def update_user_status(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in update_user_status: {e}")
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in update_user_status: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -297,7 +310,8 @@ def create_user(
             detail={"message": "NIK is already registered", "field": "nik"},
         )
     except Exception as e:
-        logger.error(f"Unexpected error in create_user: {e}")
+        logger.error(f"[AdminEndpoint] Unexpected error in create_user: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -318,7 +332,8 @@ def get_all_users(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in get_all_users: {e}")
+        logger.error(f"[AdminEndpoint] Unexpected error in get_all_users: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -474,7 +489,8 @@ def update_user(
             detail={"message": "NIK is already registered", "field": "nik"},
         )
     except Exception as e:
-        logger.error(f"Unexpected error in update_user: {e}")
+        logger.error(f"[AdminEndpoint] Unexpected error in update_user: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -502,5 +518,172 @@ def delete_user(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"Unexpected error in delete_user: {e}")
+        logger.error(f"[AdminEndpoint] Unexpected error in delete_user: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/walkin-patients",
+    response_model=GenericResponse[PaginatedData[WalkinPatientResponse]],
+)
+def get_all_patients(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    admin: TbMUser = Depends(get_admin_user),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        patients, total = patient_repo.list_all_patients(
+            skip=skip, limit=limit, search=search, status=status, only_walkins=True
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=PaginatedData(items=patients, total=total, limit=limit, skip=skip),
+            message="Patients retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in get_all_patients: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put(
+    "/walkin-patients/{patient_id}",
+    response_model=GenericResponse[WalkinPatientResponse],
+)
+def update_walkin_patient(
+    patient_id: str,
+    update_in: WalkinPatientUpdate,
+    admin: TbMUser = Depends(get_admin_user),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        update_data = update_in.model_dump(exclude_unset=True)
+        for k, v in list(update_data.items()):
+            if isinstance(v, str) and v.strip() == "":
+                update_data[k] = None
+
+        updated = patient_repo.update_walkin_patient(
+            patient_id,
+            update_data,
+            admin_id=str(admin.username),
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=updated,
+            message="Walk-in patient updated successfully",
+        )
+    except DuplicateNIKException:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "NIK is already registered", "field": "nik"},
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in update_walkin_patient: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/walkin-patients/{patient_id}/register",
+    response_model=GenericResponse[UserResponse],
+)
+def convert_walkin_to_user(
+    patient_id: str,
+    req_in: ConvertWalkinRequest,
+    admin: TbMUser = Depends(get_admin_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        if user_repo.find_by_username(req_in.username):
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Username is already taken", "field": "username"},
+            )
+        if user_repo.find_by_email(req_in.email):
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Email is already registered", "field": "email"},
+            )
+
+        walkin = patient_repo.find_walkin_by_id(patient_id)
+        if not walkin:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+
+        password_to_use = (
+            req_in.password
+            if req_in.password and req_in.password.strip()
+            else "user1234"
+        )
+        must_reset = 1 if not (req_in.password and req_in.password.strip()) else 0
+
+        create_data = {
+            "username": req_in.username,
+            "email": req_in.email,
+            "password": password_to_use,
+            "must_reset_password": must_reset,
+            "role": "patient",
+            "is_patient": True,
+            "is_operator": False,
+            "is_doctor": False,
+            "is_active": 1,
+            "is_activated": 1,
+            "source": "ADMIN",
+        }
+        new_user = user_repo.create_from_dict(create_data)
+
+        patient_repo.convert_walkin_to_user(
+            patient_id, str(new_user.id), admin_id=str(admin.username)
+        )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=user_repo.find_by_id(str(new_user.id)),
+            message="Walk-in patient converted to user successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in convert_walkin_to_user: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete("/walkin-patients/{patient_id}", response_model=MessageResponse)
+def delete_walkin_patient(
+    patient_id: str,
+    admin: TbMUser = Depends(get_admin_user),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        deleted = patient_repo.delete_walkin_patient(patient_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+
+        return MessageResponse(
+            status=ApiStatus.SUCCESS,
+            message="Walk-in patient deleted successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in delete_walkin_patient: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

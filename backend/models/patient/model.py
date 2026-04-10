@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
@@ -17,9 +17,10 @@ class TbMPatient(Base, AuditMixin):
     user_id = Column(
         String(30),
         ForeignKey("tb_m_user.id", ondelete="CASCADE"),
-        unique=True,
-        nullable=False,
-        comment="Foreign key to the user",
+        unique=False,
+        nullable=True,
+        index=True,
+        comment="Foreign key to the user (NULL for operator walk-in patients)",
     )
     full_name = Column(
         String(100), index=True, nullable=False, comment="Full name of the patient"
@@ -46,7 +47,9 @@ class TbMPatient(Base, AuditMixin):
         default="QUEUE",
         index=True,
         nullable=False,
-        comment="Patient status (QUEUE, APPROVED, REJECTED)",
+        comment="Patient status (QUEUE, APPROVED, REJECTED, WALKIN)",
     )
 
-    user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="patient_profile")
+    user: Mapped[Optional["TbMUser"]] = relationship(
+        "TbMUser", back_populates="patient_profile"
+    )

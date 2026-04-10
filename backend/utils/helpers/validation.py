@@ -97,3 +97,13 @@ def validate_password(v: str) -> str:
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
         raise ValueError("Password must contain at least one special character")
     return v
+
+
+def validate_password_optional(v: Optional[str]) -> Optional[str]:
+    if v is None:
+        return None
+    v_str = v.strip()
+    if v_str == "":
+        return None
+    # reuse strict validator for non-empty values
+    return validate_password(v_str)

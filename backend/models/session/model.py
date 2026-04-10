@@ -15,6 +15,7 @@ from ..base import Base, AuditMixin
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
+    from ..patient.model import TbMPatient
     from ..raw_data.model import (
         TbREcgRaw5LeadsWeb,
         TbREcgRaw5LeadsMobile,
@@ -32,11 +33,19 @@ class TbREcgSession(Base, AuditMixin):
     )
 
     user_id = Column(
-        String(30),
-        ForeignKey("tb_m_user.id"),
+        String(36),
+        ForeignKey("tb_m_user.id", ondelete="CASCADE"),
         index=True,
-        nullable=False,
-        comment="Foreign key to the user (patient or operator)",
+        nullable=True,
+        comment="ID of the user (if registered user is the subject)",
+    )
+
+    patient_id = Column(
+        String(50),
+        ForeignKey("tb_m_patient.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+        comment="ID of the walk-in patient (if walk-in patient is the subject)",
     )
 
     device_id = Column(
@@ -64,7 +73,18 @@ class TbREcgSession(Base, AuditMixin):
         Float, nullable=True, comment="Confidence score of the AI classification"
     )
 
-    user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="sessions")
+    user: Mapped["TbMUser"] = relationship(
+        "TbMUser",
+        back_populates="sessions",
+        foreign_keys="[TbREcgSession.user_id]",
+        viewonly=True,
+    )
+
+    patient: Mapped["TbMPatient"] = relationship(
+        "TbMPatient",
+        primaryjoin="TbREcgSession.patient_id == foreign(TbMPatient.id)",
+        viewonly=True,
+    )
 
     parameters: Mapped[List["TbREcgSessionParameter"]] = relationship(
         "TbREcgSessionParameter", back_populates="session", cascade="all, delete-orphan"

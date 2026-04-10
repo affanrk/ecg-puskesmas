@@ -32,7 +32,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to get {self.model.__name__} with id {id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_by(self, **filters) -> Optional[ModelType]:
         logger.debug(
@@ -54,7 +54,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to get {self.model.__name__} by {filters}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def get_multi(
         self,
@@ -83,7 +83,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to get multiple {self.model.__name__}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def filter(
         self,
@@ -119,7 +119,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to filter {self.model.__name__} with {filters}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create(self, obj: ModelType) -> ModelType:
         logger.debug(f"[BaseRepository] Starting create {self.model.__name__}...")
@@ -140,7 +140,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to create {self.model.__name__}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def create_from_dict(self, data: Dict[str, Any]) -> ModelType:
         logger.debug(
@@ -160,7 +160,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to create {self.model.__name__} from dict: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def update(self, id: Any, data: Dict[str, Any]) -> Optional[ModelType]:
         logger.debug(
@@ -200,7 +200,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to update {self.model.__name__} with id {id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete(self, id: Any) -> bool:
         logger.debug(
@@ -226,7 +226,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to delete {self.model.__name__} with id {id}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def delete_by(self, **filters) -> int:
         logger.debug(
@@ -252,7 +252,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to delete {self.model.__name__} by {filters}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def count(self, **filters) -> int:
         logger.debug(
@@ -273,7 +273,7 @@ class BaseRepository(Generic[ModelType]):
         except Exception as e:
             logger.error(f"[BaseRepository] Failed to count {self.model.__name__}: {e}")
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def exists(self, **filters) -> bool:
         logger.debug(
@@ -295,7 +295,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to check existence of {self.model.__name__} by {filters}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def bulk_create(self, objects: List[ModelType]) -> List[ModelType]:
         logger.debug(f"[BaseRepository] Starting bulk_create {self.model.__name__}...")
@@ -315,7 +315,7 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to bulk create {self.model.__name__}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")
 
     def bulk_insert_dicts(self, data_list: List[Dict[str, Any]]) -> int:
         logger.debug(
@@ -341,4 +341,4 @@ class BaseRepository(Generic[ModelType]):
                 f"[BaseRepository] Failed to bulk insert {self.model.__name__}: {e}"
             )
             traceback.print_exc()
-            raise DatabaseException(f"Database operation failed: {e}")
+            raise DatabaseException("Database operation failed")

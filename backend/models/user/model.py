@@ -67,6 +67,12 @@ class TbMUser(Base, AuditMixin):
         Integer, default=0, comment="1 for approved/activated, 0 for pending/rejected"
     )
 
+    must_reset_password = Column(
+        Integer,
+        default=0,
+        comment="Flag indicating user must reset password on first login (1 = true, 0 = false)",
+    )
+
     last_login_dt = Column(
         DateTime(timezone=True), nullable=True, comment="Timestamp of last login"
     )

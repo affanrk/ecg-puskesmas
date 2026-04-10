@@ -1,3 +1,6 @@
+import time
+import numpy as np
+import traceback
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.health import (
     HealthCheckResponse,
@@ -8,8 +11,6 @@ from schemas.health import (
     CleanupResponse,
 )
 from schemas.common import GenericResponse, ApiStatus
-import time
-import numpy as np
 from services import (
     ml_engine_5leads,
     ml_engine_12leads,
@@ -38,7 +39,9 @@ async def health_check():
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(f"[HealthEndpoint] Unexpected error in health_check: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -111,7 +114,11 @@ async def detailed_health_check(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HealthEndpoint] Unexpected error in detailed_health_check: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -157,7 +164,11 @@ async def get_device_monitoring(admin: TbMUser = Depends(get_admin_user)):
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HealthEndpoint] Unexpected error in get_device_monitoring: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -195,7 +206,11 @@ async def get_performance_monitoring(
         )
     except (HTTPException, AppException):
         raise
-    except Exception:
+    except Exception as e:
+        logger.error(
+            f"[HealthEndpoint] Unexpected error in get_performance_monitoring: {str(e)}"
+        )
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
