@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import PatientSidebar from '@/components/layout/PatientSidebar';
+import PatientHeader from '@/components/layout/PatientHeader';
 
 export default function PatientLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
@@ -43,7 +44,7 @@ export default function PatientLayout({ children }: { children: ReactNode }) {
     }
 
     return (
-        <DashboardLayout sidebar={<PatientSidebar />}>
+        <DashboardLayout sidebar={<PatientSidebar />} header={<PatientHeader />}>
             {children}
         </DashboardLayout>
     );

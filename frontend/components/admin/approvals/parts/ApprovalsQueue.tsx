@@ -86,12 +86,12 @@ export default function ApprovalsQueue({
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {paginatedUsers.map((user) => (
-                                <QueueTableRow 
-                                    key={user.id} 
-                                    user={user} 
-                                    onApprove={onApprove} 
-                                    onReject={onReject} 
-                                    onViewDetails={onViewDetails} 
+                                <QueueTableRow
+                                    key={user.id}
+                                    user={user}
+                                    onApprove={onApprove}
+                                    onReject={onReject}
+                                    onViewDetails={onViewDetails}
                                 />
                             ))}
                         </tbody>
@@ -111,14 +111,14 @@ export default function ApprovalsQueue({
                         <button
                             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200 cursor-pointer"
                         >
                             <ChevronLeft className="w-4 h-4" strokeWidth={3} />
                         </button>
                         <button
                             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200"
+                            className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-rose-600 hover:border-rose-200 cursor-pointer"
                         >
                             <ChevronRight className="w-4 h-4" strokeWidth={3} />
                         </button>

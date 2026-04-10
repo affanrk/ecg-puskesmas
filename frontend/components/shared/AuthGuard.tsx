@@ -6,6 +6,7 @@ import { useRouter } from 'nextjs-toploader/app';
 import { Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
+import ChangePasswordModal from '@/components/shared/ChangePasswordModal';
 import { User } from '@/types/user';
 import { connectWebSocket } from '@/services/socket';
 
@@ -14,6 +15,8 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const setUser = useStore(state => state.setUser);
     const storeUser = useStore(state => state.user);
+    const isSidebarPinned = useStore(state => state.isSidebarPinned);
+    const [isChangeOpen, setIsChangeOpen] = useState(false);
     const [authorized, setAuthorized] = useState(false);
     const redirectingRef = useRef(false);
 
@@ -97,7 +100,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         };
 
         if (storeUser) {
-            const canProceed = enforceRouting(storeUser);
+                const canProceed = enforceRouting(storeUser);
             if (canProceed && !authorized) {
                 setTimeout(() => setAuthorized(true), 0);
                 connectWebSocket();
@@ -149,6 +152,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         checkAuth();
     }, [pathname, router, setUser, authorized, storeUser]);
 
+
     if (pathname === '/login' || pathname === '/register') {
         return <>{children}</>;
     }
@@ -159,6 +163,42 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                 <Loader2 className="w-10 h-10 text-brand-500 animate-spin mb-4" />
                 <p className="text-slate-500 font-medium">Verifying Session...</p>
             </div>
+        );
+    }
+
+    const currentUser = storeUser as User | null;
+    if (currentUser && currentUser.must_reset_password === 1) {
+        const leftOffset = isSidebarPinned ? '18rem' : '0.5rem';
+
+        return (
+            <>
+                <div
+                    style={{ left: leftOffset }}
+                    className="fixed top-4 right-4 z-[80] w-[calc(100%-4rem)] max-w-3xl pointer-events-auto"
+                >
+                    <div className="rounded-lg shadow-2xl bg-amber-50 border border-amber-200 ring-1 ring-amber-300 p-4 flex items-center justify-between gap-4 animate-pulse">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-amber-100 rounded-md flex items-center justify-center text-amber-700 shadow-inner">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11c0-1.657-1.343-3-3-3S6 9.343 6 11s1.343 3 3 3 3-1.343 3-3zM19 11c0-1.657-1.343-3-3-3s-3 1.343-3 3 1.343 3 3 3 3-1.343 3-3z"/></svg>
+                            </div>
+                            <div>
+                                <p className="text-sm font-extrabold text-amber-800">Password reset required</p>
+                                <p className="text-xs text-amber-700">For security, you must change your password before continuing.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <button onClick={() => setIsChangeOpen(true)} className="px-3 py-2 rounded-md bg-amber-700 hover:bg-amber-600 text-white text-sm font-semibold shadow cursor-pointer">Change password</button>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-4">{children}</div>
+
+                <ChangePasswordModal
+                    isOpen={isChangeOpen}
+                    onClose={() => setIsChangeOpen(false)}
+                    onSuccess={() => {}}
+                />
+            </>
         );
     }
 

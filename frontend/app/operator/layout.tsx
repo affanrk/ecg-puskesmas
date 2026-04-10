@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import OperatorSidebar from '@/components/layout/OperatorSidebar';
+import OperatorHeader from '@/components/layout/OperatorHeader';
 
 export default function OperatorLayout({ children }: { children: ReactNode }) {
     const router = useRouter();
@@ -38,7 +39,7 @@ export default function OperatorLayout({ children }: { children: ReactNode }) {
     }
 
     return (
-        <DashboardLayout sidebar={<OperatorSidebar />}>
+        <DashboardLayout sidebar={<OperatorSidebar />} header={<OperatorHeader />}>
             {children}
         </DashboardLayout>
     );

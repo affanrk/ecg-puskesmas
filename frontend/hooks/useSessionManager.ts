@@ -6,7 +6,7 @@ import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
 
 export function useSessionManager() {
-    const { isRecording, currentDeviceId, user, selectedLeadMode } = useStore();
+    const { isRecording, currentDeviceId, user, selectedLeadMode, operatorPatient } = useStore();
     const { show: toast } = useToast();
 
     useEffect(() => {
@@ -38,14 +38,19 @@ export function useSessionManager() {
             }
 
             useStore.getState().setWsPendingAction('starting');
-            const payload = {
+            const payload: Record<string, string | number | undefined> = {
                 type: "start_recording",
                 device_id: currentDeviceId,
                 user_id: user.id,
                 username: user.username,
-                subject_id: user.id,
+                subject_id: operatorPatient ? operatorPatient.id : user.id,
                 lead_mode: selectedLeadMode
             };
+            
+            if (operatorPatient) {
+                payload.patient_id = operatorPatient.id;
+            }
+            
             sendJson(payload);
         }
     };

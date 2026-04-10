@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserMenu } from './parts/UserMenu';
 import { RecordingIndicator } from './parts/RecordingIndicator';
 
-export default function Header() {
+export default function OperatorHeader() {
     const pathname = usePathname();
     const user = useStore(state => state.user);
     const isRecording = useStore(state => state.isRecording);
@@ -36,21 +36,25 @@ export default function Header() {
     };
 
     const getPageTitle = (path: string) => {
-        if (path.includes('/dashboard')) return 'Dashboard Overview';
-        if (path.includes('/monitor')) return 'Live Monitoring';
-        if (path.includes('/history')) return 'Recording History';
-        if (path.includes('/performance')) return 'Network Performance';
-        if (path.includes('/profile')) return 'User Profile';
-        return 'System User';
+        if (path.includes('/operator/dashboard')) return 'Operator Dashboard';
+        if (path.includes('/operator/monitor')) return 'Live Monitor';
+        if (path.includes('/operator/history')) return 'Recording History';
+        if (path.includes('/operator/profile')) return 'Operator Profile';
+        return 'Operator Portal';
     };
 
     return (
         <>
             <header className="h-[64px] bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-8 flex items-center justify-between shrink-0 relative z-50 sticky top-0">
                 <div className="flex items-center gap-4 flex-1 lg:pl-0 pl-12">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight hidden md:block">
-                        {getPageTitle(pathname)}
-                    </h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-black text-slate-800 tracking-tight hidden md:block">
+                            {getPageTitle(pathname)}
+                        </h2>
+                        <span className="hidden md:flex items-center justify-center px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-[9px] font-black uppercase tracking-widest shadow-sm">
+                            Operator
+                        </span>
+                    </div>
                 </div>
                 <div className="flex items-center gap-5">
                     {isRecording && <RecordingIndicator />}
@@ -63,7 +67,7 @@ export default function Header() {
                         setShowLogoutConfirm={setShowLogoutConfirm}
                         menuRef={menuRef}
                         isProfileComplete={isProfileComplete}
-                        profileLink="/dashboard"
+                        profileLink="/operator/profile"
                     />
                 </div>
             </header>

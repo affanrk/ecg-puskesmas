@@ -135,7 +135,9 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
             <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                     <div><h2 className="text-lg font-black text-slate-800 tracking-tight">Create New User</h2></div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full text-slate-400 transition-colors cursor-pointer"><X size={20} /></button>
+                    <button onClick={onClose} className="p-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-400 hover:text-rose-600 border border-rose-100 hover:border-rose-200 transition-all cursor-pointer">
+                        <X size={20} />
+                    </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-8 overflow-y-auto custom-scrollbar" noValidate>

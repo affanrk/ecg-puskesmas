@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 import { getApiUrl } from '../utils/helpers';
-import { UserFormPayload, AuthPayload, ProfilePayload, AdminUserPayload } from '@/types/user';
+import { UserFormPayload, AuthPayload, ProfilePayload, AdminUserPayload, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
 import { HistoryFilters } from '@/types/models';
 
 export async function fetchHistory(filters: HistoryFilters = {}) {
@@ -291,6 +291,65 @@ export async function deleteUser(userId: string) {
     }
 }
 
+export async function fetchOperatorPatients(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/operator/patients', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Operator Patients Error:", error);
+        throw error;
+    }
+}
+
+export async function createOperatorPatient(data: WalkinPatientPayload) {
+    try {
+        const response = await axiosInstance.post('/operator/patients', data);
+        return response.data;
+    } catch (error) {
+        console.error("Create Operator Patient Error:", error);
+        throw error;
+    }
+}
+
+export async function fetchAdminPatients(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/admin/walkin-patients', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Admin Patients Error:", error);
+        throw error;
+    }
+}
+
+export async function updateAdminWalkinPatient(patientId: string, data: WalkinPatientPayload) {
+    try {
+        const response = await axiosInstance.put(`/admin/walkin-patients/${patientId}`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Update Walk-in Patient Error:", error);
+        throw error;
+    }
+}
+
+export async function convertAdminWalkinPatient(patientId: string, data: ConvertWalkinPayload) {
+    try {
+        const response = await axiosInstance.post(`/admin/walkin-patients/${patientId}/register`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Convert Walk-in Patient Error:", error);
+        throw error;
+    }
+}
+
+export async function deleteAdminWalkinPatient(patientId: string) {
+    try {
+        await axiosInstance.delete(`/admin/walkin-patients/${patientId}`);
+    } catch (error) {
+        console.error("Delete Walk-in Patient Error:", error);
+        throw error;
+    }
+}
+
 export const api = {
     login,
     register,
@@ -314,5 +373,11 @@ export const api = {
     fetchUsers,
     createUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    fetchOperatorPatients,
+    createOperatorPatient,
+    fetchAdminPatients,
+    updateAdminWalkinPatient,
+    convertAdminWalkinPatient,
+    deleteAdminWalkinPatient
 };

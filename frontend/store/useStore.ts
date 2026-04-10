@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { CONFIG, LEAD_MODES } from '@/config/constants';
 import { getActiveProfile } from '@/utils/helpers';
-import { User } from '@/types/user';
+import { User, WalkinPatient } from '@/types/user';
 import { Device, AnalysisResult, EcgSample5Leads, EcgSample12Leads, PerformanceMetrics, HealthData } from '@/types/models';
 
 interface AppState {
@@ -40,6 +40,7 @@ interface AppState {
     performance: PerformanceMetrics;
     visibleLeads: { leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean; avr?: boolean; avl?: boolean; v2?: boolean; v3?: boolean; v4?: boolean; v5?: boolean; v6?: boolean };
     healthData: HealthData | null;
+    operatorPatient: WalkinPatient | null;
     wsPendingAction: 'starting' | 'stopping' | 'switching' | 'disconnecting' | null;
     setWsPendingAction: (action: 'starting' | 'stopping' | 'switching' | 'disconnecting' | null) => void;
     setDeviceId: (id: string | null) => void;
@@ -64,6 +65,7 @@ interface AppState {
     setVisibleLeads: (leads: Partial<{ leadI: boolean; leadII: boolean; leadIII: boolean; avF: boolean; v1: boolean }>) => void;
     resetSession: () => void;
     setHealthData: (data: HealthData | null) => void;
+    setOperatorPatient: (patient: WalkinPatient | null) => void;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -112,9 +114,11 @@ export const useStore = create<AppState>((set, get) => ({
         v1: true
     },
     healthData: null,
+    operatorPatient: null,
     wsPendingAction: null,
     setWsPendingAction: (action) => set({ wsPendingAction: action }),
     setHealthData: (healthData) => set({ healthData }),
+    setOperatorPatient: (operatorPatient) => set({ operatorPatient }),
     setSelectedLeadMode: (mode) => set({ selectedLeadMode: mode }),
     setDeviceId: (id) => set((state) => ({
         currentDeviceId: id,
@@ -149,8 +153,8 @@ export const useStore = create<AppState>((set, get) => ({
         newLiveData.unshift({
             timestamp: new Date().toISOString(),
             device_id: state.currentDeviceId || 'unknown',
-            subject_id: (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
-            patient_name: (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
+            subject_id: state.operatorPatient?.id || (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
+            patient_name: state.operatorPatient?.full_name || (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
             classification: "Recording...",
             recording_id: 'placeholder-live'
         });
@@ -208,8 +212,8 @@ export const useStore = create<AppState>((set, get) => ({
             newLive.unshift({
                 timestamp: new Date().toISOString(),
                 device_id: state.currentDeviceId || 'unknown',
-                subject_id: (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
-                patient_name: (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
+                subject_id: state.operatorPatient?.id || (getActiveProfile(state.user)?.nik || "") || state.user?.id || "-",
+                patient_name: state.operatorPatient?.full_name || (getActiveProfile(state.user)?.full_name || "") || state.user?.username || "-",
                 classification: "Recording...",
                 recording_id: 'placeholder-live'
             });

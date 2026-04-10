@@ -31,7 +31,6 @@ body {
   font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
-/* --- Typographic Clarity --- */
 h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
@@ -40,13 +39,11 @@ label {
   letter-spacing: 0.01em;
 }
 
-/* --- Scrollbar Customization --- */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
 
-/* --- Spacing Compactness --- */
 .custom-scrollbar {
     scrollbar-gutter: stable;
 }
@@ -59,10 +56,8 @@ label {
     scrollbar-width: none;
 }
 
-/* --- Flatpickr Override --- */
 .flatpickr-calendar { z-index: 9999 !important; }
 
-/* --- Animations --- */
 .fade-enter { animation: fadeIn 0.3s ease-out forwards; }
 
 @keyframes fadeIn {
@@ -76,7 +71,6 @@ label {
 }
 .animate-new-row { animation: highlightFade 2s ease-out; }
 
-/* Age Pop Animation */
 @keyframes popIn {
     0% { transform: scale(0.9); opacity: 0.7; }
     50% { transform: scale(1.05); opacity: 1; }
@@ -84,15 +78,11 @@ label {
 }
 .age-pop { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-/* --- Components --- */
-
-/* Glass Effect */
 .glass-blur {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
 
-/* Dropdown Animation */
 .dropdown-content {
     display: none;
     position: absolute;
@@ -111,7 +101,6 @@ label {
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Skeleton Loading */
 .skeleton-row {
     background: #f1f5f9;
     background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0) 100%);
@@ -133,7 +122,6 @@ label {
     animation: medical-shimmer 2s infinite linear;
 }
 
-/* Custom Select Style */
 .modern-select {
     appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -142,14 +130,12 @@ label {
     background-size: 1.5em 1.5em;
 }
 
-/* Table Spacing Fixes */
 table tbody tr td {
     padding-top: 0.4rem; 
     padding-bottom: 0.4rem;
     line-height: 1.1rem;
 }
 
-/* --- Auth Medical Theme (New) --- */
 .auth-split-bg {
     background-color: #0ea5e9;
     background-image: 
@@ -177,7 +163,6 @@ table tbody tr td {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Error Pop Animation */
 @keyframes error-pop {
     0% { transform: scale(0.95); opacity: 0.8; }
     40% { transform: scale(1.02); opacity: 1; }

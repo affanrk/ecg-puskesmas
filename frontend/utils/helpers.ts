@@ -80,10 +80,6 @@ export function getApiUrl(): string {
         url = `${protocol}${url}`;
     }
 
-    // if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('http://') && !url.includes('localhost')) {
-    //     url = url.replace('http://', 'https://');
-    // }
-
     if (!url.endsWith('/api/v1')) {
         url = `${url}/api/v1`;
     }

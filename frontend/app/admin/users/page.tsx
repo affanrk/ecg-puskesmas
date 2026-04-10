@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
-import { User, UserFormPayload } from '@/types/user';
+import { User, UserFormPayload, WalkinPatient, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
 import {
     Search,
     Filter,
@@ -12,6 +12,7 @@ import {
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import EditUserModal from '@/components/admin/users/parts/EditUserModal';
 import CreateUserModal from '@/components/admin/users/parts/CreateUserModal';
+import WalkinPatientModal from '@/components/admin/users/parts/WalkinPatientModal';
 import { parseApiError } from '@/utils/helpers';
 import { useToast } from '@/hooks/useToast';
 import { useStore } from '@/store/useStore';
@@ -33,6 +34,7 @@ export default function UserManagementPage() {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [editingWalkin, setEditingWalkin] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -40,13 +42,42 @@ export default function UserManagementPage() {
     const fetchUsers = useCallback(async () => {
         setIsLoading(true);
         try {
+            const [usersData, walkinsData] = await Promise.all([
+                api.fetchUsers({ search, role: roleFilter || undefined, limit: 100 }),
+                api.fetchAdminPatients({ search, limit: 100 })
+            ]);
 
-            const data = await api.fetchUsers({
-                search,
-                role: roleFilter || undefined,
-                limit: 100
-            });
-            setUsers(data);
+            let combined: User[] = [...usersData];
+
+            if (!roleFilter || roleFilter === 'patient') {
+                const walkins = walkinsData.items || [];
+                const formattedWalkins: User[] = walkins.map((w: WalkinPatient) => ({
+                    id: w.id,
+                    username: 'walk-in',
+                    email: 'N/A',
+                    role: 'patient',
+                    is_patient: true,
+                    is_walkin: true,
+                    is_active: w.status === 'ACTIVE',
+                    is_activated: 1,
+                    patient_profile: {
+                        full_name: w.full_name,
+                        nik: w.nik,
+                        pob: w.pob,
+                        dob: w.dob,
+                        gender: w.gender,
+                        address: w.address,
+                        contact_number: w.contact_number,
+                        medical_history: w.medical_history
+                    },
+                    created_dt: w.created_dt,
+                    changed_dt: w.changed_dt
+                }));
+                combined = [...combined, ...formattedWalkins];
+                combined.sort((a, b) => new Date(b.created_dt as string).getTime() - new Date(a.created_dt as string).getTime());
+            }
+
+            setUsers(combined);
         } catch (err) {
             const { message } = parseApiError(err as Error);
             console.error(message);
@@ -107,7 +138,7 @@ export default function UserManagementPage() {
             return { success: true };
         } catch (err) {
             const { message, fieldErrors, status } = parseApiError(err as Error);
-            
+
             if (status !== 400 && status !== 422 && message) {
                 showToast(message || "Failed to update user account", "error");
             }
@@ -115,14 +146,46 @@ export default function UserManagementPage() {
         }
     }, [fetchUsers, showToast]);
 
+    const handleUpdateWalkin = useCallback(async (id: string, data: WalkinPatientPayload) => {
+        try {
+            await api.updateAdminWalkinPatient(id, data);
+            fetchUsers();
+            showToast("Walk-in patient updated successfully", "success");
+            setEditingWalkin(null);
+            return { success: true };
+        } catch (err) {
+            const { message } = parseApiError(err as Error);
+            showToast(message || "Failed to update walk-in patient", "error");
+            return { success: false, message };
+        }
+    }, [fetchUsers, showToast]);
+
+    const handleConvertWalkin = useCallback(async (id: string, data: ConvertWalkinPayload) => {
+        try {
+            await api.convertAdminWalkinPatient(id, data);
+            fetchUsers();
+            showToast("Walk-in patient converted to user account successfully", "success");
+            setEditingWalkin(null);
+            return { success: true };
+        } catch (err) {
+            const { message } = parseApiError(err as Error);
+            showToast(message || "Failed to convert walk-in patient", "error");
+            return { success: false, message };
+        }
+    }, [fetchUsers, showToast]);
+
     const handleDelete = useCallback(async () => {
         if (!deletingUser?.id) return;
         setIsDeleting(true);
         try {
-            await api.deleteUser(deletingUser.id);
+            if (deletingUser.is_walkin) {
+                await api.deleteAdminWalkinPatient(deletingUser.id);
+            } else {
+                await api.deleteUser(deletingUser.id);
+            }
             fetchUsers();
             setDeletingUser(null);
-            showToast("User account deleted successfully", "success");
+            showToast("Account deleted successfully", "success");
         } catch (err) {
             const { message } = parseApiError(err as Error);
             showToast(message || "Failed to delete user account", "error");
@@ -131,7 +194,13 @@ export default function UserManagementPage() {
         }
     }, [deletingUser, fetchUsers, showToast]);
 
-    const handleSetEditingUser = useCallback((u: User) => setEditingUser(u), []);
+    const handleSetEditingUser = useCallback((u: User) => {
+        if (u.is_walkin) {
+            setEditingWalkin(u);
+        } else {
+            setEditingUser(u);
+        }
+    }, []);
     const handleSetDeletingUser = useCallback((u: User) => setDeletingUser(u), []);
 
     return (
@@ -199,6 +268,15 @@ export default function UserManagementPage() {
                     user={editingUser}
                     onClose={() => setEditingUser(null)}
                     onSave={handleUpdate}
+                />
+            )}
+
+            {editingWalkin && (
+                <WalkinPatientModal
+                    patient={editingWalkin}
+                    onClose={() => setEditingWalkin(null)}
+                    onSave={handleUpdateWalkin}
+                    onConvert={handleConvertWalkin}
                 />
             )}
 

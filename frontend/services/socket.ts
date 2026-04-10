@@ -43,10 +43,6 @@ class WebSocketService {
             url = `${protocol}${url}`;
         }
 
-        // if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.startsWith('ws://')) {
-        //     url = url.replace('ws://', 'wss://');
-        // }
-
         const token = typeof window !== 'undefined' ? localStorage.getItem('ecg_token') : null;
         if (token) {
             url += (url.includes('?') ? '&' : '?') + `token=${token}`;

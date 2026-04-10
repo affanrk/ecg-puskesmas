@@ -9,6 +9,7 @@ import { Calendar, AlertCircle } from 'lucide-react';
 interface FlatpickrInputProps {
     value: string;
     onChange: (date: string) => void;
+    onBlur?: (date: string) => void;
     disabled?: boolean;
     placeholder?: string;
     label?: string;
@@ -18,6 +19,7 @@ interface FlatpickrInputProps {
 export default function FlatpickrInput({ 
     value, 
     onChange, 
+    onBlur,
     disabled = false, 
     placeholder = "Select Date",
     label,
@@ -26,11 +28,16 @@ export default function FlatpickrInput({
     const inputRef = useRef<HTMLInputElement>(null);
     const fpInstance = useRef<flatpickr.Instance | null>(null);
     const onChangeRef = useRef(onChange);
+    const onBlurRef = useRef(onBlur);
     const initialValueRef = useRef(value);
 
     useEffect(() => {
         onChangeRef.current = onChange;
     }, [onChange]);
+
+    useEffect(() => {
+        onBlurRef.current = onBlur;
+    }, [onBlur]);
 
     useEffect(() => {
         if (inputRef.current) {
@@ -44,6 +51,11 @@ export default function FlatpickrInput({
                 onChange: (selectedDates, dateStr) => {
                     if (onChangeRef.current) {
                         onChangeRef.current(dateStr);
+                    }
+                },
+                onClose: (selectedDates, dateStr) => {
+                    if (onBlurRef.current) {
+                        onBlurRef.current(dateStr);
                     }
                 }
             });

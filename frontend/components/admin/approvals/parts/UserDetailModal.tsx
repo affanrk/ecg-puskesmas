@@ -68,9 +68,9 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Reviewing Application</p>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={onClose}
-                        className="p-1.5 hover:bg-slate-100 text-slate-400 rounded-lg transition-colors"
+                        className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-400 hover:text-rose-600 border border-rose-100 hover:border-rose-200 transition-all cursor-pointer"
                     >
                         <X size={20} />
                     </button>

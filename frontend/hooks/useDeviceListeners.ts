@@ -1,12 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { globalEventBus } from '@/services/events';
 import { EVENTS } from '@/config/constants';
 import { sendJson } from '@/services/socket';
 import { useToast } from '@/hooks/useToast';
-import { Device } from '@/types/models';
 
 export function useDeviceListeners() {
     const { currentDeviceId, setDeviceId, isRecording, setRecording, setBpm, resetSession } = useStore();

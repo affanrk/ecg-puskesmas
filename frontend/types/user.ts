@@ -23,10 +23,12 @@ export interface User {
     email?: string;
     role: string;
     is_patient: boolean;
+    is_walkin?: boolean;
     is_active: boolean;
     is_doctor?: boolean;
     is_operator?: boolean;
     is_activated: number;
+    must_reset_password?: number;
     status?: string;
     rejection_reason?: string;
     patient_profile?: ProfileData;
@@ -111,4 +113,38 @@ export interface ProfilePayload {
     operator_role?: string | null;
     work_location?: string | null;
     source?: string | null;
+}
+
+export interface WalkinPatient {
+    id: string;
+    user_id?: string | null;
+    full_name: string;
+    nik?: string | null;
+    pob: string;
+    dob: string;
+    gender: string;
+    address?: string | null;
+    contact_number?: string | null;
+    medical_history?: string | null;
+    status: string;
+    created_by?: string | null;
+    created_dt?: string | null;
+    changed_dt?: string | null;
+}
+
+export interface WalkinPatientPayload {
+    full_name: string;
+    nik?: string | null;
+    pob: string;
+    dob: string;
+    gender: string;
+    address?: string | null;
+    contact_number?: string | null;
+    medical_history?: string | null;
+}
+
+export interface ConvertWalkinPayload {
+    username: string;
+    email: string;
+    password?: string;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle } from 'lucide-react';
+import { useEffect } from 'react';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import ProfileHeader from './parts/ProfileHeader';
 import IdentityCard from './parts/IdentityCard';
@@ -9,7 +10,7 @@ import UsernameCard from './parts/UsernameCard';
 import PasswordCard from './parts/PasswordCard';
 import { useProfileManager } from '@/hooks/useProfileManager';
 
-export default function PatientProfile() {
+export default function PatientProfile({ openTab }: { openTab?: string }) {
     const {
         user,
         loading,
@@ -38,6 +39,12 @@ export default function PatientProfile() {
         handleChangePassword,
         onUpdatePasswordClick
     } = useProfileManager();
+    useEffect(() => {
+        if (openTab === 'security') {
+            setActiveTab('security');
+            setIsChangingPassword(true);
+        }
+    }, [openTab, setActiveTab, setIsChangingPassword]);
 
     if (!user) return null;
 
