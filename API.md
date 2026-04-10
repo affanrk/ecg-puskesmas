@@ -88,6 +88,12 @@ Authenticates a user and returns a JWT token. Enforces Single Session (Last Logi
     }
     ```
 
+*   **Errors:**
+    - `404 Not Found` — returned when the provided `username_or_email` does not match any account.
+    - `401 Unauthorized` — incorrect password.
+
+*   **Client handling:** If `must_reset_password` is set for the user (check `/auth/me`), the client should prompt the user to change password using `/auth/change-password` before allowing protected actions.
+
 ### 1.3 Logout
 Invalidates the current session ID in the database.
 *   **Method:** `POST`
@@ -108,7 +114,19 @@ Invalidates the current session ID in the database.
     {
       "status": "success",
       "message": "User profile retrieved successfully",
-      "data": { "id": "USR...", "username": "admin", ... }
+      "data": {
+        "id": "USR20260213000001",
+        "email": "admin@example.com",
+        "username": "admin",
+        "full_name": "System Administrator",
+        "must_reset_password": 0,
+        "role": "admin",
+        "is_active": true,
+        "is_patient": false,
+        "is_operator": true,
+        "is_doctor": false,
+        "status": "APPROVED"
+      }
     }
     ```
 
@@ -231,6 +249,8 @@ Converts a basic user into a Patient and submits their clinical profile.
       "message": "Password updated successfully"
     }
     ```
+
+*   **Behavior:** On success the server clears the `must_reset_password` flag for the user (if set), allowing normal access.
 
 ---
 
@@ -440,16 +460,32 @@ Export endpoints return a direct file stream (`StreamingResponse`) and do **not*
 ### `UserResponse`
 ```json
 {
-  "id": "USR20260213000001",
-  "username": "johndoe",
+  "id": "usr_12345",
   "email": "user@example.com",
-  "is_active": true,
+  "username": "user123",
+  "full_name": "John Doe",
+  "must_reset_password": 1,
   "role": "patient",
+  "is_active": true,
   "is_patient": true,
   "is_operator": false,
   "is_doctor": false,
+  "is_activated": 1,
   "status": "APPROVED",
-  "patient_profile": { ... },
+  "created_dt": "2024-01-01T12:00:00Z",
+  "changed_dt": "2024-01-01T12:00:00Z",
+  "patient_profile": {
+    "id": "PAT20240101000001",
+    "user_id": "usr_12345",
+    "full_name": "John Doe",
+    "nik": "3201234567890001",
+    "pob": "Jakarta",
+    "dob": "1990-01-01",
+    "gender": "L",
+    "address": "Jl. Merdeka No. 1",
+    "contact_number": "081234567890",
+    "status": "APPROVED"
+  },
   "operator_profile": null,
   "doctor_profile": null
 }
@@ -458,18 +494,25 @@ Export endpoints return a direct file stream (`StreamingResponse`) and do **not*
 ### `SessionResponse`
 ```json
 {
-  "recording_id": "uuid-...",
+  "recording_id": "123e4567-e89b-12d3-a456-426614174000",
   "device_id": "ECG001",
+  "subject_id": "1234567890123456",
   "patient_name": "John Doe",
+  "timestamp": "2024-01-09T10:30:00Z",
+  "changed_dt": "2024-01-09T10:35:00Z",
   "classification": "Normal",
-  "confidence": 0.98,
-  "bpm": 72.0,
-  "avg_rr_ms": 833.3,
-  "avg_pr_ms": 160.0,
-  "avg_qs_ms": 80.0,
-  "avg_qtc_ms": 420.0,
-  "avg_st_ms": 120.0,
-  "rs_ratio_v1": 0.5,
-  "device_type": "12LEADS"
+  "is_normal": true,
+  "confidence": 0.95,
+  "device_type": "12LEADS",
+  "parameters": [
+    {
+      "lead_name": "lead_ii",
+      "heart_rate_bpm": 72.5,
+      "rr_ms": 828.0,
+      "pr_ms": 160.0,
+      "qrs_ms": 80.0,
+      "qtc_ms": 420.0
+    }
+  ]
 }
 ```

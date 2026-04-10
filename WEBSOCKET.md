@@ -19,6 +19,7 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 1.  **Handshake:** Client initiates connection with token.
 2.  **Authentication:** Server verifies JWT and session ID (`sid`). If session is expired or mismatched (due to "Last Login Wins"), connection is closed with code `4003`.
+    *   If the JWT is invalid or the referenced user cannot be found, the server sends an `error` message and closes the connection.
 3.  **Registration:** Once authenticated, the connection is registered in the `DeviceStateManager` for global broadcasts.
 4.  **Initial Payload:** Server immediately sends `device_list_update`.
 5.  **Steady State:** Client should maintain connection using Heartbeat (Ping/Pong every 10-30s).
@@ -34,7 +35,7 @@ This document describes the real-time communication protocol for the ECG Platfor
 | `pong` | `{}` | Response to server-initiated `ping`. | (None) |
 | `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts live data stream. | `subscription_success`, `device_status_update`, `state_update` |
 | `unsubscribe` | `{}` | Releases current device lock and stops data stream. | `unsubscription_success`, then global `device_list_update` |
-| `start_recording` | `{ "device_id": "string", "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. `source` defaults to `WEB`. | `state_update` (is_recording status changes to true) |
+| `start_recording` | `{ "device_id": "string", "patient_id": "string?" "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. Creates a database session record and locks device state. `source` defaults to `WEB`. | `state_update` (is_recording status changes to true) |
 | `stop_recording` | `{ "device_id": "string" }` | Forces current recording to complete and triggers analysis. | `state_update` (is_recording status changes to false) |
 | `calculate_live_bpm` | `{ "device_id": "string", "data": [0.12, ...] }` | Request server-side HR calculation from raw samples. | `calculate_live_bpm` (Async result) |
 
@@ -177,6 +178,103 @@ This document describes the real-time communication protocol for the ECG Platfor
       "type": "history_updated"
     }
     ```
+
+---
+
+## 5. Start Recording Flow (Detailed)
+
+### 5.1 Request Payload
+```json
+{
+  "type": "start_recording",
+  "device_id": "ECG001",          // Required: Target device identifier
+  "patient_id": "PAT20240407",    // Optional: Patient ID (if recording for a patient)
+  "source": "WEB",                 // Optional: Recording source (defaults to "WEB", can be "MOBILE", "DEVICE")
+  "lead_mode": 5                   // Optional: Expected lead mode (5 or 12). If provided, validated against device's current mode
+}
+```
+
+### 5.2 Processing Logic
+1. **Validation Phase:**
+   - Verifies `device_id` is provided
+   - Checks device is currently connected (exists in `DeviceStateManager`)
+   - If `lead_mode` is specified, validates it matches the device's current lead mode
+   
+2. **Session Creation Phase:**
+   - Generates unique `recording_id` (UUID)
+   - Determines `device_type` based on device's current lead mode:
+     - 12 leads → `"12LEADS"`
+     - 5 leads → `"5LEADS"`
+   - Creates database session record with:
+     - `recording_id`: Generated UUID
+     - `device_id`: Requested device
+     - `user_id`: Current authenticated user ID (only if `patient_id` is NOT provided)
+     - `patient_id`: If provided in request
+     - `created_by`: Source value (defaults to `"WEB"`)
+     - `device_type`: Auto-detected device type
+   
+3. **State Update Phase:**
+   - Locks the device state for this recording:
+     - `is_recording = true`
+     - `recording_id = <generated UUID>`
+     - `subject_id = patient_id` (if provided) or `user_id` (if not)
+     - `segment_count = 1`
+     - `recording_source = source`
+     - `status_message = "Recording..."`
+   - Broadcasts `state_update` to all subscribers of this device
+
+### 5.3 Response States & Error Handling
+
+**Success Response:**
+```json
+{
+  "type": "state_update",
+  "device_id": "ECG001",
+  "is_recording": true,
+  "status_message": "Recording...",
+  "recording_id": "550e8400-e29b-41d4-a716-446655440000",
+  "subject_id": "PAT20240407"  // or user ID if no patient_id
+}
+```
+
+**Error Scenarios:**
+
+| Error | Cause | Response |
+| :--- | :--- | :--- |
+| Missing `device_id` | Client did not provide required field | Warning logged, no error message sent (handler returns without sending) |
+| Device not connected | Device not in `DeviceStateManager` | Warning logged, no error message sent |
+| Lead mode mismatch | Requested `lead_mode` differs from device's current mode | Warning logged, no error message sent |
+| Database failure | Session record creation fails | `{ "type": "error", "message": "Failed to create recording session in database." }` |
+| Application error | Internal app exception during processing | `{ "type": "error", "message": "<exception message>" }` |
+| Unexpected error | Unhandled exception | `{ "type": "error", "message": "Internal Server Error" }` |
+
+### 5.4 Important Behavioral Notes
+- **Device Lock:** Once recording starts, the device is effectively locked to this recording session until the recording is stopped.
+- **User vs. Patient Mode:** 
+  - If `patient_id` is provided, the recording is linked to that patient; `user_id` is `null` in the session record.
+  - If `patient_id` is omitted, the recording is linked to the authenticated user; `patient_id` is `null`.
+- **Silent Errors:** Some validation failures (missing device_id, device not connected, lead_mode mismatch) are logged but do NOT send error messages to the client. The client must implement timeout logic to detect failed recording starts.
+- **Broadcast Scope:** All clients subscribed to the same device receive the `state_update` message.
+
+---
+
+### Storage mapping & indexing
+
+Live recordings and flushed buffer chunks are written to the same raw-data tables used by the MQTT pipeline. Mapping:
+
+- 5-lead web samples -> `tb_r_ecg_raw_5leads_web`
+- 5-lead mobile samples -> `tb_r_ecg_raw_5leads_mobile`
+- 12-lead web samples -> `tb_r_ecg_raw_12leads_web`
+- 12-lead mobile samples -> `tb_r_ecg_raw_12leads_mobile`
+
+Each table stores per-sample `mv_*`/`raw_*` columns, `created_dt`, and `created_by` (e.g. `WEB`, `MOBILE`, `DEVICE`). For efficient sequential reads during playback or analysis, create a composite index on `(recording_id, created_dt)`. Example:
+
+```sql
+CREATE INDEX idx_raw_5leads_web_recording_dt ON tb_r_ecg_raw_5leads_web (recording_id, created_dt);
+CREATE INDEX idx_raw_5leads_mobile_recording_dt ON tb_r_ecg_raw_5leads_mobile (recording_id, created_dt);
+CREATE INDEX idx_raw_12leads_web_recording_dt ON tb_r_ecg_raw_12leads_web (recording_id, created_dt);
+CREATE INDEX idx_raw_12leads_mobile_recording_dt ON tb_r_ecg_raw_12leads_mobile (recording_id, created_dt);
+```
 
 ---
 

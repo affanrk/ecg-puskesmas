@@ -89,3 +89,20 @@ Incoming data is only stored in the database if the device's `is_recording` flag
 *   `tb_r_ecg_raw_5leads_web/mobile`: For 5-Lead devices.
 *   `tb_r_ecg_raw_12leads_web/mobile`: For 12-Lead devices.
 *   Data is buffered and flushed in chunks (default 2000 samples) to ensure high-performance writes.
+
+**Storage mapping & indexing**
+
+- 5-lead web samples -> `tb_r_ecg_raw_5leads_web`
+- 5-lead mobile samples -> `tb_r_ecg_raw_5leads_mobile`
+- 12-lead web samples -> `tb_r_ecg_raw_12leads_web`
+- 12-lead mobile samples -> `tb_r_ecg_raw_12leads_mobile`
+
+Each raw-data table contains per-sample `mv_*` and `raw_*` columns, `created_dt`, and `created_by`.
+Create a composite index on `(recording_id, created_dt)` for each table to support fast sequential reads. Example SQL:
+
+```sql
+CREATE INDEX idx_raw_5leads_web_recording_dt ON tb_r_ecg_raw_5leads_web (recording_id, created_dt);
+CREATE INDEX idx_raw_5leads_mobile_recording_dt ON tb_r_ecg_raw_5leads_mobile (recording_id, created_dt);
+CREATE INDEX idx_raw_12leads_web_recording_dt ON tb_r_ecg_raw_12leads_web (recording_id, created_dt);
+CREATE INDEX idx_raw_12leads_mobile_recording_dt ON tb_r_ecg_raw_12leads_mobile (recording_id, created_dt);
+```

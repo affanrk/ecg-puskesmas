@@ -99,3 +99,45 @@ ecg-puskesmas/
     ├── hooks/          # Custom Hooks (Auth, WebSocket)
     └── services/       # API & Socket Clients
 ```
+
+## Quickstart (Local Development)
+
+### Backend (Python)
+
+Prereqs: Python 3.12+, virtualenv.
+
+```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\activate   # Windows
+source .venv/bin/activate    # macOS / Linux
+pip install -r requirements.txt
+# Run dev server
+python -m main
+```
+
+### Frontend (Next.js)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Runtime Notes / Breaking Changes
+
+- Login behavior: `/api/v1/auth/login` returns `404 Not Found` when the username/email is not present; a `401 Unauthorized` is returned for incorrect password. Clients should treat `404` as "user not found" and prompt registration or recovery.
+- `must_reset_password`: Present on the `UserResponse` schema. When `true`, clients must prompt the user to change password before proceeding. Successful `change-password` requests clear the server-side flag.
+- Walk-in patients: `tb_m_patient.user_id` is nullable to support walk-ins. When converting a walk-in to a registered user, a password may be generated and `must_reset_password` set for the new account. Operator/created_by mapping is preserved on conversion.
+
+## Operational Notes: Raw Data Storage
+
+- Raw sample tables: `tb_r_ecg_raw_5leads_web`, `tb_r_ecg_raw_5leads_mobile`, `tb_r_ecg_raw_12leads_web`, `tb_r_ecg_raw_12leads_mobile`.
+- Recommended composite index for efficient sequential reads:
+
+```sql
+CREATE INDEX idx_raw_5leads_web_recording_dt ON tb_r_ecg_raw_5leads_web (recording_id, created_dt);
+-- Repeat for mobile/12-lead tables
+```
+
+```

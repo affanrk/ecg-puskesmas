@@ -339,3 +339,63 @@ flowchart LR
         Incoming --> Process[Handle Command]
     end
 ```
+
+---
+
+## 9. Authentication & Must-Reset-Password Flow
+*Flow: Login API semantics and how `must_reset_password` drives the frontend ChangePassword modal. The backend returns `404` when the email/user is not found, and `401` when credentials are incorrect. If `must_reset_password` is set on the user record, the frontend must surface the ChangePassword modal and the `PUT /api/v1/auth/change-password` endpoint clears the flag server-side on success.*
+
+```mermaid
+flowchart LR
+    StartLogin([Client POST /api/v1/auth/login]) --> FindUser[(UserRepository.find_by_email)]
+    FindUser --> NoUser{Exists?}
+    NoUser -- No --> Resp404([HTTP 404: user not found])
+    NoUser -- Yes --> CheckPass[Verify password]
+    CheckPass -- Fail --> BadPass([HTTP 401: invalid credentials])
+    CheckPass -- OK --> AuthOK([Issue JWT + session 'sid'])
+    AuthOK --> UserResp[(UserResponse includes must_reset_password)]
+    UserResp --> MustReset{must_reset_password == 1?}
+    MustReset -- Yes --> ShowModal[Frontend: Show ChangePasswordModal]
+    MustReset -- No --> ContinueLogin[Proceed to Dashboard]
+    ShowModal --> PutChange[PUT /api/v1/auth/change-password]
+    PutChange --> ValidateOld[Optional: validate current password/confirm policy]
+    ValidateOld --> UpdatePass[Repository: update password & set must_reset_password = 0]
+    UpdatePass --> RespOk([HTTP 200: password updated; must_reset_password cleared])
+```
+
+Notes:
+- Frontend must treat `404` from `/login` as "user not found" (show signup/forgot-password options); treat `401` as wrong password.
+- `must_reset_password` is a field in `UserResponse` returned by auth/profile endpoints and should be respected by `AuthGuard` and the UI.
+
+---
+
+## 10. Walk-in Conversion & Admin Update Semantics
+*Flow: Converting a walk-in patient to a full user account and how admin updates handle explicit `NULL` values.*
+
+```mermaid
+flowchart LR
+    StartConv([Admin: Convert Walk-in -> User]) --> FetchPat[(PatientRepository.find_by_id)]
+    FetchPat --> CreateUser[UserRepository.create (optional password)]
+    CreateUser --> HasPwd{Password Provided?}
+    HasPwd -- Yes --> SetPwd[Hash & store; must_reset_password = 0]
+    HasPwd -- No --> NoPwd[Set must_reset_password = 1; send reset email/notification]
+    CreateUser --> SetCreatedBy[Set User.created_by = patient.created_by (operator id)]
+    SetCreatedBy --> LinkPatient[Update Patient.user_id = new_user.id]
+    LinkPatient --> RespOk([HTTP 200: conversion complete; returns new user object])
+```
+
+Admin Update NULL semantics:
+
+```mermaid
+flowchart LR
+    AdminUpdate([Admin: PATCH/PUT /api/v1/admin/user/{id}]) --> PayloadCheck{Field explicitly null?}
+    PayloadCheck -- Yes --> PersistNull[(Persist NULL to DB column)]
+    PayloadCheck -- No --> Merge[(Merge provided fields; preserve non-provided values)]
+```
+
+Notes:
+- Converting walk-ins must copy provenance: `user.created_by` should reflect the original operator id who created the walk-in patient record.
+- If the convert API call omits a password, the backend sets `must_reset_password=1` so that the user is forced to pick a password on first login.
+- Admin update endpoints persist explicit `null` values. If a client intends to clear a field, it should send an explicit `null` value in the PATCH/PUT payload.
+
+```
