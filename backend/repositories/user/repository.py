@@ -573,7 +573,6 @@ class UserRepository(BaseRepository[TbMUser]):
                 TbRPerformanceLog.recording_id.in_(session_ids_subq)
             ).delete(synchronize_session=False)
 
-            # Must delete session parameters before sessions (no DB-level CASCADE)
             self.db.query(TbREcgSessionParameter).filter(
                 TbREcgSessionParameter.recording_id.in_(session_ids_subq)
             ).delete(synchronize_session=False)
@@ -585,6 +584,7 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.delete(obj)
 
             self.db.commit()
+            logger.info(f"[User] User {user_id} deleted.")
             logger.debug("[UserRepository] Successfully completed delete.")
             return True
         except AppException as e:

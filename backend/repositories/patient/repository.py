@@ -3,7 +3,8 @@ from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
-from models import TbMPatient, TbMUser, TbRLogApproval
+from models import TbMPatient, TbMUser, TbRLogApproval, TbREcgSession, TbRPerformanceLog
+from models.session import TbREcgSessionParameter
 from schemas.patient import PatientUpdate, PatientCreate
 from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
@@ -500,7 +501,20 @@ class PatientRepository(BaseRepository[TbMPatient]):
             )
             if not patient:
                 return False
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.patient_id == patient_id
+            )
+
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
             self.db.delete(patient)
+
             self.db.commit()
             logger.info(f"[Patient] Walk-in patient {patient_id} deleted.")
             logger.debug(
