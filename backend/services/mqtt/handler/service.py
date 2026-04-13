@@ -15,6 +15,7 @@ from services.analysis import (
 )
 from services.recording import recording_storage_service
 from repositories.session import SessionRepository
+from repositories.patient import PatientRepository
 from core.database import SessionLocal
 from core.exceptions.definitions import AppException
 from utils import logger
@@ -861,20 +862,58 @@ class MQTTDataHandler:
             )
 
     def _create_session(
-        self, rec_id: str, dev_id: str, pat_id: str, source: str, device_type: str
+        self, rec_id: str, dev_id: str, subject_id: str, source: str, device_type: str
     ):
         logger.debug(f"[MQTTDataHandler] Starting _create_session for {rec_id}...")
 
-        if not pat_id or pat_id == "None":
+        if not subject_id or subject_id == "None":
             logger.warning(
-                f"[MQTTDataHandler] Skipping session creation for {rec_id}: Invalid patient ID '{pat_id}'"
+                f"[MQTTDataHandler] Skipping session creation for {rec_id}: Invalid subject ID '{subject_id}'"
             )
             return
 
         db = SessionLocal()
         try:
+            is_walkin = subject_id.startswith("PAT")
+
+            patient_id_arg = subject_id if is_walkin else None
+            user_id_arg = None
+
+            if is_walkin:
+                try:
+                    patient_repo = PatientRepository(db)
+                    patient_record = patient_repo.get(subject_id)
+                    if patient_record and getattr(patient_record, "user_id", None):
+                        user_id_arg = str(patient_record.user_id)
+                        logger.debug(
+                            f"[MQTTDataHandler] Resolved user_id={user_id_arg} for patient {subject_id} in segment rollover"
+                        )
+                except Exception as lookup_err:
+                    logger.warning(
+                        f"[MQTTDataHandler] Could not resolve user_id for patient {subject_id} in rollover: {lookup_err}"
+                    )
+            else:
+                user_id_arg = subject_id
+                try:
+                    patient_repo = PatientRepository(db)
+                    patient_record = patient_repo.find_by_user_id(subject_id)
+                    if patient_record:
+                        patient_id_arg = str(patient_record.id)
+                        logger.debug(
+                            f"[MQTTDataHandler] Resolved patient_id={patient_id_arg} for user {subject_id} in segment rollover"
+                        )
+                except Exception as lookup_err:
+                    logger.warning(
+                        f"[MQTTDataHandler] Could not resolve patient_id for user {subject_id} in rollover: {lookup_err}"
+                    )
+
             SessionRepository(db).create_session(
-                rec_id, dev_id, pat_id, created_by=source, device_type=device_type
+                recording_id=rec_id,
+                device_id=dev_id,
+                user_id=user_id_arg,
+                patient_id=patient_id_arg,
+                created_by=source,
+                device_type=device_type,
             )
             logger.debug(
                 f"[MQTTDataHandler] Successfully completed _create_session for {rec_id}."

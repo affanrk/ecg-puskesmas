@@ -105,5 +105,4 @@ def validate_password_optional(v: Optional[str]) -> Optional[str]:
     v_str = v.strip()
     if v_str == "":
         return None
-    # reuse strict validator for non-empty values
     return validate_password(v_str)

@@ -31,7 +31,7 @@ class UserCreate(UserBase):
     password: str = Field(..., description="User's password")
     role: Optional[str] = Field(default="user", description="User's role")
     source: Optional[str] = Field(
-        default="WEB", description="Source of the registration request"
+        default="USER - WEB", description="Source of the registration request"
     )
 
     model_config = ConfigDict(

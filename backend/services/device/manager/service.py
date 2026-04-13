@@ -552,8 +552,16 @@ class DeviceStateManager:
         )
         try:
             async with self.batch_lock:
-                self.buffer_recording_5leads_batch.clear()
-                self.buffer_recording_12leads_batch.clear()
+                self.buffer_recording_5leads_batch[:] = [
+                    x
+                    for x in self.buffer_recording_5leads_batch
+                    if x.get("device_id") != device_id
+                ]
+                self.buffer_recording_12leads_batch[:] = [
+                    x
+                    for x in self.buffer_recording_12leads_batch
+                    if x.get("device_id") != device_id
+                ]
 
                 self.perf_batch[:] = [
                     x for x in self.perf_batch if x.get("device_id") != device_id

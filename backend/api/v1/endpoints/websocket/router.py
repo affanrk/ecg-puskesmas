@@ -5,9 +5,11 @@ import numpy as np
 from jose import jwt, JWTError
 
 from core import settings
+from core.database import SessionLocal
 from core.dependencies import get_session_repository, get_user_repository
 from repositories.user import UserRepository
 from repositories.session import SessionRepository
+from repositories.patient import PatientRepository
 from services.device import device_state_manager, device_watchdog_service
 from services.analysis import (
     signal_processor_5leads,
@@ -238,7 +240,6 @@ class WebSocketHandler:
             device_id = message.get("device_id")
             patient_id = message.get("patient_id")
             user_id = self.user_id
-            subject_id = patient_id if patient_id else str(user_id)
             source = message.get("source", "WEB")
             lead_mode_req = message.get("lead_mode")
 
@@ -247,6 +248,26 @@ class WebSocketHandler:
                     f"[WS] Missing device_id for start_recording from user {user_id}"
                 )
                 return
+
+            is_self_record = source in ("WEB", "MOBILE")
+
+            if is_self_record:
+                source = f"USER - {source}"
+
+            if not patient_id and not is_self_record:
+                logger.warning(
+                    f"[WS] start_recording rejected for user {user_id}: "
+                    f"no patient_id for operator source '{source}'"
+                )
+                await self.websocket.send_json(
+                    {
+                        "type": WSMessageType.ERROR.value,
+                        "message": "A patient must be selected before starting an operator recording.",
+                    }
+                )
+                return
+
+            subject_id = patient_id if patient_id else str(user_id)
 
             logger.info(
                 f"[WS] User {user_id} starting recording on {device_id} (Source: {source})"
@@ -260,6 +281,20 @@ class WebSocketHandler:
 
             state = device_state_manager.get_state(device_id)
 
+            if state.subject_id and state.subject_id not in ("None", ""):
+                if subject_id != state.subject_id:
+                    logger.warning(
+                        f"[WS] start_recording rejected for {device_id}: "
+                        f"subject mismatch — current={state.subject_id}, incoming={subject_id}"
+                    )
+                    await self.websocket.send_json(
+                        {
+                            "type": WSMessageType.ERROR.value,
+                            "message": "Cannot change patient mid-session. Please end the session first.",
+                        }
+                    )
+                    return
+
             if lead_mode_req and state.current_lead_mode != lead_mode_req:
                 logger.warning(
                     f"[WS] Mismatch lead_mode for {device_id}. Req: {lead_mode_req}, Actual: {state.current_lead_mode}"
@@ -268,10 +303,49 @@ class WebSocketHandler:
 
             device_type = "12LEADS" if state.current_lead_mode == 12 else "5LEADS"
 
+            resolved_user_id = str(user_id) if is_self_record else None
+
+            if patient_id:
+                db = SessionLocal()
+                try:
+                    patient_repo = PatientRepository(db)
+                    patient_record = patient_repo.get(patient_id)
+                    if patient_record and getattr(patient_record, "user_id", None):
+                        resolved_user_id = str(patient_record.user_id)
+                        logger.debug(
+                            f"[WS] Resolved user_id={resolved_user_id} for patient {patient_id}"
+                        )
+                except Exception as lookup_err:
+                    logger.warning(
+                        f"[WS] Could not resolve user_id for patient {patient_id}: {lookup_err}"
+                    )
+                finally:
+                    db.close()
+            elif is_self_record:
+                db = SessionLocal()
+                try:
+                    patient_repo = PatientRepository(db)
+                    patient_record = patient_repo.find_by_user_id(str(user_id))
+                    if patient_record:
+                        patient_id = str(patient_record.id)
+                        logger.info(
+                            f"[WS] Resolved patient_id={patient_id} for self-recording user {user_id}"
+                        )
+                    else:
+                        logger.info(
+                            f"[WS] No patient profile found for self-recording user {user_id} — recording without patient_id"
+                        )
+                except Exception as lookup_err:
+                    logger.warning(
+                        f"[WS] Could not resolve patient_id for self-record user {user_id}: {lookup_err}"
+                    )
+                finally:
+                    db.close()
+
             self.session_repo.create_session(
                 recording_id,
                 device_id,
-                user_id=None if patient_id else str(user_id),
+                user_id=resolved_user_id,
                 patient_id=patient_id,
                 created_by=source,
                 device_type=device_type,
@@ -327,7 +401,7 @@ class WebSocketHandler:
     async def cleanup(self):
         if self.current_device_id:
             state = device_state_manager.get_state(self.current_device_id)
-            if state.is_recording and state.subject_id == str(self.user_id):
+            if state.is_recording and state.locked_by == self.websocket:
                 logger.info(
                     f"[WS] User {self.user_id} disconnected during active recording on {self.current_device_id}. Cancelling recording."
                 )

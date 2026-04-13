@@ -14,6 +14,7 @@ from models import (
     TbREcgSession,
     TbRPerformanceLog,
 )
+from models.session import TbREcgSessionParameter
 from schemas.user import UserCreate
 from core.exceptions import DatabaseException, AppException
 from core.security import get_password_hash
@@ -323,6 +324,12 @@ class UserRepository(BaseRepository[TbMUser]):
 
             is_activated = getattr(user_in, "is_activated", 0)
 
+            source = getattr(user_in, "source", "WEB")
+            if source == "WEB":
+                source = "USER - WEB"
+            elif source == "MOBILE":
+                source = "USER - MOBILE"
+
             db_user = TbMUser(
                 id=user_id,
                 email=user_in.email,
@@ -334,7 +341,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 is_operator=is_operator,
                 is_active=is_active,
                 is_activated=is_activated,
-                created_by=user_in.source,
+                created_by=source,
             )
             self.db.add(db_user)
             self.db.commit()
@@ -507,12 +514,16 @@ class UserRepository(BaseRepository[TbMUser]):
         try:
             logger.info("[User] Cleaning up patient data for user %s", user_id)
 
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.user_id == user_id
+            )
+
             self.db.query(TbRPerformanceLog).filter(
-                TbRPerformanceLog.recording_id.in_(
-                    self.db.query(TbREcgSession.recording_id).filter(
-                        TbREcgSession.user_id == user_id
-                    )
-                )
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
             ).delete(synchronize_session=False)
 
             self.db.query(TbREcgSession).filter(
@@ -554,12 +565,17 @@ class UserRepository(BaseRepository[TbMUser]):
                 user_id,
             )
 
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.user_id == user_id
+            )
+
             self.db.query(TbRPerformanceLog).filter(
-                TbRPerformanceLog.recording_id.in_(
-                    self.db.query(TbREcgSession.recording_id).filter(
-                        TbREcgSession.user_id == user_id
-                    )
-                )
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            # Must delete session parameters before sessions (no DB-level CASCADE)
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
             ).delete(synchronize_session=False)
 
             self.db.query(TbREcgSession).filter(
