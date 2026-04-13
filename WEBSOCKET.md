@@ -35,7 +35,7 @@ This document describes the real-time communication protocol for the ECG Platfor
 | `pong` | `{}` | Response to server-initiated `ping`. | (None) |
 | `subscribe_to_device` | `{ "device_id": "string" }` | Locks a device to this session. Starts live data stream. | `subscription_success`, `device_status_update`, `state_update` |
 | `unsubscribe` | `{}` | Releases current device lock and stops data stream. | `unsubscription_success`, then global `device_list_update` |
-| `start_recording` | `{ "device_id": "string", "patient_id": "string?" "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. Creates a database session record and locks device state. `source` defaults to `WEB`. | `state_update` (is_recording status changes to true) |
+| `start_recording` | `{ "device_id": "string", "patient_id": "string?", "source": "WEB", "lead_mode": 5 }` | Initiates a recording session. Creates a database session record and locks device state. `source` is `"WEB"` or `"MOBILE"` for self-record; operator recordings send `"{OPERATOR_ID} - {FULL_NAME}"`. | `state_update` (is_recording status changes to true) |
 | `stop_recording` | `{ "device_id": "string" }` | Forces current recording to complete and triggers analysis. | `state_update` (is_recording status changes to false) |
 | `calculate_live_bpm` | `{ "device_id": "string", "data": [0.12, ...] }` | Request server-side HR calculation from raw samples. | `calculate_live_bpm` (Async result) |
 
@@ -188,40 +188,48 @@ This document describes the real-time communication protocol for the ECG Platfor
 {
   "type": "start_recording",
   "device_id": "ECG001",          // Required: Target device identifier
-  "patient_id": "PAT20240407",    // Optional: Patient ID (if recording for a patient)
-  "source": "WEB",                 // Optional: Recording source (defaults to "WEB", can be "MOBILE", "DEVICE")
-  "lead_mode": 5                   // Optional: Expected lead mode (5 or 12). If provided, validated against device's current mode
+  "patient_id": "PAT20240407",    // Optional: Only sent by operator recordings (walk-in or registered patient)
+  "source": "WEB",                 // Self-record: "WEB" or "MOBILE". Operator: "{OPERATOR_ID} - {FULL_NAME}"
+  "lead_mode": 5                   // Optional: Expected lead mode (5 or 12). Validated against device's current mode
 }
 ```
 
+> [!NOTE]
+> The backend enriches the `source` value before storage. `"WEB"` becomes `"USER - WEB"` and `"MOBILE"` becomes `"USER - MOBILE"`. Operator sources are stored verbatim.
+
 ### 5.2 Processing Logic
 1. **Validation Phase:**
-   - Verifies `device_id` is provided
-   - Checks device is currently connected (exists in `DeviceStateManager`)
-   - If `lead_mode` is specified, validates it matches the device's current lead mode
-   
+   - Verifies `device_id` is provided.
+   - Detects recording mode: `source in ("WEB", "MOBILE")` → **self-record**; anything else → **operator recording**.
+   - Enriches `source` label before storage: `"WEB"` → `"USER - WEB"`, `"MOBILE"` → `"USER - MOBILE"`.
+   - Rejects operator recordings that have no `patient_id` (client error response sent).
+   - Checks device is currently connected (exists in `DeviceStateManager`).
+   - If `lead_mode` is specified, validates it matches the device's current lead mode.
+
 2. **Session Creation Phase:**
-   - Generates unique `recording_id` (UUID)
+   - Generates unique `recording_id` (UUID).
    - Determines `device_type` based on device's current lead mode:
      - 12 leads → `"12LEADS"`
      - 5 leads → `"5LEADS"`
-   - Creates database session record with:
-     - `recording_id`: Generated UUID
-     - `device_id`: Requested device
-     - `user_id`: Current authenticated user ID (only if `patient_id` is NOT provided)
-     - `patient_id`: If provided in request
-     - `created_by`: Source value (defaults to `"WEB"`)
-     - `device_type`: Auto-detected device type
-   
+   - Resolves `user_id` and `patient_id` based on recording mode:
+
+   | Mode | `user_id` stored | `patient_id` stored |
+   | :--- | :--- | :--- |
+   | **Self-record** (`WEB`/`MOBILE`) | Authenticated user's ID | Looked up via `find_by_user_id`; `null` if no profile exists |
+   | **Operator — registered patient** | Patient's linked `user_id` (from patient record) | Provided `patient_id` |
+   | **Operator — walk-in patient** | `null` (walk-in has no user account) | Provided `patient_id` |
+
+   - Creates database session record with `recording_id`, `device_id`, `user_id`, `patient_id`, `created_by` (enriched source), `device_type`.
+
 3. **State Update Phase:**
    - Locks the device state for this recording:
      - `is_recording = true`
      - `recording_id = <generated UUID>`
-     - `subject_id = patient_id` (if provided) or `user_id` (if not)
+     - `subject_id = patient_id` (if provided) or `user_id` (self-record)
      - `segment_count = 1`
-     - `recording_source = source`
+     - `recording_source = <enriched source>`
      - `status_message = "Recording..."`
-   - Broadcasts `state_update` to all subscribers of this device
+   - Broadcasts `state_update` to all subscribers of this device.
 
 ### 5.3 Response States & Error Handling
 
@@ -241,7 +249,9 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 | Error | Cause | Response |
 | :--- | :--- | :--- |
-| Missing `device_id` | Client did not provide required field | Warning logged, no error message sent (handler returns without sending) |
+| Missing `device_id` | Client did not provide required field | Warning logged, no error message sent |
+| Operator: no `patient_id` | Operator source but no patient selected | `{ "type": "error", "message": "A patient must be selected before starting an operator recording." }` |
+| Subject mismatch | Attempting to change patient mid-session | `{ "type": "error", "message": "Cannot change patient mid-session. Please end the session first." }` |
 | Device not connected | Device not in `DeviceStateManager` | Warning logged, no error message sent |
 | Lead mode mismatch | Requested `lead_mode` differs from device's current mode | Warning logged, no error message sent |
 | Database failure | Session record creation fails | `{ "type": "error", "message": "Failed to create recording session in database." }` |
@@ -249,11 +259,12 @@ This document describes the real-time communication protocol for the ECG Platfor
 | Unexpected error | Unhandled exception | `{ "type": "error", "message": "Internal Server Error" }` |
 
 ### 5.4 Important Behavioral Notes
-- **Device Lock:** Once recording starts, the device is effectively locked to this recording session until the recording is stopped.
-- **User vs. Patient Mode:** 
-  - If `patient_id` is provided, the recording is linked to that patient; `user_id` is `null` in the session record.
-  - If `patient_id` is omitted, the recording is linked to the authenticated user; `patient_id` is `null`.
-- **Silent Errors:** Some validation failures (missing device_id, device not connected, lead_mode mismatch) are logged but do NOT send error messages to the client. The client must implement timeout logic to detect failed recording starts.
+- **Device Lock:** Once recording starts, the device is effectively locked to this recording session until stopped.
+- **Source Enrichment (Backend-owned):** The backend transforms the raw `source` value from the frontend before it is stored. Clients always send simple labels (`"WEB"`, `"MOBILE"`); the stored `created_by` value will be `"USER - WEB"` or `"USER - MOBILE"`. This allows the operator monitor to reliably distinguish self-records from operator-initiated recordings using `created_by.startsWith("USER")`.
+- **Self-Record `patient_id` Auto-Resolution:** When a registered user self-records (source `WEB`/`MOBILE`), the backend automatically resolves their patient profile via `find_by_user_id`. If the user has a registered patient profile, `patient_id` is populated in the session; if not (e.g. profile pending approval), it is stored as `null` — recording is not blocked.
+- **Walk-in Patient `user_id`:** Walk-in patients have no user account. When an operator records for a walk-in patient, `user_id` is correctly stored as `null`. It is only populated if the selected patient has a linked registered user account.
+- **Segment Rollover:** When a recording buffer rolls over into a new segment, the same resolution logic applies — `patient_id` is re-resolved for registered users so all segment rows remain consistent.
+- **Silent Errors:** Validation failures for missing `device_id`, device not connected, and lead_mode mismatch are logged but do NOT send error messages to the client. The client should implement timeout logic to detect failed recording starts.
 - **Broadcast Scope:** All clients subscribed to the same device receive the `state_update` message.
 
 ---
@@ -267,7 +278,7 @@ Live recordings and flushed buffer chunks are written to the same raw-data table
 - 12-lead web samples -> `tb_r_ecg_raw_12leads_web`
 - 12-lead mobile samples -> `tb_r_ecg_raw_12leads_mobile`
 
-Each table stores per-sample `mv_*`/`raw_*` columns, `created_dt`, and `created_by` (e.g. `WEB`, `MOBILE`, `DEVICE`). For efficient sequential reads during playback or analysis, create a composite index on `(recording_id, created_dt)`. Example:
+Each table stores per-sample `mv_*`/`raw_*` columns, `created_dt`, and `created_by` (e.g. `USER - WEB`, `USER - MOBILE`, or the device ID for MQTT-sourced data). For efficient sequential reads during playback or analysis, create a composite index on `(recording_id, created_dt)`. Example:
 
 ```sql
 CREATE INDEX idx_raw_5leads_web_recording_dt ON tb_r_ecg_raw_5leads_web (recording_id, created_dt);
