@@ -137,7 +137,8 @@ export default function RegisterPage() {
                 username: formData.username.trim(),
                 email: formData.email,
                 password: formData.password,
-                role: 'user'
+                role: 'user',
+                source: 'WEB'
             });
             setSuccess(true);
             toast("Account created successfully!", "success");
@@ -195,10 +196,10 @@ export default function RegisterPage() {
                     </div>
                     <form onSubmit={handleRegister} className="space-y-4">
                         {serverError && (
-                             <div className={clsx(
-                                 "py-2.5 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-3 animate-in fade-in slide-in-from-top-1",
-                                 showErrorEffect && "animate-error-pop"
-                             )}>
+                            <div className={clsx(
+                                "py-2.5 px-4 bg-rose-50 border border-rose-100 rounded-xl flex items-center gap-3 text-rose-600 mb-3 animate-in fade-in slide-in-from-top-1",
+                                showErrorEffect && "animate-error-pop"
+                            )}>
                                 <AlertCircle className="w-4 h-4 shrink-0" />
                                 <span className="text-xs font-bold">{serverError}</span>
                             </div>
@@ -266,8 +267,8 @@ export default function RegisterPage() {
                                             onBlur={() => setShowPwdHint(false)}
                                             className={clsx(
                                                 "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white z-20 relative",
-                                                errors.password ? "border-rose-100 focus:border-rose-500" : 
-                                                (formData.password && isFormValid ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
+                                                errors.password ? "border-rose-100 focus:border-rose-500" :
+                                                    (formData.password && isFormValid ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
                                             )}
                                             placeholder="Create password"
                                         />
@@ -303,11 +304,11 @@ export default function RegisterPage() {
                                     </div>
                                     <div className="flex gap-1 h-1 mt-1.5 px-1">
                                         {[1, 2, 3, 4].map((step) => (
-                                            <div 
+                                            <div
                                                 key={step}
                                                 className={clsx(
                                                     "h-full flex-1 rounded-full transition-all duration-500 ease-out",
-                                                    pwdStrengthCount >= step 
+                                                    pwdStrengthCount >= step
                                                         ? (pwdStrengthCount <= 2 ? "bg-rose-400" : pwdStrengthCount === 3 ? "bg-amber-400" : "bg-emerald-500")
                                                         : "bg-slate-100"
                                                 )}
@@ -328,8 +329,8 @@ export default function RegisterPage() {
                                             onFocus={handleFocus}
                                             className={clsx(
                                                 "w-full pl-11 pr-10 py-2.5 rounded-xl border-2 outline-none text-sm font-semibold transition-all bg-slate-50 focus:bg-white",
-                                                errors.confirmPassword ? "border-rose-100 focus:border-rose-500" : 
-                                                (formData.confirmPassword && checks.match ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
+                                                errors.confirmPassword ? "border-rose-100 focus:border-rose-500" :
+                                                    (formData.confirmPassword && checks.match ? "border-emerald-100 focus:border-emerald-500" : "border-slate-100 focus:border-brand-500")
                                             )}
                                             placeholder="Repeat password"
                                         />
@@ -369,7 +370,7 @@ export default function RegisterPage() {
                     </form>
                     <div className="mt-6 text-center">
                         <p className="text-xs font-medium text-slate-500">
-                            Already have an account? 
+                            Already have an account?
                             <Link href="/login" className="text-brand-600 font-bold hover:underline ml-2 hover:text-brand-700 transition-colors">
                                 Sign In
                             </Link>

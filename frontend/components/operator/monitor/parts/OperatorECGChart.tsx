@@ -11,6 +11,7 @@ import { OperatorECGHeader } from './OperatorECGHeader';
 import { ECGFooter } from '@/components/patient/monitor/parts/ECGFooter';
 import { ECGMonitor } from '@/components/patient/monitor/parts/ECGMonitor';
 import PatientSelectorModal from './PatientSelectorModal';
+import OperatorDeviceDropdown from './OperatorDeviceDropdown';
 
 export default function OperatorECGChart() {
 
@@ -44,6 +45,14 @@ export default function OperatorECGChart() {
         }
         toggleRecording();
     }, [toggleRecording, operatorPatient, toast]);
+
+    const handleSelectPatient = useCallback(() => {
+        if (isSessionActive) {
+            toast("End the current session before changing the patient.", "warning");
+            return;
+        }
+        setIsSelectorOpen(true);
+    }, [isSessionActive, toast]);
 
     const confirmReset = useCallback(async () => {
         setIsEnding(true);
@@ -82,14 +91,15 @@ export default function OperatorECGChart() {
                 operatorPatient={operatorPatient}
                 selectedLeadMode={selectedLeadMode} 
                 onModeSwitch={handleModeSwitch} 
-                onSelectPatientClick={() => setIsSelectorOpen(true)}
+                onSelectPatientClick={handleSelectPatient}
+                isSessionLocked={isSessionActive}
             />
             
             <ECGMonitor 
                 selectedLeadMode={selectedLeadMode} 
             />
             
-            <ECGFooter 
+            <ECGFooter
                 currentDeviceId={currentDeviceId}
                 isSessionActive={isSessionActive}
                 isRecording={isRecording}
@@ -97,6 +107,7 @@ export default function OperatorECGChart() {
                 isEnding={isEnding}
                 onToggleRecording={handleToggleRecording}
                 onReset={handleReset}
+                deviceDropdownSlot={<OperatorDeviceDropdown />}
             />
 
             <ConfirmationModal

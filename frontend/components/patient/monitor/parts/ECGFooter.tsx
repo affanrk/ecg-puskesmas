@@ -13,6 +13,7 @@ interface ECGFooterProps {
     isEnding: boolean;
     onToggleRecording: () => void;
     onReset: () => void;
+    deviceDropdownSlot?: React.ReactNode;
 }
 
 export const ECGFooter = React.memo(function ECGFooter({
@@ -22,14 +23,15 @@ export const ECGFooter = React.memo(function ECGFooter({
     wsPendingAction,
     isEnding,
     onToggleRecording,
-    onReset
+    onReset,
+    deviceDropdownSlot
 }: ECGFooterProps) {
     const isToggling = wsPendingAction === 'starting' || wsPendingAction === 'stopping';
 
     return (
         <div className="h-[45px] bg-white border-t border-slate-100 flex items-center px-4 justify-between shrink-0 relative z-20">
             <div className="flex items-center gap-4">
-                <DeviceDropdown />
+                {deviceDropdownSlot ?? <DeviceDropdown />}
             </div>
             <div className="flex items-center gap-3">
                 {(currentDeviceId || isSessionActive) && (

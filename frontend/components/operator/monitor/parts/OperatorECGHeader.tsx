@@ -12,6 +12,7 @@ interface OperatorECGHeaderProps {
     selectedLeadMode: 5 | 12;
     onModeSwitch: (mode: 5 | 12) => void;
     onSelectPatientClick: () => void;
+    isSessionLocked?: boolean;
 }
 
 export const OperatorECGHeader = React.memo(function OperatorECGHeader({ 
@@ -19,7 +20,8 @@ export const OperatorECGHeader = React.memo(function OperatorECGHeader({
     operatorPatient, 
     selectedLeadMode, 
     onModeSwitch,
-    onSelectPatientClick
+    onSelectPatientClick,
+    isSessionLocked = false
 }: OperatorECGHeaderProps) {
     const fullName = operatorPatient ? operatorPatient.full_name : "No Subject Selected";
 
@@ -35,24 +37,32 @@ export const OperatorECGHeader = React.memo(function OperatorECGHeader({
                 
                 <div className="flex items-center gap-4">
                     <button 
-                        onClick={onSelectPatientClick}
+                        onClick={isSessionLocked ? undefined : onSelectPatientClick}
                         className={clsx(
-                            "flex items-center gap-3 px-3 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition-colors cursor-pointer group",
-                            !operatorPatient && "animate-pulse shadow-sm shadow-indigo-100 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                            "flex items-center gap-3 px-3 py-1 border rounded-md transition-colors group",
+                            isSessionLocked
+                                ? "bg-amber-50 border-amber-200 cursor-not-allowed opacity-80"
+                                : clsx(
+                                    "bg-slate-50 hover:bg-slate-100 border-slate-200 cursor-pointer",
+                                    !operatorPatient && "animate-pulse shadow-sm shadow-indigo-100 border-indigo-200 bg-indigo-50 hover:bg-indigo-100"
+                                )
                         )}
+                        title={isSessionLocked ? 'End session first to change patient' : undefined}
                     >
                         <div className={clsx(
                             "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black",
-                            operatorPatient ? "bg-indigo-100 text-indigo-600 border border-indigo-200" : "bg-slate-200 text-slate-400"
+                            isSessionLocked
+                                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                : operatorPatient ? "bg-indigo-100 text-indigo-600 border border-indigo-200" : "bg-slate-200 text-slate-400"
                         )}>
                             {operatorPatient ? fullName.charAt(0).toUpperCase() : <UserIcon size={12} />}
                         </div>
                         <div className="flex flex-col text-left">
-                            <span className={clsx("text-[11px] font-black leading-none", operatorPatient ? "text-slate-800" : "text-indigo-600")}>
+                            <span className={clsx("text-[11px] font-black leading-none", isSessionLocked ? "text-amber-800" : operatorPatient ? "text-slate-800" : "text-indigo-600")}>
                                 {fullName}
                             </span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 group-hover:text-indigo-500 transition-colors">
-                                {operatorPatient ? 'Change Patient' : 'Select Patient Context'}
+                            <span className={clsx("text-[9px] font-bold uppercase tracking-widest mt-0.5 transition-colors", isSessionLocked ? "text-amber-600" : "text-slate-400 group-hover:text-indigo-500")}>
+                                {isSessionLocked ? 'Session Active' : (operatorPatient ? 'Change Patient' : 'Select Patient Context')}
                             </span>
                         </div>
                     </button>

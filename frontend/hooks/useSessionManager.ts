@@ -44,7 +44,8 @@ export function useSessionManager() {
                 user_id: user.id,
                 username: user.username,
                 subject_id: operatorPatient ? operatorPatient.id : user.id,
-                lead_mode: selectedLeadMode
+                lead_mode: selectedLeadMode,
+                source: operatorPatient ? `${user.operator_profile?.id || user.id} - ${user.operator_profile?.full_name || user.username}` : "WEB"
             };
             
             if (operatorPatient) {

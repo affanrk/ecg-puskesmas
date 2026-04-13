@@ -1,18 +1,17 @@
 'use client';
 
 import { User } from '@/types/user';
-import { 
-    X, 
-    UserCheck, 
-    Mail, 
-    Calendar, 
-    MapPin, 
-    Stethoscope, 
+import {
+    X,
+    UserCheck,
+    Mail,
+    Calendar,
+    MapPin,
+    Stethoscope,
     Info
 } from 'lucide-react';
-import { formatDate, calculateAge } from '@/utils/helpers';
+import { getActiveProfile, formatDate, calculateAge } from '@/utils/helpers';
 import clsx from 'clsx';
-import { getActiveProfile } from '@/utils/helpers';
 
 interface UserDetailModalProps {
     user: User;
@@ -51,9 +50,9 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
 
     return (
         <div className="absolute inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none">
-            <div 
-                className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] pointer-events-auto animate-in fade-in duration-300" 
-                onClick={onClose} 
+            <div
+                className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px] pointer-events-auto animate-in fade-in duration-300"
+                onClick={onClose}
             />
             <div className="relative w-full max-w-[420px] bg-white shadow-[-12px_0_40px_rgba(0,0,0,0.08)] border-l border-slate-100 flex flex-col h-full pointer-events-auto animate-in slide-in-from-right duration-400 ease-out">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
@@ -130,7 +129,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                     </div>
                 </div>
                 <div className="p-6 bg-white border-t border-slate-100 space-y-3 shrink-0">
-                    <button 
+                    <button
                         onClick={() => {
                             if (user.id) onApprove(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
                         }}
@@ -138,7 +137,7 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                     >
                         <UserCheck size={16} /> Approve Access
                     </button>
-                    <button 
+                    <button
                         onClick={() => {
                             if (user.id) onReject(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
                         }}
