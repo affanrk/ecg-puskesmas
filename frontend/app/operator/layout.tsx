@@ -31,6 +31,11 @@ export default function OperatorLayout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (user && user.is_operator && user.is_activated !== 1) {
+            const protectedPaths = ['/operator/monitor'];
+            if (protectedPaths.some(p => pathname.startsWith(p))) {
+                toast("Access restricted until activation is approved", "error");
+                router.replace('/operator/dashboard');
+            }
         }
     }, [user, pathname, router, toast]);
 
@@ -44,3 +49,4 @@ export default function OperatorLayout({ children }: { children: ReactNode }) {
         </DashboardLayout>
     );
 }
+

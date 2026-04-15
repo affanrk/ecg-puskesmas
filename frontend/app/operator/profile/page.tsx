@@ -1,17 +1,15 @@
 'use client';
 
-import ComingSoon from '@/components/shared/ComingSoon';
-import { Stethoscope } from 'lucide-react';
+import OperatorProfile from '@/components/operator/profile/OperatorProfile';
+import { useSearchParams } from 'next/navigation';
 
-export default function OperatorProfileComingSoon() {
+export default function OperatorProfilePage() {
+    const searchParams = useSearchParams();
+    const tab = searchParams?.get('tab') || '';
+
     return (
-        <div className="h-screen bg-slate-50">
-            <ComingSoon
-                title="Profile & Settings"
-                description="Operator profile management is under construction. Soon you will be able to review and update your professional details here."
-                icon={Stethoscope}
-                color="brand"
-            />
+        <div className="flex flex-col h-full w-full overflow-hidden bg-white">
+            <OperatorProfile openTab={tab} />
         </div>
     );
 }

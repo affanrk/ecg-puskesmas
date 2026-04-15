@@ -148,3 +148,25 @@ export interface ConvertWalkinPayload {
     email: string;
     password?: string;
 }
+
+export interface ProfileFormPayload {
+    full_name: string;
+    nik: string;
+    pob: string;
+    dob: string;
+    gender: string;
+    contact_number: string;
+    address: string;
+    medical_history: string;
+    str_number: string;
+    sip_number: string;
+    specialty: string;
+    work_location: string;
+}
+
+export interface SecurityFormPayload {
+    new_username: string;
+    current_password: string;
+    new_password: string;
+    confirm_password: string;
+}

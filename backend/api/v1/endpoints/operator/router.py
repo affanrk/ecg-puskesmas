@@ -1,10 +1,13 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 import traceback
+from datetime import datetime
 
 from core.dependencies import (
     get_activated_operator_user,
+    get_operator_user,
     get_patient_repository,
+    get_session_repository,
 )
 from models import TbMUser
 from schemas.patient import (
@@ -12,11 +15,129 @@ from schemas.patient import (
     WalkinPatientResponse,
 )
 from schemas.common import GenericResponse, PaginatedData, ApiStatus
+from schemas.session import SessionResponse
 from repositories.patient import PatientRepository
+from repositories.session import SessionRepository
 from utils import logger
 from core.exceptions import AppException
+from pydantic import BaseModel
 
 router = APIRouter()
+
+
+class OperatorDashboardResponse(BaseModel):
+    operator_name: Optional[str] = None
+    operator_role: Optional[str] = None
+    work_location: Optional[str] = None
+    str_number: Optional[str] = None
+    total_recorded: int = 0
+    arrhythmia_count: int = 0
+    last_sync: Optional[str] = None
+    recent_sessions: List[SessionResponse] = []
+    notifications: List[SessionResponse] = []
+    classification_counts: List[dict] = []
+
+
+def _map_session_to_response(session) -> SessionResponse:
+    patient_name = "Unknown"
+    subject_id = ""
+
+    if getattr(session, "patient_id", None) and getattr(session, "patient", None):
+        patient_name = str(session.patient.full_name) if session.patient.full_name else "Unknown"
+        subject_id = str(session.patient.nik) if session.patient.nik else str(session.patient_id)
+    elif getattr(session, "user_id", None) and getattr(session, "user", None):
+        user_details = session.user
+        patient_name = str(
+            getattr(user_details, "full_name", None)
+            or getattr(user_details, "username", None)
+            or "Unknown"
+        )
+        subject_id = str(
+            getattr(user_details, "nik", None) or str(user_details.id)
+        )
+    else:
+        subject_id = str(session.patient_id or session.user_id or "Unknown")
+
+    return SessionResponse(
+        recording_id=str(session.recording_id) if session.recording_id else "",
+        device_id=str(session.device_id) if session.device_id else "",
+        subject_id=str(subject_id),
+        patient_name=str(patient_name),
+        timestamp=session.created_dt,
+        changed_dt=session.changed_dt,
+        classification=str(session.classification_result),
+        is_normal=session.is_normal,
+        confidence=session.confidence_score if session.confidence_score is not None else None,
+        device_type=str(session.device_type) if session.device_type else None,
+        parameters=[p for p in getattr(session, "parameters", [])],
+    )
+
+
+@router.get(
+    "/dashboard",
+    response_model=GenericResponse[OperatorDashboardResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get operator dashboard summary data",
+)
+async def get_operator_dashboard(
+    current_user: TbMUser = Depends(get_operator_user),
+    session_repo: SessionRepository = Depends(get_session_repository),
+):
+    try:
+        op_profile = getattr(current_user, "operator_profile", None)
+        if op_profile is None:
+            return GenericResponse(
+                status=ApiStatus.SUCCESS,
+                data=OperatorDashboardResponse(),
+                message="No operator profile found",
+            )
+
+        operator_id = str(op_profile.id)
+
+        recent_sessions = session_repo.get_sessions_by_operator(operator_id, limit=10)
+        notifications = session_repo.get_recent_arrhythmia_notifications(operator_id, limit=20)
+        stats = session_repo.get_stats_by_operator(operator_id)
+
+        arrhythmia_count = sum(
+            item["count"] for item in stats.get("classification_counts", [])
+        )
+
+        last_sync = None
+        if recent_sessions:
+            last_dt = recent_sessions[0].changed_dt
+            if last_dt:
+                if isinstance(last_dt, datetime):
+                    last_sync = last_dt.isoformat()
+                else:
+                    last_sync = str(last_dt)
+
+        recent_serialized = [_map_session_to_response(s) for s in recent_sessions]
+        notif_serialized = [_map_session_to_response(s) for s in notifications]
+
+        data = OperatorDashboardResponse(
+            operator_name=str(op_profile.full_name) if op_profile.full_name else None,
+            operator_role=str(op_profile.operator_role) if getattr(op_profile, "operator_role", None) else None,
+            work_location=str(op_profile.work_location) if getattr(op_profile, "work_location", None) else None,
+            str_number=str(op_profile.str_number) if getattr(op_profile, "str_number", None) else None,
+            total_recorded=stats.get("total_sessions", 0),
+            arrhythmia_count=arrhythmia_count,
+            last_sync=last_sync,
+            recent_sessions=recent_serialized,
+            notifications=notif_serialized,
+            classification_counts=stats.get("classification_counts", []),
+        )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message="Operator dashboard data retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[OperatorEndpoint] Failed to get dashboard: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.post(
@@ -30,7 +151,6 @@ async def create_walkin_patient(
     current_user: TbMUser = Depends(get_activated_operator_user),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
-
     operator_id = None
     operator_name = current_user.username
 
@@ -82,7 +202,6 @@ async def get_patients(
     current_user: TbMUser = Depends(get_activated_operator_user),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
-
     try:
         patients, total = patient_repo.list_all_patients(
             skip=skip,

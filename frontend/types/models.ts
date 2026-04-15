@@ -33,6 +33,19 @@ export interface AnalysisResult {
     parameters?: SessionParameter[];
 }
 
+export interface OperatorDashboardData {
+    operator_name?: string | null;
+    operator_role?: string | null;
+    work_location?: string | null;
+    str_number?: string | null;
+    total_recorded: number;
+    arrhythmia_count: number;
+    last_sync?: string | null;
+    recent_sessions: AnalysisResult[];
+    notifications: AnalysisResult[];
+    classification_counts: { classification: string; count: number }[];
+}
+
 export interface EcgSample5Leads {
     i: number;
     ii: number;

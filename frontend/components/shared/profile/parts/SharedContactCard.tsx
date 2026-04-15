@@ -1,0 +1,154 @@
+'use client';
+
+import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
+import StandardInput from '@/components/shared/StandardInput';
+import SelectInput from '@/components/shared/SelectInput';
+import clsx from 'clsx';
+import { useStore } from '@/store/useStore';
+import { ProfileFormPayload } from '@/types/user';
+
+interface SharedContactCardProps {
+    isLocked: boolean;
+    isEditingProfile: boolean;
+    setIsEditingProfile: (val: boolean) => void;
+    profileForm: ProfileFormPayload;
+    handleProfileChange: (field: string, value: string) => void;
+    errors: Record<string, string>;
+    handleCancelProfile: () => void;
+    onSaveProfileClick: () => void;
+    loading: boolean;
+}
+
+export default function SharedContactCard({
+    isLocked,
+    isEditingProfile,
+    setIsEditingProfile,
+    profileForm,
+    handleProfileChange,
+    errors,
+    handleCancelProfile,
+    onSaveProfileClick,
+    loading
+}: SharedContactCardProps) {
+    const user = useStore(state => state.user);
+    const canEditProfile = !isLocked || isEditingProfile;
+
+    return (
+        <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-teal-900 pointer-events-none transition-transform duration-700">
+                <HeartPulse size={100} strokeWidth={1} />
+            </div>
+            <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-md flex items-center justify-center shadow-sm border border-teal-100/50">
+                        <Stethoscope size={18} strokeWidth={2} />
+                    </div>
+                    <div>
+                        <h2 className="text-base font-black text-slate-800 tracking-tight">Clinical Details</h2>
+                        <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Role Context & Contact</p>
+                    </div>
+                </div>
+                {isLocked && !isEditingProfile && (
+                    <button
+                        onClick={() => setIsEditingProfile(true)}
+                        className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-teal-600 hover:bg-teal-50 px-3 py-2 rounded-md flex items-center gap-2 transition-all duration-300 border border-slate-100 hover:border-teal-200 cursor-pointer"
+                    >
+                        <Edit2 size={10} strokeWidth={3} /> Edit Info
+                    </button>
+                )}
+            </div>
+            <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditProfile && "opacity-80")}>
+                
+                {user?.is_patient && (
+                    <div className="space-y-2">
+                        <SelectInput
+                            label="Medical History"
+                            value={profileForm.medical_history}
+                            onChange={(e) => handleProfileChange('medical_history', e.target.value)}
+                            disabled={!canEditProfile}
+                            options={[
+                                { value: '', label: 'Select Condition (Optional)' },
+                                { value: 'Normal', label: 'Normal' },
+                                { value: 'Hipertensi', label: 'Hipertensi' },
+                                { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
+                            ]}
+                        />
+                    </div>
+                )}
+
+                {user?.is_doctor && (
+                    <div className="space-y-2">
+                        <SelectInput
+                            label="Medical Specialty"
+                            value={profileForm.specialty}
+                            onChange={(e) => handleProfileChange('specialty', e.target.value)}
+                            disabled={!canEditProfile}
+                            errorMessage={errors.specialty}
+                            options={[
+                                { value: '', label: 'Select Specialty' },
+                                { value: 'Sp.JP - Spesialis Jantung dan Pembuluh Darah', label: 'Sp.JP (Cardiologist)' },
+                                { value: 'Sp.PD - Spesialis Penyakit Dalam', label: 'Sp.PD (Internist)' }
+                            ]}
+                        />
+                    </div>
+                )}
+
+                {(user?.is_operator || user?.is_doctor) && (
+                    <div className="space-y-2">
+                        <StandardInput
+                            label="Work Location / Affiliation"
+                            value={profileForm.work_location}
+                            onChange={(e) => handleProfileChange('work_location', e.target.value)}
+                            disabled={!canEditProfile}
+                            placeholder="Hospital or Clinic name"
+                        />
+                    </div>
+                )}
+
+                <StandardInput
+                    label="Phone Number"
+                    value={profileForm.contact_number}
+                    onChange={(e) => handleProfileChange('contact_number', e.target.value)}
+                    disabled={!canEditProfile}
+                    placeholder="+62... (Optional)"
+                    errorMessage={errors.contact_number}
+                />
+                <div className="flex-1">
+                    <StandardInput
+                        label="Residential Address"
+                        value={profileForm.address}
+                        onChange={(e) => handleProfileChange('address', e.target.value)}
+                        disabled={!canEditProfile}
+                        placeholder="Street, City, Zip Code... (Optional)"
+                    />
+                </div>
+            </div>
+            {isEditingProfile && (
+                <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
+                    <button
+                        onClick={handleCancelProfile}
+                        className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                        Discard
+                    </button>
+                    <button
+                        onClick={onSaveProfileClick}
+                        disabled={loading}
+                        className="flex-[2] px-6 py-3.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-70 disabled:cursor-not-allowed text-white text-[10px] font-black uppercase tracking-widest rounded-md shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 hover:-translate-y-0.5 cursor-pointer"
+                    >
+                        {loading ? (
+                            <>
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <CheckCircle2 size={16} strokeWidth={2.5} /> Save Updates
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}

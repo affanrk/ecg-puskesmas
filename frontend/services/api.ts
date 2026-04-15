@@ -350,6 +350,16 @@ export async function deleteAdminWalkinPatient(patientId: string) {
     }
 }
 
+export async function fetchOperatorDashboard() {
+    try {
+        const response = await axiosInstance.get('/operator/dashboard');
+        return response.data?.data ?? null;
+    } catch (error) {
+        console.error("Fetch Operator Dashboard Error:", error);
+        return null;
+    }
+}
+
 export const api = {
     login,
     register,
@@ -379,5 +389,7 @@ export const api = {
     fetchAdminPatients,
     updateAdminWalkinPatient,
     convertAdminWalkinPatient,
-    deleteAdminWalkinPatient
+    deleteAdminWalkinPatient,
+    fetchOperatorDashboard,
 };
+

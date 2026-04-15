@@ -14,8 +14,8 @@ export function useProfileManager() {
     const { user, setUser } = useStore();
     const { show: toast } = useToast();
     const [loading, setLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'medical' | 'security'>('medical');
-    const [medicalForm, setMedicalForm] = useState({
+    const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+    const [profileForm, setProfileForm] = useState<ProfileFormPayload>({
         full_name: '',
         nik: '',
         pob: '',
@@ -29,7 +29,7 @@ export function useProfileManager() {
         specialty: '',
         work_location: ''
     });
-    const [securityForm, setSecurityForm] = useState({
+    const [securityForm, setSecurityForm] = useState<SecurityFormPayload>({
         new_username: '',
         current_password: '',
         new_password: '',
@@ -37,12 +37,12 @@ export function useProfileManager() {
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [rejectionReason, setRejectionReason] = useState<string | null>(null);
-    const [isEditingMedical, setIsEditingMedical] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [isEditingUsername, setIsEditingUsername] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [confirmState, setConfirmState] = useState<{
         isOpen: boolean;
-        type: 'identity' | 'medical' | 'username' | 'password' | null;
+        type: 'identity' | 'profile' | 'username' | 'password' | null;
         title: string;
         message: ReactNode;
         action: () => Promise<void>;
@@ -60,7 +60,7 @@ export function useProfileManager() {
 
     const resetForms = useCallback(() => {
         if (user) {
-            setMedicalForm({
+            setProfileForm({
                 full_name: (getActiveProfile(user)?.full_name || "") || '',
                 nik: (getActiveProfile(user)?.nik || "") || '',
                 pob: (getActiveProfile(user)?.pob || "") || '',
@@ -125,40 +125,40 @@ export function useProfileManager() {
         return error;
     }, [securityForm.new_password]);
 
-    const runFullMedicalValidation = () => {
+    const runFullProfileValidation = () => {
         const newErrors: Record<string, string> = {};
         const isLocked = user?.is_patient || user?.is_operator || user?.is_doctor;
         if (!isLocked) {
-            const nikErr = validators.nik(medicalForm.nik);
+            const nikErr = validators.nik(profileForm.nik);
             if (nikErr) newErrors.nik = nikErr;
 
-            const nameErr = validators.name(medicalForm.full_name);
+            const nameErr = validators.name(profileForm.full_name);
             if (nameErr) newErrors.full_name = nameErr;
 
-            const dobErr = validators.dob(medicalForm.dob);
+            const dobErr = validators.dob(profileForm.dob);
             if (dobErr) newErrors.dob = dobErr;
 
-            if (validators.required(medicalForm.pob)) newErrors.pob = "Place of Birth required";
+            if (validators.required(profileForm.pob)) newErrors.pob = "Place of Birth required";
 
             if (user?.role === 'operator') {
-                if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
+                if (validators.required(profileForm.str_number)) newErrors.str_number = "Required";
             }
             if (user?.role === 'doctor') {
-                if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
-                if (validators.required(medicalForm.sip_number)) newErrors.sip_number = "Required";
-                if (validators.required(medicalForm.specialty)) newErrors.specialty = "Required";
+                if (validators.required(profileForm.str_number)) newErrors.str_number = "Required";
+                if (validators.required(profileForm.sip_number)) newErrors.sip_number = "Required";
+                if (validators.required(profileForm.specialty)) newErrors.specialty = "Required";
             }
         }
 
-        const phoneErr = validators.phone(medicalForm.contact_number);
+        const phoneErr = validators.phone(profileForm.contact_number);
         if (phoneErr) newErrors.contact_number = phoneErr;
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleMedicalChange = useCallback((field: string, value: string) => {
-        setMedicalForm(prev => ({ ...prev, [field]: value }));
+    const handleProfileChange = useCallback((field: string, value: string) => {
+        setProfileForm(prev => ({ ...prev, [field]: value }));
         const error = validateField(field, value);
         setErrors(prev => ({ ...prev, [field]: error }));
     }, [validateField]);
@@ -190,44 +190,44 @@ export function useProfileManager() {
 
             if (user?.is_patient) {
                 const payload = {
-                    ...medicalForm,
-                    full_name: medicalForm.full_name || null,
-                    nik: medicalForm.nik || null,
-                    pob: medicalForm.pob || null,
-                    dob: medicalForm.dob || null,
-                    address: medicalForm.address || null,
-                    contact_number: medicalForm.contact_number || null,
-                    medical_history: medicalForm.medical_history || null,
+                    ...profileForm,
+                    full_name: profileForm.full_name || null,
+                    nik: profileForm.nik || null,
+                    pob: profileForm.pob || null,
+                    dob: profileForm.dob || null,
+                    address: profileForm.address || null,
+                    contact_number: profileForm.contact_number || null,
+                    medical_history: profileForm.medical_history || null,
                     source: 'WEB'
                 };
                 res = await api.updatePatientProfile(payload);
             } else if (user?.is_operator) {
                 const payload = {
-                    ...medicalForm,
-                    full_name: medicalForm.full_name || null,
-                    nik: medicalForm.nik || null,
-                    pob: medicalForm.pob || null,
-                    dob: medicalForm.dob || null,
-                    address: medicalForm.address || null,
-                    contact_number: medicalForm.contact_number || null,
-                    str_number: medicalForm.str_number || null,
-                    work_location: medicalForm.work_location || null,
+                    ...profileForm,
+                    full_name: profileForm.full_name || null,
+                    nik: profileForm.nik || null,
+                    pob: profileForm.pob || null,
+                    dob: profileForm.dob || null,
+                    address: profileForm.address || null,
+                    contact_number: profileForm.contact_number || null,
+                    str_number: profileForm.str_number || null,
+                    work_location: profileForm.work_location || null,
                     source: 'WEB'
                 };
                 res = await api.updateOperatorProfile(payload);
             } else if (user?.is_doctor) {
                 const payload = {
-                    ...medicalForm,
-                    full_name: medicalForm.full_name || null,
-                    nik: medicalForm.nik || null,
-                    pob: medicalForm.pob || null,
-                    dob: medicalForm.dob || null,
-                    address: medicalForm.address || null,
-                    contact_number: medicalForm.contact_number || null,
-                    str_number: medicalForm.str_number || null,
-                    sip_number: medicalForm.sip_number || null,
-                    specialty: medicalForm.specialty || null,
-                    work_location: medicalForm.work_location || null,
+                    ...profileForm,
+                    full_name: profileForm.full_name || null,
+                    nik: profileForm.nik || null,
+                    pob: profileForm.pob || null,
+                    dob: profileForm.dob || null,
+                    address: profileForm.address || null,
+                    contact_number: profileForm.contact_number || null,
+                    str_number: profileForm.str_number || null,
+                    sip_number: profileForm.sip_number || null,
+                    specialty: profileForm.specialty || null,
+                    work_location: profileForm.work_location || null,
                     source: 'WEB'
                 };
                 res = await api.updateDoctorProfile(payload);
@@ -237,7 +237,7 @@ export function useProfileManager() {
 
             setUser(res);
             toast("Profile updated successfully!", "success");
-            setIsEditingMedical(false);
+            setIsEditingProfile(false);
             setConfirmState(prev => ({ ...prev, isOpen: false }));
         } catch (err) {
             handleApiError(err as Error);
@@ -281,8 +281,8 @@ export function useProfileManager() {
         }
     };
 
-    const handleCancelMedical = () => {
-        setIsEditingMedical(false);
+    const handleCancelProfile = () => {
+        setIsEditingProfile(false);
         if (user?.is_patient || user?.is_operator || user?.is_doctor) resetForms();
     };
 
@@ -299,11 +299,11 @@ export function useProfileManager() {
     };
 
     const onSaveProfileClick = () => {
-        if (!runFullMedicalValidation()) return;
+        if (!runFullProfileValidation()) return;
         const isRejected = user?.status === 'REJECTED';
         setConfirmState({
             isOpen: true,
-            type: 'medical',
+            type: 'profile',
             title: isRejected ? 'Review Profile Resubmission' : 'Review Profile Changes',
             message: React.createElement("div", { className: "space-y-4" },
                 React.createElement("p", { className: "text-sm text-slate-500 font-medium" },
@@ -314,24 +314,24 @@ export function useProfileManager() {
                 React.createElement(ReviewSummaryTable, {
                     data: [
                         ...(isRejected ? [
-                            { field: 'Full Name', value: medicalForm.full_name },
-                            { field: 'NIK', value: medicalForm.nik },
-                            { field: 'Place of Birth', value: medicalForm.pob },
-                            { field: 'Date of Birth', value: medicalForm.dob },
-                            { field: 'Gender', value: medicalForm.gender === 'L' ? 'Male' : 'Female' },
+                            { field: 'Full Name', value: profileForm.full_name },
+                            { field: 'NIK', value: profileForm.nik },
+                            { field: 'Place of Birth', value: profileForm.pob },
+                            { field: 'Date of Birth', value: profileForm.dob },
+                            { field: 'Gender', value: profileForm.gender === 'L' ? 'Male' : 'Female' },
                         ] : []),
-                        { field: 'Contact Number', value: medicalForm.contact_number || '-' },
-                        { field: 'Address', value: medicalForm.address || '-' },
-                        ...(user?.is_patient ? [{ field: 'Medical History', value: medicalForm.medical_history || '-' }] : []),
+                        { field: 'Contact Number', value: profileForm.contact_number || '-' },
+                        { field: 'Address', value: profileForm.address || '-' },
+                        ...(user?.is_patient ? [{ field: 'Medical History', value: profileForm.medical_history || '-' }] : []),
                         ...(user?.is_operator ? [
-                            { field: 'STR Number', value: medicalForm.str_number || '-' },
-                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                            { field: 'STR Number', value: profileForm.str_number || '-' },
+                            { field: 'Work Location', value: profileForm.work_location || '-' }
                         ] : []),
                         ...(user?.is_doctor ? [
-                            { field: 'STR Number', value: medicalForm.str_number || '-' },
-                            { field: 'SIP Number', value: medicalForm.sip_number || '-' },
-                            { field: 'Specialty', value: medicalForm.specialty || '-' },
-                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                            { field: 'STR Number', value: profileForm.str_number || '-' },
+                            { field: 'SIP Number', value: profileForm.sip_number || '-' },
+                            { field: 'Specialty', value: profileForm.specialty || '-' },
+                            { field: 'Work Location', value: profileForm.work_location || '-' }
                         ] : [])
                     ]
                 })
@@ -397,24 +397,24 @@ export function useProfileManager() {
         loading,
         activeTab,
         setActiveTab,
-        medicalForm,
-        setMedicalForm,
+        profileForm,
+        setProfileForm,
         securityForm,
         setSecurityForm,
         errors,
         setErrors,
         rejectionReason,
-        isEditingMedical,
-        setIsEditingMedical,
+        isEditingProfile,
+        setIsEditingProfile,
         isEditingUsername,
         setIsEditingUsername,
         isChangingPassword,
         setIsChangingPassword,
         confirmState,
         setConfirmState,
-        handleMedicalChange,
+        handleProfileChange,
         handleSecurityChange,
-        handleCancelMedical,
+        handleCancelProfile,
         handleCancelUsername,
         handleCancelPassword,
         onSaveProfileClick,

@@ -16,7 +16,7 @@ export default function OperatorHeader() {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const isProfileComplete = !!user?.is_patient;
+    const isProfileComplete = !!user?.is_operator;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
