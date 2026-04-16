@@ -1,6 +1,7 @@
 from typing import List, Optional, Type, TypeVar, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import insert
+from sqlalchemy.exc import IntegrityError
 
 from repositories.base import BaseRepository
 from core.exceptions import DatabaseException, AppException
@@ -54,6 +55,23 @@ class BaseRawDataRepository(BaseRepository[T_Base]):
                 "[BaseRawDataRepository] Successfully completed bulk_insert_dicts."
             )
             return len(data_list)
+        except IntegrityError as e:
+            self.db.rollback()
+            if (
+                "ForeignKeyViolation" in str(e)
+                or "foreign key constraint" in str(e).lower()
+            ):
+                logger.warning(
+                    f"[BaseRawDataRepository] Race condition in bulk_insert_dicts - recording was likely deleted by watchdog. Ignoring insert. Detail: {e}"
+                )
+                return 0
+            logger.error(
+                f"[BaseRawDataRepository] Integrity error in bulk_insert_dicts: {e}"
+            )
+            raise DatabaseException(
+                f"Failed {self.platform_name} bulk insert (IntegrityError)",
+                details={"error": str(e)},
+            )
         except AppException as e:
             self.db.rollback()
             raise e

@@ -1,16 +1,19 @@
 import os
 import sys
 import asyncio
+import time
 import warnings
 import logging
 import traceback
+import uuid
+import uvicorn
+
+from typing import List, Dict, Any
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-import uvicorn
-import uuid
 
 from core import settings
 from core.events import lifespan
@@ -78,7 +81,6 @@ async def add_request_id(request: Request, call_next):
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    import time
 
     start_time = time.time()
     response = await call_next(request)
@@ -95,7 +97,6 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    from typing import List, Dict, Any
 
     errors = exc.errors()
     formatted_errors: List[Dict[str, Any]] = []
@@ -171,8 +172,6 @@ async def app_exception_handler(request: Request, exc: AppException):
             logger.warning(log_msg)
         else:
             logger.error(log_msg)
-
-    from typing import Any
 
     client_message = exc.message
     client_details: Any = exc.details

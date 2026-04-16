@@ -485,9 +485,19 @@ class SessionRepository(BaseRepository[TbREcgSession]):
     def get_sessions_by_operator(
         self, operator_id: str, limit: int = 10
     ) -> List[TbREcgSession]:
-        """Return recent sessions created by a specific operator (by operator_profile.id)."""
         logger.debug("[SessionRepository] Starting get_sessions_by_operator...")
         try:
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential slow"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
             result = (
                 self.db.query(TbREcgSession)
                 .options(
@@ -499,6 +509,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                     self._operator_created_filter(operator_id),
                     TbREcgSession.classification_result
                     != ECGClassification.RECORDING.value,
+                    arrhythmia_filter,
                 )
                 .order_by(desc(TbREcgSession.changed_dt))
                 .limit(limit)
@@ -518,13 +529,25 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             raise DatabaseException("Database operation failed")
 
     def get_stats_by_operator(self, operator_id: str) -> Dict:
-        """Return classification stats for sessions created by this operator, excluding Normal."""
         logger.debug("[SessionRepository] Starting get_stats_by_operator...")
         try:
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential slow"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
+
             query = self.db.query(TbREcgSession).filter(
                 self._operator_created_filter(operator_id),
                 TbREcgSession.classification_result
                 != ECGClassification.RECORDING.value,
+                arrhythmia_filter,
             )
             total_sessions = query.count()
 
@@ -538,9 +561,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             )
 
             counts_list = [
-                {"classification": c, "count": cnt}
-                for c, cnt in classification_counts
-                if c and c.lower() not in ("normal", "recording...")
+                {"classification": c, "count": cnt} for c, cnt in classification_counts
             ]
 
             result = {
@@ -563,12 +584,20 @@ class SessionRepository(BaseRepository[TbREcgSession]):
     def get_recent_arrhythmia_notifications(
         self, operator_id: str, limit: int = 20
     ) -> List[TbREcgSession]:
-        """Return non-normal, non-recording sessions created by this operator (arrhythmia alerts)."""
         logger.debug(
             "[SessionRepository] Starting get_recent_arrhythmia_notifications..."
         )
         try:
-            result = (
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "sangat berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
+
+            raw_sessions = (
                 self.db.query(TbREcgSession)
                 .options(
                     joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
@@ -578,12 +607,21 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                     self._operator_created_filter(operator_id),
                     TbREcgSession.classification_result
                     != ECGClassification.RECORDING.value,
-                    TbREcgSession.is_normal.isnot(True),
+                    arrhythmia_filter,
                 )
                 .order_by(desc(TbREcgSession.changed_dt))
-                .limit(limit)
                 .all()
             )
+
+            unique_patients = set()
+            result = []
+            for s in raw_sessions:
+                pid = str(s.patient_id or s.user_id)
+                if pid not in unique_patients:
+                    unique_patients.add(pid)
+                    result.append(s)
+                    if len(result) >= limit:
+                        break
             logger.debug(
                 "[SessionRepository] Successfully completed get_recent_arrhythmia_notifications."
             )

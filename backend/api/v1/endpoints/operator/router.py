@@ -43,8 +43,12 @@ def _map_session_to_response(session) -> SessionResponse:
     subject_id = ""
 
     if getattr(session, "patient_id", None) and getattr(session, "patient", None):
-        patient_name = str(session.patient.full_name) if session.patient.full_name else "Unknown"
-        subject_id = str(session.patient.nik) if session.patient.nik else str(session.patient_id)
+        patient_name = (
+            str(session.patient.full_name) if session.patient.full_name else "Unknown"
+        )
+        subject_id = (
+            str(session.patient.nik) if session.patient.nik else str(session.patient_id)
+        )
     elif getattr(session, "user_id", None) and getattr(session, "user", None):
         user_details = session.user
         patient_name = str(
@@ -52,9 +56,7 @@ def _map_session_to_response(session) -> SessionResponse:
             or getattr(user_details, "username", None)
             or "Unknown"
         )
-        subject_id = str(
-            getattr(user_details, "nik", None) or str(user_details.id)
-        )
+        subject_id = str(getattr(user_details, "nik", None) or str(user_details.id))
     else:
         subject_id = str(session.patient_id or session.user_id or "Unknown")
 
@@ -67,7 +69,9 @@ def _map_session_to_response(session) -> SessionResponse:
         changed_dt=session.changed_dt,
         classification=str(session.classification_result),
         is_normal=session.is_normal,
-        confidence=session.confidence_score if session.confidence_score is not None else None,
+        confidence=(
+            session.confidence_score if session.confidence_score is not None else None
+        ),
         device_type=str(session.device_type) if session.device_type else None,
         parameters=[p for p in getattr(session, "parameters", [])],
     )
@@ -95,7 +99,9 @@ async def get_operator_dashboard(
         operator_id = str(op_profile.id)
 
         recent_sessions = session_repo.get_sessions_by_operator(operator_id, limit=10)
-        notifications = session_repo.get_recent_arrhythmia_notifications(operator_id, limit=20)
+        notifications = session_repo.get_recent_arrhythmia_notifications(
+            operator_id, limit=20
+        )
         stats = session_repo.get_stats_by_operator(operator_id)
 
         arrhythmia_count = sum(
@@ -116,9 +122,21 @@ async def get_operator_dashboard(
 
         data = OperatorDashboardResponse(
             operator_name=str(op_profile.full_name) if op_profile.full_name else None,
-            operator_role=str(op_profile.operator_role) if getattr(op_profile, "operator_role", None) else None,
-            work_location=str(op_profile.work_location) if getattr(op_profile, "work_location", None) else None,
-            str_number=str(op_profile.str_number) if getattr(op_profile, "str_number", None) else None,
+            operator_role=(
+                str(op_profile.operator_role)
+                if getattr(op_profile, "operator_role", None)
+                else None
+            ),
+            work_location=(
+                str(op_profile.work_location)
+                if getattr(op_profile, "work_location", None)
+                else None
+            ),
+            str_number=(
+                str(op_profile.str_number)
+                if getattr(op_profile, "str_number", None)
+                else None
+            ),
             total_recorded=stats.get("total_sessions", 0),
             arrhythmia_count=arrhythmia_count,
             last_sync=last_sync,
