@@ -7,8 +7,10 @@ import {
     Mail,
     Calendar,
     MapPin,
-    Stethoscope,
-    Info
+    Briefcase,
+    Info,
+    HeartPulse,
+    BadgeCheck
 } from 'lucide-react';
 import { getActiveProfile, formatDate, calculateAge } from '@/utils/helpers';
 import clsx from 'clsx';
@@ -33,7 +35,13 @@ function DetailGroup({ title, icon, color = "slate", children }: { title: string
     return (
         <div className="space-y-3">
             <div className="flex items-center gap-2">
-                <div className={clsx("p-1.5 rounded-lg", color === 'rose' ? "bg-rose-50 text-rose-500" : "bg-slate-100 text-slate-400")}>
+                <div className={clsx(
+                    "p-1.5 rounded-lg",
+                    color === 'rose' ? "bg-rose-50 text-rose-500" :
+                        color === 'teal' ? "bg-teal-50 text-teal-500" :
+                            color === 'blue' ? "bg-blue-50 text-blue-500" :
+                                "bg-slate-100 text-slate-400"
+                )}>
                     {icon}
                 </div>
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</h3>
@@ -46,7 +54,12 @@ function DetailGroup({ title, icon, color = "slate", children }: { title: string
 }
 
 export default function UserDetailModal({ user, onClose, onApprove, onReject }: UserDetailModalProps) {
-    const age = calculateAge((getActiveProfile(user)?.dob || ""));
+    const profile = getActiveProfile(user);
+    const age = calculateAge((profile?.dob || ""));
+
+    const isPatient = user.is_patient;
+    const isOperator = user.is_operator;
+    const isDoctor = user.is_doctor;
 
     return (
         <div className="absolute inset-0 z-[100] flex justify-end overflow-hidden pointer-events-none">
@@ -57,14 +70,21 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
             <div className="relative w-full max-w-[420px] bg-white shadow-[-12px_0_40px_rgba(0,0,0,0.08)] border-l border-slate-100 flex flex-col h-full pointer-events-auto animate-in slide-in-from-right duration-400 ease-out">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-rose-500 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg shadow-rose-500/20">
+                        <div className={clsx(
+                            "w-10 h-10 rounded-lg flex items-center justify-center text-white font-black text-lg shadow-lg",
+                            isDoctor ? "bg-blue-500 shadow-blue-500/20" :
+                                isOperator ? "bg-teal-500 shadow-teal-500/20" :
+                                    "bg-rose-500 shadow-rose-500/20"
+                        )}>
                             {user.username.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
                             <h2 className="text-sm font-black text-slate-800 tracking-tight leading-tight">
-                                {(getActiveProfile(user)?.full_name || "") || user.username}
+                                {(profile?.full_name || "") || user.username}
                             </h2>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Reviewing Application</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                {isDoctor ? 'Reviewing Doctor Application' : isOperator ? 'Reviewing Operator Application' : 'Reviewing Patient Application'}
+                            </p>
                         </div>
                     </div>
                     <button
@@ -74,33 +94,36 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                         <X size={20} />
                     </button>
                 </div>
+
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-5">
                     <div className="bg-slate-900 rounded-2xl p-4 text-white">
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em]">National Identity (NIK)</span>
                             <div className="flex items-center gap-3">
                                 <span className="text-[9px] font-black bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded uppercase">Age: {age || '--'}</span>
-                                <span className="text-[9px] font-black bg-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase">{(getActiveProfile(user)?.gender || "") || '---'}</span>
+                                <span className="text-[9px] font-black bg-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase">{(profile?.gender || "") || '---'}</span>
                             </div>
                         </div>
                         <p className="text-xl font-mono font-black tracking-[0.15em] text-white">
-                            {(getActiveProfile(user)?.nik || "") || '--- --- ---'}
+                            {(profile?.nik || "") || '--- --- ---'}
                         </p>
                     </div>
+
                     <div className="space-y-6">
                         <DetailGroup title="Communications" icon={<Mail size={12} />}>
                             <DetailRow label="Email Address" value={user.email} />
-                            <DetailRow label="Phone Number" value={(getActiveProfile(user)?.contact_number || "")} />
+                            <DetailRow label="Phone Number" value={(profile?.contact_number || "")} />
                         </DetailGroup>
+
                         <DetailGroup title="Demographics & Registration" icon={<Calendar size={12} />}>
                             <div className="grid grid-cols-2 gap-4 pb-2">
                                 <div>
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Place of Birth</p>
-                                    <p className="text-xs font-bold text-slate-700">{(getActiveProfile(user)?.pob || "") || '---'}</p>
+                                    <p className="text-xs font-bold text-slate-700">{(profile?.pob || "") || '---'}</p>
                                 </div>
                                 <div>
                                     <p className="text-[9px] font-black text-slate-400 uppercase mb-0.5">Date of Birth</p>
-                                    <p className="text-xs font-bold text-slate-700">{(getActiveProfile(user)?.dob || "") || '---'}</p>
+                                    <p className="text-xs font-bold text-slate-700">{(profile?.dob || "") || '---'}</p>
                                 </div>
                             </div>
                             <div className="pt-2 border-t border-slate-50">
@@ -108,40 +131,68 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                                 <div className="flex gap-2">
                                     <MapPin size={12} className="text-slate-300 shrink-0 mt-0.5" />
                                     <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
-                                        {(getActiveProfile(user)?.address || "") || "No residential address provided."}
+                                        {(profile?.address || "") || "No residential address provided."}
                                     </p>
                                 </div>
                             </div>
                         </DetailGroup>
-                        <DetailGroup title="Medical Background" icon={<Stethoscope size={12} />} color="rose">
-                            <div className="bg-rose-50/30 rounded-xl p-4 border border-rose-100/50">
-                                <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
-                                    {(getActiveProfile(user)?.medical_history || "") || "The patient has formally declared no significant prior medical history during the registration process."}
-                                </p>
-                            </div>
-                        </DetailGroup>
+
+                        {isPatient && (
+                            <DetailGroup title="Medical Background" icon={<HeartPulse size={12} />} color="rose">
+                                <div className="bg-rose-50/30 rounded-xl p-4 border border-rose-100/50">
+                                    <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
+                                        {(profile?.medical_history || "") || "The patient has formally declared no significant prior medical history during the registration process."}
+                                    </p>
+                                </div>
+                            </DetailGroup>
+                        )}
+
+                        {isOperator && (
+                            <DetailGroup title="Professional Details" icon={<Briefcase size={12} />} color="teal">
+                                <DetailRow label="STR Number" value={(profile?.str_number || "") || undefined} />
+                                <DetailRow label="Work Location / Affiliation" value={(profile?.work_location || "") || undefined} />
+                                <DetailRow label="Operator Role" value={(profile?.operator_role || "") || undefined} />
+                            </DetailGroup>
+                        )}
+
+                        {isDoctor && (
+                            <DetailGroup title="Clinical Credentials" icon={<BadgeCheck size={12} />} color="blue">
+                                <DetailRow label="STR Number" value={(profile?.str_number || "") || undefined} />
+                                <DetailRow label="SIP Number" value={(profile?.sip_number || "") || undefined} />
+                                <DetailRow label="Medical Specialty" value={(profile?.specialty || "") || undefined} />
+                                <DetailRow label="Work Location / Affiliation" value={(profile?.work_location || "") || undefined} />
+                            </DetailGroup>
+                        )}
+
                         <div className="flex items-center gap-2 px-1 py-2 bg-slate-50 rounded-lg border border-slate-100">
                             <Info size={14} className="text-amber-500 shrink-0" />
                             <p className="text-[10px] font-bold text-slate-400 italic">
-                                Registered on {formatDate(user.created_dt as string)}
+                                {isDoctor ? 'Doctor' : isOperator ? 'Operator' : 'Patient'} registered on {formatDate(user.created_dt as string)}
                             </p>
                         </div>
                     </div>
                 </div>
+
                 <div className="p-6 bg-white border-t border-slate-100 space-y-3 shrink-0">
                     <button
                         onClick={() => {
-                            if (user.id) onApprove(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
+                            if (user.id) onApprove(user.id, (profile?.full_name || "") || user.username);
                         }}
-                        className="w-full py-4 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-lg shadow-slate-900/10"
+                        className={clsx(
+                            "w-full py-4 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg cursor-pointer",
+                            isDoctor ? "bg-slate-900 hover:bg-emerald-600 shadow-slate-900/10" :
+                                isOperator ? "bg-slate-900 hover:bg-emerald-600 shadow-slate-900/10" :
+                                    "bg-slate-900 hover:bg-emerald-600 shadow-slate-900/10"
+                        )}
                     >
-                        <UserCheck size={16} /> Approve Access
+                        <UserCheck size={16} />
+                        {isDoctor ? 'Approve Doctor Access' : isOperator ? 'Approve Operator Access' : 'Approve Patient Access'}
                     </button>
                     <button
                         onClick={() => {
-                            if (user.id) onReject(user.id, (getActiveProfile(user)?.full_name || "") || user.username);
+                            if (user.id) onReject(user.id, (profile?.full_name || "") || user.username);
                         }}
-                        className="w-full py-3 text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-black uppercase tracking-[0.2em]"
+                        className="w-full py-3 text-slate-400 hover:text-rose-600 transition-colors text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer"
                     >
                         Reject Profile
                     </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { ShieldCheck, AlertCircle, Activity, Settings2, Clock, Briefcase } from 'lucide-react';
+import { ShieldCheck, AlertCircle, Settings2, Clock, Briefcase } from 'lucide-react';
 import { User } from '@/types/user';
 import { getActiveProfile } from '@/utils/helpers';
 

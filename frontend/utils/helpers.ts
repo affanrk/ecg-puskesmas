@@ -36,6 +36,24 @@ export function formatDateShort(isoString: string | null | undefined): string {
     });
 }
 
+/** Returns { date: "16 Apr 2026", time: "09:30:00" } — used by analysis tables and dashboard sync cards */
+export function formatDateTime(isoString: string | null | undefined): { date: string; time: string } {
+    if (!isoString) return { date: '-', time: '' };
+    const d = new Date(isoString);
+    return {
+        date: d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        time: d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+    };
+}
+
+/** Returns "16 Apr 09:30" — compact format for notification / feed items (no year, no seconds) */
+export function formatTimeShort(isoString: string | null | undefined): string {
+    if (!isoString) return '--:--';
+    const d = new Date(isoString);
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+
 export function debounce<Args extends string | number | boolean | object | null | undefined>(
     func: (...args: Args[]) => void, 
     wait: number

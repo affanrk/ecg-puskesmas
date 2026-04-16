@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight, User } from 'lucide-react';
 import clsx from 'clsx';
 import { AnalysisResult } from '@/types/models';
+import { formatDateTime } from '@/utils/helpers';
 
 interface OperatorRecentTableProps {
     loading: boolean;
@@ -11,25 +12,6 @@ interface OperatorRecentTableProps {
     loadDashboardData: () => void;
     highlight: boolean;
 }
-
-const getClassBadgeClass = (classification: string) => {
-    const l = (classification || '').toLowerCase();
-    if (l === 'normal') return 'text-emerald-700 bg-emerald-50 border-emerald-200';
-    if (l.includes('sangat')) return 'text-red-700 bg-red-50 border-red-200';
-    if (l.includes('berpotensi')) return 'text-orange-700 bg-orange-50 border-orange-200';
-    if (l.includes('aritmia') || l.includes('arrhythmia')) return 'text-rose-700 bg-rose-50 border-rose-200';
-    if (l === 'abnormal') return 'text-slate-700 bg-slate-100 border-slate-200';
-    return 'text-slate-500 bg-slate-50 border-slate-100';
-};
-
-const formatDateTime = (isoString?: string) => {
-    if (!isoString) return { date: '-', time: '' };
-    const d = new Date(isoString);
-    return {
-        date: d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-        time: d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-    };
-};
 
 export default function OperatorRecentTable({
     loading,
@@ -119,6 +101,13 @@ export default function OperatorRecentTable({
                                 {paginatedData.map((row, idx) => {
                                     const dt = formatDateTime(row.changed_dt || row.timestamp);
                                     const isHighlighted = highlight && idx === 0 && currentPage === 1;
+                                    const cls = (row.classification || row.classification_result)?.toLowerCase() || '';
+                                    const isSangat = cls.includes('sangat');
+                                    const isFast = cls.includes('fast');
+                                    const isSlow = cls.includes('slow');
+                                    const isBerpotensi = cls.includes('berpotensi');
+                                    const isAbnormal = cls.includes('abnormal');
+                                    const isNormal = cls.includes('normal');
                                     return (
                                         <tr
                                             key={row.recording_id || idx}
@@ -139,12 +128,26 @@ export default function OperatorRecentTable({
                                                     {row.subject_id || '—'}
                                                 </div>
                                             </td>
-                                            <td className="px-4">
+                                            <td className="px-4 py-2">
                                                 <span className={clsx(
-                                                    "text-[9px] 2xl:text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border whitespace-nowrap",
-                                                    getClassBadgeClass(row.classification || '')
+                                                    "inline-flex items-center gap-2.5 px-3 py-1.5 2xl:py-2 rounded-md text-[10px] 2xl:text-[11px] font-black uppercase tracking-[0.12em] transition-all border whitespace-nowrap max-w-full overflow-hidden",
+                                                    isSangat && "bg-rose-50 text-rose-600 border-rose-100",
+                                                    (isFast || isBerpotensi) && !isSangat && "bg-orange-50 text-orange-600 border-orange-100",
+                                                    isSlow && !isSangat && !isFast && !isBerpotensi && "bg-amber-50 text-amber-600 border-amber-100",
+                                                    isAbnormal && !isSangat && !isFast && !isBerpotensi && !isSlow && "bg-slate-50 text-slate-600 border-slate-100",
+                                                    isNormal && "bg-emerald-50 text-emerald-600 border-emerald-100",
+                                                    !isSangat && !isFast && !isBerpotensi && !isSlow && !isAbnormal && !isNormal && "bg-slate-50 text-slate-400 border-slate-100"
                                                 )}>
-                                                    {row.classification || '—'}
+                                                    <span className={clsx(
+                                                        "w-1.5 h-1.5 rounded-full shrink-0",
+                                                        isSangat && "bg-rose-500",
+                                                        (isFast || isBerpotensi) && !isSangat && "bg-orange-500",
+                                                        isSlow && !isSangat && !isFast && !isBerpotensi && "bg-amber-500",
+                                                        isAbnormal && !isSangat && !isFast && !isBerpotensi && !isSlow && "bg-slate-500",
+                                                        isNormal && "bg-emerald-500",
+                                                        !isSangat && !isFast && !isBerpotensi && !isSlow && !isAbnormal && !isNormal && "bg-slate-300"
+                                                    )}></span>
+                                                    <span className="truncate">{(row.classification || row.classification_result || '—')}</span>
                                                 </span>
                                             </td>
                                             <td className="pr-8 text-right">

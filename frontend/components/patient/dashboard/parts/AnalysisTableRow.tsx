@@ -1,6 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import { AnalysisResult } from '@/types/models';
+import { formatDateTime } from '@/utils/helpers';
 
 interface AnalysisTableRowProps {
     row: AnalysisResult;
@@ -10,15 +11,6 @@ interface AnalysisTableRowProps {
 }
 
 export function AnalysisTableRow({ row, idx, highlight, currentPage }: AnalysisTableRowProps) {
-    const formatDateTime = (isoString: string) => {
-        if (!isoString) return { date: '-', time: '' };
-        const dateObj = new Date(isoString);
-        return {
-            date: dateObj.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            time: dateObj.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-        };
-    };
-
     const dt = formatDateTime(row.changed_dt || row.timestamp);
     const cls = (row.classification || row.classification_result)?.toLowerCase() || '';
     const isHighRisk = cls.includes('sangat') || cls.includes('high');

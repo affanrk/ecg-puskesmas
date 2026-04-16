@@ -1,20 +1,20 @@
 'use client';
 
 import React, { memo } from 'react';
-import ECGChart from './parts/ECGChart';
-import StatsPanel from './parts/StatsPanel';
-import AIAnalysisCard from './parts/AIAnalysisCard';
+import PatientECGChart from './parts/PatientECGChart';
+import StatsPanel from '@/components/shared/monitor/parts/StatsPanel';
+import AIAnalysisCard from '@/components/shared/monitor/parts/AIAnalysisCard';
 
-const MemoizedECGChart = memo(ECGChart);
+const MemoizedPatientECGChart = memo(PatientECGChart);
 const MemoizedStatsPanel = memo(StatsPanel);
 const MemoizedAIAnalysisCard = memo(AIAnalysisCard);
 
-export default function MonitorDashboard() {
+export default function PatientMonitorDashboard() {
     return (
         <div className="flex flex-col h-full overflow-hidden bg-white">
             <div className="flex-1 grid grid-cols-12 gap-px bg-slate-200 min-h-0">
                 <div className="col-span-12 lg:col-span-10 h-full min-h-0 bg-white">
-                    <MemoizedECGChart />
+                    <MemoizedPatientECGChart />
                 </div>
                 
                 <div className="col-span-12 lg:col-span-2 flex flex-col gap-px h-full min-h-0 bg-slate-200">

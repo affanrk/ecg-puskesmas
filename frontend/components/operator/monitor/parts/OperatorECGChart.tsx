@@ -8,10 +8,10 @@ import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
 import { OperatorECGHeader } from './OperatorECGHeader';
-import { ECGFooter } from '@/components/patient/monitor/parts/ECGFooter';
-import { ECGMonitor } from '@/components/patient/monitor/parts/ECGMonitor';
+import { ECGFooter } from '@/components/shared/monitor/parts/ECGFooter';
+import { ECGMonitor } from '@/components/shared/monitor/parts/ECGMonitor';
 import PatientSelectorModal from './PatientSelectorModal';
-import OperatorDeviceDropdown from './OperatorDeviceDropdown';
+import DeviceDropdown from '@/components/shared/monitor/parts/DeviceDropdown';
 
 export default function OperatorECGChart() {
 
@@ -107,7 +107,7 @@ export default function OperatorECGChart() {
                 isEnding={isEnding}
                 onToggleRecording={handleToggleRecording}
                 onReset={handleReset}
-                deviceDropdownSlot={<OperatorDeviceDropdown />}
+                deviceDropdownSlot={<DeviceDropdown />}
             />
 
             <ConfirmationModal

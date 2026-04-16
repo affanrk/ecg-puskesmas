@@ -3,6 +3,7 @@
 import { Bell, AlertTriangle, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { AnalysisResult } from '@/types/models';
+import { formatTimeShort } from '@/utils/helpers';
 
 interface OperatorNotificationsProps {
     notifications: AnalysisResult[];
@@ -18,11 +19,6 @@ const getClassificationColor = (classification: string) => {
     return 'text-amber-600 bg-amber-50 border-amber-100';
 };
 
-const formatTime = (isoString?: string) => {
-    if (!isoString) return '--:--';
-    const d = new Date(isoString);
-    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
-};
 
 export default function OperatorNotifications({ notifications, loading }: OperatorNotificationsProps) {
     return (
@@ -46,13 +42,13 @@ export default function OperatorNotifications({ notifications, loading }: Operat
                     </div>
                 )}
             </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar min-h-0">
+            <div className="flex-1 overflow-y-auto no-scrollbar min-h-0 flex flex-col">
                 {loading ? (
                     <div className="h-full flex items-center justify-center opacity-40">
                         <Clock size={32} className="animate-spin text-amber-400" />
                     </div>
                 ) : notifications.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-3 opacity-30 py-8">
+                    <div className="h-full flex flex-col items-center justify-center gap-3 opacity-30 pb-4">
                         <div className="w-14 h-14 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center">
                             <Bell size={22} className="text-slate-300" />
                         </div>
@@ -86,7 +82,7 @@ export default function OperatorNotifications({ notifications, loading }: Operat
                                         {notif.classification}
                                     </span>
                                     <span className="text-[8px] font-bold text-slate-300 font-mono">
-                                        {formatTime(notif.changed_dt || notif.timestamp)}
+                                    {formatTimeShort(notif.changed_dt || notif.timestamp)}
                                     </span>
                                 </div>
                             </div>

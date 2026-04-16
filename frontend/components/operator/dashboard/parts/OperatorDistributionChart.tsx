@@ -22,6 +22,8 @@ export default function OperatorDistributionChart({ stats }: OperatorDistributio
         if (l === 'berpotensi aritmia') return '#f97316';
         if (l === 'sangat berpotensi aritmia') return '#ef4444';
         if (l.includes('sangat')) return '#ef4444';
+        if (l.includes('slow')) return '#fbbf24';
+        if (l.includes('fast')) return '#fb923c';
         if (l.includes('berpotensi')) return '#f97316';
         if (l.includes('aritmia')) return '#f43f5e';
         if (l.includes('unknown') || l.includes('insufficient')) return '#cbd5e1';
@@ -91,7 +93,7 @@ export default function OperatorDistributionChart({ stats }: OperatorDistributio
                     </div>
                     <div>
                         <h3 className="font-black text-slate-800 text-xs 2xl:text-sm tracking-tight italic uppercase">Arrhythmia Distribution</h3>
-                        <p className="text-[9px] 2xl:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Excluding Normal Results</p>
+                        <p className="text-[9px] 2xl:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Classified Arrhythmia Types</p>
                     </div>
                 </div>
             </div>

@@ -6,13 +6,13 @@ import clsx from 'clsx';
 import { getActiveProfile } from '@/utils/helpers';
 import { User } from '@/types/user';
 
-interface ECGHeaderProps {
+interface PatientECGHeaderProps {
     user: User | null;
     selectedLeadMode: 5 | 12;
     onModeSwitch: (mode: 5 | 12) => void;
 }
 
-export const ECGHeader = React.memo(function ECGHeader({ user, selectedLeadMode, onModeSwitch }: ECGHeaderProps) {
+export const PatientECGHeader = React.memo(function PatientECGHeader({ user, selectedLeadMode, onModeSwitch }: PatientECGHeaderProps) {
     const activeProfile = getActiveProfile(user);
     const fullName = (activeProfile?.full_name || "") || user?.username || 'Unknown';
     const medicalHistory = (activeProfile?.medical_history || "") || 'No Prior Records';

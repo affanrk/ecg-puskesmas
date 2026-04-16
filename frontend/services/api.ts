@@ -353,7 +353,7 @@ export async function deleteAdminWalkinPatient(patientId: string) {
 export async function fetchOperatorDashboard() {
     try {
         const response = await axiosInstance.get('/operator/dashboard');
-        return response.data?.data ?? null;
+        return response.data ?? null;
     } catch (error) {
         console.error("Fetch Operator Dashboard Error:", error);
         return null;

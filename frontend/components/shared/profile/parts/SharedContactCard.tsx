@@ -5,33 +5,33 @@ import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import clsx from 'clsx';
 import { useStore } from '@/store/useStore';
-import { ProfileFormPayload } from '@/types/user';
+import { MedicalFormFields } from '@/types/user';
 
 interface SharedContactCardProps {
     isLocked: boolean;
-    isEditingProfile: boolean;
-    setIsEditingProfile: (val: boolean) => void;
-    profileForm: ProfileFormPayload;
-    handleProfileChange: (field: string, value: string) => void;
+    isEditingMedical: boolean;
+    setIsEditingMedical: (val: boolean) => void;
+    medicalForm: MedicalFormFields;
+    handleMedicalChange: (field: string, value: string) => void;
     errors: Record<string, string>;
-    handleCancelProfile: () => void;
+    handleCancelMedical: () => void;
     onSaveProfileClick: () => void;
     loading: boolean;
 }
 
 export default function SharedContactCard({
     isLocked,
-    isEditingProfile,
-    setIsEditingProfile,
-    profileForm,
-    handleProfileChange,
+    isEditingMedical,
+    setIsEditingMedical,
+    medicalForm,
+    handleMedicalChange,
     errors,
-    handleCancelProfile,
+    handleCancelMedical,
     onSaveProfileClick,
     loading
 }: SharedContactCardProps) {
     const user = useStore(state => state.user);
-    const canEditProfile = !isLocked || isEditingProfile;
+    const canEditMedical = !isLocked || isEditingMedical;
 
     return (
         <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
@@ -48,24 +48,24 @@ export default function SharedContactCard({
                         <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-0.5">Role Context & Contact</p>
                     </div>
                 </div>
-                {isLocked && !isEditingProfile && (
+                {isLocked && !isEditingMedical && (
                     <button
-                        onClick={() => setIsEditingProfile(true)}
+                        onClick={() => setIsEditingMedical(true)}
                         className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-teal-600 hover:bg-teal-50 px-3 py-2 rounded-md flex items-center gap-2 transition-all duration-300 border border-slate-100 hover:border-teal-200 cursor-pointer"
                     >
                         <Edit2 size={10} strokeWidth={3} /> Edit Info
                     </button>
                 )}
             </div>
-            <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditProfile && "opacity-80")}>
+            <div className={clsx("space-y-5 flex-1 flex flex-col content-start relative z-10", !canEditMedical && "opacity-80")}>
                 
                 {user?.is_patient && (
                     <div className="space-y-2">
                         <SelectInput
                             label="Medical History"
-                            value={profileForm.medical_history}
-                            onChange={(e) => handleProfileChange('medical_history', e.target.value)}
-                            disabled={!canEditProfile}
+                            value={medicalForm.medical_history}
+                            onChange={(e) => handleMedicalChange('medical_history', e.target.value)}
+                            disabled={!canEditMedical}
                             options={[
                                 { value: '', label: 'Select Condition (Optional)' },
                                 { value: 'Normal', label: 'Normal' },
@@ -80,9 +80,9 @@ export default function SharedContactCard({
                     <div className="space-y-2">
                         <SelectInput
                             label="Medical Specialty"
-                            value={profileForm.specialty}
-                            onChange={(e) => handleProfileChange('specialty', e.target.value)}
-                            disabled={!canEditProfile}
+                            value={medicalForm.specialty}
+                            onChange={(e) => handleMedicalChange('specialty', e.target.value)}
+                            disabled={!canEditMedical}
                             errorMessage={errors.specialty}
                             options={[
                                 { value: '', label: 'Select Specialty' },
@@ -97,9 +97,9 @@ export default function SharedContactCard({
                     <div className="space-y-2">
                         <StandardInput
                             label="Work Location / Affiliation"
-                            value={profileForm.work_location}
-                            onChange={(e) => handleProfileChange('work_location', e.target.value)}
-                            disabled={!canEditProfile}
+                            value={medicalForm.work_location}
+                            onChange={(e) => handleMedicalChange('work_location', e.target.value)}
+                            disabled={!canEditMedical}
                             placeholder="Hospital or Clinic name"
                         />
                     </div>
@@ -107,26 +107,26 @@ export default function SharedContactCard({
 
                 <StandardInput
                     label="Phone Number"
-                    value={profileForm.contact_number}
-                    onChange={(e) => handleProfileChange('contact_number', e.target.value)}
-                    disabled={!canEditProfile}
+                    value={medicalForm.contact_number}
+                    onChange={(e) => handleMedicalChange('contact_number', e.target.value)}
+                    disabled={!canEditMedical}
                     placeholder="+62... (Optional)"
                     errorMessage={errors.contact_number}
                 />
                 <div className="flex-1">
                     <StandardInput
                         label="Residential Address"
-                        value={profileForm.address}
-                        onChange={(e) => handleProfileChange('address', e.target.value)}
-                        disabled={!canEditProfile}
+                        value={medicalForm.address}
+                        onChange={(e) => handleMedicalChange('address', e.target.value)}
+                        disabled={!canEditMedical}
                         placeholder="Street, City, Zip Code... (Optional)"
                     />
                 </div>
             </div>
-            {isEditingProfile && (
+            {isEditingMedical && (
                 <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-50 mt-6 shrink-0 relative z-10">
                     <button
-                        onClick={handleCancelProfile}
+                        onClick={handleCancelMedical}
                         className="flex-1 px-3 py-3.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-md transition-all active:scale-[0.98] cursor-pointer"
                     >
                         Discard

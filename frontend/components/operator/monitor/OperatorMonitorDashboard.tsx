@@ -2,8 +2,8 @@
 
 import React, { memo } from 'react';
 import OperatorECGChart from './parts/OperatorECGChart';
-import StatsPanel from '@/components/patient/monitor/parts/StatsPanel';
-import AIAnalysisCard from '@/components/patient/monitor/parts/AIAnalysisCard';
+import StatsPanel from '@/components/shared/monitor/parts/StatsPanel';
+import AIAnalysisCard from '@/components/shared/monitor/parts/AIAnalysisCard';
 
 const MemoizedOperatorECGChart = memo(OperatorECGChart);
 const MemoizedStatsPanel = memo(StatsPanel);
@@ -16,7 +16,7 @@ export default function OperatorMonitorDashboard() {
                 <div className="col-span-12 lg:col-span-10 h-full min-h-0 bg-white">
                     <MemoizedOperatorECGChart />
                 </div>
-                
+
                 <div className="col-span-12 lg:col-span-2 flex flex-col gap-px h-full min-h-0 bg-slate-200">
                     <div className="flex-[3] min-h-0 bg-white">
                         <MemoizedStatsPanel className="grid-cols-1 grid-rows-2 h-full" variant="minimal" />

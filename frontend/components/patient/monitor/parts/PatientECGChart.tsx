@@ -7,11 +7,11 @@ import { useDeviceManager } from '@/hooks/useDeviceManager';
 import { useToast } from '@/hooks/useToast';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
-import { ECGHeader } from './ECGHeader';
-import { ECGFooter } from './ECGFooter';
-import { ECGMonitor } from './ECGMonitor';
+import { PatientECGHeader } from './PatientECGHeader';
+import { ECGFooter } from '@/components/shared/monitor/parts/ECGFooter';
+import { ECGMonitor } from '@/components/shared/monitor/parts/ECGMonitor';
 
-export default function ECGChart() {
+export default function PatientECGChart() {
     const user = useStore(state => state.user);
     const currentDeviceId = useStore(state => state.currentDeviceId);
     const isRecording = useStore(state => state.isRecording);
@@ -69,7 +69,7 @@ export default function ECGChart() {
 
     return (
         <div className="flex flex-col w-full h-full bg-white relative transition-all duration-500">
-            <ECGHeader 
+            <PatientECGHeader 
                 user={user} 
                 selectedLeadMode={selectedLeadMode} 
                 onModeSwitch={handleModeSwitch} 

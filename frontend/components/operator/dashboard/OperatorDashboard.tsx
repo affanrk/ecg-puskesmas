@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
 import { OperatorDashboardData } from '@/types/models';
+import { formatDateTime } from '@/utils/helpers';
 import OperatorSummaryCards from './parts/OperatorSummaryCards';
 import OperatorRecentTable from './parts/OperatorRecentTable';
 import OperatorDistributionChart from './parts/OperatorDistributionChart';
@@ -50,32 +51,19 @@ export default function OperatorDashboard() {
         loadDashboardData();
     }, [loadDashboardData]);
 
-    // Build stats map excluding Normal for distribution chart
     const statsMap: Record<string, number> = {};
     if (dashboardData?.classification_counts) {
         dashboardData.classification_counts.forEach(item => {
-            if (item.classification && item.classification.toLowerCase() !== 'normal') {
+            if (item.classification) {
                 statsMap[item.classification] = item.count;
             }
         });
     }
 
-    const lastResult = dashboardData?.recent_sessions?.[0] ?? null;
-
-    const formatDateTime = (isoString: string) => {
-        if (!isoString) return { date: '-', time: '' };
-        const dateObj = new Date(isoString);
-        return {
-            date: dateObj.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            time: dateObj.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-        };
-    };
-
     const lastSyncTime = dashboardData?.last_sync ? formatDateTime(dashboardData.last_sync) : { date: '--', time: '--' };
 
     return (
         <div className="grid grid-cols-1 xl:grid-cols-12 xl:h-full xl:min-h-0 overflow-y-auto xl:overflow-hidden no-scrollbar pb-4 xl:pb-0">
-            {/* Left column: notifications + recent table */}
             <div className="xl:col-span-7 flex flex-col min-h-[500px] xl:min-h-0 h-full border-r border-slate-100">
                 <OperatorRecentTable
                     loading={loading}
@@ -84,13 +72,11 @@ export default function OperatorDashboard() {
                     highlight={highlight}
                 />
             </div>
-            {/* Right column: summary + distribution + notifications */}
             <div className="xl:col-span-5 flex flex-col min-h-0 h-full overflow-hidden">
                 <div className="flex-none min-h-0 flex flex-col overflow-hidden">
                     <OperatorSummaryCards
                         dashboardData={dashboardData}
                         lastSyncTime={lastSyncTime}
-                        lastResult={lastResult}
                     />
                 </div>
                 <div className="flex-1 min-h-0 border-t border-slate-100 flex flex-col overflow-hidden">

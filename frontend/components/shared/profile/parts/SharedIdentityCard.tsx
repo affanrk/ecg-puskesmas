@@ -5,14 +5,14 @@ import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import { useStore } from '@/store/useStore';
-import { ProfileFormPayload } from '@/types/user';
+import { MedicalFormFields } from '@/types/user';
 
 interface SharedIdentityCardProps {
     isLocked: boolean;
     isActivated: boolean;
     rejectionReason: string | null;
-    profileForm: ProfileFormPayload;
-    handleProfileChange: (field: string, value: string) => void;
+    medicalForm: MedicalFormFields;
+    handleMedicalChange: (field: string, value: string) => void;
     errors: Record<string, string>;
     onSaveProfileClick: () => void;
     loading: boolean;
@@ -22,8 +22,8 @@ export default function SharedIdentityCard({
     isLocked,
     isActivated,
     rejectionReason,
-    profileForm,
-    handleProfileChange,
+    medicalForm,
+    handleMedicalChange,
     errors,
     onSaveProfileClick,
     loading
@@ -62,8 +62,8 @@ export default function SharedIdentityCard({
                 <div className="space-y-1">
                     <StandardInput 
                         label="Full Legal Name" 
-                        value={profileForm.full_name} 
-                        onChange={(e) => handleProfileChange('full_name', e.target.value)} 
+                        value={medicalForm.full_name} 
+                        onChange={(e) => handleMedicalChange('full_name', e.target.value)} 
                         disabled={isLocked} 
                         placeholder="e.g. John Doe" 
                         errorMessage={errors.full_name} 
@@ -72,8 +72,8 @@ export default function SharedIdentityCard({
                 <div className="space-y-1">
                     <StandardInput 
                         label="NIK (16 Digits)" 
-                        value={profileForm.nik} 
-                        onChange={(e) => handleProfileChange('nik', e.target.value.replace(/\D/g,'').slice(0, 16))} 
+                        value={medicalForm.nik} 
+                        onChange={(e) => handleMedicalChange('nik', e.target.value.replace(/\D/g,'').slice(0, 16))} 
                         disabled={isLocked} 
                         placeholder="16-digit ID number" 
                         errorMessage={errors.nik} 
@@ -82,8 +82,8 @@ export default function SharedIdentityCard({
                 <div className="space-y-1">
                     <StandardInput 
                         label="Place of Birth" 
-                        value={profileForm.pob} 
-                        onChange={(e) => handleProfileChange('pob', e.target.value)} 
+                        value={medicalForm.pob} 
+                        onChange={(e) => handleMedicalChange('pob', e.target.value)} 
                         disabled={isLocked} 
                         placeholder="City" 
                         errorMessage={errors.pob} 
@@ -92,8 +92,8 @@ export default function SharedIdentityCard({
                 <div className="space-y-1">
                     <FlatpickrInput 
                         label="Date of Birth" 
-                        value={profileForm.dob} 
-                        onChange={(date) => handleProfileChange('dob', date)} 
+                        value={medicalForm.dob} 
+                        onChange={(date) => handleMedicalChange('dob', date)} 
                         disabled={isLocked} 
                         placeholder="Select Date" 
                         errorMessage={errors.dob} 
@@ -102,8 +102,8 @@ export default function SharedIdentityCard({
                 <div className="space-y-1">
                      <SelectInput 
                         label="Gender" 
-                        value={profileForm.gender} 
-                        onChange={(e) => handleProfileChange('gender', e.target.value)} 
+                        value={medicalForm.gender} 
+                        onChange={(e) => handleMedicalChange('gender', e.target.value)} 
                         disabled={isLocked}
                         options={[{ value: 'L', label: 'Male' }, { value: 'P', label: 'Female' }]}
                     />
@@ -112,8 +112,8 @@ export default function SharedIdentityCard({
                     <div className="space-y-1">
                         <StandardInput 
                             label="STR Number" 
-                            value={profileForm.str_number} 
-                            onChange={(e) => handleProfileChange('str_number', e.target.value)} 
+                            value={medicalForm.str_number} 
+                            onChange={(e) => handleMedicalChange('str_number', e.target.value)} 
                             disabled={isLocked} 
                             placeholder="Surat Tanda Registrasi" 
                             errorMessage={errors.str_number} 
@@ -124,8 +124,8 @@ export default function SharedIdentityCard({
                     <div className="space-y-1">
                         <StandardInput 
                             label="SIP Number" 
-                            value={profileForm.sip_number} 
-                            onChange={(e) => handleProfileChange('sip_number', e.target.value)} 
+                            value={medicalForm.sip_number} 
+                            onChange={(e) => handleMedicalChange('sip_number', e.target.value)} 
                             disabled={isLocked} 
                             placeholder="Surat Izin Praktik" 
                             errorMessage={errors.sip_number} 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { AnalysisResult } from '@/types/models';
 import { api } from '@/services/api';
+import { formatDateTime } from '@/utils/helpers';
 import SummaryCards from './parts/SummaryCards';
 import RecentAnalysisTable from './parts/RecentAnalysisTable';
 import DistributionChart from './parts/DistributionChart';
@@ -58,17 +59,10 @@ export default function DashboardSummary() {
         loadDashboardData();
     }, [loadDashboardData]);
 
-    const formatDateTime = (isoString: string) => {
-        if (!isoString) return { date: '-', time: '' };
-        const dateObj = new Date(isoString);
-        return {
-            date: dateObj.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            time: dateObj.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
-        };
-    };
 
     const lastResult = recentRecords.length > 0 ? recentRecords[0] : null;
     const lastResultTime = lastResult ? formatDateTime(lastResult.changed_dt || lastResult.timestamp) : { date: '--', time: '--' };
+
 
     return (
         <div className="grid grid-cols-1 xl:grid-cols-12 xl:h-full xl:min-h-0 overflow-y-auto xl:overflow-hidden no-scrollbar pb-4 xl:pb-0">

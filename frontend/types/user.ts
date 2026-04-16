@@ -170,3 +170,10 @@ export interface SecurityFormPayload {
     new_password: string;
     confirm_password: string;
 }
+
+/** Alias used by profile card components (IdentityCard, ContactCard, etc.) */
+export type MedicalFormFields = ProfileFormPayload;
+
+/** Alias used by security card components (UsernameCard, PasswordCard, etc.) */
+export type SecurityFormFields = SecurityFormPayload;
+

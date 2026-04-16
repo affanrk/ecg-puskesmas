@@ -63,7 +63,7 @@ export default function DeviceDropdown() {
         setPendingAction(null);
     };
 
-    if (!user || !user.is_patient) return null;
+    if (!user) return null;
 
     const isProcessing = wsPendingAction === 'switching' || wsPendingAction === 'disconnecting';
 
