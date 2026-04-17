@@ -36,7 +36,58 @@ from core.exceptions import AppException, DuplicateNIKException
 from models import TbMUser, TbRLogApproval
 from utils import logger
 
+from pydantic import BaseModel
+
 router = APIRouter()
+
+
+class AdminDashboardResponse(BaseModel):
+    total_users: int = 0
+    pending_approvals: int = 0
+    total_patients: int = 0
+    total_operators: int = 0
+    total_doctors: int = 0
+    recent_pending: List[UserResponse] = []
+    recent_logs: List[ApprovalLogResponse] = []
+
+
+@router.get("/dashboard", response_model=GenericResponse[AdminDashboardResponse])
+def get_admin_dashboard(
+    admin: TbMUser = Depends(get_admin_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    approval_repo: ApprovalRepository = Depends(get_approval_repository),
+):
+    try:
+        all_pending = user_repo.list_pending_approval(limit=100)
+        pending_approvals = len(all_pending)
+        recent_pending = [UserResponse.model_validate(u) for u in all_pending[:5]]
+
+        all_users = user_repo.list_all(limit=1000, exclude_admins=True)
+        total_users = len(all_users)
+        total_patients = sum(1 for u in all_users if u.is_patient)
+        total_operators = sum(1 for u in all_users if u.is_operator)
+        total_doctors = sum(1 for u in all_users if u.is_doctor)
+
+        logs_records = approval_repo.list_logs(limit=5)
+        recent_logs = [ApprovalLogResponse.model_validate(log) for log in logs_records]
+
+        data = AdminDashboardResponse(
+            total_users=total_users,
+            pending_approvals=pending_approvals,
+            total_patients=total_patients,
+            total_operators=total_operators,
+            total_doctors=total_doctors,
+            recent_pending=recent_pending,
+            recent_logs=recent_logs,
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message="Admin dashboard retrieved successfully",
+        )
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Failed to get dashboard: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/pending-approvals", response_model=GenericResponse[List[UserResponse]])

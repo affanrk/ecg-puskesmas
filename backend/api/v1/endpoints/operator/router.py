@@ -8,6 +8,9 @@ from core.dependencies import (
     get_operator_user,
     get_patient_repository,
     get_session_repository,
+    get_unassigned_user,
+    get_operator_repository,
+    get_user_repository,
 )
 from models import TbMUser
 from schemas.patient import (
@@ -18,9 +21,13 @@ from schemas.common import GenericResponse, PaginatedData, ApiStatus
 from schemas.session import SessionResponse
 from repositories.patient import PatientRepository
 from repositories.session import SessionRepository
+from repositories.operator import OperatorRepository
+from repositories.user import UserRepository
 from utils import logger
 from core.exceptions import AppException
 from pydantic import BaseModel
+from schemas.operator import OperatorCreate, OperatorUpdate
+from schemas.user import UserResponse
 
 router = APIRouter()
 
@@ -238,5 +245,66 @@ async def get_patients(
         raise
     except Exception as e:
         logger.error(f"[OperatorEndpoint] Failed to retrieve patients: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post("/profile", response_model=GenericResponse[UserResponse])
+def create_operator_profile(
+    profile_in: OperatorCreate,
+    current_user: TbMUser = Depends(get_unassigned_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+):
+    try:
+        if operator_repo.find_by_user_id(str(current_user.id)):
+            raise HTTPException(
+                status_code=400, detail="Operator profile already exists"
+            )
+
+        operator_repo.create_profile(
+            profile_in, str(current_user.id), source=str(profile_in.source)
+        )
+        updated_user = user_repo.find_by_id(str(current_user.id))
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=updated_user,
+            message="Operator profile created successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[OperatorEndpoint] Unexpected error in create_operator_profile: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.put("/profile", response_model=GenericResponse[UserResponse])
+def update_operator_profile(
+    profile_in: OperatorUpdate,
+    current_user: TbMUser = Depends(get_operator_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+):
+    try:
+        operator_repo.update_by_user_id(str(current_user.id), profile_in)
+        updated_user = user_repo.find_by_id(str(current_user.id))
+
+        if not updated_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=updated_user,
+            message="Operator profile updated successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[OperatorEndpoint] Unexpected error in update_operator_profile: {str(e)}"
+        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

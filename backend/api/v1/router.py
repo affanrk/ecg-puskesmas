@@ -7,6 +7,8 @@ from api.v1.endpoints import (
     auth_router as auth,
     admin_router as admin,
     operator_router as operator,
+    patient_router as patient,
+    doctor_router as doctor,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -16,6 +18,14 @@ api_router.include_router(auth, prefix="/auth", tags=["Authentication & Profile"
 api_router.include_router(admin, prefix="/admin", tags=["Admin Control"])
 
 api_router.include_router(operator, prefix="/operator", tags=["Operator Control"])
+
+api_router.include_router(
+    patient, prefix="/patient", tags=["Patient Dashboard & Profile"]
+)
+
+api_router.include_router(
+    doctor, prefix="/doctor", tags=["Doctor Operations & Profile"]
+)
 
 api_router.include_router(history, prefix="/history", tags=["History & Data"])
 
