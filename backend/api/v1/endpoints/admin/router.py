@@ -69,7 +69,23 @@ def get_admin_dashboard(
         total_doctors = sum(1 for u in all_users if u.is_doctor)
 
         logs_records = approval_repo.list_logs(limit=5)
-        recent_logs = [ApprovalLogResponse.model_validate(log) for log in logs_records]
+        recent_logs = []
+        for log in logs_records:
+            recent_logs.append(
+                ApprovalLogResponse(
+                    id=str(log.id),
+                    user_id=str(log.user_id),
+                    username=str(log.user.username) if log.user else None,
+                    full_name=str(log.user.full_name) if log.user else None,
+                    is_patient=bool(log.user.is_patient) if log.user else False,
+                    is_operator=bool(log.user.is_operator) if log.user else False,
+                    is_doctor=bool(log.user.is_doctor) if log.user else False,
+                    status=str(log.status),
+                    reason=cast(str, log.reason) if log.reason else None,
+                    created_dt=cast(datetime, log.created_dt),
+                    created_by=str(log.created_by),
+                )
+            )
 
         data = AdminDashboardResponse(
             total_users=total_users,
