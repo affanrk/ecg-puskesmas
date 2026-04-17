@@ -133,7 +133,7 @@ Invalidates the current session ID in the database.
 ### 1.5 Create Patient Profile
 Converts a basic user into a Patient and submits their clinical profile.
 *   **Method:** `POST`
-*   **Endpoint:** `/auth/profile/patient`
+*   **Endpoint:** `/patient/profile`
 *   **Request Body (`PatientCreate`):**
     ```json
     {
@@ -144,7 +144,7 @@ Converts a basic user into a Patient and submits their clinical profile.
       "gender": "Laki-laki",
       "address": "Jl. Merdeka No. 1",
       "contact_number": "081234567890",
-      "medical_history": "Hypertension",
+      "medical_history": "Hipertensi",
       "source": "WEB"
     }
     ```
@@ -159,7 +159,7 @@ Converts a basic user into a Patient and submits their clinical profile.
 
 ### 1.6 Create Operator Profile
 *   **Method:** `POST`
-*   **Endpoint:** `/auth/profile/operator`
+*   **Endpoint:** `/operator/profile`
 *   **Request Body (`OperatorCreate`):**
     ```json
     {
@@ -187,7 +187,7 @@ Converts a basic user into a Patient and submits their clinical profile.
 
 ### 1.7 Create Doctor Profile
 *   **Method:** `POST`
-*   **Endpoint:** `/auth/profile/doctor`
+*   **Endpoint:** `/doctor/profile`
 *   **Request Body (`DoctorCreate`):**
     ```json
     {
@@ -216,19 +216,19 @@ Converts a basic user into a Patient and submits their clinical profile.
 
 ### 1.8 Update Patient Profile
 *   **Method:** `PUT`
-*   **Endpoint:** `/auth/profile/patient`
+*   **Endpoint:** `/patient/profile`
 *   **Request Body:** Same as Create Patient Profile (Optional fields).
 *   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.9 Update Operator Profile
 *   **Method:** `PUT`
-*   **Endpoint:** `/auth/profile/operator`
+*   **Endpoint:** `/operator/profile`
 *   **Request Body:** Same as Create Operator Profile (Optional fields).
 *   **Response:** `GenericResponse[UserResponse]`
 
 ### 1.10 Update Doctor Profile
 *   **Method:** `PUT`
-*   **Endpoint:** `/auth/profile/doctor`
+*   **Endpoint:** `/doctor/profile`
 *   **Request Body:** Same as Create Doctor Profile (Optional fields).
 *   **Response:** `GenericResponse[UserResponse]`
 
