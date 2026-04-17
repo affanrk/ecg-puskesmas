@@ -145,7 +145,7 @@ export async function fetchDetailedHealth() {
 
 export async function createPatientProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.post('/auth/profile/patient', profileData);
+        const response = await axiosInstance.post('/patient/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Create Profile Error:", error);
@@ -155,7 +155,7 @@ export async function createPatientProfile(profileData: ProfilePayload) {
 
 export async function updatePatientProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.put('/auth/profile/patient', profileData);
+        const response = await axiosInstance.put('/patient/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Update Patient Profile Error:", error);
@@ -165,7 +165,7 @@ export async function updatePatientProfile(profileData: ProfilePayload) {
 
 export async function updateOperatorProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.put('/auth/profile/operator', profileData);
+        const response = await axiosInstance.put('/operator/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Update Operator Profile Error:", error);
@@ -175,7 +175,7 @@ export async function updateOperatorProfile(profileData: ProfilePayload) {
 
 export async function updateDoctorProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.put('/auth/profile/doctor', profileData);
+        const response = await axiosInstance.put('/doctor/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Update Doctor Profile Error:", error);
@@ -185,7 +185,7 @@ export async function updateDoctorProfile(profileData: ProfilePayload) {
 
 export async function createOperatorProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.post('/auth/profile/operator', profileData);
+        const response = await axiosInstance.post('/operator/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Create Operator Profile Error:", error);
@@ -195,7 +195,7 @@ export async function createOperatorProfile(profileData: ProfilePayload) {
 
 export async function createDoctorProfile(profileData: ProfilePayload) {
     try {
-        const response = await axiosInstance.post('/auth/profile/doctor', profileData);
+        const response = await axiosInstance.post('/doctor/profile', profileData);
         return response.data;
     } catch (error) {
         console.error("Create Doctor Profile Error:", error);
@@ -360,6 +360,26 @@ export async function fetchOperatorDashboard() {
     }
 }
 
+export async function fetchPatientDashboard() {
+    try {
+        const response = await axiosInstance.get('/patient/dashboard');
+        return response.data ?? null;
+    } catch (error) {
+        console.error("Fetch Patient Dashboard Error:", error);
+        return null;
+    }
+}
+
+export async function fetchAdminDashboard() {
+    try {
+        const response = await axiosInstance.get('/admin/dashboard');
+        return response.data ?? null;
+    } catch (error) {
+        console.error("Fetch Admin Dashboard Error:", error);
+        return null;
+    }
+}
+
 export const api = {
     login,
     register,
@@ -391,5 +411,7 @@ export const api = {
     convertAdminWalkinPatient,
     deleteAdminWalkinPatient,
     fetchOperatorDashboard,
+    fetchPatientDashboard,
+    fetchAdminDashboard,
 };
 

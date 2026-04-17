@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Users, UserCog, HeartPulse, Activity, ArrowRight } from 'lucide-react';
+import { Users, UserCog, HeartPulse, Activity, ArrowRight, AlertTriangle } from 'lucide-react';
+import clsx from 'clsx';
 
 interface AdminDashboardStatsProps {
     loading: boolean;
@@ -49,21 +50,45 @@ export function AdminDashboardStats({ loading, pendingCount, userCount, systemSt
                 </div>
             </div>
 
-            <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm relative overflow-hidden group hover:border-emerald-100 transition-all">
-                <div className="absolute top-0 right-0 p-4 opacity-[0.03] text-emerald-600 group-hover:scale-110 transition-transform duration-500">
-                    <HeartPulse size={80} />
+            <div className={clsx(
+                "p-5 rounded-xl border shadow-sm relative overflow-hidden group transition-all duration-300",
+                systemStatus === 'healthy' 
+                    ? "bg-white hover:border-emerald-100 border-slate-100" 
+                    : systemStatus === 'loading'
+                        ? "bg-white border-slate-100"
+                        : "bg-rose-50/80 border-rose-400 shadow-[0_0_15px_rgba(225,29,72,0.15)] ring-1 ring-rose-400 animate-pulse"
+            )}>
+                <div className={clsx(
+                    "absolute top-0 right-0 p-4 opacity-[0.03] transition-transform duration-500",
+                    systemStatus === 'issues' ? "text-rose-600 scale-110 cursor-default" : "text-emerald-600 group-hover:scale-110"
+                )}>
+                    {systemStatus === 'issues' ? <AlertTriangle size={80} /> : <HeartPulse size={80} />}
                 </div>
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
-                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center mb-3">
-                            <HeartPulse size={20} />
+                        <div className={clsx(
+                            "w-10 h-10 rounded-lg flex items-center justify-center mb-3 shadow-sm",
+                            systemStatus === 'issues' ? "bg-rose-600 text-white animate-bounce" : "bg-emerald-50 text-emerald-600"
+                        )}>
+                            {systemStatus === 'issues' ? <AlertTriangle size={20} /> : <HeartPulse size={20} />}
                         </div>
-                        <Link href="/admin/health" className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                        <Link href="/admin/health" className={clsx(
+                            "text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors",
+                            systemStatus === 'issues' ? "text-rose-600 hover:text-rose-800" : "text-emerald-600 hover:text-emerald-700"
+                        )}>
                             Details <ArrowRight size={10} />
                         </Link>
                     </div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Health</p>
-                    <h3 className="text-xl font-black text-slate-800 mt-2 tracking-tight uppercase">{loading ? '...' : systemStatus}</h3>
+                    <p className={clsx(
+                        "text-[10px] font-black uppercase tracking-widest",
+                        systemStatus === 'issues' ? "text-rose-500" : "text-slate-400"
+                    )}>System Health</p>
+                    <h3 className={clsx(
+                        "text-xl font-black mt-2 tracking-tight uppercase",
+                        systemStatus === 'issues' ? "text-rose-700" : "text-slate-800"
+                    )}>
+                        {loading ? '...' : systemStatus === 'issues' ? 'Critical' : systemStatus}
+                    </h3>
                 </div>
             </div>
 

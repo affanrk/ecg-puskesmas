@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { User, ApprovalLog } from '@/types/user';
 import { api } from '@/services/api';
-import clsx from 'clsx';
 import { AdminDashboardStats } from './parts/AdminDashboardStats';
 import { AdminPendingQueue } from './parts/AdminPendingQueue';
 import { AdminAuditLogs } from './parts/AdminAuditLogs';
@@ -26,22 +25,21 @@ export default function AdminDashboard() {
         const loadData = async () => {
             setLoading(true);
             try {
-                const [pending, allPending, users, logs, health] = await Promise.all([
-                    api.fetchPendingApprovals({ limit: 5 }),
-                    api.fetchPendingApprovals({ limit: 100 }),
-                    api.fetchUsers({ limit: 100 }),
-                    api.fetchApprovalLogs({ limit: 5 }),
+                const [dashboardData, health] = await Promise.all([
+                    api.fetchAdminDashboard(),
                     api.fetchDetailedHealth().catch(() => ({ status: 'issues' }))
                 ]);
 
-                setRecentPending(pending || []);
-                setPendingCount(allPending?.length || 0);
-                setUserCount(users?.length || 0);
-                setRecentLogs(logs || []);
-                setSystemStatus(health.status === 'healthy' ? 'healthy' : 'issues');
-
+                if (dashboardData) {
+                    setRecentPending(dashboardData.recent_pending || []);
+                    setPendingCount(dashboardData.pending_approvals || 0);
+                    setUserCount(dashboardData.total_users || 0);
+                    setRecentLogs(dashboardData.recent_logs || []);
+                }
+                setSystemStatus(health?.status === 'healthy' ? 'healthy' : 'issues');
             } catch (error) {
                 console.error("Dashboard load failed", error);
+                setSystemStatus('issues');
             } finally {
                 setLoading(false);
             }
@@ -57,24 +55,9 @@ export default function AdminDashboard() {
                         Welcome back, <span className="text-rose-600">{user?.username}</span>. Here is what&apos;s happening today.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className={clsx(
-                        "px-4 py-2 rounded-full border flex items-center gap-2 text-xs font-bold uppercase tracking-wider bg-white shadow-sm",
-                        systemStatus === 'healthy'
-                            ? "bg-emerald-50/50 text-emerald-600 border-emerald-100"
-                            : systemStatus === 'loading'
-                                ? "bg-slate-50 text-slate-400 border-slate-100"
-                                : "bg-rose-50/50 text-rose-600 border-rose-100"
-                    )}>
-                        <div className={clsx("w-2 h-2 rounded-full",
-                            systemStatus === 'healthy' ? "bg-emerald-500" : systemStatus === 'loading' ? "bg-slate-300" : "bg-rose-500 animate-pulse"
-                        )} />
-                        System {systemStatus === 'loading' ? 'Checking...' : systemStatus}
-                    </div>
-                </div>
             </div>
 
-            <AdminDashboardStats 
+            <AdminDashboardStats
                 loading={loading}
                 pendingCount={pendingCount}
                 userCount={userCount}

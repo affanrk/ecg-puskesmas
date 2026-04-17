@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'nextjs-toploader/app';
-import { Activity, ArrowRight, ArrowLeft, Loader2, User } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, User, AlertTriangle } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
+import FloatingNav from '@/components/shared/FloatingNav';
 import { useToast } from '@/hooks/useToast';
 import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
@@ -62,10 +63,10 @@ export default function PatientOnboardingForm() {
         if (nikErr) newErrors.nik = nikErr;
 
         if (validators.required(formData.pob)) newErrors.pob = 'Required';
-        
+
         const dobErr = validators.dob(formData.dob);
         if (dobErr) newErrors.dob = dobErr;
-        
+
         if (validators.required(formData.gender)) newErrors.gender = 'Required';
 
         const phoneErr = validators.phone(formData.contact_number);
@@ -116,21 +117,25 @@ export default function PatientOnboardingForm() {
             <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-400/10 rounded-full blur-3xl animate-pulse-slow pointer-events-none"></div>
             <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-            <header className="px-6 md:px-8 py-4 relative z-10 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-600/20">
-                        <Activity className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="font-black text-xl text-slate-900 tracking-tight">ECG Platform</span>
-                </div>
-                <button onClick={() => router.push('/onboarding')} className="group flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors bg-white/60 backdrop-blur-md px-4 py-2.5 rounded-full border border-slate-200/60 shadow-sm hover:shadow-md cursor-pointer">
-                    <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                    Cancel & Return
-                </button>
-            </header>
+            <FloatingNav
+                backAction={{
+                    label: 'Cancel & Return',
+                    onClick: () => router.push('/onboarding')
+                }}
+            />
 
-            <main className="flex-1 flex items-center justify-center p-4 md:p-6 relative z-10 min-h-0">
-                <div className="bg-white w-full max-w-3xl max-h-full rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-500">
+            <main className="flex-1 flex flex-col items-center justify-start py-8 md:py-12 p-4 md:p-6 relative z-10 min-h-0 overflow-y-auto custom-scrollbar">
+                {/* Stepper Visual */}
+                <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 shrink-0">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold items-center justify-center"><ArrowLeft size={12} /></div>
+                    <div className="w-4 md:w-8 h-1 bg-brand-500 rounded-full mx-1" />
+                    <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold items-center justify-center"><ArrowLeft size={12} /></div>
+                    <div className="w-4 md:w-8 h-1 bg-brand-500 rounded-full mx-1" />
+                    <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-brand-600 text-white text-xs font-black shadow-sm shadow-brand-500/30">3</span>
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest shrink-0">Profile Completion</span>
+                </div>
+
+                <div className="bg-white w-full max-w-3xl rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-500 delay-150 shrink-0">
                     <div className="px-6 md:px-8 py-5 border-b border-slate-100 flex items-center gap-4 bg-rose-50/30 shrink-0">
                         <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center shadow-md shadow-rose-200 shrink-0">
                             <User className="w-6 h-6 text-white" />
@@ -141,10 +146,20 @@ export default function PatientOnboardingForm() {
                         </div>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5 overflow-y-auto custom-scrollbar">
-                        <div className="space-y-3 md:space-y-4">
-                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Essential Identity
+                    <div className="bg-amber-50 border-b border-amber-100 px-6 md:px-8 py-3 flex items-start sm:items-center gap-3 shrink-0">
+                        <div className="p-1.5 bg-amber-100 text-amber-600 rounded-lg shrink-0">
+                            <AlertTriangle size={16} />
+                        </div>
+                        <p className="text-xs font-bold text-amber-800 leading-tight">
+                            <span className="uppercase tracking-widest text-[10px] text-amber-600 block mb-0.5">Permanent Record Warning</span>
+                            Name, NIK, Date of Birth, and Gender cannot be modified after submission. Match them exactly to your identification.
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+                        <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-blue-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
+                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-blue-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-focus-within/section:animate-pulse" /> Essential Identity
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <StandardInput label="Full Legal Name" value={formData.full_name} onChange={(e) => handleFieldChange('full_name', e.target.value)} errorMessage={errors.full_name} placeholder="Enter your full name as on ID" />
@@ -157,15 +172,15 @@ export default function PatientOnboardingForm() {
                             </div>
                         </div>
 
-                        <div className="space-y-3 md:space-y-4 pt-4 border-t border-slate-50">
-                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Contact & Medical Context
+                        <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-emerald-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
+                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-emerald-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Contact & Medical Context
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <StandardInput label="Contact Number" value={formData.contact_number} onChange={(e) => handleFieldChange('contact_number', e.target.value)} errorMessage={errors.contact_number} placeholder="+62... (Optional)" />
                                 <StandardInput label="Residential Address" value={formData.address} onChange={(e) => handleFieldChange('address', e.target.value)} errorMessage={errors.address} placeholder="Street, City, Province (Optional)" />
                             </div>
-                            <SelectInput label="Medical History" value={formData.medical_history} onChange={(e) => handleFieldChange('medical_history', e.target.value)} errorMessage={errors.medical_history} options={[{ value: '', label: 'Select Condition (Optional)' }, { value: 'Normal', label: 'Normal' }, { value: 'Hipertensi', label: 'Hipertensi' },  { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }]} />
+                            <SelectInput label="Medical History" value={formData.medical_history} onChange={(e) => handleFieldChange('medical_history', e.target.value)} errorMessage={errors.medical_history} options={[{ value: '', label: 'Select Condition (Optional)' }, { value: 'Normal', label: 'Normal' }, { value: 'Hipertensi', label: 'Hipertensi' }, { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }]} />
                         </div>
 
                         <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end shrink-0 pb-2">

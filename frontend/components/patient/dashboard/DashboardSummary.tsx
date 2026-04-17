@@ -22,28 +22,29 @@ export default function DashboardSummary() {
         isFetching.current = true;
         setLoading(true);
         try {
-            const [historyData, statsData] = await Promise.all([
-                api.fetchRecentHistory(user.id, 10), 
-                api.fetchStats(user.id)
-            ]);
-            if (Array.isArray(historyData)) {
-                setRecentRecords(historyData);
-            }
-            if (statsData) {
-                const normalizedStats: Record<string, number> = {};
-                if (statsData.classification_counts && Array.isArray(statsData.classification_counts)) {
-                    statsData.classification_counts.forEach((item: { classification: string; classification_result?: string; count: number }) => {
-                        if ((item.classification || item.classification_result) && typeof item.count === 'number') {
-                            normalizedStats[(item.classification || item.classification_result) as string] = item.count;
-                        }
-                    });
-                } else {
-                    Object.assign(normalizedStats, statsData);
+            const dashboardData = await api.fetchPatientDashboard();
+            if (dashboardData) {
+                if (Array.isArray(dashboardData.recent_records)) {
+                    setRecentRecords(dashboardData.recent_records);
                 }
-                ['recording...', 'Recording...', 'recording', 'Recording'].forEach(key => {
-                    delete normalizedStats[key];
-                });
-                setStats(normalizedStats);
+                
+                const statsData = dashboardData.stats;
+                if (statsData) {
+                    const normalizedStats: Record<string, number> = {};
+                    if (statsData.classification_counts && Array.isArray(statsData.classification_counts)) {
+                        statsData.classification_counts.forEach((item: { classification: string; classification_result?: string; count: number }) => {
+                            if ((item.classification || item.classification_result) && typeof item.count === 'number') {
+                                normalizedStats[(item.classification || item.classification_result) as string] = item.count;
+                            }
+                        });
+                    } else {
+                        Object.assign(normalizedStats, statsData);
+                    }
+                    ['recording...', 'Recording...', 'recording', 'Recording'].forEach(key => {
+                        delete normalizedStats[key];
+                    });
+                    setStats(normalizedStats);
+                }
             }
             setHighlight(true);
             setTimeout(() => setHighlight(false), 1000);
