@@ -283,12 +283,14 @@ class UserRepository(BaseRepository[TbMUser]):
             hashed_password = get_password_hash(password)
             must_reset = int(data.pop("must_reset_password", 0))
 
+            role = data.get("role", "user")
+
             db_user = TbMUser(
                 id=user_id,
                 email=data.get("email"),
                 username=data.get("username"),
                 hashed_password=hashed_password,
-                role=data.get("role", "user"),
+                role=role,
                 is_patient=data.get("is_patient", False),
                 is_doctor=data.get("is_doctor", False),
                 is_operator=data.get("is_operator", False),
@@ -330,12 +332,14 @@ class UserRepository(BaseRepository[TbMUser]):
             elif source == "MOBILE":
                 source = "USER - MOBILE"
 
+            role = user_in.role if user_in.role else "user"
+
             db_user = TbMUser(
                 id=user_id,
                 email=user_in.email,
                 username=user_in.username,
                 hashed_password=hashed_password,
-                role=user_in.role,
+                role=role,
                 is_patient=is_patient,
                 is_doctor=is_doctor,
                 is_operator=is_operator,
@@ -460,6 +464,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 return None
 
             is_approving = admin_action.upper() == "APPROVE"
+            is_rejecting = admin_action.upper() == "REJECT"
 
             setattr(db_user, "is_activated", 1 if is_approving else 0)
             status = "APPROVED" if is_approving else "REJECTED"
@@ -467,19 +472,39 @@ class UserRepository(BaseRepository[TbMUser]):
             log_reason = reason
             if not log_reason and status == "APPROVED":
                 log_reason = "Approved by Admin"
+            elif not log_reason and status == "REJECTED":
+                log_reason = "Access revoked by Admin"
 
-            profile: Any = None
-            if db_user.is_patient:
-                profile = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
-            elif db_user.is_operator:
-                profile = self.db.query(TbMOperator).filter_by(user_id=user_id).first()
-            elif db_user.is_doctor:
-                profile = self.db.query(TbMDoctor).filter_by(user_id=user_id).first()
+            patient_profile = (
+                self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            )
+            operator_profile = (
+                self.db.query(TbMOperator).filter_by(user_id=user_id).first()
+            )
+            doctor_profile = self.db.query(TbMDoctor).filter_by(user_id=user_id).first()
+
+            profile: Any = patient_profile or operator_profile or doctor_profile
+
+            if patient_profile:
+                setattr(db_user, "is_patient", True)
+                setattr(db_user, "is_operator", False)
+                setattr(db_user, "is_doctor", False)
+                setattr(db_user, "role", "patient")
+            elif operator_profile:
+                setattr(db_user, "is_patient", False)
+                setattr(db_user, "is_operator", True)
+                setattr(db_user, "is_doctor", False)
+                setattr(db_user, "role", "operator")
+            elif doctor_profile:
+                setattr(db_user, "is_patient", False)
+                setattr(db_user, "is_operator", False)
+                setattr(db_user, "is_doctor", True)
+                setattr(db_user, "role", "doctor")
 
             if profile:
                 setattr(profile, "status", status)
                 setattr(profile, "changed_by", "ADMIN")
-                if status == "REJECTED" and hasattr(profile, "nik"):
+                if is_rejecting and hasattr(profile, "nik"):
                     setattr(profile, "nik", None)
 
             log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
@@ -529,6 +554,21 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.query(TbREcgSession).filter(
                 TbREcgSession.user_id == user_id
             ).delete(synchronize_session=False)
+
+            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            if patient:
+                pat_session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                    TbREcgSession.patient_id == patient.id
+                )
+                self.db.query(TbRPerformanceLog).filter(
+                    TbRPerformanceLog.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSessionParameter).filter(
+                    TbREcgSessionParameter.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSession).filter(
+                    TbREcgSession.patient_id == patient.id
+                ).delete(synchronize_session=False)
 
             self.db.query(TbRLogApproval).filter(
                 TbRLogApproval.user_id == user_id
@@ -580,6 +620,21 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.query(TbREcgSession).filter(
                 TbREcgSession.user_id == user_id
             ).delete(synchronize_session=False)
+
+            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            if patient:
+                pat_session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                    TbREcgSession.patient_id == patient.id
+                )
+                self.db.query(TbRPerformanceLog).filter(
+                    TbRPerformanceLog.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSessionParameter).filter(
+                    TbREcgSessionParameter.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSession).filter(
+                    TbREcgSession.patient_id == patient.id
+                ).delete(synchronize_session=False)
 
             self.db.delete(obj)
 

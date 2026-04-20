@@ -5,6 +5,7 @@ from sqlalchemy import or_
 
 from models import TbMPatient, TbMUser, TbRLogApproval, TbREcgSession, TbRPerformanceLog
 from models.session import TbREcgSessionParameter
+
 from schemas.patient import PatientUpdate, PatientCreate
 from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
@@ -458,6 +459,20 @@ class PatientRepository(BaseRepository[TbMPatient]):
             setattr(patient, "user_id", user_id)
             setattr(patient, "status", "APPROVED")
             setattr(patient, "changed_by", admin_id)
+
+            backfilled = (
+                self.db.query(TbREcgSession)
+                .filter(
+                    TbREcgSession.patient_id == patient_id,
+                    TbREcgSession.user_id.is_(None),
+                )
+                .update({"user_id": user_id}, synchronize_session=False)
+            )
+            if backfilled:
+                logger.info(
+                    f"[Patient] Backfilled user_id={user_id} on {backfilled} "
+                    f"walk-in session(s) for patient {patient_id}"
+                )
 
             log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
             log = TbRLogApproval(

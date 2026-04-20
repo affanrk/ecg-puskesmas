@@ -492,7 +492,6 @@ def update_user(
                     raise HTTPException(
                         status_code=400, detail="Patient profile required"
                     )
-                update_data["role"] = "user"
                 update_data["is_patient"] = True
                 update_data["is_doctor"] = False
                 update_data["is_operator"] = False
@@ -638,7 +637,6 @@ def update_walkin_patient(
         updated = patient_repo.update_walkin_patient(
             patient_id,
             update_data,
-            admin_id=str(admin.username),
         )
         if not updated:
             raise HTTPException(status_code=404, detail="Walk-in patient not found")
@@ -712,9 +710,7 @@ def convert_walkin_to_user(
         }
         new_user = user_repo.create_from_dict(create_data)
 
-        patient_repo.convert_walkin_to_user(
-            patient_id, str(new_user.id), admin_id=str(admin.username)
-        )
+        patient_repo.convert_walkin_to_user(patient_id, str(new_user.id))
 
         return GenericResponse(
             status=ApiStatus.SUCCESS,
