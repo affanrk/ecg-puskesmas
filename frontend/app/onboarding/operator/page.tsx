@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'nextjs-toploader/app';
-import { ArrowRight, ArrowLeft, Loader2, Stethoscope, AlertTriangle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Loader2, Stethoscope, AlertTriangle, Check } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { api } from '@/services/api';
 import { parseApiError } from '@/utils/helpers';
-import FloatingNav from '@/components/shared/FloatingNav';
 import { validators } from '@/utils/validators';
 import { useToast } from '@/hooks/useToast';
+import clsx from 'clsx';
+import FloatingNav from '@/components/shared/FloatingNav';
 import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
@@ -21,6 +22,7 @@ export default function OperatorOnboardingForm() {
     const { show: toast } = useToast();
 
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -104,7 +106,10 @@ export default function OperatorOnboardingForm() {
                 setUser(fullProfile);
             }
             toast("Profile created successfully!", "success");
-            router.push('/operator/dashboard');
+            setSuccess(true);
+            setTimeout(() => {
+                router.push('/operator/dashboard');
+            }, 1500);
         } catch (err) {
             const { message, fieldErrors } = parseApiError(err as Error);
             if (Object.keys(fieldErrors).length > 0) {
@@ -113,7 +118,9 @@ export default function OperatorOnboardingForm() {
                 toast(message || "An unexpected error occurred.", "error");
             }
         } finally {
-            setLoading(false);
+            if (!success) {
+                setLoading(false);
+            }
         }
     };
 
@@ -131,7 +138,6 @@ export default function OperatorOnboardingForm() {
             />
 
             <main className="flex-1 flex flex-col items-center justify-start py-8 md:py-12 p-4 md:p-6 relative z-10 min-h-0 overflow-y-auto custom-scrollbar">
-                {/* Stepper Visual */}
                 <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500 shrink-0">
                     <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold items-center justify-center"><ArrowLeft size={12} /></div>
                     <div className="w-4 md:w-8 h-1 bg-brand-500 rounded-full mx-1" />
@@ -204,8 +210,8 @@ export default function OperatorOnboardingForm() {
                         </div>
 
                         <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end shrink-0 pb-2">
-                            <button type="submit" disabled={loading} className="px-6 md:px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer">
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Complete Registration <ArrowRight size={18} /></>}
+                            <button type="submit" disabled={loading || success} className={clsx("px-6 md:px-8 py-3 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer", success ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 opacity-100" : "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30", loading && !success && "opacity-70")}>
+                                {loading && !success ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : success ? <><Check size={18} /> Profile Created!</> : <>Complete Registration <ArrowRight size={18} /></>}
                             </button>
                         </div>
                     </form>

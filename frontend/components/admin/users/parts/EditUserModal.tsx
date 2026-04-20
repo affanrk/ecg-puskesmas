@@ -37,7 +37,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
 
     const [formData, setFormData] = useState({
         username: user.username || '', email: user.email || '', role: initialRole,
-        account_status: user.is_active ? 'ACTIVE' : 'INACTIVE', 
+        account_status: user.is_active ? 'ACTIVE' : 'INACTIVE',
         activation_status: user.is_activated === 1 ? 'APPROVE' : 'REJECT',
         full_name: (getActiveProfile(user)?.full_name || "") || '', nik: (getActiveProfile(user)?.nik || "") || '', pob: (getActiveProfile(user)?.pob || "") || '', dob: (getActiveProfile(user)?.dob || "") || '',
         gender: (getActiveProfile(user)?.gender || "") || 'L', contact_number: (getActiveProfile(user)?.contact_number || "") || '', address: (getActiveProfile(user)?.address || "") || '', medical_history: (getActiveProfile(user)?.medical_history || "") || '',
@@ -173,12 +173,16 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
 
         const isNewlyPatient = formData.role === 'patient' && !user.is_patient;
         const isNewlyOperator = formData.role === 'operator' && !user.is_operator;
+
+        const originalActivationStatus = user.is_activated === 1 ? 'APPROVE' : 'REJECT';
+        const activationChanged = formData.activation_status !== originalActivationStatus;
+
         const payload: UserFormPayload = {
-            username: formData.username, 
-            email: formData.email, 
+            username: formData.username,
+            email: formData.email,
             role: formData.role,
             account_status: formData.account_status,
-            activation_status: formData.activation_status,
+            ...(activationChanged && { activation_status: formData.activation_status }),
             ...((formData.role === 'patient' && (isNewlyPatient || showPatientForm)) && {
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
@@ -223,12 +227,12 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         if (formData.role === 'patient') {
             const nameErr = validators.name(formData.full_name);
             if (nameErr) newErrors.full_name = nameErr;
-            
+
             const nikErr = validators.nik(formData.nik);
             if (nikErr) newErrors.nik = nikErr;
-            
+
             if (validators.required(formData.pob)) newErrors.pob = 'Required';
-            
+
             const dobErr = validators.dob(formData.dob);
             if (dobErr) newErrors.dob = dobErr;
         }
@@ -280,7 +284,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={[{ value: 'user', label: 'User (Standard Account)' }, { value: 'patient', label: 'Patient' }, { value: 'operator', label: 'Operator (Nurse / General Doctor)' }, { value: 'doctor', label: 'Specialist (Doctor Specialist)' }]} />
-                            <div className="flex items-end pb-1"><label className="flex items-center justify-between w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group"><span className="text-[10px] font-black text-slate-500 uppercase tracking-wide ml-1">Account Active</span><div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.account_status === 'ACTIVE' ? "bg-emerald-500" : "bg-slate-200")}><input type="checkbox" className="sr-only" checked={formData.account_status === 'ACTIVE'} onChange={e => handleFieldChange('account_status', e.target.checked ? 'ACTIVE' : 'INACTIVE')} /><div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.account_status === 'ACTIVE' && "translate-x-5")} /></div></label></div>
+                            <div className="flex items-end pb-5"><label className="flex items-center justify-between w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group"><span className="text-[10px] font-black text-slate-500 uppercase tracking-wide ml-1">Account Active</span><div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.account_status === 'ACTIVE' ? "bg-emerald-500" : "bg-slate-200")}><input type="checkbox" className="sr-only" checked={formData.account_status === 'ACTIVE'} onChange={e => handleFieldChange('account_status', e.target.checked ? 'ACTIVE' : 'INACTIVE')} /><div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.account_status === 'ACTIVE' && "translate-x-5")} /></div></label></div>
                         </div>
                     </div>
 

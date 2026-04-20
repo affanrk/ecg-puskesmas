@@ -191,7 +191,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                         </div>
                     </div>
                 </div>
-                <div className="mt-4">{children}</div>
+                {children}
 
                 <ChangePasswordModal
                     isOpen={isChangeOpen}

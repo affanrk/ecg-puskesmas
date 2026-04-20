@@ -44,7 +44,6 @@ export default function DashboardPage() {
 
             <main className="flex-1 flex flex-col items-center px-4 md:px-8 relative z-10 min-h-0 overflow-y-auto custom-scrollbar w-full">
                 <div className="my-auto w-full max-w-5xl flex flex-col items-start shrink-0 py-6 md:py-8">
-                    {/* Stepper Visual */}
                     <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                         <span className="flex items-center justify-center w-6 h-6 rounded-lg bg-brand-600 text-white text-xs font-black shadow-sm shadow-brand-500/30">1</span>
                         <span className="text-xs font-black text-slate-700 uppercase tracking-widest shrink-0">Workspace Selection</span>

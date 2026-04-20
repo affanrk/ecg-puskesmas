@@ -96,7 +96,6 @@ export default function OnboardingPage() {
 
             <main className="flex-1 flex flex-col items-center px-4 md:px-8 relative z-10 min-h-0 overflow-y-auto custom-scrollbar w-full">
                 <div className="my-auto w-full max-w-5xl flex flex-col items-start shrink-0 py-6 md:py-8">
-                    {/* Stepper Visual */}
                     <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-slate-100 border border-slate-200 text-slate-400 font-bold items-center justify-center"><ArrowLeft size={12} /></div>
                         <div className="w-4 h-1 bg-brand-500 rounded-full mx-1" />

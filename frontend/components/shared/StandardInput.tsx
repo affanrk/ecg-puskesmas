@@ -16,13 +16,13 @@ interface InputProps {
     onBlur?: () => void;
 }
 
-export default function StandardInput({ 
-    label, 
-    value, 
-    onChange, 
-    disabled = false, 
-    type = "text", 
-    placeholder = "", 
+export default function StandardInput({
+    label,
+    value,
+    onChange,
+    disabled = false,
+    type = "text",
+    placeholder = "",
     errorMessage,
     onFocus,
     onBlur
@@ -31,8 +31,7 @@ export default function StandardInput({
     const [isFocused, setIsFocused] = useState(false);
     const isPasswordType = type === "password";
     const inputType = isPasswordType ? (showPassword ? "text" : "password") : type;
-    
-    // Evaluate real-time positive validation
+
     const isValidAndFilled = !errorMessage && value && value.toString().trim().length > 0;
 
     return (
@@ -44,8 +43,8 @@ export default function StandardInput({
                 {label}
             </label>
             <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
-                <input 
-                    type={inputType} 
+                <input
+                    type={inputType}
                     disabled={disabled}
                     value={value}
                     onChange={onChange}
@@ -54,16 +53,15 @@ export default function StandardInput({
                     placeholder={placeholder}
                     className={clsx(
                         "w-full px-4 py-3 rounded-lg border-2 text-xs font-bold transition-all duration-300 outline-none",
-                        errorMessage 
-                            ? "border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 bg-rose-50 border-rose-100 text-rose-900 placeholder:text-rose-300" 
+                        errorMessage
+                            ? "border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 bg-rose-50 border-rose-100 text-rose-900 placeholder:text-rose-300"
                             : isValidAndFilled
                                 ? "border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-emerald-50/30 text-emerald-900"
                                 : "border-slate-100/80 hover:border-slate-200 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 bg-slate-50/50 focus:bg-white text-slate-800 placeholder:text-slate-400 shadow-sm shadow-slate-100/50",
                         disabled && "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none hover:scale-100 placeholder:text-slate-300"
                     )}
                 />
-                
-                {/* Micro-interaction icons */}
+
                 {!isPasswordType && !disabled && (
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none transition-all duration-300">
                         {errorMessage ? (
@@ -85,7 +83,7 @@ export default function StandardInput({
                     </button>
                 )}
             </div>
-            
+
             <div className={clsx("h-4 flex items-start overflow-hidden w-full", errorMessage ? "opacity-100" : "opacity-0")}>
                 {errorMessage && (
                     <div className="flex items-center gap-1.5 ml-1 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200 w-full">

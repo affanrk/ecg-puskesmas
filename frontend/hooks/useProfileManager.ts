@@ -141,10 +141,10 @@ export function useProfileManager() {
 
             if (validators.required(medicalForm.pob)) newErrors.pob = "Place of Birth required";
 
-            if (user?.role === 'operator') {
+            if (user?.is_operator) {
                 if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
             }
-            if (user?.role === 'doctor') {
+            if (user?.is_doctor) {
                 if (validators.required(medicalForm.str_number)) newErrors.str_number = "Required";
                 if (validators.required(medicalForm.sip_number)) newErrors.sip_number = "Required";
                 if (validators.required(medicalForm.specialty)) newErrors.specialty = "Required";
