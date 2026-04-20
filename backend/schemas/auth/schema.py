@@ -73,9 +73,9 @@ class UserLogin(BaseModel):
         populate_by_name=True,
         json_schema_extra={
             "example": {
-                "username_or_email": "admin@gmail.com",
-                "password": "Admin123!",
-                "source": "WEB",
+                "username_or_email": "admin@gmail.com (Required)",
+                "password": "Admin123! (Required)",
+                "source": "WEB (Optional)",
             }
         },
     )

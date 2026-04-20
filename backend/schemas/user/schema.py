@@ -19,7 +19,10 @@ class UserBase(BaseModel):
         populate_by_name=True,
         from_attributes=True,
         json_schema_extra={
-            "example": {"email": "user@example.com", "username": "user123"}
+            "example": {
+                "email": "user@example.com (Required)",
+                "username": "user123 (Required)",
+            }
         },
     )
 
@@ -37,11 +40,11 @@ class UserCreate(UserBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "email": "user@example.com",
-                "username": "user123",
-                "password": "SecurePassword123!",
-                "role": "patient",
-                "source": "WEB",
+                "email": "user@example.com (Required)",
+                "username": "user123 (Required)",
+                "password": "SecurePassword123! (Required)",
+                "role": "patient (Optional)",
+                "source": "WEB (Optional)",
             }
         }
     )
@@ -53,7 +56,7 @@ class UserUsernameUpdate(BaseModel):
     new_username: str = Field(..., description="New username for the user")
 
     model_config = ConfigDict(
-        json_schema_extra={"example": {"new_username": "newuser456"}}
+        json_schema_extra={"example": {"new_username": "newuser456 (Required)"}}
     )
 
     _validate_username = field_validator("new_username")(validate_username)
@@ -66,8 +69,8 @@ class UserPasswordUpdate(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "current_password": "OldPassword123!",
-                "new_password": "NewSecurePassword456!",
+                "current_password": "OldPassword123! (Required)",
+                "new_password": "NewSecurePassword456! (Required)",
             }
         }
     )
@@ -83,7 +86,10 @@ class UserApprovalUpdate(BaseModel):
 
     model_config = ConfigDict(
         json_schema_extra={
-            "example": {"action": "APPROVE", "reason": "Documents verified."}
+            "example": {
+                "action": "APPROVE (Required)",
+                "reason": "Documents verified. (Optional)",
+            }
         }
     )
 
@@ -109,13 +115,13 @@ class UserAdminCreate(UserCreate):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "email": "admin@example.com",
-                "username": "admin123",
-                "password": "SecurePassword123!",
-                "role": "admin",
-                "source": "WEB",
-                "account_status": "ACTIVE",
-                "activation_status": "APPROVE",
+                "email": "admin@example.com (Required)",
+                "username": "admin123 (Required)",
+                "password": "SecurePassword123! (Required)",
+                "role": "admin (Optional)",
+                "source": "WEB (Optional)",
+                "account_status": "ACTIVE (Optional)",
+                "activation_status": "APPROVE (Optional)",
             }
         }
     )
@@ -143,10 +149,10 @@ class UserAdminUpdate(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "username": "updatedadmin",
-                "email": "updated@example.com",
-                "role": "admin",
-                "account_status": "SUSPENDED",
+                "username": "updatedadmin (Optional)",
+                "email": "updated@example.com (Optional)",
+                "role": "admin (Optional)",
+                "account_status": "SUSPENDED (Optional)",
             }
         }
     )

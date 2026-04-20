@@ -32,14 +32,14 @@ class PatientBase(BaseModel):
         from_attributes=True,
         json_schema_extra={
             "example": {
-                "full_name": "Bob Patient",
-                "nik": "3171234567890123",
-                "pob": "Surabaya",
-                "dob": "1985-06-20",
-                "gender": "Male",
-                "address": "Jl. Sudirman No. 5",
-                "contact_number": "0281999888777",
-                "medical_history": "Hipertensi",
+                "full_name": "Bob Patient (Required)",
+                "nik": "3171234567890123 (Optional for Walk-in)",
+                "pob": "Surabaya (Required)",
+                "dob": "1985-06-20 (Required)",
+                "gender": "Male (Required)",
+                "address": "Jl. Sudirman No. 5 (Optional)",
+                "contact_number": "0281999888777 (Optional)",
+                "medical_history": "Hipertensi (Optional)",
             }
         },
     )
@@ -62,26 +62,26 @@ class PatientCreate(PatientBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "full_name": "Bob Patient",
-                "nik": "3171234567890123",
-                "pob": "Surabaya",
-                "dob": "1985-06-20",
-                "gender": "Male",
-                "address": "Jl. Sudirman No. 5",
-                "contact_number": "081999888777",
-                "medical_history": "Hipertensi",
-                "source": "WEB",
+                "full_name": "Bob Patient (Required)",
+                "nik": "3171234567890123 (Strictly Required)",
+                "pob": "Surabaya (Required)",
+                "dob": "1985-06-20 (Required)",
+                "gender": "Male (Required)",
+                "address": "Jl. Sudirman No. 5 (Optional)",
+                "contact_number": "081999888777 (Optional)",
+                "medical_history": "Hipertensi (Optional)",
+                "source": "WEB (Optional)",
             }
         }
     )
 
 
 class PatientUpdate(BaseModel):
-    full_name: Optional[str] = Field(default=None, description="Patient's full name")
+    full_name: str = Field(..., description="Patient's full name")
     nik: str = Field(..., description="National Identity Number (NIK)")
-    pob: Optional[str] = Field(default=None, description="Place of birth")
-    dob: Optional[date] = Field(default=None, description="Date of birth")
-    gender: Optional[str] = Field(default=None, description="Gender of the patient")
+    pob: str = Field(..., description="Place of birth")
+    dob: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender of the patient")
     address: Optional[str] = Field(default=None, description="Residential address")
     contact_number: Optional[str] = Field(
         default=None, description="Contact phone number"
@@ -97,13 +97,18 @@ class PatientUpdate(BaseModel):
         populate_by_name=True,
         from_attributes=True,
         json_schema_extra={
+            "description": "Data to update a patient profile. All fields are technically optional to allow partial updates. However, identity fields (nik, full_name, dob, pob, gender) become STRICTLY IMMUTABLE once the profile is approved by an administrator.",
             "example": {
-                "full_name": "Bob Patient Updated",
-                "nik": "3171234567890123",
-                "address": "Jl. Thamrin No. 15",
-                "medical_history": "Hipertensi",
-                "source": "WEB",
-            }
+                "full_name": "Bob Patient Updated (Required)",
+                "nik": "3171234567890123 (Required)",
+                "pob": "Surabaya (Required)",
+                "dob": "1985-06-20 (Required)",
+                "gender": "Male (Required)",
+                "address": "Jl. Thamrin No. 15 (Optional)",
+                "contact_number": "081999888777 (Optional)",
+                "medical_history": "Hipertensi (Optional)",
+                "source": "WEB (Optional)",
+            },
         },
     )
 

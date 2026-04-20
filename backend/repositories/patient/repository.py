@@ -133,11 +133,16 @@ class PatientRepository(BaseRepository[TbMPatient]):
                     )
                 if status_val == "APPROVED":
                     immutable_fields = {"full_name", "nik", "dob", "gender", "pob"}
-                    if any(f in update_data for f in immutable_fields):
-                        raise AppException(
-                            message="Immutable fields cannot be changed after approval",
-                            status_code=403,
-                        )
+                    for f in immutable_fields:
+                        if f in update_data:
+                            val = update_data[f]
+                            existing_val = getattr(patient, f, None)
+                            if val is not None and val != existing_val:
+                                raise AppException(
+                                    message=f"Immutable field '{f}' cannot be changed after approval",
+                                    status_code=403,
+                                )
+                            del update_data[f]
 
             if "nik" in update_data and update_data["nik"]:
                 new_nik = update_data["nik"]

@@ -33,16 +33,16 @@ class OperatorBase(BaseModel):
         from_attributes=True,
         json_schema_extra={
             "example": {
-                "full_name": "Alice Operator",
-                "nik": "3171234567890123",
-                "pob": "Bandung",
-                "dob": "1990-01-01",
-                "gender": "Female",
-                "str_number": "9876543210987654",
-                "operator_role": "Nurse",
-                "address": "Jl. Mawar No. 10",
-                "contact_number": "08111222333",
-                "work_location": "Puskesmas Melati",
+                "full_name": "Alice Operator (Required)",
+                "nik": "3171234567890123 (Optional)",
+                "pob": "Bandung (Required)",
+                "dob": "1990-01-01 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "9876543210987654 (Required)",
+                "operator_role": "Nurse (Required)",
+                "address": "Jl. Mawar No. 10 (Optional)",
+                "contact_number": "08111222333 (Optional)",
+                "work_location": "Puskesmas Melati (Optional)",
             }
         },
     )
@@ -63,38 +63,34 @@ class OperatorCreate(OperatorBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "full_name": "Alice Operator",
-                "nik": "3171234567890123",
-                "pob": "Bandung",
-                "dob": "1990-01-01",
-                "gender": "Female",
-                "str_number": "9876543210987654",
-                "operator_role": "General Practitioner",
-                "address": "Jl. Mawar No. 10",
-                "contact_number": "08111222333",
-                "work_location": "Puskesmas Melati",
-                "source": "WEB",
+                "full_name": "Alice Operator (Required)",
+                "nik": "3171234567890123 (Strictly Required)",
+                "pob": "Bandung (Required)",
+                "dob": "1990-01-01 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "9876543210987654 (Required)",
+                "operator_role": "General Practitioner (Required)",
+                "address": "Jl. Mawar No. 10 (Optional)",
+                "contact_number": "08111222333 (Optional)",
+                "work_location": "Puskesmas Melati (Optional)",
+                "source": "WEB (Optional)",
             }
         }
     )
 
 
 class OperatorUpdate(BaseModel):
-    full_name: Optional[str] = Field(default=None, description="Operator's full name")
+    full_name: str = Field(..., description="Operator's full name")
     nik: str = Field(..., description="National Identity Number (NIK)")
-    pob: Optional[str] = Field(default=None, description="Place of birth")
-    dob: Optional[date] = Field(default=None, description="Date of birth")
-    gender: Optional[str] = Field(default=None, description="Gender of the operator")
+    pob: str = Field(..., description="Place of birth")
+    dob: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender of the operator")
     address: Optional[str] = Field(default=None, description="Residential address")
     contact_number: Optional[str] = Field(
         default=None, description="Contact phone number"
     )
-    str_number: Optional[str] = Field(
-        default=None, description="Registration Certificate Number"
-    )
-    operator_role: Optional[str] = Field(
-        default=None, description="Role of the operator"
-    )
+    str_number: str = Field(..., description="Registration Certificate Number")
+    operator_role: str = Field(..., description="Role of the operator")
     work_location: Optional[str] = Field(
         default=None, description="Primary work location"
     )
@@ -104,13 +100,20 @@ class OperatorUpdate(BaseModel):
         populate_by_name=True,
         from_attributes=True,
         json_schema_extra={
+            "description": "Data to update an operator profile. All fields are technically optional to allow partial updates. However, identity fields (nik, full_name, dob, pob, gender) become STRICTLY IMMUTABLE once the profile is approved by an administrator.",
             "example": {
-                "full_name": "Alice Operator Updated",
-                "nik": "3171234567890123",
-                "address": "Jl. Melati No. 20",
-                "operator_role": "General Practitioner",
-                "source": "WEB",
-            }
+                "full_name": "Alice Operator Updated (Required)",
+                "nik": "3171234567890123 (Required)",
+                "pob": "Bandung (Required)",
+                "dob": "1990-01-01 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "9876543210987654 (Required)",
+                "operator_role": "General Practitioner (Required)",
+                "address": "Jl. Melati No. 20 (Optional)",
+                "contact_number": "08111222333 (Optional)",
+                "work_location": "Puskesmas Melati (Optional)",
+                "source": "WEB (Optional)",
+            },
         },
     )
 

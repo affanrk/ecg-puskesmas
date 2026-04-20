@@ -36,17 +36,17 @@ class DoctorBase(BaseModel):
         from_attributes=True,
         json_schema_extra={
             "example": {
-                "full_name": "Dr. Jane Smith",
-                "nik": "3171234567890123",
-                "pob": "Jakarta",
-                "dob": "1980-05-15",
-                "gender": "Female",
-                "str_number": "1234567890123456",
-                "sip_number": "0987654321098765",
-                "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah",
-                "address": "Jl. Kesehatan No. 123",
-                "contact_number": "081234567890",
-                "work_location": "RSUD Jakarta",
+                "full_name": "Dr. Jane Smith (Required)",
+                "nik": "3171234567890123 (Optional)",
+                "pob": "Jakarta (Required)",
+                "dob": "1980-05-15 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "1234567890123456 (Required)",
+                "sip_number": "0987654321098765 (Required)",
+                "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah (Required)",
+                "address": "Jl. Kesehatan No. 123 (Optional)",
+                "contact_number": "081234567890 (Optional)",
+                "work_location": "RSUD Jakarta (Optional)",
             }
         },
     )
@@ -69,42 +69,38 @@ class DoctorCreate(DoctorBase):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "full_name": "Dr. Jane Smith",
-                "nik": "3171234567890123",
-                "pob": "Jakarta",
-                "dob": "1980-05-15",
-                "gender": "Female",
-                "str_number": "1234567890123456",
-                "sip_number": "0987654321098765",
-                "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah",
-                "address": "Jl. Kesehatan No. 123",
-                "contact_number": "081234567890",
-                "work_location": "RSUD Jakarta",
-                "source": "WEB",
+                "full_name": "Dr. Jane Smith (Required)",
+                "nik": "3171234567890123 (Strictly Required)",
+                "pob": "Jakarta (Required)",
+                "dob": "1980-05-15 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "1234567890123456 (Required)",
+                "sip_number": "0987654321098765 (Required)",
+                "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah (Required)",
+                "address": "Jl. Kesehatan No. 123 (Optional)",
+                "contact_number": "081234567890 (Optional)",
+                "work_location": "RSUD Jakarta (Optional)",
+                "source": "WEB (Optional)",
             }
         }
     )
 
 
 class DoctorUpdate(BaseModel):
-    full_name: Optional[str] = Field(default=None, description="Doctor's full name")
+    full_name: str = Field(..., description="Doctor's full name")
     nik: str = Field(..., description="National Identity Number (NIK)")
-    pob: Optional[str] = Field(default=None, description="Place of birth")
-    dob: Optional[date] = Field(default=None, description="Date of birth")
-    gender: Optional[str] = Field(default=None, description="Gender of the doctor")
+    pob: str = Field(..., description="Place of birth")
+    dob: date = Field(..., description="Date of birth")
+    gender: str = Field(..., description="Gender of the doctor")
     address: Optional[str] = Field(default=None, description="Residential address")
     contact_number: Optional[str] = Field(
         default=None, description="Contact phone number"
     )
-    str_number: Optional[str] = Field(
-        default=None, description="Medical Registration Certificate (STR) number"
+    str_number: str = Field(
+        ..., description="Medical Registration Certificate (STR) number"
     )
-    sip_number: Optional[str] = Field(
-        default=None, description="Medical Practice License (SIP) number"
-    )
-    specialty: Optional[str] = Field(
-        default=None, description="Doctor's medical specialty"
-    )
+    sip_number: str = Field(..., description="Medical Practice License (SIP) number")
+    specialty: str = Field(..., description="Doctor's medical specialty")
     work_location: Optional[str] = Field(
         default=None, description="Primary work location or hospital"
     )
@@ -116,13 +112,21 @@ class DoctorUpdate(BaseModel):
         populate_by_name=True,
         from_attributes=True,
         json_schema_extra={
+            "description": "Data to update a doctor profile. All fields are technically optional to allow partial updates. However, identity fields (nik, full_name, dob, pob, gender) become STRICTLY IMMUTABLE once the profile is approved by an administrator.",
             "example": {
-                "full_name": "Dr. Jane Smith Updated",
-                "nik": "3171234567890123",
-                "address": "Jl. Baru No. 456",
-                "contact_number": "081987654321",
-                "source": "WEB",
-            }
+                "full_name": "Dr. Jane Smith Updated (Required)",
+                "nik": "3171234567890123 (Required)",
+                "pob": "Jakarta (Required)",
+                "dob": "1980-05-15 (Required)",
+                "gender": "Female (Required)",
+                "str_number": "1234567890123456 (Required)",
+                "sip_number": "0987654321098765 (Required)",
+                "specialty": "Sp.JP (Required)",
+                "address": "Jl. Baru No. 456 (Optional)",
+                "contact_number": "081987654321 (Optional)",
+                "work_location": "RSUD Jakarta (Optional)",
+                "source": "WEB (Optional)",
+            },
         },
     )
 
