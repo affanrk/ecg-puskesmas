@@ -13,7 +13,7 @@ interface SidebarItemProps {
     isDark?: boolean;
     lockReason?: string;
     showBadge?: boolean;
-    variant?: 'teal' | 'amber' | 'rose';
+    variant?: 'teal' | 'amber' | 'rose' | 'violet';
 }
 
 export function SidebarItem({
@@ -55,14 +55,24 @@ export function SidebarItem({
     let iconActiveColor = "";
 
     if (isDark) {
-        activeColors = "bg-rose-500/10 text-rose-500 shadow-sm ring-1 ring-rose-500/20";
-        activeBar = "bg-rose-500";
-        iconActiveColor = "text-rose-500";
+        if (theme === 'violet') {
+            activeColors = "bg-violet-500/10 text-violet-500 shadow-sm ring-1 ring-violet-500/20";
+            activeBar = "bg-violet-500";
+            iconActiveColor = "text-violet-500";
+        } else {
+            activeColors = "bg-rose-500/10 text-rose-500 shadow-sm ring-1 ring-rose-500/20";
+            activeBar = "bg-rose-500";
+            iconActiveColor = "text-rose-500";
+        }
     } else {
         if (theme === 'amber') {
             activeColors = "bg-amber-50 text-amber-700 shadow-sm ring-1 ring-amber-100";
             activeBar = "bg-amber-500";
             iconActiveColor = "text-amber-600";
+        } else if (theme === 'violet') {
+            activeColors = "bg-violet-50 text-violet-700 shadow-sm ring-1 ring-violet-100";
+            activeBar = "bg-violet-500";
+            iconActiveColor = "text-violet-600";
         } else {
             activeColors = "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100";
             activeBar = "bg-teal-500";
@@ -71,17 +81,18 @@ export function SidebarItem({
     }
 
     const isAmber = !isDark && theme === 'amber';
+    const isViolet = !isDark && theme === 'violet';
     const hoverColors = isDark
         ? "hover:bg-slate-800 hover:text-white"
         : (isAmber
             ? "hover:bg-amber-50 hover:text-amber-900"
-            : "hover:bg-slate-50 hover:text-slate-900");
+            : isViolet ? "hover:bg-violet-50 hover:text-violet-900" : "hover:bg-slate-50 hover:text-slate-900");
     const inactiveBase = isDark
         ? "text-slate-500"
         : (isAmber
             ? "text-slate-600"
-            : "text-slate-500");
-    const iconBaseColor = isDark ? "text-slate-500" : (isAmber ? "text-amber-500" : "text-slate-400");
+            : isViolet ? "text-slate-600" : "text-slate-500");
+    const iconBaseColor = isDark ? "text-slate-500" : (isAmber ? "text-amber-500" : isViolet ? "text-violet-500" : "text-slate-400");
 
     return (
         <Link

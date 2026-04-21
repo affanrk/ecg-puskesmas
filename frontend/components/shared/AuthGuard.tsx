@@ -48,12 +48,13 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             const isOperatorRoute = pathname.startsWith('/operator');
             const isDoctorRoute = pathname.startsWith('/doctor');
             const isAdminRoute = pathname.startsWith('/admin');
+            const isSuperadminRoute = pathname.startsWith('/superadmin');
 
             if (unlockOperator && isOperatorRoute) {
                 return true;
             }
 
-            const hasRole = isPatient || isOperator || isDoctor || role === 'admin';
+            const hasRole = isPatient || isOperator || isDoctor || role === 'admin' || role === 'superadmin';
 
             if (!hasRole && !isOnboarding && !isDashboardRoute) {
                 if (!redirectingRef.current) {
@@ -64,6 +65,13 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
             }
 
             if (hasRole) {
+                if (role === 'superadmin' && !isSuperadminRoute) {
+                    if (!redirectingRef.current) {
+                        redirectingRef.current = true;
+                        router.replace('/superadmin/dashboard');
+                    }
+                    return false;
+                }
                 if (role === 'admin' && !isAdminRoute) {
                     if (!redirectingRef.current) {
                         redirectingRef.current = true;
@@ -72,7 +80,7 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
                     return false;
                 }
                 
-                if (role !== 'admin') {
+                if (role !== 'admin' && role !== 'superadmin') {
                     if (isPatient && !isPatientRoute) {
                         if (!redirectingRef.current) {
                             redirectingRef.current = true;

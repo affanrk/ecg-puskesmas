@@ -60,6 +60,7 @@ export default function AdminHeader() {
     const handleRefresh = () => {
         setAdminLoading(true);
         globalEventBus.emit(EVENTS.STATE.LIVE_DATA_UPDATED);
+        setTimeout(() => setAdminLoading(false), 2000);
     };
 
     const handleHealthRefresh = async () => {

@@ -11,6 +11,7 @@ interface InputProps {
     disabled?: boolean;
     type?: string;
     placeholder?: string;
+    required?: boolean;
     errorMessage?: string;
     onFocus?: () => void;
     onBlur?: () => void;
@@ -23,6 +24,7 @@ export default function StandardInput({
     disabled = false,
     type = "text",
     placeholder = "",
+    required = false,
     errorMessage,
     onFocus,
     onBlur
@@ -44,6 +46,7 @@ export default function StandardInput({
             </label>
             <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
                 <input
+                    required={required}
                     type={inputType}
                     disabled={disabled}
                     value={value}

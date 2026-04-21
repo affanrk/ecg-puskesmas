@@ -15,10 +15,11 @@ interface SelectInputProps {
     onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
     options: SelectOption[];
     disabled?: boolean;
+    required?: boolean;
     errorMessage?: string;
 }
 
-export default function SelectInput({ label, value, onChange, options, disabled = false, errorMessage }: SelectInputProps) {
+export default function SelectInput({ label, value, onChange, options, disabled = false, required = false, errorMessage }: SelectInputProps) {
     const isValidAndFilled = !errorMessage && value && value.toString().trim().length > 0;
 
     return (
@@ -31,6 +32,7 @@ export default function SelectInput({ label, value, onChange, options, disabled 
             </label>
             <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
                 <select 
+                    required={required}
                     disabled={disabled}
                     value={value}
                     onChange={onChange}

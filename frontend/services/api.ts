@@ -1,6 +1,6 @@
 import axiosInstance from './axiosInstance';
 import { getApiUrl } from '../utils/helpers';
-import { UserFormPayload, AuthPayload, ProfilePayload, AdminUserPayload, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
+import { UserFormPayload, AuthPayload, ProfilePayload, AdminUserPayload, WalkinPatientPayload, ConvertWalkinPayload, LocationCreatePayload, LocationUpdatePayload } from '@/types/user';
 import { HistoryFilters } from '@/types/models';
 
 export async function fetchHistory(filters: HistoryFilters = {}) {
@@ -380,6 +380,108 @@ export async function fetchAdminDashboard() {
     }
 }
 
+export async function fetchSuperAdminDashboard() {
+    try {
+        const response = await axiosInstance.get('/superadmin/dashboard');
+        return response.data ?? null;
+    } catch (error) {
+        console.error("Fetch SuperAdmin Dashboard Error:", error);
+        return null;
+    }
+}
+
+export async function fetchSuperAdminLocationDashboard(locationId: string) {
+    try {
+        const response = await axiosInstance.get(`/superadmin/locations/${locationId}/dashboard`);
+        return response.data ?? null;
+    } catch (error) {
+        console.error("Fetch SuperAdmin Location Dashboard Error:", error);
+        return null;
+    }
+}
+
+export async function fetchLocations(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/superadmin/locations', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Locations Error:", error);
+        throw error;
+    }
+}
+
+export async function createLocation(data: LocationCreatePayload) {
+    try {
+        const response = await axiosInstance.post('/superadmin/locations', data);
+        return response.data;
+    } catch (error) {
+        console.error("Create Location Error:", error);
+        throw error;
+    }
+}
+
+export async function updateLocation(locationId: string, data: LocationUpdatePayload) {
+    try {
+        const response = await axiosInstance.put(`/superadmin/locations/${locationId}`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Update Location Error:", error);
+        throw error;
+    }
+}
+
+export async function deactivateLocation(locationId: string) {
+    try {
+        const response = await axiosInstance.patch(`/superadmin/locations/${locationId}/deactivate`);
+        return response.data;
+    } catch (error) {
+        console.error("Deactivate Location Error:", error);
+        throw error;
+    }
+}
+
+export async function fetchAdmins(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/superadmin/admins', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Admins Error:", error);
+        throw error;
+    }
+}
+
+export async function createSuperAdminUser(data: Record<string, unknown>) {
+    try {
+        const response = await axiosInstance.post('/superadmin/admins', data);
+        return response.data;
+    } catch (error) {
+        console.error("Create Admin Error:", error);
+        throw error;
+    }
+}
+
+export async function reassignAdminLocation(userId: string, locationId: string) {
+    try {
+        const response = await axiosInstance.put(`/superadmin/admins/${userId}/location`, null, {
+            params: { location_id: locationId }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Reassign Admin Error:", error);
+        throw error;
+    }
+}
+
+export async function fetchSuperAdminUsers(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/superadmin/users', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch SuperAdmin Users Error:", error);
+        throw error;
+    }
+}
+
 export const api = {
     login,
     register,
@@ -413,5 +515,15 @@ export const api = {
     fetchOperatorDashboard,
     fetchPatientDashboard,
     fetchAdminDashboard,
+    fetchSuperAdminDashboard,
+    fetchSuperAdminLocationDashboard,
+    fetchLocations,
+    createLocation,
+    updateLocation,
+    deactivateLocation,
+    fetchAdmins,
+    createSuperAdminUser,
+    reassignAdminLocation,
+    fetchSuperAdminUsers,
 };
 

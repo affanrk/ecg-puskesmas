@@ -94,14 +94,16 @@ function LoginContent() {
 
             localStorage.setItem('ecg_token', data.access_token);
 
-            const fullProfile = await api.fetchUserProfile(data.access_token);            
+            const fullProfile = await api.fetchUserProfile(data.access_token);
             localStorage.setItem('ecg_user', JSON.stringify(fullProfile));
             setUser(fullProfile);
-            
+
             reconnectWebSocket();
             toast(`Welcome, ${(getActiveProfile(fullProfile)?.full_name || "") || fullProfile.username}!`, "success");
-            
-            if (fullProfile.role === 'admin') {
+
+            if (fullProfile.role === 'superadmin') {
+                router.push('/superadmin/dashboard');
+            } else if (fullProfile.role === 'admin') {
                 router.push('/admin/dashboard');
             } else if (fullProfile.is_patient) {
                 router.push('/patient/dashboard');
@@ -142,10 +144,10 @@ function LoginContent() {
                     </p>
                     <div className="mt-12 w-full h-24 relative opacity-50">
                         <svg viewBox="0 0 500 100" className="w-full h-full overflow-visible">
-                            <path d="M0,50 L50,50 L60,20 L70,80 L80,50 L120,50 L130,20 L140,80 L150,50 L300,50 L310,10 L330,90 L350,50 L500,50" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                strokeWidth="2" 
+                            <path d="M0,50 L50,50 L60,20 L70,80 L80,50 L120,50 L130,20 L140,80 L150,50 L300,50 L310,10 L330,90 L350,50 L500,50"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
                                 className="text-brand-200"
                             />
                         </svg>
@@ -169,7 +171,7 @@ function LoginContent() {
                     <form onSubmit={handleLogin} className="space-y-6">
                         {serverError && (
                             <div className={clsx(
-                                "py-3 px-4 bg-rose-50 border border-rose-100 rounded-2xl mb-4", 
+                                "py-3 px-4 bg-rose-50 border border-rose-100 rounded-2xl mb-4",
                                 showErrorEffect && "animate-error-pop"
                             )}>
                                 <div className="flex items-start gap-3 text-rose-600">
@@ -255,7 +257,7 @@ function LoginContent() {
                     </form>
                     <div className="mt-8 text-center">
                         <p className="text-sm font-medium text-slate-500">
-                            Don&apos;t have an account? 
+                            Don&apos;t have an account?
                             <Link href="/register" className="text-brand-600 font-bold hover:underline ml-2 hover:text-brand-700 transition-colors">
                                 Register
                             </Link>

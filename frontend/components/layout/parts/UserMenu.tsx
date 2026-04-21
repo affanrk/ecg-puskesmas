@@ -26,6 +26,8 @@ export function UserMenu({
     profileLink = '/dashboard',
     isDark = false
 }: UserMenuProps) {
+    const isSuperAdmin = user?.role === 'superadmin';
+
     return (
         <div className="relative" ref={menuRef}>
             <button
@@ -38,21 +40,21 @@ export function UserMenu({
                 <div className="text-right hidden md:block">
                     <p className={clsx(
                         "text-xs font-bold leading-tight transition-colors",
-                        isDark ? "text-slate-200 group-hover:text-rose-400" : "text-slate-700 group-hover:text-teal-700"
+                        isDark ? (isSuperAdmin ? "text-slate-200 group-hover:text-violet-400" : "text-slate-200 group-hover:text-rose-400") : "text-slate-700 group-hover:text-teal-700"
                     )}>
                         {user ? (isDark ? user.username : ((getActiveProfile(user)?.full_name || "") || user.username)) : 'Loading...'}
                     </p>
                     <p className={clsx(
                         "text-[10px] font-bold uppercase tracking-wider leading-tight",
-                        isDark ? "text-rose-500 tracking-[0.2em] mt-0.5" : "text-slate-400"
+                        isDark ? (isSuperAdmin ? "text-violet-500 tracking-[0.2em] mt-0.5" : "text-rose-500 tracking-[0.2em] mt-0.5") : "text-slate-400"
                     )}>
-                        {isDark ? 'Administrator' : (user?.role || 'Guest')}
+                        {isDark ? (isSuperAdmin ? 'SuperAdmin' : 'Administrator') : (user?.role || 'Guest')}
                     </p>
                 </div>
                 <div className={clsx(
                     "w-10 h-10 rounded-md flex items-center justify-center text-white font-bold transition-transform active:scale-95",
                     isDark 
-                        ? "bg-rose-600 shadow-lg shadow-rose-900/20 ring-2 ring-rose-500/20" 
+                        ? (isSuperAdmin ? "bg-violet-600 shadow-lg shadow-violet-900/20 ring-2 ring-violet-500/20" : "bg-rose-600 shadow-lg shadow-rose-900/20 ring-2 ring-rose-500/20") 
                         : (clsx("shadow-md shadow-slate-200 ring-2 ring-white", !isProfileComplete ? "bg-amber-500" : "bg-gradient-to-br from-teal-500 to-emerald-500"))
                 )}>
                     {user ? user.username.charAt(0).toUpperCase() : (isDark ? 'A' : <UserIcon size={18} />)}
@@ -82,7 +84,7 @@ export function UserMenu({
                             href={profileLink}
                             className={clsx(
                                 "flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-md transition-colors group",
-                                isDark ? "text-slate-400 hover:bg-slate-800 hover:text-rose-400" : "text-slate-600 hover:bg-teal-50 hover:text-teal-700"
+                                isDark ? (isSuperAdmin ? "text-slate-400 hover:bg-slate-800 hover:text-violet-400" : "text-slate-400 hover:bg-slate-800 hover:text-rose-400") : "text-slate-600 hover:bg-teal-50 hover:text-teal-700"
                             )}
                             onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -94,7 +96,7 @@ export function UserMenu({
                             onClick={() => setShowLogoutConfirm(true)}
                             className={clsx(
                                 "flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-md w-full text-left transition-colors group cursor-pointer",
-                                isDark ? "text-rose-500 hover:bg-rose-500/10" : "text-rose-600 hover:bg-rose-50"
+                                isDark ? (isSuperAdmin ? "text-violet-500 hover:bg-violet-500/10" : "text-rose-500 hover:bg-rose-500/10") : "text-rose-600 hover:bg-rose-50"
                             )}
                         >
                             <LogOut size={16} className={clsx("transition-colors", isDark ? "" : "text-rose-400 group-hover:text-rose-600")} />

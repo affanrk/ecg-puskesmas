@@ -18,7 +18,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         if (user && user.role !== 'admin') {
             toast("Access denied. Admin only.", "error");
             const home =
-                user.role === 'admin' ? '/admin/dashboard'
+                user.role === 'superadmin' ? '/superadmin/dashboard'
+                : user.role === 'admin' ? '/admin/dashboard'
                 : user.is_operator ? '/operator/dashboard'
                 : user.is_doctor ? '/doctor/dashboard'
                 : user.is_patient ? '/patient/dashboard'

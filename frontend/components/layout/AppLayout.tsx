@@ -27,9 +27,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             isMounted.current = true;
             connectWebSocket();
         }
-        if (user && user.role === 'admin') {
-            toast("Access Restricted: Redirecting to Admin Dashboard", "error");
-            router.replace('/admin/dashboard');
+        if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+            toast("Access Restricted: Redirecting to Dashboard", "error");
+            const target = user.role === 'superadmin' ? '/superadmin/dashboard' : '/admin/dashboard';
+            router.replace(target);
         }
     }, [user, router, toast]);
 
@@ -43,7 +44,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         return () => clearInterval(interval);
     }, [isRecording, updateTimer]);
 
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'superadmin')) {
         return null;
     }
 

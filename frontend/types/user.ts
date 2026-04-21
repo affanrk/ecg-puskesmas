@@ -14,6 +14,15 @@ export interface ProfileData {
     specialty?: string;
     operator_role?: string;
     work_location?: string;
+    location_id?: string;
+    status?: string;
+}
+
+export interface AdminProfileData {
+    id?: string;
+    full_name?: string;
+    nik?: string;
+    location_id?: string | null;
     status?: string;
 }
 
@@ -34,6 +43,8 @@ export interface User {
     patient_profile?: ProfileData;
     operator_profile?: ProfileData;
     doctor_profile?: ProfileData;
+    admin_profile?: AdminProfileData;
+    location_id?: string;
     created_dt?: string | Date;
     changed_dt?: string | Date;
 }
@@ -112,6 +123,7 @@ export interface ProfilePayload {
     specialty?: string | null;
     operator_role?: string | null;
     work_location?: string | null;
+    location_id?: string | null;
     source?: string | null;
 }
 
@@ -171,9 +183,51 @@ export interface SecurityFormPayload {
     confirm_password: string;
 }
 
-/** Alias used by profile card components (IdentityCard, ContactCard, etc.) */
 export type MedicalFormFields = ProfileFormPayload;
 
-/** Alias used by security card components (UsernameCard, PasswordCard, etc.) */
 export type SecurityFormFields = SecurityFormPayload;
+
+
+export interface LocationResponse {
+    id: string;
+    location_code: string;
+    name: string;
+    location_type: string;
+    address: string;
+    city?: string | null;
+    province?: string | null;
+    phone?: string | null;
+    is_active: boolean;
+    created_dt?: string | Date;
+    changed_dt?: string | Date;
+}
+
+export interface LocationCreatePayload {
+    name: string;
+    location_type: string;
+    address: string;
+    city?: string | null;
+    province?: string | null;
+    phone?: string | null;
+}
+
+export interface LocationUpdatePayload {
+    name?: string;
+    location_type?: string;
+    address?: string;
+    city?: string | null;
+    province?: string | null;
+    phone?: string | null;
+    is_active?: boolean;
+}
+
+export interface StaffLocationResponse {
+    id: string;
+    user_id: string;
+    location_id: string;
+    is_primary: boolean;
+    assigned_by?: string;
+    assigned_dt?: string | Date;
+    location?: LocationResponse;
+}
 

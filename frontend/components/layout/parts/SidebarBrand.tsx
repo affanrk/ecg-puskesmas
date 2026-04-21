@@ -11,6 +11,7 @@ interface SidebarBrandProps {
 export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarBrandProps) {
     const isDark = className?.includes('bg-slate-900');
     const isAmber = !!className && (className.includes('bg-amber') || className.includes('theme-amber'));
+    const isViolet = !!className && className.includes('theme-violet');
     const isVisible = isSidebarPinned || isHovered;
 
     return (
@@ -25,7 +26,7 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
             <div className={clsx(
                 "relative w-10 h-10 rounded-md flex items-center justify-center shrink-0",
                 isDark
-                    ? "bg-rose-600 ring-4 ring-slate-800 shadow-lg shadow-rose-500/20"
+                    ? (isViolet ? "bg-violet-600 ring-4 ring-slate-800 shadow-lg shadow-violet-500/20" : "bg-rose-600 ring-4 ring-slate-800 shadow-lg shadow-rose-500/20")
                     : isAmber
                         ? "bg-gradient-to-br from-amber-500 to-orange-500 ring-4 ring-amber-50 shadow-lg shadow-amber-500/20"
                         : "bg-gradient-to-br from-teal-500 to-emerald-500 ring-4 ring-teal-50 shadow-lg shadow-teal-500/20"
@@ -39,7 +40,7 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
                 )}>ECG Live</span>
                 <span className={clsx(
                     "text-[10px] font-bold uppercase tracking-widest leading-none mt-1 whitespace-nowrap",
-                    isDark ? "text-rose-500" : (isAmber ? "text-amber-600" : "text-teal-600")
+                    isDark ? (isViolet ? "text-violet-500" : "text-rose-500") : (isAmber ? "text-amber-600" : "text-teal-600")
                 )}>Medical Platform</span>
             </div>
         </div>
