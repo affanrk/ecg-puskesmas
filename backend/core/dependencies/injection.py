@@ -15,6 +15,9 @@ from repositories.operator import OperatorRepository
 from repositories.doctor import DoctorRepository
 from repositories.calendar import CalendarRepository
 from repositories.approval import ApprovalRepository
+from repositories.location import LocationRepository
+from repositories.user_location import UserLocationRepository
+from repositories.patient_doctor import PatientDoctorRepository
 from schemas.auth import TokenData
 from models import TbMUser
 
@@ -116,6 +119,46 @@ def get_approval_repository(db: Session = Depends(get_db)):
     except Exception as e:
         raise AppException(
             message=f"Error initializing ApprovalRepository: {e}", status_code=500
+        )
+
+
+def get_location_repository(db: Session = Depends(get_db)):
+    logger.debug("[injection/None] Starting get_location_repository...")
+    try:
+        repo = LocationRepository(db)
+        logger.debug("[injection/None] Successfully completed get_location_repository.")
+        return repo
+    except Exception as e:
+        raise AppException(
+            message=f"Error initializing LocationRepository: {e}", status_code=500
+        )
+
+
+def get_user_location_repository(db: Session = Depends(get_db)):
+    logger.debug("[injection/None] Starting get_user_location_repository...")
+    try:
+        repo = UserLocationRepository(db)
+        logger.debug(
+            "[injection/None] Successfully completed get_user_location_repository."
+        )
+        return repo
+    except Exception as e:
+        raise AppException(
+            message=f"Error initializing UserLocationRepository: {e}", status_code=500
+        )
+
+
+def get_patient_doctor_repository(db: Session = Depends(get_db)):
+    logger.debug("[injection/None] Starting get_patient_doctor_repository...")
+    try:
+        repo = PatientDoctorRepository(db)
+        logger.debug(
+            "[injection/None] Successfully completed get_patient_doctor_repository."
+        )
+        return repo
+    except Exception as e:
+        raise AppException(
+            message=f"Error initializing PatientDoctorRepository: {e}", status_code=500
         )
 
 
@@ -225,6 +268,46 @@ async def get_admin_user(
         raise e
     except Exception as e:
         raise AppException(message=f"Admin check error: {e}", status_code=500)
+
+
+async def get_superadmin_user(
+    current_user: TbMUser = Depends(get_current_active_user),
+) -> TbMUser:
+    """Singleton SuperAdmin gate — only role='superadmin' passes."""
+    logger.debug("[injection/None] Starting get_superadmin_user...")
+    try:
+        if current_user.role != "superadmin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="SuperAdmin access required",
+            )
+        logger.debug("[injection/None] Successfully completed get_superadmin_user.")
+        return current_user
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise AppException(message=f"SuperAdmin check error: {e}", status_code=500)
+
+
+def get_admin_location(
+    current_user: TbMUser = Depends(get_admin_user),
+) -> str:
+    """Extracts the admin's assigned location_id for all data-scoped queries."""
+    logger.debug("[injection/None] Starting get_admin_location...")
+    try:
+        admin_profile = getattr(current_user, "admin_profile", None)
+        if not admin_profile or not getattr(admin_profile, "location_id", None):
+            raise AppException(
+                message="Admin has no assigned location", status_code=403
+            )
+        logger.debug("[injection/None] Successfully completed get_admin_location.")
+        return admin_profile.location_id
+    except AppException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+    except Exception as e:
+        raise AppException(
+            message=f"Admin location extraction error: {e}", status_code=500
+        )
 
 
 async def get_patient_user(

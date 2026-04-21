@@ -9,11 +9,15 @@ from api.v1.endpoints import (
     operator_router as operator,
     patient_router as patient,
     doctor_router as doctor,
+    superadmin_router as superadmin,
+    public_router as public,
 )
 
 api_router = APIRouter(prefix="/api/v1")
 
 api_router.include_router(auth, prefix="/auth", tags=["Authentication & Profile"])
+
+api_router.include_router(superadmin, prefix="/superadmin", tags=["SuperAdmin Control"])
 
 api_router.include_router(admin, prefix="/admin", tags=["Admin Control"])
 
@@ -32,3 +36,5 @@ api_router.include_router(history, prefix="/history", tags=["History & Data"])
 api_router.include_router(export, prefix="/export", tags=["Export"])
 
 api_router.include_router(health, prefix="/health", tags=["Health & Monitoring"])
+
+api_router.include_router(public, prefix="/public", tags=["Public"])

@@ -342,6 +342,11 @@ class WebSocketHandler:
                 finally:
                     db.close()
 
+            db_user_actor = self.user_repo.find_by_id(str(user_id))
+            location_id = (
+                getattr(db_user_actor, "location_id", None) if db_user_actor else None
+            )
+
             self.session_repo.create_session(
                 recording_id,
                 device_id,
@@ -349,6 +354,7 @@ class WebSocketHandler:
                 patient_id=patient_id,
                 created_by=source,
                 device_type=device_type,
+                location_id=location_id,
             )
 
             state.is_recording = True

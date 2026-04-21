@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 from sqlalchemy import (
     Column,
     String,
@@ -16,6 +16,7 @@ from ..base import Base, AuditMixin
 if TYPE_CHECKING:
     from ..user.model import TbMUser
     from ..patient.model import TbMPatient
+    from ..location.model import TbMLocation
     from ..raw_data.model import (
         TbREcgRaw5LeadsWeb,
         TbREcgRaw5LeadsMobile,
@@ -48,6 +49,14 @@ class TbREcgSession(Base, AuditMixin):
         comment="ID of the walk-in patient (if walk-in patient is the subject)",
     )
 
+    location_id = Column(
+        String(30),
+        ForeignKey("tb_m_location.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Denormalized location_id for fast filtered queries",
+    )
+
     device_id = Column(
         String(50), index=True, comment="ID of the device used for recording"
     )
@@ -71,6 +80,12 @@ class TbREcgSession(Base, AuditMixin):
 
     confidence_score = Column(
         Float, nullable=True, comment="Confidence score of the AI classification"
+    )
+
+    location: Mapped[Optional["TbMLocation"]] = relationship(
+        "TbMLocation",
+        back_populates="sessions",
+        viewonly=True,
     )
 
     user: Mapped["TbMUser"] = relationship(

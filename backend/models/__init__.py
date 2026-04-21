@@ -1,4 +1,6 @@
 from .base import Base, AuditMixin
+
+from .location import TbMLocation
 from .user import TbMUser
 from .patient import TbMPatient
 from .admin import TbMAdmin
@@ -13,10 +15,14 @@ from .raw_data import (
 )
 from .performance import TbRPerformanceLog
 from .approval import TbRLogApproval
+from .user_location import TbRUserLocation
+from .patient_doctor import TbRPatientDoctor
+from .sequence import TbMSequence
 
 __all__ = [
     "Base",
     "AuditMixin",
+    "TbMLocation",
     "TbMUser",
     "TbMPatient",
     "TbMAdmin",
@@ -29,4 +35,7 @@ __all__ = [
     "TbREcgRaw12LeadsMobile",
     "TbRPerformanceLog",
     "TbRLogApproval",
+    "TbRUserLocation",
+    "TbRPatientDoctor",
+    "TbMSequence",
 ]

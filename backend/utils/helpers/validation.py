@@ -106,3 +106,11 @@ def validate_password_optional(v: Optional[str]) -> Optional[str]:
     if v_str == "":
         return None
     return validate_password(v_str)
+
+
+def blank_strings_to_none(data: Any) -> Any:
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if isinstance(v, str) and v.strip() == "":
+                data[k] = None
+    return data

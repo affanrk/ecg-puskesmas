@@ -7,6 +7,8 @@ from .admin import router as admin_router
 from .operator import router as operator_router
 from .patient import router as patient_router
 from .doctor import router as doctor_router
+from .superadmin import router as superadmin_router
+from .public import router as public_router
 
 __all__ = [
     "auth_router",
@@ -18,4 +20,6 @@ __all__ = [
     "operator_router",
     "patient_router",
     "doctor_router",
+    "superadmin_router",
+    "public_router",
 ]

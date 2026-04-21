@@ -5,17 +5,22 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import ValidationError
 from core.dependencies import (
     get_admin_user,
+    get_admin_location,
     get_user_repository,
     get_approval_repository,
     get_patient_repository,
     get_operator_repository,
     get_doctor_repository,
+    get_user_location_repository,
+    get_patient_doctor_repository,
 )
 from repositories.user import UserRepository
 from repositories.approval import ApprovalRepository
 from repositories.patient import PatientRepository
 from repositories.operator import OperatorRepository
 from repositories.doctor import DoctorRepository
+from repositories.user_location import UserLocationRepository
+from repositories.patient_doctor import PatientDoctorRepository
 from schemas.user import (
     UserResponse,
     UserApprovalUpdate,
@@ -28,14 +33,15 @@ from schemas.patient import (
     ConvertWalkinRequest,
     WalkinPatientResponse,
 )
+from schemas.user_location import StaffLocationAssign, StaffLocationResponse
+from schemas.patient_doctor import PatientDoctorAssign, PatientDoctorResponse
 from schemas.operator import OperatorUpdate
 from schemas.doctor import DoctorUpdate
 from schemas.approval import ApprovalLogResponse
 from schemas.common import GenericResponse, MessageResponse, ApiStatus, PaginatedData
 from core.exceptions import AppException, DuplicateNIKException
-from models import TbMUser, TbRLogApproval
-from utils import logger
-
+from models import TbMUser, TbRLogApproval, TbRUserLocation
+from utils import logger, generate_custom_id
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -54,21 +60,26 @@ class AdminDashboardResponse(BaseModel):
 @router.get("/dashboard", response_model=GenericResponse[AdminDashboardResponse])
 def get_admin_dashboard(
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
     approval_repo: ApprovalRepository = Depends(get_approval_repository),
 ):
     try:
-        all_pending = user_repo.list_pending_approval(limit=100)
+        all_pending = user_repo.list_pending_approval(
+            location_id=location_id, limit=100
+        )
         pending_approvals = len(all_pending)
         recent_pending = [UserResponse.model_validate(u) for u in all_pending[:5]]
 
-        all_users = user_repo.list_all(limit=1000, exclude_admins=True)
+        all_users = user_repo.list_all(
+            location_id=location_id, limit=1000, exclude_admins=True
+        )
         total_users = len(all_users)
         total_patients = sum(1 for u in all_users if u.is_patient)
         total_operators = sum(1 for u in all_users if u.is_operator)
         total_doctors = sum(1 for u in all_users if u.is_doctor)
 
-        logs_records = approval_repo.list_logs(limit=5)
+        logs_records = approval_repo.list_logs(location_id=location_id, limit=5)
         recent_logs = []
         for log in logs_records:
             recent_logs.append(
@@ -117,6 +128,7 @@ def get_pending_approvals(
     is_operator: Optional[bool] = Query(None),
     is_doctor: Optional[bool] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     try:
@@ -129,6 +141,7 @@ def get_pending_approvals(
             is_patient=is_patient,
             is_operator=is_operator,
             is_doctor=is_doctor,
+            location_id=location_id,
         )
         return GenericResponse(
             status=ApiStatus.SUCCESS,
@@ -156,6 +169,7 @@ def get_approval_logs(
     is_operator: Optional[bool] = Query(None),
     is_doctor: Optional[bool] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     approval_repo: ApprovalRepository = Depends(get_approval_repository),
 ):
     try:
@@ -168,6 +182,7 @@ def get_approval_logs(
             is_patient=is_patient,
             is_operator=is_operator,
             is_doctor=is_doctor,
+            location_id=location_id,
         )
 
         response = []
@@ -205,15 +220,21 @@ def update_user_status(
     user_id: str,
     status_in: UserApprovalUpdate,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     try:
+        target = user_repo.find_by_id(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="User not found")
+        if target.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to your location"
+            )
+
         user = user_repo.update_activation_status(
             user_id, status_in.action, status_in.reason
         )
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
         logger.info(
             f"Admin {admin.username} performed action {status_in.action} for user {user_id}"
         )
@@ -236,6 +257,7 @@ def update_user_status(
 def create_user(
     user_in: UserAdminCreate,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
     operator_repo: OperatorRepository = Depends(get_operator_repository),
@@ -277,6 +299,8 @@ def create_user(
         create_data = user_in.model_dump(
             exclude={"patient_profile", "operator_profile", "doctor_profile"}
         )
+        create_data["location_id"] = location_id
+
         acc_status = create_data.pop("account_status", "ACTIVE")
         act_status = create_data.pop("activation_status", "APPROVE")
 
@@ -311,6 +335,9 @@ def create_user(
                     source="ADMIN",
                     initial_status=initial_status,
                 )
+                patient_prof = patient_repo.find_by_user_id(str(user.id))
+                if patient_prof:
+                    setattr(patient_prof, "location_id", location_id)
             elif user.is_operator:
                 if not user_in.operator_profile:
                     raise HTTPException(
@@ -323,6 +350,9 @@ def create_user(
                     source="ADMIN",
                     initial_status=initial_status,
                 )
+                op_prof = operator_repo.find_by_user_id(str(user.id))
+                if op_prof:
+                    setattr(op_prof, "location_id", location_id)
             elif user.is_doctor:
                 if not user_in.doctor_profile:
                     raise HTTPException(
@@ -335,6 +365,9 @@ def create_user(
                     source="ADMIN",
                     initial_status=initial_status,
                 )
+                doc_prof = doctor_repo.find_by_user_id(str(user.id))
+                if doc_prof:
+                    setattr(doc_prof, "location_id", location_id)
 
             if user.is_patient or user.is_operator or user.is_doctor:
                 log = (
@@ -345,13 +378,13 @@ def create_user(
                 )
                 if log:
                     setattr(log, "reason", initial_reason)
-                    user_repo.db.commit()
+                user_repo.db.commit()
 
         except ValidationError as e:
             user_repo.delete(str(user.id))
             formatted_errors = []
             for error in e.errors():
-                msg = error.get("msg")
+                msg = error.get("msg", "")
                 if msg.startswith("Value error, "):
                     msg = msg.replace("Value error, ", "")
                 formatted_errors.append(
@@ -362,13 +395,27 @@ def create_user(
             user_repo.delete(str(user.id))
             raise e
 
-        logger.info(f"Admin {admin.username} created user {user.username}")
+        if user.is_operator or user.is_doctor:
+            link_id = generate_custom_id("ULC", "tb_r_user_location", user_repo.db)
+            link = TbRUserLocation(
+                id=link_id,
+                user_id=str(user.id),
+                location_id=location_id,
+                is_primary=True,
+                assigned_by=str(admin.id),
+                created_by=str(admin.id),
+            )
+            user_repo.db.add(link)
+            user_repo.db.commit()
+
+        logger.info(
+            f"Admin {admin.username} created user {user.username} at location {location_id}"
+        )
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=user_repo.find_by_id(str(user.id)),
             message="User created successfully",
         )
-
     except (HTTPException, AppException):
         raise
     except DuplicateNIKException:
@@ -389,10 +436,13 @@ def get_all_users(
     search: Optional[str] = Query(None),
     role: Optional[str] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     try:
-        data = user_repo.list_all(skip=skip, limit=limit, search=search, role=role)
+        data = user_repo.list_all(
+            skip=skip, limit=limit, search=search, role=role, location_id=location_id
+        )
         return GenericResponse(
             status=ApiStatus.SUCCESS, data=data, message="Users retrieved successfully"
         )
@@ -409,6 +459,7 @@ def update_user(
     user_id: str,
     user_in: UserAdminUpdate,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
     operator_repo: OperatorRepository = Depends(get_operator_repository),
@@ -418,6 +469,10 @@ def update_user(
         target_user = user_repo.find_by_id(user_id)
         if not target_user:
             raise HTTPException(status_code=404, detail="User not found")
+        if target_user.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to your location"
+            )
 
         if target_user.role == "admin":
             raise HTTPException(
@@ -470,9 +525,11 @@ def update_user(
                     raise HTTPException(
                         status_code=400, detail="Doctor profile required"
                     )
-                update_data["is_doctor"] = True
-                update_data["is_operator"] = False
-                update_data["is_patient"] = False
+                (
+                    update_data["is_doctor"],
+                    update_data["is_operator"],
+                    update_data["is_patient"],
+                ) = (True, False, False)
                 if is_currently_patient or is_currently_operator:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
@@ -481,9 +538,11 @@ def update_user(
                     raise HTTPException(
                         status_code=400, detail="Operator profile required"
                     )
-                update_data["is_operator"] = True
-                update_data["is_doctor"] = False
-                update_data["is_patient"] = False
+                (
+                    update_data["is_operator"],
+                    update_data["is_doctor"],
+                    update_data["is_patient"],
+                ) = (True, False, False)
                 if is_currently_patient or is_currently_doctor:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
@@ -492,16 +551,20 @@ def update_user(
                     raise HTTPException(
                         status_code=400, detail="Patient profile required"
                     )
-                update_data["is_patient"] = True
-                update_data["is_doctor"] = False
-                update_data["is_operator"] = False
+                (
+                    update_data["is_patient"],
+                    update_data["is_doctor"],
+                    update_data["is_operator"],
+                ) = (True, False, False)
                 if is_currently_operator or is_currently_doctor:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
             elif new_role == "user":
-                update_data["is_patient"] = False
-                update_data["is_doctor"] = False
-                update_data["is_operator"] = False
+                (
+                    update_data["is_patient"],
+                    update_data["is_doctor"],
+                    update_data["is_operator"],
+                ) = (False, False, False)
                 if is_currently_patient or is_currently_operator or is_currently_doctor:
                     user_repo.cleanup_patient_data(user_id)
                     update_data["is_activated"] = 0
@@ -516,6 +579,11 @@ def update_user(
             patient_repo.update_by_user_id(
                 user_id, update_prof_pat, admin_action=activation_status
             )
+            pat_prof = patient_repo.find_by_user_id(user_id)
+            if pat_prof:
+                setattr(pat_prof, "location_id", location_id)
+                patient_repo.db.commit()
+
         elif is_operator and (user_in.operator_profile or activation_status):
             update_prof_op = (
                 user_in.operator_profile or OperatorUpdate.model_construct()
@@ -524,12 +592,21 @@ def update_user(
             operator_repo.update_by_user_id(
                 user_id, update_prof_op, admin_action=activation_status
             )
+            op_prof = operator_repo.find_by_user_id(user_id)
+            if op_prof:
+                setattr(op_prof, "location_id", location_id)
+                operator_repo.db.commit()
+
         elif is_doctor and (user_in.doctor_profile or activation_status):
             update_prof_doc = user_in.doctor_profile or DoctorUpdate.model_construct()
             update_prof_doc.source = "ADMIN"
             doctor_repo.update_by_user_id(
                 user_id, update_prof_doc, admin_action=activation_status
             )
+            doc_prof = doctor_repo.find_by_user_id(user_id)
+            if doc_prof:
+                setattr(doc_prof, "location_id", location_id)
+                doctor_repo.db.commit()
 
         update_data["changed_by"] = "ADMIN"
         user = user_repo.update(user_id, update_data)
@@ -540,7 +617,7 @@ def update_user(
     except ValidationError as e:
         formatted_errors = []
         for error in e.errors():
-            msg = error.get("msg")
+            msg = error.get("msg", "")
             if msg.startswith("Value error, "):
                 msg = msg.replace("Value error, ", "")
             formatted_errors.append(
@@ -564,12 +641,17 @@ def update_user(
 def delete_user(
     user_id: str,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
 ):
     try:
         target_user = user_repo.find_by_id(user_id)
         if not target_user:
             raise HTTPException(status_code=404, detail="User not found")
+        if target_user.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to your location"
+            )
 
         if target_user.role == "admin":
             raise HTTPException(
@@ -599,11 +681,17 @@ def get_all_patients(
     search: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
         patients, total = patient_repo.list_all_patients(
-            skip=skip, limit=limit, search=search, status=status, only_walkins=True
+            skip=skip,
+            limit=limit,
+            search=search,
+            status=status,
+            only_walkins=True,
+            location_id=location_id,
         )
         return GenericResponse(
             status=ApiStatus.SUCCESS,
@@ -626,21 +714,24 @@ def update_walkin_patient(
     patient_id: str,
     update_in: WalkinPatientUpdate,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
+        patient = patient_repo.find_walkin_by_id(patient_id)
+        if not patient:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient config mismatch. Invalid location."
+            )
+
         update_data = update_in.model_dump(exclude_unset=True)
         for k, v in list(update_data.items()):
             if isinstance(v, str) and v.strip() == "":
                 update_data[k] = None
 
-        updated = patient_repo.update_walkin_patient(
-            patient_id,
-            update_data,
-        )
-        if not updated:
-            raise HTTPException(status_code=404, detail="Walk-in patient not found")
-
+        updated = patient_repo.update_walkin_patient(patient_id, update_data)
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=updated,
@@ -669,10 +760,19 @@ def convert_walkin_to_user(
     patient_id: str,
     req_in: ConvertWalkinRequest,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
+        walkin = patient_repo.find_walkin_by_id(patient_id)
+        if not walkin:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+        if walkin.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient belongs to a different location."
+            )
+
         if user_repo.find_by_username(req_in.username):
             raise HTTPException(
                 status_code=400,
@@ -683,10 +783,6 @@ def convert_walkin_to_user(
                 status_code=400,
                 detail={"message": "Email is already registered", "field": "email"},
             )
-
-        walkin = patient_repo.find_walkin_by_id(patient_id)
-        if not walkin:
-            raise HTTPException(status_code=404, detail="Walk-in patient not found")
 
         password_to_use = (
             req_in.password
@@ -706,10 +802,10 @@ def convert_walkin_to_user(
             "is_doctor": False,
             "is_active": 1,
             "is_activated": 1,
+            "location_id": location_id,
             "source": "ADMIN",
         }
         new_user = user_repo.create_from_dict(create_data)
-
         patient_repo.convert_walkin_to_user(patient_id, str(new_user.id))
 
         return GenericResponse(
@@ -731,22 +827,253 @@ def convert_walkin_to_user(
 def delete_walkin_patient(
     patient_id: str,
     admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
-        deleted = patient_repo.delete_walkin_patient(patient_id)
-        if not deleted:
+        walkin = patient_repo.find_walkin_by_id(patient_id)
+        if not walkin:
             raise HTTPException(status_code=404, detail="Walk-in patient not found")
+        if walkin.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient belongs to a different location."
+            )
 
+        patient_repo.delete_walkin_patient(patient_id)
         return MessageResponse(
-            status=ApiStatus.SUCCESS,
-            message="Walk-in patient deleted successfully",
+            status=ApiStatus.SUCCESS, message="Walk-in patient deleted successfully"
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
         logger.error(
             f"[AdminEndpoint] Unexpected error in delete_walkin_patient: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/staff/{user_id}/invite",
+    response_model=GenericResponse[StaffLocationResponse],
+)
+def invite_staff_to_location(
+    user_id: str,
+    data: StaffLocationAssign,
+    current_user: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    """Invite an existing Doctor or Operator to work at this admin's location."""
+    try:
+        if data.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="You can only invite staff to your own location"
+            )
+
+        target = user_repo.find_by_id(user_id)
+        if not target or not (target.is_operator or target.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="Target must be an active doctor or operator"
+            )
+
+        assignment = user_location_repo.assign(
+            user_id=user_id,
+            location_id=location_id,
+            assigned_by_id=str(current_user.id),
+            is_primary=bool(data.is_primary),
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignment,
+            message="Staff assigned to this location successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in invite_staff_to_location: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete("/staff/{user_id}/remove", response_model=MessageResponse)
+def remove_staff_from_location(
+    user_id: str,
+    current_user: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    """Remove a doctor or operator from this admin's location."""
+    try:
+        removed = user_location_repo.remove(user_id, location_id)
+        if not removed:
+            raise HTTPException(
+                status_code=404, detail="Staff location assignment not found"
+            )
+        return MessageResponse(
+            status=ApiStatus.SUCCESS,
+            message="Staff removed from location successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in remove_staff_from_location: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/patients/{patient_id}/doctors",
+    response_model=GenericResponse[PatientDoctorResponse],
+)
+def assign_doctor_to_patient(
+    patient_id: str,
+    data: PatientDoctorAssign,
+    current_user: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+    patient_doctor_repo: PatientDoctorRepository = Depends(
+        get_patient_doctor_repository
+    ),
+):
+    try:
+        if data.location_id != location_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only manage assignments for your location",
+            )
+
+        patient = (
+            patient_repo.find_by_user_id(patient_id)
+            if patient_id.startswith("USR")
+            else patient_repo.get_by(id=patient_id)
+        )
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient does not belong to your location"
+            )
+
+        doctor = user_repo.find_by_id(data.doctor_id)
+        if not doctor or not doctor.is_doctor:
+            raise HTTPException(status_code=400, detail="Target is not a doctor")
+
+        if not user_location_repo.is_user_at_location(str(doctor.id), location_id):
+            raise HTTPException(
+                status_code=400, detail="Doctor is not assigned to this location"
+            )
+
+        assignment = patient_doctor_repo.assign(
+            patient_id=str(patient.id),
+            doctor_id=str(doctor.id),
+            location_id=location_id,
+            assigned_by=str(current_user.id),
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignment,
+            message="Doctor assigned to patient successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in assign_doctor_to_patient: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/patients/{patient_id}/doctors",
+    response_model=GenericResponse[List[PatientDoctorResponse]],
+)
+def get_patient_assigned_doctors(
+    patient_id: str,
+    _: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+    patient_doctor_repo: PatientDoctorRepository = Depends(
+        get_patient_doctor_repository
+    ),
+):
+    try:
+        patient = (
+            patient_repo.find_by_user_id(patient_id)
+            if patient_id.startswith("USR")
+            else patient_repo.get_by(id=patient_id)
+        )
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient does not belong to your location"
+            )
+
+        assignments = patient_doctor_repo.get_patient_doctors(str(patient.id))
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignments,
+            message="Patient doctor assignments retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in get_patient_assigned_doctors: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete(
+    "/patients/{patient_id}/doctors/{doctor_id}", response_model=MessageResponse
+)
+def unassign_doctor_from_patient(
+    patient_id: str,
+    doctor_id: str,
+    _: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+    patient_doctor_repo: PatientDoctorRepository = Depends(
+        get_patient_doctor_repository
+    ),
+):
+    try:
+        patient = (
+            patient_repo.find_by_user_id(patient_id)
+            if patient_id.startswith("USR")
+            else patient_repo.get_by(id=patient_id)
+        )
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient does not belong to your location"
+            )
+
+        removed = patient_doctor_repo.remove(str(patient.id), doctor_id, location_id)
+        if not removed:
+            raise HTTPException(
+                status_code=404, detail="Assignment not found or already removed"
+            )
+
+        return MessageResponse(
+            status=ApiStatus.SUCCESS, message="Doctor removed from patient successfully"
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in unassign_doctor_from_patient: {e}"
         )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

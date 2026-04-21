@@ -1,10 +1,11 @@
 from sqlalchemy import Column, String, Date, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
+    from ..location.model import TbMLocation
 
 
 class TbMDoctor(Base, AuditMixin):
@@ -20,6 +21,13 @@ class TbMDoctor(Base, AuditMixin):
         unique=True,
         nullable=False,
         comment="Foreign key to the user",
+    )
+    location_id = Column(
+        String(30),
+        ForeignKey("tb_m_location.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Primary location. Additional locations via tb_r_user_location.",
     )
     full_name = Column(
         String(100), index=True, nullable=False, comment="Full name of the doctor"
@@ -59,3 +67,7 @@ class TbMDoctor(Base, AuditMixin):
     )
 
     user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="doctor_profile")
+
+    location: Mapped[Optional["TbMLocation"]] = relationship(
+        "TbMLocation", back_populates="doctor_links"
+    )

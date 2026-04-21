@@ -263,6 +263,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         patient_in,
         operator_id: str,
         operator_name: str,
+        location_id: Optional[str] = None,
     ) -> TbMPatient:
         logger.debug("[PatientRepository] Starting create_walkin_patient...")
         try:
@@ -289,6 +290,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 medical_history=patient_in.medical_history,
                 status="WALKIN",
                 created_by=f"{operator_id} - {operator_name}",
+                location_id=location_id,
             )
             self.db.add(patient)
             self.db.commit()
@@ -318,6 +320,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
         search: Optional[str] = None,
         status: Optional[str] = None,
         only_walkins: bool = False,
+        location_id: Optional[str] = None,
     ) -> tuple[List[TbMPatient], int]:
         logger.debug("[PatientRepository] Starting list_all_patients...")
         try:
@@ -328,6 +331,9 @@ class PatientRepository(BaseRepository[TbMPatient]):
 
             if status:
                 query = query.filter(TbMPatient.status == status.upper())
+
+            if location_id:
+                query = query.filter(TbMPatient.location_id == location_id)
 
             if search:
                 search_filter = f"%{search}%"

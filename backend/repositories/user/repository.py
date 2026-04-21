@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError, DataError
 from models import (
     TbMUser,
     TbMPatient,
+    TbMAdmin,
     TbMOperator,
     TbMDoctor,
     TbRLogApproval,
@@ -126,17 +127,28 @@ class UserRepository(BaseRepository[TbMUser]):
         search: Optional[str] = None,
         role: Optional[str] = None,
         exclude_admins: bool = True,
+        location_id: Optional[str] = None,
     ) -> List[TbMUser]:
         logger.debug("[UserRepository] Starting list_all...")
         try:
             query = (
                 self.db.query(TbMUser)
                 .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
-                .options(contains_eager(TbMUser.patient_profile))
+                .options(
+                    contains_eager(TbMUser.patient_profile),
+                    joinedload(TbMUser.admin_profile),
+                    joinedload(TbMUser.operator_profile),
+                    joinedload(TbMUser.doctor_profile),
+                )
             )
 
             if exclude_admins:
                 query = query.filter(TbMUser.role != "admin")
+
+            query = query.filter(TbMUser.role != "superadmin")
+
+            if location_id:
+                query = query.filter(TbMUser.location_id == location_id)
 
             if role:
                 if role == "patient":
@@ -188,6 +200,7 @@ class UserRepository(BaseRepository[TbMUser]):
         is_patient: Optional[bool] = None,
         is_operator: Optional[bool] = None,
         is_doctor: Optional[bool] = None,
+        location_id: Optional[str] = None,
     ) -> List[TbMUser]:
         logger.debug("[UserRepository] Starting list_pending_approval...")
         try:
@@ -203,6 +216,9 @@ class UserRepository(BaseRepository[TbMUser]):
                 )
                 .filter(TbMUser.is_active == 1)
             )
+
+            if location_id:
+                query = query.filter(TbMUser.location_id == location_id)
 
             if search:
                 search_filter = f"%{search}%"
@@ -333,6 +349,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 source = "USER - MOBILE"
 
             role = user_in.role if user_in.role else "user"
+            location_id = getattr(user_in, "location_id", None)
 
             db_user = TbMUser(
                 id=user_id,
@@ -346,6 +363,7 @@ class UserRepository(BaseRepository[TbMUser]):
                 is_active=is_active,
                 is_activated=is_activated,
                 created_by=source,
+                location_id=location_id,
             )
             self.db.add(db_user)
             self.db.commit()
@@ -504,6 +522,12 @@ class UserRepository(BaseRepository[TbMUser]):
             if profile:
                 setattr(profile, "status", status)
                 setattr(profile, "changed_by", "ADMIN")
+                if (
+                    is_approving
+                    and db_user.location_id
+                    and hasattr(profile, "location_id")
+                ):
+                    setattr(profile, "location_id", db_user.location_id)
                 if is_rejecting and hasattr(profile, "nik"):
                     setattr(profile, "nik", None)
 

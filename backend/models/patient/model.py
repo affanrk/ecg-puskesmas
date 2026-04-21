@@ -1,10 +1,12 @@
 from sqlalchemy import Column, String, Date, Text, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
+    from ..location.model import TbMLocation
+    from ..patient_doctor.model import TbRPatientDoctor
 
 
 class TbMPatient(Base, AuditMixin):
@@ -21,6 +23,13 @@ class TbMPatient(Base, AuditMixin):
         nullable=True,
         index=True,
         comment="Foreign key to the user (NULL for operator walk-in patients)",
+    )
+    location_id = Column(
+        String(30),
+        ForeignKey("tb_m_location.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="The location this patient is registered under",
     )
     full_name = Column(
         String(100), index=True, nullable=False, comment="Full name of the patient"
@@ -52,4 +61,16 @@ class TbMPatient(Base, AuditMixin):
 
     user: Mapped[Optional["TbMUser"]] = relationship(
         "TbMUser", back_populates="patient_profile"
+    )
+
+    location: Mapped[Optional["TbMLocation"]] = relationship(
+        "TbMLocation", back_populates="patient_links"
+    )
+
+    doctor_assignments: Mapped[List["TbRPatientDoctor"]] = relationship(
+        "TbRPatientDoctor",
+        back_populates="patient",
+        foreign_keys="TbRPatientDoctor.patient_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

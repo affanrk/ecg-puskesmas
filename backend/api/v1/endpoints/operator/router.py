@@ -197,6 +197,9 @@ async def create_walkin_patient(
             patient_in=patient_in,
             operator_id=operator_id,
             operator_name=str(operator_name),
+            location_id=(
+                getattr(op_profile, "location_id", None) if op_profile else None
+            ),
         )
         return GenericResponse(
             status=ApiStatus.SUCCESS,

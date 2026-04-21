@@ -1,10 +1,11 @@
 from sqlalchemy import Column, String, ForeignKey, Date
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
+    from ..location.model import TbMLocation
 
 
 class TbMAdmin(Base, AuditMixin):
@@ -20,6 +21,13 @@ class TbMAdmin(Base, AuditMixin):
         unique=True,
         nullable=False,
         comment="Foreign key to the user",
+    )
+    location_id = Column(
+        String(30),
+        ForeignKey("tb_m_location.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="The location this admin manages. NULL only for SuperAdmin.",
     )
     full_name = Column(
         String(100), index=True, nullable=False, comment="Full name of the admin"
@@ -47,3 +55,7 @@ class TbMAdmin(Base, AuditMixin):
     )
 
     user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="admin_profile")
+
+    location: Mapped[Optional["TbMLocation"]] = relationship(
+        "TbMLocation", back_populates="admins"
+    )

@@ -1,19 +1,38 @@
 from typing import Optional
 from datetime import datetime
-from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    field_validator,
+    Field,
+    ConfigDict,
+    model_validator,
+)
 from utils.helpers.validation import (
     validate_username,
     validate_password,
     sanitize_email,
+    blank_strings_to_none,
 )
 from ..patient.schema import PatientCreate, PatientUpdate, PatientResponse
 from ..operator.schema import OperatorCreate, OperatorUpdate, OperatorResponse
 from ..doctor.schema import DoctorCreate, DoctorUpdate, DoctorResponse
 
 
+class AdminProfileResponse(BaseModel):
+    id: str
+    full_name: str
+    location_id: Optional[str] = None
+    status: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserBase(BaseModel):
     email: EmailStr = Field(..., description="User's email address")
     username: str = Field(..., description="User's username")
+
+    _blank_strings_to_none = model_validator(mode="before")(blank_strings_to_none)
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -33,6 +52,11 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str = Field(..., description="User's password")
     role: Optional[str] = Field(default="user", description="User's role")
+    full_name: Optional[str] = Field(default=None, description="User's full name")
+    location_id: Optional[str] = Field(
+        default=None,
+        description="Location ID of the Puskesmas/Hospital user registers under",
+    )
     source: Optional[str] = Field(
         default="USER - WEB", description="Source of the registration request"
     )
@@ -43,6 +67,7 @@ class UserCreate(UserBase):
                 "email": "user@example.com (Required)",
                 "username": "user123 (Required)",
                 "password": "SecurePassword123! (Required)",
+                "location_id": "LOC20260420000001 (Required — select from GET /public/locations)",
                 "role": "patient (Optional)",
                 "source": "WEB (Optional)",
             }
@@ -198,6 +223,10 @@ class UserResponse(UserBase):
     doctor_profile: Optional[DoctorResponse] = Field(
         default=None, description="Associated doctor profile"
     )
+    admin_profile: Optional[AdminProfileResponse] = Field(
+        default=None, description="Associated admin profile"
+    )
+    location_id: Optional[str] = Field(default=None, description="Primary location ID")
 
     model_config = ConfigDict(
         populate_by_name=True,

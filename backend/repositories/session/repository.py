@@ -287,6 +287,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         created_by: str = "WEB",
         classification: str = ECGClassification.RECORDING.value,
         device_type: Optional[str] = None,
+        location_id: Optional[str] = None,
     ) -> TbREcgSession:
         logger.debug("[SessionRepository] Starting create_session...")
         try:
@@ -305,6 +306,7 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                 created_by=created_by,
                 classification_result=classification,
                 device_type=device_type,
+                location_id=location_id,
             )
             result = self.create(session)
             logger.info(

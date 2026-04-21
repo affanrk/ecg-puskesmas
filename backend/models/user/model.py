@@ -1,5 +1,5 @@
 from typing import Optional, List, TYPE_CHECKING
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
 
@@ -10,6 +10,9 @@ if TYPE_CHECKING:
     from ..doctor.model import TbMDoctor
     from ..session.model import TbREcgSession
     from ..approval.model import TbRLogApproval
+    from ..location.model import TbMLocation
+    from ..user_location.model import TbRUserLocation
+    from ..patient_doctor.model import TbRPatientDoctor
 
 
 class TbMUser(Base, AuditMixin):
@@ -18,6 +21,13 @@ class TbMUser(Base, AuditMixin):
         String(30),
         primary_key=True,
         comment="Custom Primary key for the user (USR + YYYYMMDD + 6-digit seq)",
+    )
+    location_id = Column(
+        String(30),
+        ForeignKey("tb_m_location.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Primary location this user registered under",
     )
     username = Column(
         String(50),
@@ -131,6 +141,28 @@ class TbMUser(Base, AuditMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
         order_by="desc(TbRLogApproval.created_dt)",
+    )
+
+    location: Mapped[Optional["TbMLocation"]] = relationship(
+        "TbMLocation",
+        back_populates="users",
+        foreign_keys=[location_id],
+    )
+
+    location_assignments: Mapped[List["TbRUserLocation"]] = relationship(
+        "TbRUserLocation",
+        back_populates="user",
+        foreign_keys="TbRUserLocation.user_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    patient_assignments: Mapped[List["TbRPatientDoctor"]] = relationship(
+        "TbRPatientDoctor",
+        back_populates="doctor_user",
+        foreign_keys="TbRPatientDoctor.doctor_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     @property

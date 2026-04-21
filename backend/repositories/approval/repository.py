@@ -24,6 +24,7 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
         is_patient: Optional[bool] = None,
         is_operator: Optional[bool] = None,
         is_doctor: Optional[bool] = None,
+        location_id: Optional[str] = None,
     ) -> List[TbRLogApproval]:
         logger.debug("[ApprovalRepository] Starting list_logs...")
         try:
@@ -55,6 +56,9 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
                 query = query.filter(TbMUser.is_operator == is_operator)
             if is_doctor is not None:
                 query = query.filter(TbMUser.is_doctor == is_doctor)
+
+            if location_id:
+                query = query.filter(TbMUser.location_id == location_id)
 
             result = (
                 query.order_by(TbRLogApproval.created_dt.desc())

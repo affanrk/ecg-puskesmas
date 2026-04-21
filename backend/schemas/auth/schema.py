@@ -17,6 +17,9 @@ class Token(BaseModel):
     is_patient: bool = Field(..., description="Indicates if the user is a patient")
     is_operator: bool = Field(..., description="Indicates if the user is an operator")
     is_doctor: bool = Field(..., description="Indicates if the user is a doctor")
+    location_id: Optional[str] = Field(
+        default=None, description="User's primary location ID"
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -32,6 +35,7 @@ class Token(BaseModel):
                 "is_patient": False,
                 "is_operator": True,
                 "is_doctor": False,
+                "location_id": "LOC20260420000001",
             }
         },
     )
