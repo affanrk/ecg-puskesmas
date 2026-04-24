@@ -14,7 +14,8 @@ import StandardInput from '@/components/shared/StandardInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/admin/users/parts/ReviewSummaryTable';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
+import { genderOptions, doctorSpecialtyOptions } from '@/data';
 
 export default function DoctorOnboardingForm() {
     const router = useRouter();
@@ -177,13 +178,13 @@ export default function DoctorOnboardingForm() {
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-focus-within/section:animate-pulse" /> Essential Identity
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                                <StandardInput label="Full Legal Name" value={formData.full_name} onChange={(e) => handleFieldChange('full_name', e.target.value)} errorMessage={errors.full_name} placeholder="Enter your full name as on ID" />
-                                <StandardInput label="NIK (16 Digits)" value={formData.nik} onChange={(e) => handleFieldChange('nik', e.target.value.replace(/\D/g, '').slice(0, 16))} errorMessage={errors.nik} placeholder="16-digit ID number" />
+                                <StandardInput required label="Full Legal Name" value={formData.full_name} onChange={(e) => handleFieldChange('full_name', e.target.value)} errorMessage={errors.full_name} placeholder="Enter your full name as on ID" />
+                                <StandardInput required label="NIK (16 Digits)" value={formData.nik} onChange={(e) => handleFieldChange('nik', e.target.value.replace(/\D/g, '').slice(0, 16))} errorMessage={errors.nik} placeholder="16-digit ID number" maxLength={16} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-                                <StandardInput label="Place of Birth" value={formData.pob} onChange={(e) => handleFieldChange('pob', e.target.value)} errorMessage={errors.pob} placeholder="City" />
-                                <FlatpickrInput label="Date of Birth" value={formData.dob} onChange={(date) => handleFieldChange('dob', date)} errorMessage={errors.dob} placeholder="Select Date" />
-                                <SelectInput label="Gender" value={formData.gender} onChange={(e) => handleFieldChange('gender', e.target.value)} errorMessage={errors.gender} options={[{ value: '', label: 'Select Gender' }, { value: 'L', label: 'Male' }, { value: 'P', label: 'Female' }]} />
+                                <StandardInput required label="Place of Birth" value={formData.pob} onChange={(e) => handleFieldChange('pob', e.target.value)} errorMessage={errors.pob} placeholder="City" />
+                                <FlatpickrInput required label="Date of Birth" value={formData.dob} onChange={(date) => handleFieldChange('dob', date)} errorMessage={errors.dob} placeholder="Select Date" />
+                                <SelectInput required label="Gender" value={formData.gender} onChange={(e) => handleFieldChange('gender', e.target.value)} errorMessage={errors.gender} options={[{ value: '', label: 'Select Gender' }, ...genderOptions]} />
                             </div>
                         </div>
 
@@ -192,19 +193,19 @@ export default function DoctorOnboardingForm() {
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Medical Credentials & Practice
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                                <StandardInput label="STR Number" value={formData.str_number} onChange={(e) => handleFieldChange('str_number', e.target.value)} errorMessage={errors.str_number} placeholder="Surat Tanda Registrasi" />
+                                <StandardInput required label="STR Number" value={formData.str_number} onChange={(e) => handleFieldChange('str_number', e.target.value)} errorMessage={errors.str_number} placeholder="Surat Tanda Registrasi" />
                                 <StandardInput label="SIP Number" value={formData.sip_number} onChange={(e) => handleFieldChange('sip_number', e.target.value)} errorMessage={errors.sip_number} placeholder="Surat Izin Praktik" />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <SelectInput
+                                    required
                                     label="Medical Specialty"
                                     value={formData.specialty}
                                     onChange={(e) => handleFieldChange('specialty', e.target.value)}
                                     errorMessage={errors.specialty}
                                     options={[
                                         { value: '', label: 'Select Specialty' },
-                                        { value: 'Sp.JP - Spesialis Jantung dan Pembuluh Darah', label: 'Sp.JP (Cardiologist)' },
-                                        { value: 'Sp.PD - Spesialis Penyakit Dalam', label: 'Sp.PD (Internist)' }
+                                        ...doctorSpecialtyOptions
                                     ]}
                                 />
                                 <StandardInput label="Primary Hospital Affiliation" value={formData.work_location} onChange={(e) => handleFieldChange('work_location', e.target.value)} errorMessage={errors.work_location} placeholder="Hospital Name" />

@@ -1,17 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/services/api';
 import { LocationResponse, LocationCreatePayload, LocationUpdatePayload } from '@/types/user';
 import { useToast } from '@/hooks/useToast';
-import { Plus, Edit2, AlertCircle, MapPin, Building, X, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, MapPin, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { globalEventBus } from '@/services/events';
 import { EVENTS } from '@/config/constants';
+import { parseApiError } from '@/utils/helpers';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
 import { useStore } from '@/store/useStore';
-import clsx from 'clsx';
+import { useIndonesiaRegions } from '@/hooks/useIndonesiaRegions';
+import { validators } from '@/utils/validators';
+import LocationFilters from './parts/LocationFilters';
+import LocationFormModal from './parts/LocationFormModal';
+import LocationTableRow from './parts/LocationTableRow';
 
 type ModalMode = 'create' | 'edit' | null;
 
@@ -19,8 +23,10 @@ const defaultForm: LocationCreatePayload = {
     name: '',
     location_type: '',
     address: '',
-    city: '',
     province: '',
+    city: '',
+    kecamatan: '',
+    kelurahan: '',
     phone: '',
 };
 
@@ -29,6 +35,7 @@ export default function LocationManager() {
     const setAdminLoading = useStore(state => state.setAdminLoading);
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [loading, setLoading] = useState(true);
+    const initialized = useRef(false);
 
     const [modalMode, setModalMode] = useState<ModalMode>(null);
     const [selectedLoc, setSelectedLoc] = useState<LocationResponse | null>(null);
@@ -37,12 +44,50 @@ export default function LocationManager() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [showDeactivate, setShowDeactivate] = useState(false);
+    const [showActivate, setShowActivate] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
+    const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
     const [locToDeactivate, setLocToDeactivate] = useState<LocationResponse | null>(null);
+    const [locToActivate, setLocToActivate] = useState<LocationResponse | null>(null);
+    const [locToDelete, setLocToDelete] = useState<LocationResponse | null>(null);
+
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
 
     const [page, setPage] = useState(1);
     const rowsPerPage = 10;
-    const totalPages = Math.ceil(locations.length / rowsPerPage) || 1;
-    const paginatedLocations = locations.slice((page - 1) * rowsPerPage, page * rowsPerPage);
+
+    const {
+        provinceOptions,
+        cityOptions,
+        districtOptions,
+        villageOptions,
+        handleProvinceChange,
+        handleCityChange,
+        handleDistrictChange,
+        loading: regionLoading
+    } = useIndonesiaRegions();
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const filteredLocations = locations.filter(loc => {
+        const matchesSearch = !searchTerm ||
+            loc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loc.location_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loc.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loc.province?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesType = !filterType || loc.location_type === filterType;
+        const matchesStatus = !filterStatus ||
+            (filterStatus === 'active' && loc.is_active) ||
+            (filterStatus === 'inactive' && !loc.is_active);
+
+        return matchesSearch && matchesType && matchesStatus;
+    });
+
+    const totalPages = Math.ceil(filteredLocations.length / rowsPerPage) || 1;
+    const paginatedLocations = filteredLocations.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
     const loadLocations = useCallback(async () => {
         setLoading(true);
@@ -58,8 +103,11 @@ export default function LocationManager() {
     }, [toast, setAdminLoading]);
 
     useEffect(() => {
+        if (initialized.current) return;
+        initialized.current = true;
+
         loadLocations();
-        
+
         const handleRefreshEvent = () => loadLocations();
         globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
         return () => {
@@ -69,16 +117,22 @@ export default function LocationManager() {
 
     const openModal = (mode: 'create' | 'edit', loc?: LocationResponse) => {
         setModalMode(mode);
+        setErrors({});
         if (mode === 'edit' && loc) {
             setSelectedLoc(loc);
             setFormData({
                 name: loc.name,
                 location_type: loc.location_type,
                 address: loc.address,
-                city: loc.city || '',
                 province: loc.province || '',
+                city: loc.city || '',
+                kecamatan: loc.kecamatan || '',
+                kelurahan: loc.kelurahan || '',
                 phone: loc.phone || '',
             });
+            if (loc.province) handleProvinceChange(loc.province);
+            if (loc.city) handleCityChange(loc.city);
+            if (loc.kecamatan) handleDistrictChange(loc.kecamatan);
         } else {
             setSelectedLoc(null);
             setFormData(defaultForm);
@@ -89,29 +143,72 @@ export default function LocationManager() {
         setModalMode(null);
         setSelectedLoc(null);
         setFormData(defaultForm);
+        setErrors({});
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleFieldChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+
+        let error = '';
+        if (field === 'name') error = validators.required(value);
+        else if (field === 'address') error = validators.required(value);
+        else if (field === 'province') error = validators.required(value);
+        else if (field === 'city') error = validators.required(value);
+        else if (field === 'location_type' && !value) error = 'Required';
+        else if (field === 'phone' && value) error = validators.phone(value);
+
+        setErrors(prev => ({ ...prev, [field]: error }));
+    };
+
+    const validateForm = () => {
+        const newErrors: Record<string, string> = {};
+
+        if (!formData.name?.trim()) newErrors.name = 'Required';
+        if (!formData.location_type) newErrors.location_type = 'Required';
+        if (!formData.address?.trim()) newErrors.address = 'Required';
+        if (!formData.province?.trim()) newErrors.province = 'Required';
+        if (!formData.city?.trim()) newErrors.city = 'Required';
+        if (formData.phone) {
+            const phoneError = validators.phone(formData.phone);
+            if (phoneError) newErrors.phone = phoneError;
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (validateForm()) {
+            setShowConfirmSubmit(true);
+        }
+    };
+
+    const handleConfirmSubmit = async () => {
+        setShowConfirmSubmit(false);
         setIsSubmitting(true);
         try {
             const payload = {
                 ...formData,
-                city: formData.city?.trim() || null,
                 province: formData.province?.trim() || null,
+                city: formData.city?.trim() || null,
+                kecamatan: formData.kecamatan?.trim() || null,
+                kelurahan: formData.kelurahan?.trim() || null,
                 phone: formData.phone?.trim() || null,
             };
 
             if (modalMode === 'create') {
-                await api.createLocation(payload as any);
+                await api.createLocation(payload);
                 toast('Location created successfully', 'success');
             } else if (modalMode === 'edit' && selectedLoc) {
                 const updatePayload: LocationUpdatePayload = {
                     name: payload.name,
                     location_type: payload.location_type,
                     address: payload.address,
-                    city: payload.city || undefined,
                     province: payload.province || undefined,
+                    city: payload.city || undefined,
+                    kecamatan: payload.kecamatan || undefined,
+                    kelurahan: payload.kelurahan || undefined,
                     phone: payload.phone || undefined,
                 };
                 await api.updateLocation(selectedLoc.id, updatePayload);
@@ -120,8 +217,14 @@ export default function LocationManager() {
             closeModal();
             loadLocations();
         } catch (err: unknown) {
-            const error = err as { response?: { data?: { detail?: string } } };
-            toast(error?.response?.data?.detail || 'Failed to save location', 'error');
+            const { message, fieldErrors } = parseApiError(err as Error);
+
+            if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+                setErrors(fieldErrors);
+                toast(message, 'error');
+            } else {
+                toast(message, 'error');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -131,8 +234,15 @@ export default function LocationManager() {
         if (!locToDeactivate) return;
         setIsSubmitting(true);
         try {
-            await api.deactivateLocation(locToDeactivate.id);
-            toast('Location deactivated', 'success');
+            const response = await api.deactivateLocation(locToDeactivate.id);
+            const message = response?.message || 'Location deactivated';
+
+            if (message.toLowerCase().includes('warning:')) {
+                toast(message, 'warning');
+            } else {
+                toast(message, 'success');
+            }
+
             setShowDeactivate(false);
             setLocToDeactivate(null);
             loadLocations();
@@ -143,20 +253,69 @@ export default function LocationManager() {
         }
     };
 
+    const handleActivate = async () => {
+        if (!locToActivate) return;
+        setIsSubmitting(true);
+        try {
+            await api.activateLocation(locToActivate.id);
+            toast('Location activated successfully', 'success');
+            setShowActivate(false);
+            setLocToActivate(null);
+            loadLocations();
+        } catch (err: unknown) {
+            const error = err as { response?: { data?: { detail?: string } } };
+            toast(error?.response?.data?.detail || 'Failed to activate location', 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!locToDelete) return;
+        setIsSubmitting(true);
+        try {
+            await api.deleteLocation(locToDelete.id);
+            toast('Location deleted successfully', 'success');
+            setShowDelete(false);
+            setLocToDelete(null);
+            loadLocations();
+        } catch (err: unknown) {
+            const { message } = parseApiError(err as Error);
+            toast(message, 'error');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleProvinceSelect = (value: string) => {
+        setFormData({ ...formData, province: value, city: '', kecamatan: '', kelurahan: '' });
+        handleProvinceChange(value);
+    };
+
+    const handleCitySelect = (value: string) => {
+        setFormData({ ...formData, city: value, kecamatan: '', kelurahan: '' });
+        handleCityChange(value);
+    };
+
+    const handleDistrictSelect = (value: string) => {
+        setFormData({ ...formData, kecamatan: value, kelurahan: '' });
+        handleDistrictChange(value);
+    };
+
     return (
         <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-                <div>
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-                        <MapPin className="text-violet-600" /> Location Registry
-                    </h2>
-                    <p className="text-sm font-medium text-slate-500 mt-1">
-                        Manage all registered clinic locations across the platform.
-                    </p>
-                </div>
+                <LocationFilters
+                    searchTerm={searchTerm}
+                    filterType={filterType}
+                    filterStatus={filterStatus}
+                    onSearchChange={setSearchTerm}
+                    onTypeChange={setFilterType}
+                    onStatusChange={setFilterStatus}
+                />
                 <button
                     onClick={() => openModal('create')}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-bold text-sm shadow-sm transition-all"
+                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-bold text-sm shadow-sm transition-all cursor-pointer"
                 >
                     <Plus size={16} /> New Location
                 </button>
@@ -169,7 +328,7 @@ export default function LocationManager() {
                             <tr>
                                 <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-left">Location Name</th>
                                 <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-left">Type & Code</th>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-left">Location</th>
+                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-left">Region</th>
                                 <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-left">Status</th>
                                 <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-right pr-6">Actions</th>
                             </tr>
@@ -184,78 +343,33 @@ export default function LocationManager() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : locations.length === 0 ? (
+                            ) : filteredLocations.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="h-64 align-middle">
                                         <div className="flex flex-col items-center justify-center text-slate-400">
                                             <MapPin size={48} className="mb-4 opacity-20" />
                                             <p className="font-medium text-sm">No locations found</p>
-                                            <p className="text-xs mt-1 opacity-60">Create your first location above.</p>
+                                            <p className="text-xs mt-1 opacity-60">Try adjusting your filters or create a new location.</p>
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
                                 paginatedLocations.map((loc) => (
-                                    <tr key={loc.id} className="hover:bg-violet-50/30 transition-colors group h-[48px]">
-                                        <td className="px-5 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 bg-slate-900 text-white rounded flex items-center justify-center group-hover:bg-violet-600 transition-colors shadow-sm">
-                                                    <Building size={14} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-black text-slate-800 group-hover:text-violet-700 transition-colors truncate max-w-[200px]">{loc.name}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 whitespace-nowrap">
-                                            <div>
-                                                <p className="text-[10px] font-mono font-black text-slate-500 uppercase">{loc.location_code}</p>
-                                                <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border bg-slate-50 text-slate-500 border-slate-100">
-                                                    {loc.location_type}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 whitespace-nowrap">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-600 truncate max-w-[150px]">{loc.city || 'No City'}, {loc.province || '-'}</p>
-                                                <p className="text-[9px] font-mono font-bold text-slate-400 truncate max-w-[150px]">{loc.address}</p>
-                                            </div>
-                                        </td>
-                                        <td className="px-5 whitespace-nowrap">
-                                            <div className={clsx(
-                                                "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-black border",
-                                                loc.is_active ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-400 border-slate-100"
-                                            )}>
-                                                <span className={clsx("w-1.5 h-1.5 rounded-full", loc.is_active ? "bg-emerald-500" : "bg-slate-400")}></span>
-                                                {loc.is_active ? "Active" : "Inactive"}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 whitespace-nowrap text-right pr-6">
-                                            <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => openModal('edit', loc)}
-                                                    className="px-3 py-1.5 bg-white text-slate-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 hover:text-slate-800 transition-all active:scale-[0.98] border border-slate-200 cursor-pointer"
-                                                >
-                                                    Edit
-                                                </button>
-                                                {loc.is_active && (
-                                                    <button
-                                                        onClick={() => { setLocToDeactivate(loc); setShowDeactivate(true); }}
-                                                        className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-rose-100 hover:text-rose-700 transition-all active:scale-[0.98] border border-rose-100 cursor-pointer"
-                                                    >
-                                                        Deactivate
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <LocationTableRow
+                                        key={loc.id}
+                                        location={loc}
+                                        onEdit={() => openModal('edit', loc)}
+                                        onDeactivate={() => { setLocToDeactivate(loc); setShowDeactivate(true); }}
+                                        onActivate={() => { setLocToActivate(loc); setShowActivate(true); }}
+                                        onDelete={() => { setLocToDelete(loc); setShowDelete(true); }}
+                                    />
                                 ))
                             )}
                         </tbody>
                     </table>
                 </div>
 
-                {!loading && locations.length > 0 && (
+                {!loading && filteredLocations.length > 0 && (
                     <div className="px-8 py-3 border-t border-slate-200 bg-slate-50 relative z-20 flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
@@ -263,7 +377,7 @@ export default function LocationManager() {
                             </span>
                             <div className="h-4 w-px bg-slate-300"></div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                <span className="text-violet-600">{locations.length}</span> Total Locations
+                                <span className="text-violet-600">{filteredLocations.length}</span> Locations
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -287,93 +401,104 @@ export default function LocationManager() {
             </div>
 
             {modalMode && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 className="text-lg font-black text-slate-800 tracking-tight">
-                                {modalMode === 'create' ? 'Register New Location' : 'Edit Location'}
-                            </h3>
-                            <button onClick={closeModal} className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer p-1 rounded-lg">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            <StandardInput
-                                label="Location Name"
-                                required
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="e.g. Puskesmas Menteng (Required)"
-                            />
-                            <SelectInput
-                                label="Location Type"
-                                required
-                                value={formData.location_type}
-                                onChange={(e) => setFormData({ ...formData, location_type: e.target.value as any })}
-                                options={[
-                                    { value: '', label: 'Select Type... (Required)' },
-                                    { value: 'PUSKESMAS', label: 'Puskesmas' },
-                                    { value: 'CLINIC', label: 'Clinic' },
-                                    { value: 'HOSPITAL', label: 'Hospital' },
-                                    { value: 'LABORATORY', label: 'Laboratory' }
-                                ]}
-                            />
-                            <StandardInput
-                                label="Full Address"
-                                required
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                                placeholder="e.g. Jl. Menteng Raya No. 1, Jakarta Pusat (Required)"
-                            />
-                            <div className="grid grid-cols-2 gap-3">
-                                <StandardInput
-                                    label="City"
-                                    value={formData.city || ''}
-                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                    placeholder="e.g. Jakarta Pusat (Optional)"
-                                />
-                                <StandardInput
-                                    label="Province"
-                                    value={formData.province || ''}
-                                    onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                                    placeholder="e.g. DKI Jakarta (Optional)"
-                                />
-                            </div>
-                            <StandardInput
-                                label="Phone Number"
-                                value={formData.phone || ''}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder="e.g. 02131000001 (Optional)"
-                            />
-                            <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6">
-                                <button
-                                    type="button"
-                                    onClick={closeModal}
-                                    className="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting || !formData.name || !formData.address}
-                                    className="px-6 py-2 text-sm font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-all disabled:opacity-50"
-                                >
-                                    {isSubmitting ? 'Saving...' : 'Save Location'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                <LocationFormModal
+                    mode={modalMode}
+                    formData={formData}
+                    errors={errors}
+                    isSubmitting={isSubmitting}
+                    provinceOptions={provinceOptions}
+                    cityOptions={cityOptions}
+                    districtOptions={districtOptions}
+                    villageOptions={villageOptions}
+                    regionLoading={regionLoading}
+                    onClose={closeModal}
+                    onSubmit={handleFormSubmit}
+                    onFieldChange={handleFieldChange}
+                    onProvinceChange={handleProvinceSelect}
+                    onCityChange={handleCitySelect}
+                    onDistrictChange={handleDistrictSelect}
+                />
             )}
+
+            <ConfirmationModal
+                isOpen={showConfirmSubmit}
+                onClose={() => setShowConfirmSubmit(false)}
+                onConfirm={handleConfirmSubmit}
+                title={modalMode === 'create' ? 'Create Location?' : 'Update Location?'}
+                message={
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-500 font-medium">
+                            Verify location information before {modalMode === 'create' ? 'creating' : 'updating'}.
+                        </p>
+                        <ReviewSummaryTable data={[
+                            { field: 'Location Name', value: formData.name },
+                            { field: 'Type', value: formData.location_type },
+                            { field: 'Address', value: formData.address },
+                            { field: 'Province', value: formData.province || '-' },
+                            { field: 'City', value: formData.city || '-' },
+                            { field: 'Kecamatan', value: formData.kecamatan || '-' },
+                            { field: 'Kelurahan', value: formData.kelurahan || '-' },
+                            { field: 'Phone', value: formData.phone || '-' }
+                        ]} />
+                    </div>
+                }
+                confirmText={modalMode === 'create' ? 'Create Location' : 'Update Location'}
+                isLoading={isSubmitting}
+            />
 
             <ConfirmationModal
                 isOpen={showDeactivate}
                 onClose={() => setShowDeactivate(false)}
                 onConfirm={handleDeactivate}
                 title="Deactivate Location?"
-                message="Are you sure you want to deactivate this location? Users currently assigned to this location may lose access unless reassigned."
+                message={
+                    <div className="space-y-3">
+                        <p className="text-slate-600">You are about to deactivate:</p>
+                        <p className="font-bold text-lg text-amber-700">{locToDeactivate?.name}</p>
+                        <p className="text-sm text-amber-600 font-medium bg-amber-50 px-3 py-2 rounded-lg border border-amber-200">
+                            ⚠️ Users currently assigned to this location may lose access unless reassigned.
+                        </p>
+                    </div>
+                }
                 confirmText="Deactivate"
                 isDestructive={true}
+                warningLevel="standard"
+                isLoading={isSubmitting}
+            />
+
+            <ConfirmationModal
+                isOpen={showActivate}
+                onClose={() => setShowActivate(false)}
+                onConfirm={handleActivate}
+                title="Activate Location?"
+                message={
+                    <div className="space-y-3">
+                        <p className="text-slate-600">You are about to activate:</p>
+                        <p className="font-bold text-lg text-emerald-700">{locToActivate?.name}</p>
+                        <p className="text-sm text-slate-500">This will make it available for user assignments.</p>
+                    </div>
+                }
+                confirmText="Activate"
+                isLoading={isSubmitting}
+            />
+
+            <ConfirmationModal
+                isOpen={showDelete}
+                onClose={() => setShowDelete(false)}
+                onConfirm={handleDelete}
+                title="Delete Location?"
+                message={
+                    <div className="space-y-3">
+                        <p className="text-slate-600">You are about to permanently delete:</p>
+                        <p className="font-bold text-lg text-rose-700">{locToDelete?.name}</p>
+                        <p className="text-sm text-rose-700 font-bold bg-rose-50 px-3 py-2 rounded-lg border border-rose-200">
+                            ⚠️ This action cannot be undone and will remove all location data.
+                        </p>
+                    </div>
+                }
+                confirmText="Delete"
+                isDestructive={true}
+                warningLevel="standard"
                 isLoading={isSubmitting}
             />
         </div>

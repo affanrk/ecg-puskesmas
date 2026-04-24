@@ -12,6 +12,7 @@ interface InputProps {
     type?: string;
     placeholder?: string;
     required?: boolean;
+    maxLength?: number;
     errorMessage?: string;
     onFocus?: () => void;
     onBlur?: () => void;
@@ -25,6 +26,7 @@ export default function StandardInput({
     type = "text",
     placeholder = "",
     required = false,
+    maxLength,
     errorMessage,
     onFocus,
     onBlur
@@ -43,6 +45,7 @@ export default function StandardInput({
                 errorMessage ? "text-rose-500" : (isValidAndFilled ? "text-emerald-500" : (isFocused ? "text-brand-600" : "text-slate-400"))
             )}>
                 {label}
+                {required && <span className="text-rose-500 ml-1">*</span>}
             </label>
             <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
                 <input
@@ -54,6 +57,7 @@ export default function StandardInput({
                     onFocus={() => { setIsFocused(true); onFocus?.(); }}
                     onBlur={() => { setIsFocused(false); onBlur?.(); }}
                     placeholder={placeholder}
+                    maxLength={maxLength}
                     className={clsx(
                         "w-full px-4 py-3 rounded-lg border-2 text-xs font-bold transition-all duration-300 outline-none",
                         errorMessage

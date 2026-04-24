@@ -6,6 +6,7 @@ import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
+import { genderOptions } from '@/data';
 
 interface SharedIdentityCardProps {
     isLocked: boolean;
@@ -105,7 +106,7 @@ export default function SharedIdentityCard({
                         value={medicalForm.gender} 
                         onChange={(e) => handleMedicalChange('gender', e.target.value)} 
                         disabled={isLocked}
-                        options={[{ value: 'L', label: 'Male' }, { value: 'P', label: 'Female' }]}
+                        options={genderOptions}
                     />
                 </div>
                 {(user?.is_operator || user?.is_doctor) && (

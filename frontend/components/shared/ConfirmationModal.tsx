@@ -13,6 +13,9 @@ interface ConfirmationModalProps {
     confirmText?: string;
     isDestructive?: boolean;
     isLoading?: boolean;
+    warningLevel?: 'standard' | 'high';
+    affectedItems?: string[];
+    icon?: ReactNode;
 }
 
 export default function ConfirmationModal({
@@ -23,24 +26,77 @@ export default function ConfirmationModal({
     message,
     confirmText = "Confirm",
     isDestructive = false,
-    isLoading = false
+    isLoading = false,
+    warningLevel = 'standard',
+    affectedItems,
+    icon
 }: ConfirmationModalProps) {
     if (!isOpen) return null;
 
+    const isHighWarning = warningLevel === 'high';
+    const iconSize = isHighWarning ? 40 : 28;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden scale-100 animate-in zoom-in-95 duration-200 flex flex-col items-center">
+            <div className={clsx(
+                "bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden scale-100 animate-in zoom-in-95 duration-200 flex flex-col items-center",
+                isHighWarning && isDestructive && "ring-2 ring-rose-500/20"
+            )}>
                 <div className="p-6 text-center w-full flex flex-col items-center">
                     <div className={clsx(
-                        "w-14 h-14 rounded-full flex items-center justify-center mb-4 shrink-0",
-                        isDestructive ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"
+                        "rounded-full flex items-center justify-center mb-4 shrink-0 transition-all",
+                        isHighWarning ? "w-20 h-20 animate-pulse" : "w-14 h-14",
+                        isDestructive 
+                            ? isHighWarning 
+                                ? "bg-rose-100 text-rose-600 ring-8 ring-rose-50 shadow-lg shadow-rose-500/20" 
+                                : "bg-rose-100 text-rose-600"
+                            : "bg-amber-100 text-amber-600"
                     )}>
-                        <AlertTriangle size={28} />
+                        {icon || <AlertTriangle size={iconSize} strokeWidth={isHighWarning ? 2.5 : 2} />}
                     </div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">{title}</h3>
-                    <div className="text-sm text-slate-500 leading-relaxed mb-8 px-2 w-full text-center">
+                    <h3 className={clsx(
+                        "font-black text-slate-800 mb-2",
+                        isHighWarning ? "text-2xl" : "text-xl"
+                    )}>{title}</h3>
+                    <div className={clsx(
+                        "text-slate-500 leading-relaxed mb-4 px-2 w-full text-center",
+                        isHighWarning ? "text-base font-medium" : "text-sm"
+                    )}>
                         {message}
                     </div>
+                    
+                    {affectedItems && affectedItems.length > 0 && (
+                        <div className="w-full mb-6 px-4">
+                            <div className={clsx(
+                                "rounded-lg p-4 text-left",
+                                isDestructive 
+                                    ? "bg-rose-50 border border-rose-200" 
+                                    : "bg-amber-50 border border-amber-200"
+                            )}>
+                                <p className={clsx(
+                                    "text-xs font-black uppercase tracking-wider mb-2",
+                                    isDestructive ? "text-rose-700" : "text-amber-700"
+                                )}>
+                                    This will affect:
+                                </p>
+                                <ul className="space-y-1">
+                                    {affectedItems.map((item, index) => (
+                                        <li 
+                                            key={index} 
+                                            className={clsx(
+                                                "text-xs font-medium flex items-start gap-2",
+                                                isDestructive ? "text-rose-600" : "text-amber-600"
+                                            )}
+                                        >
+                                            <span className="mt-1">•</span>
+                                            <span>{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    )}
+                    
                     <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
                         <button
                             onClick={onClose}

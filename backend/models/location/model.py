@@ -41,8 +41,10 @@ class TbMLocation(Base, AuditMixin):
         comment="Type: PUSKESMAS | HOSPITAL | CLINIC",
     )
     address = Column(Text, nullable=False, comment="Full street address")
-    city = Column(String(100), nullable=True, comment="City")
-    province = Column(String(100), nullable=True, comment="Province")
+    province = Column(String(100), nullable=False, comment="Province")
+    city = Column(String(100), nullable=False, comment="City (Kota/Kabupaten)")
+    kecamatan = Column(String(100), nullable=True, comment="Kecamatan (District)")
+    kelurahan = Column(String(100), nullable=True, comment="Kelurahan/Desa (Village)")
     phone = Column(String(20), nullable=True, comment="Contact phone number")
     is_active = Column(
         Boolean,

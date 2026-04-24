@@ -2,18 +2,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped
 from sqlalchemy.sql import func
-from ..base import Base
+from ..base import Base, AuditMixin
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
     from ..location.model import TbMLocation
 
 
-class TbRUserLocation(Base):
-    """
-    Junction table linking Operators/Doctors to multiple locations.
-    Patients and Admins use a direct FK (single location only).
-    """
+class TbRUserLocation(Base, AuditMixin):
 
     __tablename__ = "tb_r_user_location"
 
@@ -53,10 +49,6 @@ class TbRUserLocation(Base):
         server_default=func.now(),
         nullable=False,
         comment="Timestamp of assignment",
-    )
-    created_by = Column(String(50), default="SYSTEM", nullable=False)
-    created_dt = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
     user: Mapped["TbMUser"] = relationship(

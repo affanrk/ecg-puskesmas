@@ -9,8 +9,9 @@ import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { validators } from '@/utils/validators';
 import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
-import ReviewSummaryTable from './ReviewSummaryTable';
+import ReviewSummaryTable from '../../../shared/ReviewSummaryTable';
 import { getActiveProfile } from '@/utils/helpers';
+import { userRoleOptions } from '@/data';
 
 interface EditUserModalProps {
     user: User;
@@ -283,7 +284,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                             <StandardInput label="Email Address" value={formData.email} onChange={e => handleFieldChange('email', e.target.value)} errorMessage={errors.email} placeholder="Email" />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={[{ value: 'user', label: 'User (Standard Account)' }, { value: 'patient', label: 'Patient' }, { value: 'operator', label: 'Operator (Nurse / General Doctor)' }, { value: 'doctor', label: 'Specialist (Doctor Specialist)' }]} />
+                            <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={userRoleOptions} />
                             <div className="flex items-end pb-5"><label className="flex items-center justify-between w-full p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors cursor-pointer group"><span className="text-[10px] font-black text-slate-500 uppercase tracking-wide ml-1">Account Active</span><div className={clsx("w-10 h-5 rounded-full relative transition-colors duration-200 shrink-0", formData.account_status === 'ACTIVE' ? "bg-emerald-500" : "bg-slate-200")}><input type="checkbox" className="sr-only" checked={formData.account_status === 'ACTIVE'} onChange={e => handleFieldChange('account_status', e.target.checked ? 'ACTIVE' : 'INACTIVE')} /><div className={clsx("absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform duration-200 shadow-sm", formData.account_status === 'ACTIVE' && "translate-x-5")} /></div></label></div>
                         </div>
                     </div>

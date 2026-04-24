@@ -15,7 +15,6 @@ class PatientDoctorRepository:
     def assign(
         self, patient_id: str, doctor_id: str, location_id: str, assigned_by: str
     ) -> TbRPatientDoctor:
-        """Explicitly assign a doctor to a patient at a given location."""
         logger.debug("[PatientDoctorRepository] Starting assign...")
         try:
             existing = (
@@ -62,7 +61,6 @@ class PatientDoctorRepository:
             raise DatabaseException("Database operation failed")
 
     def is_assigned(self, patient_id: str, doctor_id: str) -> bool:
-        """Guard check: Is this doctor actively assigned to this patient?"""
         return (
             self.db.query(TbRPatientDoctor)
             .filter(
@@ -77,7 +75,6 @@ class PatientDoctorRepository:
     def get_doctor_patients(
         self, doctor_id: str, location_id: Optional[str] = None
     ) -> List[TbRPatientDoctor]:
-        """Get all active patient assignments for a doctor (optionally by location)."""
         logger.debug("[PatientDoctorRepository] Starting get_doctor_patients...")
         try:
             query = self.db.query(TbRPatientDoctor).filter(
@@ -94,7 +91,6 @@ class PatientDoctorRepository:
             raise DatabaseException("Database operation failed")
 
     def get_patient_doctors(self, patient_id: str) -> List[TbRPatientDoctor]:
-        """Get all active doctors assigned to a patient."""
         logger.debug("[PatientDoctorRepository] Starting get_patient_doctors...")
         try:
             return (
@@ -112,7 +108,6 @@ class PatientDoctorRepository:
             raise DatabaseException("Database operation failed")
 
     def remove(self, patient_id: str, doctor_id: str, location_id: str) -> bool:
-        """Soft-delete: deactivate a patient-doctor assignment."""
         logger.debug("[PatientDoctorRepository] Starting remove...")
         try:
             link = (

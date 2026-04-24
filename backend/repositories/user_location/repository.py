@@ -19,7 +19,6 @@ class UserLocationRepository:
         assigned_by_id: str,
         is_primary: bool = False,
     ) -> TbRUserLocation:
-        """Assign a staff member (Operator/Doctor) to an additional location."""
         logger.debug("[UserLocationRepository] Starting assign...")
         try:
             existing = (
@@ -64,7 +63,6 @@ class UserLocationRepository:
             raise DatabaseException("Database operation failed")
 
     def get_user_locations(self, user_id: str) -> List[TbRUserLocation]:
-        """Get all locations for a specific staff member."""
         logger.debug("[UserLocationRepository] Starting get_user_locations...")
         try:
             return (
@@ -82,7 +80,6 @@ class UserLocationRepository:
             raise DatabaseException("Database operation failed")
 
     def get_location_staff(self, location_id: str) -> List[TbRUserLocation]:
-        """Get all staff assignments for a specific location (Admin use)."""
         logger.debug("[UserLocationRepository] Starting get_location_staff...")
         try:
             return (
@@ -97,7 +94,6 @@ class UserLocationRepository:
             raise DatabaseException("Database operation failed")
 
     def remove(self, user_id: str, location_id: str) -> bool:
-        """Remove a staff assignment. Cannot remove primary assignment directly."""
         logger.debug("[UserLocationRepository] Starting remove...")
         try:
             link = (
@@ -128,7 +124,6 @@ class UserLocationRepository:
             raise DatabaseException("Database operation failed")
 
     def set_primary(self, user_id: str, location_id: str) -> Optional[TbRUserLocation]:
-        """Set a different location as the primary for a staff member."""
         logger.debug("[UserLocationRepository] Starting set_primary...")
         try:
             self.db.query(TbRUserLocation).filter(
@@ -164,7 +159,6 @@ class UserLocationRepository:
             raise DatabaseException("Database operation failed")
 
     def is_user_at_location(self, user_id: str, location_id: str) -> bool:
-        """Check if a staff member is assigned to a given location."""
         return (
             self.db.query(TbRUserLocation)
             .filter(

@@ -44,8 +44,8 @@ class TbMAdmin(Base, AuditMixin):
     gender = Column(
         String(10), nullable=False, comment="Gender (L for Male, P for Female)"
     )
-    address = Column(String(255), nullable=False, comment="Residential address")
-    contact_number = Column(String(20), nullable=False, comment="Contact phone number")
+    address = Column(String(255), nullable=True, comment="Residential address")
+    contact_number = Column(String(20), nullable=True, comment="Contact phone number")
     status = Column(
         String(20),
         default="QUEUE",

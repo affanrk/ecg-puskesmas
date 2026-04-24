@@ -8,7 +8,8 @@ import SelectInput from '@/components/shared/SelectInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { validators } from '@/utils/validators';
 import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
-import ReviewSummaryTable from './ReviewSummaryTable';
+import ReviewSummaryTable from '../../../shared/ReviewSummaryTable';
+import { userRoleOptions } from '@/data';
 
 interface CreateUserModalProps {
     onClose: () => void;
@@ -60,9 +61,9 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         setServerError('');
 
         const payload: UserFormPayload = {
-            username: formData.username, 
-            email: formData.email, 
-            password: formData.password, 
+            username: formData.username,
+            email: formData.email,
+            password: formData.password,
             role: formData.role,
             account_status: formData.account_status,
             activation_status: formData.activation_status,
@@ -101,12 +102,12 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
         if (formData.role === 'patient') {
             const nameErr = validators.name(formData.full_name);
             if (nameErr) newErrors.full_name = nameErr;
-            
+
             const nikErr = validators.nik(formData.nik);
             if (nikErr) newErrors.nik = nikErr;
-            
+
             if (validators.required(formData.pob)) newErrors.pob = 'Required';
-            
+
             const dobErr = validators.dob(formData.dob);
             if (dobErr) newErrors.dob = dobErr;
         }
@@ -151,10 +152,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <StandardInput label="Password" type="password" value={formData.password} onChange={e => handleFieldChange('password', e.target.value)} errorMessage={errors.password} placeholder="Secure password" />
-                            <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={[
-                                { value: 'user', label: 'User (Standard Account)' }, { value: 'patient', label: 'Patient' },
-                                { value: 'operator', label: 'Operator (Nurse / General Doctor)' }, { value: 'doctor', label: 'Specialist (Doctor Specialist)' }
-                            ]} />
+                            <SelectInput label="Access Level" value={formData.role} onChange={e => handleFieldChange('role', e.target.value)} options={userRoleOptions} />
                         </div>
                     </div>
 
@@ -179,7 +177,7 @@ export default function CreateUserModal({ onClose, onSave }: CreateUserModalProp
                     <div className="pt-4 pb-6 -bottom-6 sticky bg-white z-10 border-t border-slate-50 mt-4">
                         {serverError && !Object.keys(errors).length && <p className="text-[10px] font-bold text-rose-500 text-center mb-2">{serverError}</p>}
                         <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer">
-                            {loading ? <><div className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-400 rounded-full animate-spin" /> Creating Account...</> : <><UserPlus size={16} /> Review & Create Account</>}
+                            {loading ? <><div className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-400 rounded-full animate-spin cursor-not-allowed" /> Creating Account...</> : <><UserPlus size={16} /> Review & Create Account</>}
                         </button>
                     </div>
                 </form>

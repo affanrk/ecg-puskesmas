@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import { genderOptions, medicalHistoryOptions, operatorRoleOptions } from '@/data';
 
 interface UserFormFieldsProps {
     formData: {
@@ -69,10 +70,7 @@ export function PatientIdentitySection({
                     label="Gender"
                     value={formData.gender}
                     onChange={(e) => handleFieldChange('gender', e.target.value)}
-                    options={[
-                        { value: 'L', label: 'Male' },
-                        { value: 'P', label: 'Female' }
-                    ]}
+                    options={genderOptions}
                 />
             </div>
 
@@ -99,9 +97,7 @@ export function PatientIdentitySection({
                 onChange={(e) => handleFieldChange('medical_history', e.target.value)}
                 options={[
                     { value: '', label: 'Select Condition (Optional)' },
-                    { value: 'Normal', label: 'Normal' },
-                    { value: 'Hipertensi', label: 'Hipertensi' },
-                    { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
+                    ...medicalHistoryOptions
                 ]}
             />
 
@@ -195,10 +191,7 @@ export function OperatorIdentitySection({
                     label="Gender"
                     value={formData.gender}
                     onChange={(e) => handleFieldChange('gender', e.target.value)}
-                    options={[
-                        { value: 'L', label: 'Male' },
-                        { value: 'P', label: 'Female' }
-                    ]}
+                    options={genderOptions}
                 />
             </div>
 
@@ -226,8 +219,7 @@ export function OperatorIdentitySection({
                     onChange={(e) => handleFieldChange('operator_role', e.target.value)}
                     options={[
                         { value: '', label: 'Select Role' },
-                        { value: 'Nurse', label: 'Nurse' },
-                        { value: 'Dokter Umum', label: 'General Practitioner' }
+                        ...operatorRoleOptions
                     ]}
                 />
                 <StandardInput

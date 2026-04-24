@@ -10,6 +10,7 @@ import { WalkinPatient, WalkinPatientPayload } from '@/types/user';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import { medicalHistoryOptions } from '@/data';
 
 interface PatientSelectorModalProps {
     isOpen: boolean;
@@ -442,9 +443,9 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
                                         className={inputCls(errors.medical_history)}
                                     >
                                         <option value="">Select Condition (Optional)</option>
-                                        <option value="Normal">Normal</option>
-                                        <option value="Hipertensi">Hipertensi</option>
-                                        <option value="Penyakit Jantung">Penyakit Jantung</option>
+                                        {medicalHistoryOptions.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
                                     </select>
                                 </Field>
                             </div>

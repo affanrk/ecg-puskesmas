@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship, Mapped
 from sqlalchemy.sql import func
-from ..base import Base
+from ..base import Base, AuditMixin
 
 if TYPE_CHECKING:
     from ..user.model import TbMUser
@@ -10,11 +10,7 @@ if TYPE_CHECKING:
     from ..location.model import TbMLocation
 
 
-class TbRPatientDoctor(Base):
-    """
-    Explicit assignment of a doctor to a patient at a specific location.
-    A Doctor only has access to patients listed in this table.
-    """
+class TbRPatientDoctor(Base, AuditMixin):
 
     __tablename__ = "tb_r_patient_doctor"
 
@@ -44,27 +40,23 @@ class TbRPatientDoctor(Base):
         index=True,
         comment="The location context of this assignment",
     )
-    assigned_by = Column(
-        String(30),
-        ForeignKey("tb_m_user.id", ondelete="SET NULL"),
-        nullable=True,
-        comment="Admin or Doctor who made the assignment",
-    )
     is_active = Column(
         Boolean,
         default=True,
         nullable=False,
         comment="Soft-delete: False means assignment was revoked",
     )
+    assigned_by = Column(
+        String(30),
+        ForeignKey("tb_m_user.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="Admin or Doctor who made the assignment",
+    )
     assigned_dt = Column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
         comment="When the assignment was created",
-    )
-    created_by = Column(String(50), default="SYSTEM", nullable=False)
-    created_dt = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
 
     patient: Mapped["TbMPatient"] = relationship(

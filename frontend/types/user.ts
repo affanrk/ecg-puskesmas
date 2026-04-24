@@ -194,8 +194,10 @@ export interface LocationResponse {
     name: string;
     location_type: string;
     address: string;
-    city?: string | null;
     province?: string | null;
+    city?: string | null;
+    kecamatan?: string | null;
+    kelurahan?: string | null;
     phone?: string | null;
     is_active: boolean;
     created_dt?: string | Date;
@@ -206,8 +208,10 @@ export interface LocationCreatePayload {
     name: string;
     location_type: string;
     address: string;
-    city?: string | null;
     province?: string | null;
+    city?: string | null;
+    kecamatan?: string | null;
+    kelurahan?: string | null;
     phone?: string | null;
 }
 
@@ -215,8 +219,10 @@ export interface LocationUpdatePayload {
     name?: string;
     location_type?: string;
     address?: string;
-    city?: string | null;
     province?: string | null;
+    city?: string | null;
+    kecamatan?: string | null;
+    kelurahan?: string | null;
     phone?: string | null;
     is_active?: boolean;
 }
@@ -231,3 +237,25 @@ export interface StaffLocationResponse {
     location?: LocationResponse;
 }
 
+export interface StaffLocationAssign {
+    location_id: string;
+    is_primary: boolean;
+}
+
+export interface PatientDoctorAssign {
+    doctor_id: string;
+    location_id: string;
+    notes?: string;
+}
+
+export interface PatientDoctorResponse {
+    id: string;
+    patient_id: string;
+    doctor_id: string;
+    location_id: string;
+    assigned_by?: string;
+    assigned_dt: string | Date;
+    notes?: string;
+    is_active: boolean;
+    doctor?: User;
+}

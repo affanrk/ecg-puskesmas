@@ -16,11 +16,6 @@ router = APIRouter()
 def get_public_locations(
     location_repo: LocationRepository = Depends(get_location_repository),
 ):
-    """
-    Public endpoint — no authentication required.
-    Returns active locations for the registration page dropdown.
-    The response is intentionally lightweight: id, name, location_type, city only.
-    """
     try:
         locations = location_repo.get_public_list()
         return GenericResponse(

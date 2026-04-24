@@ -440,6 +440,25 @@ export async function deactivateLocation(locationId: string) {
     }
 }
 
+export async function activateLocation(locationId: string) {
+    try {
+        const response = await axiosInstance.patch(`/superadmin/locations/${locationId}/activate`);
+        return response.data;
+    } catch (error) {
+        console.error("Activate Location Error:", error);
+        throw error;
+    }
+}
+
+export async function deleteLocation(locationId: string) {
+    try {
+        await axiosInstance.delete(`/superadmin/locations/${locationId}`);
+    } catch (error) {
+        console.error("Delete Location Error:", error);
+        throw error;
+    }
+}
+
 export async function fetchAdmins(filters: HistoryFilters = {}) {
     try {
         const response = await axiosInstance.get('/superadmin/admins', { params: filters });
@@ -472,12 +491,109 @@ export async function reassignAdminLocation(userId: string, locationId: string) 
     }
 }
 
+export async function activateAdmin(adminId: string) {
+    try {
+        const response = await axiosInstance.patch(`/superadmin/admins/${adminId}/activate`);
+        return response.data;
+    } catch (error) {
+        console.error("Activate Admin Error:", error);
+        throw error;
+    }
+}
+
+export async function deactivateAdmin(adminId: string) {
+    try {
+        const response = await axiosInstance.patch(`/superadmin/admins/${adminId}/deactivate`);
+        return response.data;
+    } catch (error) {
+        console.error("Deactivate Admin Error:", error);
+        throw error;
+    }
+}
+
+export async function deleteAdmin(adminId: string) {
+    try {
+        await axiosInstance.delete(`/superadmin/admins/${adminId}`);
+    } catch (error) {
+        console.error("Delete Admin Error:", error);
+        throw error;
+    }
+}
+
 export async function fetchSuperAdminUsers(filters: HistoryFilters = {}) {
     try {
         const response = await axiosInstance.get('/superadmin/users', { params: filters });
         return response.data;
     } catch (error) {
         console.error("Fetch SuperAdmin Users Error:", error);
+        throw error;
+    }
+}
+
+export async function fetchStaffLocations(staffId: string) {
+    try {
+        const response = await axiosInstance.get(`/admin/staff/${staffId}/locations`);
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Staff Locations Error:", error);
+        throw error;
+    }
+}
+
+export async function assignStaffLocation(staffId: string, data: { location_id: string; is_primary: boolean }) {
+    try {
+        const response = await axiosInstance.post(`/admin/staff/${staffId}/locations`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Assign Staff Location Error:", error);
+        throw error;
+    }
+}
+
+export async function removeStaffLocation(staffId: string, locationId: string) {
+    try {
+        await axiosInstance.delete(`/admin/staff/${staffId}/locations/${locationId}`);
+    } catch (error) {
+        console.error("Remove Staff Location Error:", error);
+        throw error;
+    }
+}
+
+export async function setStaffPrimaryLocation(staffId: string, locationId: string) {
+    try {
+        const response = await axiosInstance.patch(`/admin/staff/${staffId}/locations/${locationId}/primary`);
+        return response.data;
+    } catch (error) {
+        console.error("Set Staff Primary Location Error:", error);
+        throw error;
+    }
+}
+
+export async function fetchPatientDoctors(patientId: string) {
+    try {
+        const response = await axiosInstance.get(`/admin/patients/${patientId}/doctors`);
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Patient Doctors Error:", error);
+        throw error;
+    }
+}
+
+export async function assignPatientDoctor(patientId: string, data: { doctor_id: string; location_id: string }) {
+    try {
+        const response = await axiosInstance.post(`/admin/patients/${patientId}/doctors`, data);
+        return response.data;
+    } catch (error) {
+        console.error("Assign Patient Doctor Error:", error);
+        throw error;
+    }
+}
+
+export async function removePatientDoctor(patientId: string, doctorId: string) {
+    try {
+        await axiosInstance.delete(`/admin/patients/${patientId}/doctors/${doctorId}`);
+    } catch (error) {
+        console.error("Remove Patient Doctor Error:", error);
         throw error;
     }
 }
@@ -521,9 +637,21 @@ export const api = {
     createLocation,
     updateLocation,
     deactivateLocation,
+    activateLocation,
+    deleteLocation,
     fetchAdmins,
     createSuperAdminUser,
     reassignAdminLocation,
+    activateAdmin,
+    deactivateAdmin,
+    deleteAdmin,
     fetchSuperAdminUsers,
+    fetchStaffLocations,
+    assignStaffLocation,
+    removeStaffLocation,
+    setStaffPrimaryLocation,
+    fetchPatientDoctors,
+    assignPatientDoctor,
+    removePatientDoctor,
 };
 

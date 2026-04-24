@@ -7,6 +7,7 @@ from utils.helpers.validation import (
     validate_contact_number,
     validate_dob,
     validate_gender,
+    validate_required_string,
 )
 
 
@@ -54,6 +55,9 @@ class OperatorBase(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
+    _validate_str_number = field_validator("str_number")(validate_required_string)
+    _validate_operator_role = field_validator("operator_role")(validate_required_string)
 
 
 class OperatorCreate(OperatorBase):
@@ -124,6 +128,9 @@ class OperatorUpdate(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
+    _validate_str_number = field_validator("str_number")(validate_required_string)
+    _validate_operator_role = field_validator("operator_role")(validate_required_string)
 
 
 class OperatorResponse(OperatorBase):

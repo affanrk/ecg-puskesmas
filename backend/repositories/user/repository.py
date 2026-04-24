@@ -8,7 +8,6 @@ from sqlalchemy.exc import IntegrityError, DataError
 from models import (
     TbMUser,
     TbMPatient,
-    TbMAdmin,
     TbMOperator,
     TbMDoctor,
     TbRLogApproval,
@@ -297,23 +296,21 @@ class UserRepository(BaseRepository[TbMUser]):
             user_id = generate_custom_id("USR", "tb_m_user", self.db)
             password = data.pop("password")
             hashed_password = get_password_hash(password)
-            must_reset = int(data.pop("must_reset_password", 0))
-
-            role = data.get("role", "user")
 
             db_user = TbMUser(
                 id=user_id,
+                location_id=data.get("location_id", None),
                 email=data.get("email"),
                 username=data.get("username"),
                 hashed_password=hashed_password,
-                role=role,
+                role=data.get("role", "user"),
                 is_patient=data.get("is_patient", False),
                 is_doctor=data.get("is_doctor", False),
                 is_operator=data.get("is_operator", False),
                 is_active=data.get("is_active", 1),
                 is_activated=data.get("is_activated", 0),
                 created_by=data.get("source", "SYSTEM"),
-                must_reset_password=must_reset,
+                must_reset_password=int(data.pop("must_reset_password", 0)),
             )
             self.db.add(db_user)
             self.db.commit()
@@ -613,6 +610,128 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.rollback()
             logger.error(
                 f"[UserRepository] Unexpected error in cleanup_patient_data for user {user_id}: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def activate_user(self, user_id: str, changed_by: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting activate_user...")
+        try:
+            user = self.get(user_id)
+            if not user:
+                return None
+            setattr(user, "is_active", 1)
+            setattr(user, "changed_by", changed_by)
+            self.db.commit()
+            self.db.refresh(user)
+            logger.debug("[UserRepository] Successfully completed activate_user.")
+            return user
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"[UserRepository] Unexpected error in activate_user: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def deactivate_user(self, user_id: str, changed_by: str) -> Optional[TbMUser]:
+        logger.debug("[UserRepository] Starting deactivate_user...")
+        try:
+            user = self.get(user_id)
+            if not user:
+                return None
+            setattr(user, "is_active", 0)
+            setattr(user, "changed_by", changed_by)
+            self.db.commit()
+            self.db.refresh(user)
+            logger.debug("[UserRepository] Successfully completed deactivate_user.")
+            return user
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"[UserRepository] Unexpected error in deactivate_user: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def delete_with_profiles(self, user_id: str) -> bool:
+        logger.debug("[UserRepository] Starting delete_with_profiles...")
+        try:
+            from models import TbMAdmin
+
+            user = self.get(user_id)
+            if not user:
+                return False
+
+            logger.info(
+                f"[User] Initiating deletion of user {user_id} with all profiles"
+            )
+
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.user_id == user_id
+            )
+
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSession).filter(
+                TbREcgSession.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            if patient:
+                pat_session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                    TbREcgSession.patient_id == patient.id
+                )
+                self.db.query(TbRPerformanceLog).filter(
+                    TbRPerformanceLog.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSessionParameter).filter(
+                    TbREcgSessionParameter.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSession).filter(
+                    TbREcgSession.patient_id == patient.id
+                ).delete(synchronize_session=False)
+
+            self.db.query(TbRLogApproval).filter(
+                TbRLogApproval.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbMAdmin).filter(TbMAdmin.user_id == user_id).delete(
+                synchronize_session=False
+            )
+            self.db.query(TbMPatient).filter(TbMPatient.user_id == user_id).delete(
+                synchronize_session=False
+            )
+            self.db.query(TbMOperator).filter(TbMOperator.user_id == user_id).delete(
+                synchronize_session=False
+            )
+            self.db.query(TbMDoctor).filter(TbMDoctor.user_id == user_id).delete(
+                synchronize_session=False
+            )
+
+            self.db.delete(user)
+            self.db.commit()
+
+            logger.info(f"[User] User {user_id} and all profiles deleted successfully")
+            logger.debug(
+                "[UserRepository] Successfully completed delete_with_profiles."
+            )
+            return True
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[UserRepository] Unexpected error in delete_with_profiles: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")

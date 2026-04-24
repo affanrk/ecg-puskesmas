@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional, Any
-from datetime import date
-from models import TbMPatient, TbMOperator, TbMDoctor
+from datetime import date, datetime
+from models import TbMPatient, TbMOperator, TbMDoctor, TbMAdmin
 import re
 
 
@@ -21,6 +21,10 @@ def check_global_nik(
 
     d = db_session.query(TbMDoctor).filter(TbMDoctor.nik == nik).first()
     if d and d.user_id != current_user_id:
+        return True
+
+    a = db_session.query(TbMAdmin).filter(TbMAdmin.nik == nik).first()
+    if a and a.user_id != current_user_id:
         return True
 
     return False
@@ -53,6 +57,12 @@ def validate_contact_number(v: Optional[str]) -> Optional[str]:
 
 def validate_dob(v: Optional[date]) -> Optional[date]:
     if v is not None:
+        if isinstance(v, str):
+            try:
+                v = datetime.strptime(v, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("Invalid date format. Expected YYYY-MM-DD")
+
         if v > date.today():
             raise ValueError("Date of birth cannot be in the future")
     return v
@@ -70,6 +80,19 @@ def sanitize_string(v: Any) -> Any:
 
 def sanitize_email(v: Any) -> Any:
     return v.strip().lower() if isinstance(v, str) else v
+
+
+def validate_email(v: str) -> str:
+    v = v.strip().lower()
+    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", v):
+        raise ValueError("Invalid email format")
+    return v
+
+
+def validate_email_optional(v: Optional[str]) -> Optional[str]:
+    if v is None or (isinstance(v, str) and v.strip() == ""):
+        return None
+    return validate_email(v)
 
 
 def validate_username(v: Optional[str]) -> Optional[str]:
@@ -114,3 +137,9 @@ def blank_strings_to_none(data: Any) -> Any:
             if isinstance(v, str) and v.strip() == "":
                 data[k] = None
     return data
+
+
+def validate_required_string(v: str, info) -> str:
+    if not v or not v.strip():
+        raise ValueError(f"{info.field_name} is required and cannot be empty")
+    return v.strip()

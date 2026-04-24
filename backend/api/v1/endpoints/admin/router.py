@@ -41,7 +41,7 @@ from schemas.approval import ApprovalLogResponse
 from schemas.common import GenericResponse, MessageResponse, ApiStatus, PaginatedData
 from core.exceptions import AppException, DuplicateNIKException
 from models import TbMUser, TbRLogApproval, TbRUserLocation
-from utils import logger, generate_custom_id
+from utils import logger, generate_custom_id, check_global_nik
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -269,6 +269,7 @@ def create_user(
                 status_code=400,
                 detail={"message": "Username is already taken", "field": "username"},
             )
+
         if user_repo.find_by_email(user_in.email):
             raise HTTPException(
                 status_code=400,
@@ -283,16 +284,11 @@ def create_user(
         elif user_in.doctor_profile and user_in.doctor_profile.nik:
             nik_to_check = user_in.doctor_profile.nik
 
-        if nik_to_check:
-            if (
-                patient_repo.find_by_nik(nik_to_check)
-                or operator_repo.find_by_nik(nik_to_check)
-                or doctor_repo.find_by_nik(nik_to_check)
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail={"message": "NIK is already registered", "field": "nik"},
-                )
+        if nik_to_check and check_global_nik(user_repo.db, nik_to_check):
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "NIK is already registered", "field": "nik"},
+            )
 
         user_in.source = "ADMIN"
 
@@ -853,66 +849,144 @@ def delete_walkin_patient(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.post(
-    "/staff/{user_id}/invite",
-    response_model=GenericResponse[StaffLocationResponse],
+@router.get(
+    "/staff/{staff_id}/locations",
+    response_model=GenericResponse[List[StaffLocationResponse]],
 )
-def invite_staff_to_location(
-    user_id: str,
-    data: StaffLocationAssign,
-    current_user: TbMUser = Depends(get_admin_user),
+def get_staff_locations(
+    staff_id: str,
+    admin: TbMUser = Depends(get_admin_user),
     location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
     user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
 ):
-    """Invite an existing Doctor or Operator to work at this admin's location."""
     try:
-        if data.location_id != location_id:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
             raise HTTPException(
-                status_code=403, detail="You can only invite staff to your own location"
+                status_code=400, detail="User is not a staff member (operator/doctor)"
             )
 
-        target = user_repo.find_by_id(user_id)
-        if not target or not (target.is_operator or target.is_doctor):
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
             raise HTTPException(
-                status_code=400, detail="Target must be an active doctor or operator"
+                status_code=403, detail="Staff does not belong to your location"
             )
 
-        assignment = user_location_repo.assign(
-            user_id=user_id,
-            location_id=location_id,
-            assigned_by_id=str(current_user.id),
-            is_primary=bool(data.is_primary),
-        )
+        locations = user_location_repo.get_user_locations(staff_id)
         return GenericResponse(
             status=ApiStatus.SUCCESS,
-            data=assignment,
-            message="Staff assigned to this location successfully",
+            data=locations,
+            message="Staff locations retrieved successfully",
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in invite_staff_to_location: {e}"
-        )
+        logger.error(f"[AdminEndpoint] Unexpected error in get_staff_locations: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.delete("/staff/{user_id}/remove", response_model=MessageResponse)
-def remove_staff_from_location(
-    user_id: str,
-    current_user: TbMUser = Depends(get_admin_user),
+@router.post(
+    "/staff/{staff_id}/locations",
+    response_model=GenericResponse[StaffLocationResponse],
+)
+def assign_staff_location(
+    staff_id: str,
+    data: StaffLocationAssign,
+    admin: TbMUser = Depends(get_admin_user),
     location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
     user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
 ):
-    """Remove a doctor or operator from this admin's location."""
     try:
-        removed = user_location_repo.remove(user_id, location_id)
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="User is not a staff member (operator/doctor)"
+            )
+
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
+            raise HTTPException(
+                status_code=403, detail="Staff does not belong to your location"
+            )
+
+        if data.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="You can only assign staff to your own location"
+            )
+
+        assignment = user_location_repo.assign(
+            user_id=staff_id,
+            location_id=data.location_id,
+            assigned_by_id=str(admin.id),
+            is_primary=bool(data.is_primary),
+        )
+
+        logger.info(
+            f"Admin {admin.username} assigned staff {staff_id} to location {data.location_id}"
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignment,
+            message="Staff assigned to location successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in assign_staff_location: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete(
+    "/staff/{staff_id}/locations/{target_location_id}",
+    response_model=MessageResponse,
+)
+def remove_staff_location(
+    staff_id: str,
+    target_location_id: str,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    try:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="User is not a staff member (operator/doctor)"
+            )
+
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
+            raise HTTPException(
+                status_code=403, detail="Staff does not belong to your location"
+            )
+
+        locations = user_location_repo.get_user_locations(staff_id)
+        if len(locations) <= 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot remove last location assignment. Staff must have at least one location.",
+            )
+
+        removed = user_location_repo.remove(staff_id, target_location_id)
         if not removed:
             raise HTTPException(
                 status_code=404, detail="Staff location assignment not found"
             )
+
+        logger.info(
+            f"Admin {admin.username} removed staff {staff_id} from location {target_location_id}"
+        )
         return MessageResponse(
             status=ApiStatus.SUCCESS,
             message="Staff removed from location successfully",
@@ -920,8 +994,57 @@ def remove_staff_from_location(
     except (HTTPException, AppException):
         raise
     except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in remove_staff_location: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.patch(
+    "/staff/{staff_id}/locations/{target_location_id}/primary",
+    response_model=GenericResponse[StaffLocationResponse],
+)
+def set_staff_primary_location(
+    staff_id: str,
+    target_location_id: str,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    try:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="User is not a staff member (operator/doctor)"
+            )
+
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
+            raise HTTPException(
+                status_code=403, detail="Staff does not belong to your location"
+            )
+
+        updated = user_location_repo.set_primary(staff_id, target_location_id)
+        if not updated:
+            raise HTTPException(
+                status_code=404, detail="Staff location assignment not found"
+            )
+
+        logger.info(
+            f"Admin {admin.username} set location {target_location_id} as primary for staff {staff_id}"
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=updated,
+            message="Primary location updated successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
         logger.error(
-            f"[AdminEndpoint] Unexpected error in remove_staff_from_location: {e}"
+            f"[AdminEndpoint] Unexpected error in set_staff_primary_location: {e}"
         )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -966,16 +1089,29 @@ def assign_doctor_to_patient(
         if not doctor or not doctor.is_doctor:
             raise HTTPException(status_code=400, detail="Target is not a doctor")
 
+        if not doctor.is_active:
+            raise HTTPException(status_code=400, detail="Doctor is not active")
+
         if not user_location_repo.is_user_at_location(str(doctor.id), location_id):
             raise HTTPException(
                 status_code=400, detail="Doctor is not assigned to this location"
             )
+
+        old_assignments = patient_doctor_repo.get_patient_doctors(str(patient.id))
+        for old_assignment in old_assignments:
+            if old_assignment.is_active:
+                setattr(old_assignment, "is_active", False)
+        patient_doctor_repo.db.commit()
 
         assignment = patient_doctor_repo.assign(
             patient_id=str(patient.id),
             doctor_id=str(doctor.id),
             location_id=location_id,
             assigned_by=str(current_user.id),
+        )
+
+        logger.info(
+            f"Admin {current_user.username} assigned doctor {data.doctor_id} to patient {patient_id}"
         )
         return GenericResponse(
             status=ApiStatus.SUCCESS,

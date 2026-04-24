@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date, datetime
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, EmailStr
 from utils.helpers.validation import (
     validate_full_name,
     validate_nik,
@@ -8,6 +8,9 @@ from utils.helpers.validation import (
     validate_dob,
     validate_gender,
     validate_password_optional,
+    validate_username,
+    sanitize_email,
+    validate_required_string,
 )
 
 
@@ -51,6 +54,7 @@ class PatientBase(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
 
 
 class PatientCreate(PatientBase):
@@ -119,6 +123,7 @@ class PatientUpdate(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
 
 
 class PatientResponse(PatientBase):
@@ -185,6 +190,7 @@ class WalkinPatientCreate(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
 
 
 class WalkinPatientUpdate(BaseModel):
@@ -238,11 +244,13 @@ class WalkinPatientResponse(BaseModel):
 class ConvertWalkinRequest(BaseModel):
 
     username: str = Field(..., min_length=3, description="Username for the new account")
-    email: str = Field(..., description="Email for the new account")
+    email: EmailStr = Field(..., description="Email for the new account")
     password: Optional[str] = Field(
         default=None, description="Temporary password for the new account (optional)"
     )
 
+    _validate_username = field_validator("username")(validate_username)
+    _sanitize_email = field_validator("email", mode="before")(sanitize_email)
     _validate_password = field_validator("password")(validate_password_optional)
 
     model_config = ConfigDict(

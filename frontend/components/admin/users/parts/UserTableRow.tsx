@@ -7,14 +7,17 @@ interface UserTableRowProps {
     user: User;
     onEdit: (u: User) => void;
     onDelete: (u: User) => void;
+    onViewDetails?: (u: User) => void;
 }
 
 export const UserTableRow = memo(({
     user,
     onEdit,
-    onDelete
+    onDelete,
+    onViewDetails
 }: UserTableRowProps) => {
     const fullName = (getActiveProfile(user)?.full_name || "") || user.username;
+    const isPatient = user.is_patient || user.role === 'patient';
     
     return (
         <tr className="hover:bg-rose-50/30 transition-colors group h-[48px]">
@@ -70,6 +73,15 @@ export const UserTableRow = memo(({
             </td>
             <td className="px-5 whitespace-nowrap text-right pr-6">
                 <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isPatient && onViewDetails && (
+                        <button
+                            onClick={() => onViewDetails(user)}
+                            className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all active:scale-[0.98] border border-purple-100/50 cursor-pointer"
+                            title="View Patient Details"
+                        >
+                            Details
+                        </button>
+                    )}
                     <button
                         onClick={() => onEdit(user)}
                         className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-[0.98] border border-blue-100/50 cursor-pointer"

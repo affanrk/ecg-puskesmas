@@ -13,6 +13,7 @@ import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import EditUserModal from '@/components/admin/users/parts/EditUserModal';
 import CreateUserModal from '@/components/admin/users/parts/CreateUserModal';
 import WalkinPatientModal from '@/components/admin/users/parts/WalkinPatientModal';
+import PatientDetailModal from '@/components/admin/users/parts/PatientDetailModal';
 import { parseApiError } from '@/utils/helpers';
 import { useToast } from '@/hooks/useToast';
 import { useStore } from '@/store/useStore';
@@ -35,6 +36,7 @@ export default function UserManagementPage() {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [editingWalkin, setEditingWalkin] = useState<User | null>(null);
+    const [viewingPatient, setViewingPatient] = useState<User | null>(null);
     const [deletingUser, setDeletingUser] = useState<User | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isCreatingUser, setIsCreatingUser] = useState(false);
@@ -202,6 +204,11 @@ export default function UserManagementPage() {
         }
     }, []);
     const handleSetDeletingUser = useCallback((u: User) => setDeletingUser(u), []);
+    const handleSetViewingPatient = useCallback((u: User) => {
+        if (u.is_patient || u.role === 'patient') {
+            setViewingPatient(u);
+        }
+    }, []);
 
     return (
         <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
@@ -259,6 +266,7 @@ export default function UserManagementPage() {
                         setCurrentPage={setPage}
                         onEdit={handleSetEditingUser}
                         onDelete={handleSetDeletingUser}
+                        onViewDetails={handleSetViewingPatient}
                     />
                 )}
             </div>
@@ -284,6 +292,14 @@ export default function UserManagementPage() {
                 <CreateUserModal
                     onClose={() => setIsCreatingUser(false)}
                     onSave={handleCreate}
+                />
+            )}
+
+            {viewingPatient && (
+                <PatientDetailModal
+                    patientId={viewingPatient.id as string}
+                    onClose={() => setViewingPatient(null)}
+                    onUpdate={fetchUsers}
                 />
             )}
 

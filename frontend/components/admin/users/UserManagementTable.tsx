@@ -17,6 +17,7 @@ interface UserManagementTableProps {
     setCurrentPage: (page: number) => void;
     onEdit: (user: User) => void;
     onDelete: (user: User) => void;
+    onViewDetails?: (user: User) => void;
 }
 
 export default function UserManagementTable({
@@ -26,7 +27,8 @@ export default function UserManagementTable({
     currentPage,
     setCurrentPage,
     onEdit,
-    onDelete
+    onDelete,
+    onViewDetails
 }: UserManagementTableProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const totalPages = Math.ceil(users.length / rowsPerPage) || 1;
@@ -89,6 +91,7 @@ export default function UserManagementTable({
                                     user={user}
                                     onEdit={onEdit}
                                     onDelete={onDelete}
+                                    onViewDetails={onViewDetails}
                                 />
                             ))}
                         </tbody>

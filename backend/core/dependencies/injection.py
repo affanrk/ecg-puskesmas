@@ -273,7 +273,6 @@ async def get_admin_user(
 async def get_superadmin_user(
     current_user: TbMUser = Depends(get_current_active_user),
 ) -> TbMUser:
-    """Singleton SuperAdmin gate — only role='superadmin' passes."""
     logger.debug("[injection/None] Starting get_superadmin_user...")
     try:
         if current_user.role != "superadmin":
@@ -292,7 +291,6 @@ async def get_superadmin_user(
 def get_admin_location(
     current_user: TbMUser = Depends(get_admin_user),
 ) -> str:
-    """Extracts the admin's assigned location_id for all data-scoped queries."""
     logger.debug("[injection/None] Starting get_admin_location...")
     try:
         admin_profile = getattr(current_user, "admin_profile", None)

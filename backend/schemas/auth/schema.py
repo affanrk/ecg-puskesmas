@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict, EmailStr
 from utils.helpers.validation import sanitize_string
 
 
@@ -42,7 +42,7 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    email: Optional[str] = Field(default=None, description="The email of the user")
+    email: Optional[EmailStr] = Field(default=None, description="The email of the user")
     username: Optional[str] = Field(
         default=None, description="The username of the user"
     )

@@ -7,6 +7,7 @@ from utils.helpers.validation import (
     validate_contact_number,
     validate_dob,
     validate_gender,
+    validate_required_string,
 )
 
 
@@ -58,6 +59,10 @@ class DoctorBase(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
+    _validate_str_number = field_validator("str_number")(validate_required_string)
+    _validate_sip_number = field_validator("sip_number")(validate_required_string)
+    _validate_specialty = field_validator("specialty")(validate_required_string)
 
 
 class DoctorCreate(DoctorBase):
@@ -137,6 +142,10 @@ class DoctorUpdate(BaseModel):
     )
     _validate_dob = field_validator("dob")(validate_dob)
     _validate_gender = field_validator("gender")(validate_gender)
+    _validate_pob = field_validator("pob")(validate_required_string)
+    _validate_str_number = field_validator("str_number")(validate_required_string)
+    _validate_sip_number = field_validator("sip_number")(validate_required_string)
+    _validate_specialty = field_validator("specialty")(validate_required_string)
 
 
 class DoctorResponse(DoctorBase):

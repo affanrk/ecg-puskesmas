@@ -7,8 +7,9 @@ import StandardInput from '@/components/shared/StandardInput';
 import SelectInput from '@/components/shared/SelectInput';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from './ReviewSummaryTable';
+import ReviewSummaryTable from '../../../shared/ReviewSummaryTable';
 import { validators } from '@/utils/validators';
+import { genderOptions, medicalHistoryOptions } from '@/data';
 
 interface WalkinPatientModalProps {
     patient: User;
@@ -265,10 +266,7 @@ export default function WalkinPatientModal({ patient, onClose, onSave, onConvert
                                             label="Gender"
                                             value={formData.gender}
                                             onChange={e => handleFieldChange('gender', e.target.value)}
-                                            options={[
-                                                { value: 'L', label: 'Male (Laki-laki)' },
-                                                { value: 'P', label: 'Female (Perempuan)' }
-                                            ]}
+                                            options={genderOptions}
                                         />
                                     </div>
 
@@ -310,9 +308,7 @@ export default function WalkinPatientModal({ patient, onClose, onSave, onConvert
                                         onChange={e => handleFieldChange('medical_history', e.target.value)}
                                         options={[
                                             { value: '', label: 'Select Condition (Optional)' },
-                                            { value: 'Normal', label: 'Normal' },
-                                            { value: 'Hipertensi', label: 'Hipertensi' },
-                                            { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
+                                            ...medicalHistoryOptions
                                         ]}
                                     />
                                 </div>

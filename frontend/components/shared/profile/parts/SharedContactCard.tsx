@@ -6,6 +6,7 @@ import SelectInput from '@/components/shared/SelectInput';
 import clsx from 'clsx';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
+import { medicalHistoryOptions, doctorSpecialtyOptions } from '@/data';
 
 interface SharedContactCardProps {
     isLocked: boolean;
@@ -68,9 +69,7 @@ export default function SharedContactCard({
                             disabled={!canEditMedical}
                             options={[
                                 { value: '', label: 'Select Condition (Optional)' },
-                                { value: 'Normal', label: 'Normal' },
-                                { value: 'Hipertensi', label: 'Hipertensi' },
-                                { value: 'Penyakit Jantung', label: 'Penyakit Jantung' }
+                                ...medicalHistoryOptions
                             ]}
                         />
                     </div>
@@ -86,8 +85,7 @@ export default function SharedContactCard({
                             errorMessage={errors.specialty}
                             options={[
                                 { value: '', label: 'Select Specialty' },
-                                { value: 'Sp.JP - Spesialis Jantung dan Pembuluh Darah', label: 'Sp.JP (Cardiologist)' },
-                                { value: 'Sp.PD - Spesialis Penyakit Dalam', label: 'Sp.PD (Internist)' }
+                                ...doctorSpecialtyOptions
                             ]}
                         />
                     </div>

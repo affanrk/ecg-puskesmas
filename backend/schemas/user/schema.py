@@ -11,8 +11,15 @@ from pydantic import (
 from utils.helpers.validation import (
     validate_username,
     validate_password,
+    validate_password_optional,
+    validate_full_name,
+    validate_nik,
+    validate_contact_number,
+    validate_gender,
+    validate_dob,
     sanitize_email,
     blank_strings_to_none,
+    validate_required_string,
 )
 from ..patient.schema import PatientCreate, PatientUpdate, PatientResponse
 from ..operator.schema import OperatorCreate, OperatorUpdate, OperatorResponse
@@ -119,12 +126,33 @@ class UserApprovalUpdate(BaseModel):
     )
 
 
-class UserAdminCreate(UserCreate):
+class UserAdminCreate(UserBase):
+    password: Optional[str] = Field(
+        default=None,
+        description="User's password (defaults to 'admin1234' if not provided)",
+    )
+    role: Optional[str] = Field(default="admin", description="User's role")
+    location_id: Optional[str] = Field(
+        default=None,
+        description="Location ID of the Puskesmas/Hospital user registers under",
+    )
+    source: Optional[str] = Field(
+        default="SUPERADMIN", description="Source of the registration request"
+    )
     account_status: Optional[str] = Field(
         default="ACTIVE", description="Account status"
     )
     activation_status: Optional[str] = Field(
         default="APPROVE", description="Activation status"
+    )
+    full_name: str = Field(..., description="Admin's full name")
+    nik: str = Field(..., description="Admin's NIK (16 digits)")
+    pob: str = Field(..., description="Place of birth")
+    dob: str = Field(..., description="Date of birth (YYYY-MM-DD)")
+    gender: str = Field(..., description="Gender (L for Male, P for Female)")
+    address: Optional[str] = Field(default=None, description="Residential address")
+    contact_number: Optional[str] = Field(
+        default=None, description="Contact phone number"
     )
 
     patient_profile: Optional[PatientCreate] = Field(
@@ -137,14 +165,32 @@ class UserAdminCreate(UserCreate):
         default=None, description="Doctor profile details"
     )
 
+    _validate_password = field_validator("password")(validate_password_optional)
+    _validate_full_name = field_validator("full_name")(validate_full_name)
+    _validate_nik = field_validator("nik")(validate_nik)
+    _validate_contact_number = field_validator("contact_number")(
+        validate_contact_number
+    )
+    _validate_gender = field_validator("gender")(validate_gender)
+    _validate_dob = field_validator("dob")(validate_dob)
+    _validate_pob = field_validator("pob")(validate_required_string)
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "email": "admin@example.com (Required)",
                 "username": "admin123 (Required)",
-                "password": "SecurePassword123! (Required)",
+                "password": "SecurePassword123! (Optional - defaults to 'admin1234')",
+                "full_name": "Dr. John Doe (Required)",
+                "nik": "3201234567890123 (Required)",
+                "pob": "Jakarta (Required)",
+                "dob": "1990-01-15 (Required)",
+                "gender": "L (Required)",
+                "address": "Jl. Merdeka No. 123 (Optional)",
+                "contact_number": "081234567890 (Optional)",
+                "location_id": "LOC20260420000001 (Required)",
                 "role": "admin (Optional)",
-                "source": "WEB (Optional)",
+                "source": "SUPERADMIN (Optional)",
                 "account_status": "ACTIVE (Optional)",
                 "activation_status": "APPROVE (Optional)",
             }
@@ -183,13 +229,7 @@ class UserAdminUpdate(BaseModel):
     )
 
     _validate_username = field_validator("username")(validate_username)
-
-    @field_validator("email")
-    @classmethod
-    def validate_email(cls, v: Optional[EmailStr]) -> Optional[str]:
-        if v is None:
-            return v
-        return v.strip().lower()
+    _sanitize_email = field_validator("email", mode="before")(sanitize_email)
 
 
 class UserResponse(UserBase):

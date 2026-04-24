@@ -29,6 +29,7 @@ export default function SelectInput({ label, value, onChange, options, disabled 
                 errorMessage ? "text-rose-500" : (isValidAndFilled ? "text-emerald-500" : "text-slate-400")
             )}>
                 {label}
+                {required && <span className="text-rose-500 ml-1">*</span>}
             </label>
             <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
                 <select 
