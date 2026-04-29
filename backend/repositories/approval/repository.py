@@ -2,19 +2,57 @@ import traceback
 from typing import List, Optional
 from sqlalchemy.orm import Session, contains_eager
 from sqlalchemy import or_
+from datetime import datetime
+import pytz
 
 from models import TbRLogApproval, TbMPatient, TbMUser
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
 from utils import logger
-from core import AppException, DatabaseException
+from core import AppException, DatabaseException, settings
 
 
 class ApprovalRepository(BaseRepository[TbRLogApproval]):
     def __init__(self, db: Session):
         super().__init__(TbRLogApproval, db)
 
-    def list_logs(
+    def create_approval_log(
+        self,
+        user_id: str,
+        status: str,
+        reason: Optional[str] = None,
+        source: str = "ADMIN",
+    ) -> TbRLogApproval:
+        logger.debug("[ApprovalRepository] Starting create_approval_log...")
+        try:
+            log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
+            log = TbRLogApproval(
+                id=log_id,
+                user_id=user_id,
+                status=status,
+                reason=reason,
+                created_by=source,
+            )
+            self.db.add(log)
+            self.db.commit()
+            self.db.refresh(log)
+            logger.info(
+                f"[Approval] Created approval log for user {user_id} with status {status}"
+            )
+            logger.debug(
+                "[ApprovalRepository] Successfully completed create_approval_log."
+            )
+            return log
+        except AppException:
+            raise
+        except Exception as e:
+            logger.error(
+                f"[ApprovalRepository] Unexpected error in create_approval_log: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_all(
         self,
         skip: int = 0,
         limit: int = 100,
@@ -26,7 +64,7 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
         is_doctor: Optional[bool] = None,
         location_id: Optional[str] = None,
     ) -> List[TbRLogApproval]:
-        logger.debug("[ApprovalRepository] Starting list_logs...")
+        logger.debug("[ApprovalRepository] Starting list_all...")
         try:
             query = self.db.query(TbRLogApproval)
 
@@ -44,11 +82,15 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
                 )
 
             if start_date:
-                query = query.filter(TbRLogApproval.created_dt >= start_date)
+                jakarta_tz = pytz.timezone(settings.TIMEZONE)
+                start_dt = jakarta_tz.localize(datetime.strptime(start_date, '%Y-%m-%d'))
+                start_dt_utc = start_dt.astimezone(pytz.UTC)
+                query = query.filter(TbRLogApproval.created_dt >= start_dt_utc)
             if end_date:
-                query = query.filter(
-                    TbRLogApproval.created_dt <= f"{end_date} 23:59:59"
-                )
+                jakarta_tz = pytz.timezone(settings.TIMEZONE)
+                end_dt = jakarta_tz.localize(datetime.strptime(f"{end_date} 23:59:59", '%Y-%m-%d %H:%M:%S'))
+                end_dt_utc = end_dt.astimezone(pytz.UTC)
+                query = query.filter(TbRLogApproval.created_dt <= end_dt_utc)
 
             if is_patient is not None:
                 query = query.filter(TbMUser.is_patient == is_patient)
@@ -66,43 +108,11 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
                 .limit(limit)
                 .all()
             )
-            logger.debug("[ApprovalRepository] Successfully completed list_logs.")
+            logger.debug("[ApprovalRepository] Successfully completed list_all.")
             return result
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"[ApprovalRepository] Unexpected error in list_logs: {e}")
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def create_log(
-        self,
-        user_id: str,
-        status: str,
-        reason: Optional[str] = None,
-        source: str = "ADMIN",
-    ) -> TbRLogApproval:
-        logger.debug("[ApprovalRepository] Starting create_log...")
-        try:
-            log_id = generate_custom_id("APP", "tb_r_log_approval", self.db)
-            log = TbRLogApproval(
-                id=log_id,
-                user_id=user_id,
-                status=status,
-                reason=reason,
-                created_by=source,
-            )
-            self.db.add(log)
-            self.db.commit()
-            self.db.refresh(log)
-            logger.info(
-                f"[Approval] Created approval log for user {user_id} with status {status}"
-            )
-            logger.debug("[ApprovalRepository] Successfully completed create_log.")
-            return log
-        except AppException:
-            raise
-        except Exception as e:
-            logger.error(f"[ApprovalRepository] Unexpected error in create_log: {e}")
+            logger.error(f"[ApprovalRepository] Unexpected error in list_all: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")

@@ -83,7 +83,7 @@ async def get_calendar_view(
 ):
     try:
         user_id = enforce_data_access(user_id, current_user)
-        nodes = calendar_repo.get_nodes(user_id, year, month, day, hour, minute)
+        nodes = calendar_repo.list_nodes(user_id, year, month, day, hour, minute)
 
         level = CalendarLevel.YEAR
         if year is None:
@@ -194,7 +194,7 @@ async def get_recent_history(
 ):
     try:
         enforced_id = enforce_data_access(user_id, current_user)
-        sessions = session_repo.get_recent_sessions(
+        sessions = session_repo.list_recent_sessions(
             user_id=str(enforced_id), limit=limit
         )
         data = [_map_session_to_response(session) for session in sessions]

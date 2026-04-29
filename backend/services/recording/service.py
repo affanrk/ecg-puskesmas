@@ -167,7 +167,7 @@ class RecordingStorageService:
                 for i in range(0, len(web_items), DB_BATCH_CHUNK_SIZE):
                     chunk = web_items[i : i + DB_BATCH_CHUNK_SIZE]
                     try:
-                        inserted = raw_repo.bulk_insert_dicts(chunk)
+                        inserted = raw_repo.create_raw_data_bulk(chunk)
                         logger.debug(
                             f"[RecordingStorageService] Inserted {inserted} WEB 5-leads ECG samples "
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
@@ -188,7 +188,7 @@ class RecordingStorageService:
                 for i in range(0, len(mobile_items), DB_BATCH_CHUNK_SIZE):
                     chunk = mobile_items[i : i + DB_BATCH_CHUNK_SIZE]
                     try:
-                        inserted = mobile_repo.bulk_insert_dicts(chunk)
+                        inserted = mobile_repo.create_raw_data_bulk(chunk)
                         logger.debug(
                             f"[RecordingStorageService] Inserted {inserted} MOBILE 5-leads ECG samples "
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
@@ -245,7 +245,7 @@ class RecordingStorageService:
                 for i in range(0, len(web_items), DB_BATCH_CHUNK_SIZE):
                     chunk = web_items[i : i + DB_BATCH_CHUNK_SIZE]
                     try:
-                        inserted = raw_repo.bulk_insert_dicts(chunk)
+                        inserted = raw_repo.create_raw_data_bulk(chunk)
                         logger.debug(
                             f"[RecordingStorageService] Inserted {inserted} WEB 12-leads ECG samples "
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
@@ -266,7 +266,7 @@ class RecordingStorageService:
                 for i in range(0, len(mobile_items), DB_BATCH_CHUNK_SIZE):
                     chunk = mobile_items[i : i + DB_BATCH_CHUNK_SIZE]
                     try:
-                        inserted = mobile_repo.bulk_insert_dicts(chunk)
+                        inserted = mobile_repo.create_raw_data_bulk(chunk)
                         logger.debug(
                             f"[RecordingStorageService] Inserted {inserted} MOBILE 12-leads ECG samples "
                             f"(chunk {i // DB_BATCH_CHUNK_SIZE + 1})"
@@ -304,7 +304,7 @@ class RecordingStorageService:
             perf_repo = PerformanceRepository(db)
 
             try:
-                inserted = perf_repo.bulk_insert_logs(items)
+                inserted = perf_repo.create_performance_logs(items)
                 logger.debug(
                     f"[RecordingStorageService] Inserted {inserted} performance logs"
                 )

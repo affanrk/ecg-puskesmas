@@ -48,7 +48,7 @@ def get_patient_dashboard(
             else str(current_user.username)
         )
 
-        sessions = session_repo.get_recent_sessions(
+        sessions = session_repo.list_recent_sessions(
             user_id=str(current_user.id), limit=10
         )
         recent_records = [_map_session_to_response(session) for session in sessions]
@@ -88,7 +88,7 @@ def create_patient_profile(
                 status_code=400, detail="Patient profile already exists"
             )
 
-        patient_repo.create_profile(
+        patient_repo.create_patient(
             profile_in, str(current_user.id), source=str(profile_in.source)
         )
         updated_user = user_repo.find_by_id(str(current_user.id))
@@ -115,7 +115,7 @@ def update_patient_profile(
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
-        patient_repo.update_by_user_id(str(current_user.id), profile_in)
+        patient_repo.update_patient(str(current_user.id), profile_in)
         updated_user = user_repo.find_by_id(str(current_user.id))
 
         if not updated_user:

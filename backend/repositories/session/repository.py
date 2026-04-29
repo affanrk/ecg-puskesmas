@@ -17,15 +17,6 @@ class SessionRepository(BaseRepository[TbREcgSession]):
     def __init__(self, db: Session):
         super().__init__(TbREcgSession, db)
 
-    def _get_local_dt(self):
-        return TbREcgSession.changed_dt.op("AT TIME ZONE")(settings.TIMEZONE)
-
-    def _operator_created_filter(self, operator_id: str):
-        return or_(
-            TbREcgSession.created_by == operator_id,
-            TbREcgSession.created_by.like(f"{operator_id} -%"),
-        )
-
     def find_by_recording_id(self, recording_id: str) -> Optional[TbREcgSession]:
         logger.debug("[SessionRepository] Starting find_by_recording_id...")
         try:
@@ -67,213 +58,6 @@ class SessionRepository(BaseRepository[TbREcgSession]):
         except Exception as e:
             logger.error(
                 f"[SessionRepository] Unexpected error in find_by_recording_id_or_fail: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def list_by_device(self, device_id: str, limit: int = 100) -> List[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting list_by_device...")
-        try:
-            result = (
-                self.db.query(TbREcgSession)
-                .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                    joinedload(TbREcgSession.patient),
-                    selectinload(TbREcgSession.parameters),
-                )
-                .filter(TbREcgSession.device_id == device_id)
-                .order_by(desc(TbREcgSession.changed_dt))
-                .limit(limit)
-                .all()
-            )
-            logger.debug("[SessionRepository] Successfully completed list_by_device.")
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(f"[SessionRepository] Unexpected error in list_by_device: {e}")
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def list_by_user(self, user_id: str, limit: int = 100) -> List[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting list_by_user...")
-        try:
-            result = (
-                self.db.query(TbREcgSession)
-                .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                    joinedload(TbREcgSession.patient),
-                    selectinload(TbREcgSession.parameters),
-                )
-                .filter(
-                    or_(
-                        TbREcgSession.user_id == user_id,
-                        TbREcgSession.patient_id == user_id,
-                    )
-                )
-                .order_by(desc(TbREcgSession.changed_dt))
-                .limit(limit)
-                .all()
-            )
-            logger.debug("[SessionRepository] Successfully completed list_by_user.")
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(f"[SessionRepository] Unexpected error in list_by_user: {e}")
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def get_recent_sessions(self, user_id: str, limit: int) -> List[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting get_recent_sessions...")
-        try:
-            result = (
-                self.db.query(self.model)
-                .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                    joinedload(TbREcgSession.patient),
-                    selectinload(TbREcgSession.parameters),
-                )
-                .filter(
-                    or_(
-                        self.model.user_id == user_id, self.model.patient_id == user_id
-                    ),
-                    self.model.classification_result
-                    != ECGClassification.RECORDING.value,
-                )
-                .order_by(desc(self.model.changed_dt))
-                .limit(limit)
-                .all()
-            )
-            logger.debug(
-                "[SessionRepository] Successfully completed get_recent_sessions."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in get_recent_sessions: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def search_sessions(
-        self,
-        search_query: Optional[str] = None,
-        device_id: Optional[str] = None,
-        user_id: Optional[str] = None,
-        classification: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: int = 200,
-    ) -> List[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting search_sessions...")
-        try:
-            query = self.db.query(TbREcgSession).options(
-                joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                joinedload(TbREcgSession.patient),
-                selectinload(TbREcgSession.parameters),
-            )
-
-            if device_id:
-                query = query.filter(TbREcgSession.device_id == device_id)
-            if user_id:
-                query = query.filter(
-                    or_(
-                        TbREcgSession.user_id == user_id,
-                        TbREcgSession.patient_id == user_id,
-                    )
-                )
-            if classification:
-                query = query.filter(
-                    TbREcgSession.classification_result == classification
-                )
-
-            if search_query:
-                query = query.outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
-                query = query.outerjoin(
-                    TbMPatient,
-                    or_(
-                        TbREcgSession.patient_id == TbMPatient.id,
-                        TbMUser.id == TbMPatient.user_id,
-                    ),
-                )
-
-                keywords = search_query.split()
-                for kw in keywords:
-                    pattern = f"%{kw}%"
-                    query = query.filter(
-                        or_(
-                            TbMPatient.full_name.ilike(pattern),
-                            TbMUser.username.ilike(pattern),
-                            TbREcgSession.device_id.ilike(pattern),
-                        )
-                    )
-
-            local_dt = self._get_local_dt()
-            if start_date:
-                if "T" not in start_date:
-                    start_date = f"{start_date} 00:00:00"
-                query = query.filter(local_dt >= start_date)
-
-            if end_date:
-                if "T" not in end_date:
-                    end_date = f"{end_date} 23:59:59"
-                query = query.filter(local_dt <= end_date)
-
-            result = query.order_by(desc(TbREcgSession.changed_dt)).limit(limit).all()
-            logger.debug("[SessionRepository] Successfully completed search_sessions.")
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in search_sessions: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def get_classification_stats(self, user_id: Optional[str] = None) -> Dict:
-        logger.debug("[SessionRepository] Starting get_classification_stats...")
-        try:
-            query = self.db.query(TbREcgSession)
-            if user_id:
-                query = query.filter(
-                    or_(
-                        TbREcgSession.user_id == user_id,
-                        TbREcgSession.patient_id == user_id,
-                    )
-                )
-
-            total_sessions = query.count()
-
-            classification_counts = (
-                query.group_by(TbREcgSession.classification_result)
-                .with_entities(
-                    TbREcgSession.classification_result,
-                    func.count(TbREcgSession.classification_result),
-                )
-                .all()
-            )
-
-            counts_list = [
-                {"classification": c, "count": cnt} for c, cnt in classification_counts
-            ]
-
-            result = {
-                "total_sessions": total_sessions,
-                "classification_counts": counts_list,
-            }
-            logger.debug(
-                "[SessionRepository] Successfully completed get_classification_stats."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in get_classification_stats: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
@@ -424,6 +208,404 @@ class SessionRepository(BaseRepository[TbREcgSession]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
+    def list_by_device(self, device_id: str, limit: int = 100) -> List[TbREcgSession]:
+        logger.debug("[SessionRepository] Starting list_by_device...")
+        try:
+            result = (
+                self.db.query(TbREcgSession)
+                .options(
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
+                    selectinload(TbREcgSession.parameters),
+                )
+                .filter(TbREcgSession.device_id == device_id)
+                .order_by(desc(TbREcgSession.changed_dt))
+                .limit(limit)
+                .all()
+            )
+            logger.debug("[SessionRepository] Successfully completed list_by_device.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[SessionRepository] Unexpected error in list_by_device: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_by_user(self, user_id: str, limit: int = 100) -> List[TbREcgSession]:
+        logger.debug("[SessionRepository] Starting list_by_user...")
+        try:
+            result = (
+                self.db.query(TbREcgSession)
+                .options(
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
+                    selectinload(TbREcgSession.parameters),
+                )
+                .filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
+                .order_by(desc(TbREcgSession.changed_dt))
+                .limit(limit)
+                .all()
+            )
+            logger.debug("[SessionRepository] Successfully completed list_by_user.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[SessionRepository] Unexpected error in list_by_user: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_recent_arrhythmia_notifications(
+        self, operator_id: str, limit: int = 20
+    ) -> List[TbREcgSession]:
+        logger.debug(
+            "[SessionRepository] Starting list_recent_arrhythmia_notifications..."
+        )
+        try:
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "sangat berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
+
+            raw_sessions = (
+                self.db.query(TbREcgSession)
+                .options(
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
+                )
+                .filter(
+                    self._operator_created_filter(operator_id),
+                    TbREcgSession.classification_result
+                    != ECGClassification.RECORDING.value,
+                    arrhythmia_filter,
+                )
+                .order_by(desc(TbREcgSession.changed_dt))
+                .all()
+            )
+
+            unique_patients = set()
+            result = []
+            for s in raw_sessions:
+                pid = str(s.patient_id or s.user_id)
+                if pid not in unique_patients:
+                    unique_patients.add(pid)
+                    result.append(s)
+                    if len(result) >= limit:
+                        break
+            logger.debug(
+                "[SessionRepository] Successfully completed list_recent_arrhythmia_notifications."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in list_recent_arrhythmia_notifications: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_recent_sessions(self, user_id: str, limit: int) -> List[TbREcgSession]:
+        logger.debug("[SessionRepository] Starting list_recent_sessions...")
+        try:
+            result = (
+                self.db.query(self.model)
+                .options(
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
+                    selectinload(TbREcgSession.parameters),
+                )
+                .filter(
+                    or_(
+                        self.model.user_id == user_id, self.model.patient_id == user_id
+                    ),
+                    self.model.classification_result
+                    != ECGClassification.RECORDING.value,
+                )
+                .order_by(desc(self.model.changed_dt))
+                .limit(limit)
+                .all()
+            )
+            logger.debug(
+                "[SessionRepository] Successfully completed list_recent_sessions."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in list_recent_sessions: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_sessions_by_operator(
+        self, operator_id: str, limit: int = 10
+    ) -> List[TbREcgSession]:
+        logger.debug("[SessionRepository] Starting list_sessions_by_operator...")
+        try:
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential slow"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
+            result = (
+                self.db.query(TbREcgSession)
+                .options(
+                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                    joinedload(TbREcgSession.patient),
+                    selectinload(TbREcgSession.parameters),
+                )
+                .filter(
+                    self._operator_created_filter(operator_id),
+                    TbREcgSession.classification_result
+                    != ECGClassification.RECORDING.value,
+                    arrhythmia_filter,
+                )
+                .order_by(desc(TbREcgSession.changed_dt))
+                .limit(limit)
+                .all()
+            )
+            logger.debug(
+                "[SessionRepository] Successfully completed list_sessions_by_operator."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in list_sessions_by_operator: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def search_sessions(
+        self,
+        search_query: Optional[str] = None,
+        device_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        classification: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 200,
+    ) -> List[TbREcgSession]:
+        logger.debug("[SessionRepository] Starting search_sessions...")
+        try:
+            query = self.db.query(TbREcgSession).options(
+                joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
+                joinedload(TbREcgSession.patient),
+                selectinload(TbREcgSession.parameters),
+            )
+
+            if device_id:
+                query = query.filter(TbREcgSession.device_id == device_id)
+            if user_id:
+                query = query.filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
+            if classification:
+                query = query.filter(
+                    TbREcgSession.classification_result == classification
+                )
+
+            if search_query:
+                query = query.outerjoin(TbMUser, TbREcgSession.user_id == TbMUser.id)
+                query = query.outerjoin(
+                    TbMPatient,
+                    or_(
+                        TbREcgSession.patient_id == TbMPatient.id,
+                        TbMUser.id == TbMPatient.user_id,
+                    ),
+                )
+
+                keywords = search_query.split()
+                for kw in keywords:
+                    pattern = f"%{kw}%"
+                    query = query.filter(
+                        or_(
+                            TbMPatient.full_name.ilike(pattern),
+                            TbMUser.username.ilike(pattern),
+                            TbREcgSession.device_id.ilike(pattern),
+                        )
+                    )
+
+            local_dt = self._get_local_dt()
+            if start_date:
+                if "T" not in start_date:
+                    start_date = f"{start_date} 00:00:00"
+                query = query.filter(local_dt >= start_date)
+
+            if end_date:
+                if "T" not in end_date:
+                    end_date = f"{end_date} 23:59:59"
+                query = query.filter(local_dt <= end_date)
+
+            result = query.order_by(desc(TbREcgSession.changed_dt)).limit(limit).all()
+            logger.debug("[SessionRepository] Successfully completed search_sessions.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in search_sessions: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def delete_zombie_sessions(self) -> int:
+        logger.debug("[SessionRepository] Starting delete_zombie_sessions...")
+        try:
+            count = (
+                self.db.query(TbREcgSession)
+                .filter(
+                    TbREcgSession.classification_result
+                    == ECGClassification.RECORDING.value
+                )
+                .delete(synchronize_session=False)
+            )
+            self.db.commit()
+            if count > 0:
+                logger.info(f"[Session] Cleaned up {count} zombie/incomplete sessions")
+            logger.debug(
+                "[SessionRepository] Successfully completed delete_zombie_sessions."
+            )
+            return count
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[SessionRepository] Unexpected error in delete_zombie_sessions: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def get_classification_stats(self, user_id: Optional[str] = None) -> Dict:
+        logger.debug("[SessionRepository] Starting get_classification_stats...")
+        try:
+            query = self.db.query(TbREcgSession)
+            if user_id:
+                query = query.filter(
+                    or_(
+                        TbREcgSession.user_id == user_id,
+                        TbREcgSession.patient_id == user_id,
+                    )
+                )
+
+            total_sessions = query.count()
+
+            classification_counts = (
+                query.group_by(TbREcgSession.classification_result)
+                .with_entities(
+                    TbREcgSession.classification_result,
+                    func.count(TbREcgSession.classification_result),
+                )
+                .all()
+            )
+
+            counts_list = [
+                {"classification": c, "count": cnt} for c, cnt in classification_counts
+            ]
+
+            result = {
+                "total_sessions": total_sessions,
+                "classification_counts": counts_list,
+            }
+            logger.debug(
+                "[SessionRepository] Successfully completed get_classification_stats."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in get_classification_stats: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def get_stats_by_operator(self, operator_id: str) -> Dict:
+        logger.debug("[SessionRepository] Starting get_stats_by_operator...")
+        try:
+            arrhythmia_filter = or_(
+                func.lower(TbREcgSession.classification_result).contains(
+                    "berpotensi aritmia"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential slow"
+                ),
+                func.lower(TbREcgSession.classification_result).contains(
+                    "potential fast"
+                ),
+            )
+
+            query = self.db.query(TbREcgSession).filter(
+                self._operator_created_filter(operator_id),
+                TbREcgSession.classification_result
+                != ECGClassification.RECORDING.value,
+                arrhythmia_filter,
+            )
+            total_sessions = query.count()
+
+            classification_counts = (
+                query.group_by(TbREcgSession.classification_result)
+                .with_entities(
+                    TbREcgSession.classification_result,
+                    func.count(TbREcgSession.classification_result),
+                )
+                .all()
+            )
+
+            counts_list = [
+                {"classification": c, "count": cnt} for c, cnt in classification_counts
+            ]
+
+            result = {
+                "total_sessions": total_sessions,
+                "classification_counts": counts_list,
+            }
+            logger.debug(
+                "[SessionRepository] Successfully completed get_stats_by_operator."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[SessionRepository] Unexpected error in get_stats_by_operator: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def _get_local_dt(self):
+        return TbREcgSession.changed_dt.op("AT TIME ZONE")(settings.TIMEZONE)
+
+    def _operator_created_filter(self, operator_id: str):
+        return or_(
+            TbREcgSession.created_by == operator_id,
+            TbREcgSession.created_by.like(f"{operator_id} -%"),
+        )
+
     def _map_5leads_parameters(
         self, recording_id: str, features: dict, created_by: str = "ML_ENGINE"
     ) -> List[TbREcgSessionParameter]:
@@ -483,185 +665,3 @@ class SessionRepository(BaseRepository[TbREcgSession]):
                     )
                 )
         return params
-
-    def get_sessions_by_operator(
-        self, operator_id: str, limit: int = 10
-    ) -> List[TbREcgSession]:
-        logger.debug("[SessionRepository] Starting get_sessions_by_operator...")
-        try:
-            arrhythmia_filter = or_(
-                func.lower(TbREcgSession.classification_result).contains(
-                    "berpotensi aritmia"
-                ),
-                func.lower(TbREcgSession.classification_result).contains(
-                    "potential slow"
-                ),
-                func.lower(TbREcgSession.classification_result).contains(
-                    "potential fast"
-                ),
-            )
-            result = (
-                self.db.query(TbREcgSession)
-                .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                    joinedload(TbREcgSession.patient),
-                    selectinload(TbREcgSession.parameters),
-                )
-                .filter(
-                    self._operator_created_filter(operator_id),
-                    TbREcgSession.classification_result
-                    != ECGClassification.RECORDING.value,
-                    arrhythmia_filter,
-                )
-                .order_by(desc(TbREcgSession.changed_dt))
-                .limit(limit)
-                .all()
-            )
-            logger.debug(
-                "[SessionRepository] Successfully completed get_sessions_by_operator."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in get_sessions_by_operator: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def get_stats_by_operator(self, operator_id: str) -> Dict:
-        logger.debug("[SessionRepository] Starting get_stats_by_operator...")
-        try:
-            arrhythmia_filter = or_(
-                func.lower(TbREcgSession.classification_result).contains(
-                    "berpotensi aritmia"
-                ),
-                func.lower(TbREcgSession.classification_result).contains(
-                    "potential slow"
-                ),
-                func.lower(TbREcgSession.classification_result).contains(
-                    "potential fast"
-                ),
-            )
-
-            query = self.db.query(TbREcgSession).filter(
-                self._operator_created_filter(operator_id),
-                TbREcgSession.classification_result
-                != ECGClassification.RECORDING.value,
-                arrhythmia_filter,
-            )
-            total_sessions = query.count()
-
-            classification_counts = (
-                query.group_by(TbREcgSession.classification_result)
-                .with_entities(
-                    TbREcgSession.classification_result,
-                    func.count(TbREcgSession.classification_result),
-                )
-                .all()
-            )
-
-            counts_list = [
-                {"classification": c, "count": cnt} for c, cnt in classification_counts
-            ]
-
-            result = {
-                "total_sessions": total_sessions,
-                "classification_counts": counts_list,
-            }
-            logger.debug(
-                "[SessionRepository] Successfully completed get_stats_by_operator."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in get_stats_by_operator: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def get_recent_arrhythmia_notifications(
-        self, operator_id: str, limit: int = 20
-    ) -> List[TbREcgSession]:
-        logger.debug(
-            "[SessionRepository] Starting get_recent_arrhythmia_notifications..."
-        )
-        try:
-            arrhythmia_filter = or_(
-                func.lower(TbREcgSession.classification_result).contains(
-                    "sangat berpotensi aritmia"
-                ),
-                func.lower(TbREcgSession.classification_result).contains(
-                    "potential fast"
-                ),
-            )
-
-            raw_sessions = (
-                self.db.query(TbREcgSession)
-                .options(
-                    joinedload(TbREcgSession.user).joinedload(TbMUser.patient_profile),
-                    joinedload(TbREcgSession.patient),
-                )
-                .filter(
-                    self._operator_created_filter(operator_id),
-                    TbREcgSession.classification_result
-                    != ECGClassification.RECORDING.value,
-                    arrhythmia_filter,
-                )
-                .order_by(desc(TbREcgSession.changed_dt))
-                .all()
-            )
-
-            unique_patients = set()
-            result = []
-            for s in raw_sessions:
-                pid = str(s.patient_id or s.user_id)
-                if pid not in unique_patients:
-                    unique_patients.add(pid)
-                    result.append(s)
-                    if len(result) >= limit:
-                        break
-            logger.debug(
-                "[SessionRepository] Successfully completed get_recent_arrhythmia_notifications."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[SessionRepository] Unexpected error in get_recent_arrhythmia_notifications: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def delete_zombie_sessions(self) -> int:
-        logger.debug("[SessionRepository] Starting delete_zombie_sessions...")
-        try:
-            count = (
-                self.db.query(TbREcgSession)
-                .filter(
-                    TbREcgSession.classification_result
-                    == ECGClassification.RECORDING.value
-                )
-                .delete(synchronize_session=False)
-            )
-            self.db.commit()
-            if count > 0:
-                logger.info(f"[Session] Cleaned up {count} zombie/incomplete sessions")
-            logger.debug(
-                "[SessionRepository] Successfully completed delete_zombie_sessions."
-            )
-            return count
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(
-                f"[SessionRepository] Unexpected error in delete_zombie_sessions: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")

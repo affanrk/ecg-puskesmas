@@ -18,6 +18,19 @@ class PatientRepository(BaseRepository[TbMPatient]):
     def __init__(self, db: Session):
         super().__init__(TbMPatient, db)
 
+    def find_by_id(self, patient_id: str) -> Optional[TbMPatient]:
+        logger.debug("[PatientRepository] Starting find_by_id...")
+        try:
+            result = self.get_by(id=patient_id)
+            logger.debug("[PatientRepository] Successfully completed find_by_id.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[PatientRepository] Unexpected error in find_by_id: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
     def find_by_user_id(self, user_id: str) -> Optional[TbMPatient]:
         logger.debug("[PatientRepository] Starting find_by_user_id...")
         try:
@@ -46,14 +59,38 @@ class PatientRepository(BaseRepository[TbMPatient]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def create_profile(
+    def find_walkin_by_id(self, patient_id: str) -> Optional[TbMPatient]:
+        logger.debug("[PatientRepository] Starting find_walkin_by_id...")
+        try:
+            result = (
+                self.db.query(TbMPatient)
+                .filter(
+                    TbMPatient.id == patient_id,
+                    TbMPatient.user_id.is_(None),
+                )
+                .first()
+            )
+            logger.debug(
+                "[PatientRepository] Successfully completed find_walkin_by_id."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PatientRepository] Unexpected error in find_walkin_by_id: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def create_patient(
         self,
         patient_in: PatientCreate,
         user_id: str,
         source: str = "WEB",
         initial_status: str = "QUEUE",
     ) -> TbMPatient:
-        logger.debug("[PatientRepository] Starting create_profile...")
+        logger.debug("[PatientRepository] Starting create_patient...")
         try:
             if patient_in.nik and check_global_nik(self.db, patient_in.nik, user_id):
                 raise DuplicateNIKException(nik=patient_in.nik)
@@ -101,25 +138,80 @@ class PatientRepository(BaseRepository[TbMPatient]):
             logger.info(
                 f"[Patient] Created patient profile {patient_id} for User {user_id}"
             )
-            logger.debug("[PatientRepository] Successfully completed create_profile.")
+            logger.debug("[PatientRepository] Successfully completed create_patient.")
             return patient
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[PatientRepository] Unexpected error in create_profile: {e}")
+            logger.error(f"[PatientRepository] Unexpected error in create_patient: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def update_by_user_id(
+    def create_walkin_patient(
+        self,
+        patient_in,
+        operator_id: str,
+        operator_name: str,
+        location_id: Optional[str] = None,
+    ) -> TbMPatient:
+        logger.debug("[PatientRepository] Starting create_walkin_patient...")
+        try:
+            if patient_in.nik:
+                existing = (
+                    self.db.query(TbMPatient)
+                    .filter(TbMPatient.nik == patient_in.nik)
+                    .first()
+                )
+                if existing:
+                    raise DuplicateNIKException(nik=patient_in.nik)
+
+            patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
+            patient = TbMPatient(
+                id=patient_id,
+                user_id=None,
+                full_name=patient_in.full_name,
+                nik=patient_in.nik if patient_in.nik else None,
+                pob=patient_in.pob,
+                dob=patient_in.dob,
+                gender=patient_in.gender,
+                address=patient_in.address,
+                contact_number=patient_in.contact_number,
+                medical_history=patient_in.medical_history,
+                status="WALKIN",
+                created_by=f"{operator_id} - {operator_name}",
+                location_id=location_id,
+            )
+            self.db.add(patient)
+            self.db.commit()
+            self.db.refresh(patient)
+            logger.info(
+                f"[Patient] Walk-in patient {patient_id} created by operator {operator_id}"
+            )
+            logger.debug(
+                "[PatientRepository] Successfully completed create_walkin_patient."
+            )
+            return patient
+        except (DuplicateNIKException, AppException) as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[PatientRepository] Unexpected error in create_walkin_patient: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def update_patient(
         self,
         user_id: str,
         profile_data: PatientUpdate,
         admin_action: Optional[str] = None,
         reason: Optional[str] = None,
     ) -> Optional[TbMPatient]:
-        logger.debug("[PatientRepository] Starting update_by_user_id...")
+        logger.debug("[PatientRepository] Starting update_patient...")
         try:
             patient = self.get_by(user_id=user_id)
             update_data = profile_data.model_dump(exclude_unset=True)
@@ -243,149 +335,14 @@ class PatientRepository(BaseRepository[TbMPatient]):
 
                 self.db.commit()
 
-            logger.debug(
-                "[PatientRepository] Successfully completed update_by_user_id."
-            )
+            logger.debug("[PatientRepository] Successfully completed update_patient.")
             return patient
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(
-                f"[PatientRepository] Unexpected error in update_by_user_id: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def create_walkin_patient(
-        self,
-        patient_in,
-        operator_id: str,
-        operator_name: str,
-        location_id: Optional[str] = None,
-    ) -> TbMPatient:
-        logger.debug("[PatientRepository] Starting create_walkin_patient...")
-        try:
-            if patient_in.nik:
-                existing = (
-                    self.db.query(TbMPatient)
-                    .filter(TbMPatient.nik == patient_in.nik)
-                    .first()
-                )
-                if existing:
-                    raise DuplicateNIKException(nik=patient_in.nik)
-
-            patient_id = generate_custom_id("PAT", "tb_m_patient", self.db)
-            patient = TbMPatient(
-                id=patient_id,
-                user_id=None,
-                full_name=patient_in.full_name,
-                nik=patient_in.nik if patient_in.nik else None,
-                pob=patient_in.pob,
-                dob=patient_in.dob,
-                gender=patient_in.gender,
-                address=patient_in.address,
-                contact_number=patient_in.contact_number,
-                medical_history=patient_in.medical_history,
-                status="WALKIN",
-                created_by=f"{operator_id} - {operator_name}",
-                location_id=location_id,
-            )
-            self.db.add(patient)
-            self.db.commit()
-            self.db.refresh(patient)
-            logger.info(
-                f"[Patient] Walk-in patient {patient_id} created by operator {operator_id}"
-            )
-            logger.debug(
-                "[PatientRepository] Successfully completed create_walkin_patient."
-            )
-            return patient
-        except (DuplicateNIKException, AppException) as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(
-                f"[PatientRepository] Unexpected error in create_walkin_patient: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def list_all_patients(
-        self,
-        skip: int = 0,
-        limit: int = 50,
-        search: Optional[str] = None,
-        status: Optional[str] = None,
-        only_walkins: bool = False,
-        location_id: Optional[str] = None,
-    ) -> tuple[List[TbMPatient], int]:
-        logger.debug("[PatientRepository] Starting list_all_patients...")
-        try:
-            query = self.db.query(TbMPatient)
-
-            if only_walkins:
-                query = query.filter(TbMPatient.user_id.is_(None))
-
-            if status:
-                query = query.filter(TbMPatient.status == status.upper())
-
-            if location_id:
-                query = query.filter(TbMPatient.location_id == location_id)
-
-            if search:
-                search_filter = f"%{search}%"
-                query = query.filter(
-                    or_(
-                        TbMPatient.full_name.ilike(search_filter),
-                        TbMPatient.nik.ilike(search_filter),
-                        TbMPatient.id.ilike(search_filter),
-                    )
-                )
-
-            total = query.count()
-            results = (
-                query.order_by(TbMPatient.created_dt.desc())
-                .offset(skip)
-                .limit(limit)
-                .all()
-            )
-            logger.debug(
-                "[PatientRepository] Successfully completed list_all_patients."
-            )
-            return results, total
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[PatientRepository] Unexpected error in list_all_patients: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def find_walkin_by_id(self, patient_id: str) -> Optional[TbMPatient]:
-        logger.debug("[PatientRepository] Starting find_walkin_by_id...")
-        try:
-            result = (
-                self.db.query(TbMPatient)
-                .filter(
-                    TbMPatient.id == patient_id,
-                    TbMPatient.user_id.is_(None),
-                )
-                .first()
-            )
-            logger.debug(
-                "[PatientRepository] Successfully completed find_walkin_by_id."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[PatientRepository] Unexpected error in find_walkin_by_id: {e}"
-            )
+            logger.error(f"[PatientRepository] Unexpected error in update_patient: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
@@ -445,6 +402,94 @@ class PatientRepository(BaseRepository[TbMPatient]):
             logger.error(
                 f"[PatientRepository] Unexpected error in update_walkin_patient: {e}"
             )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_all(
+        self,
+        skip: int = 0,
+        limit: int = 50,
+        search: Optional[str] = None,
+        status: Optional[str] = None,
+        only_walkins: bool = False,
+        location_id: Optional[str] = None,
+    ) -> tuple[List[TbMPatient], int]:
+        logger.debug("[PatientRepository] Starting list_all...")
+        try:
+            query = self.db.query(TbMPatient)
+
+            if only_walkins:
+                query = query.filter(TbMPatient.user_id.is_(None))
+
+            if status:
+                query = query.filter(TbMPatient.status == status.upper())
+
+            if location_id:
+                query = query.filter(TbMPatient.location_id == location_id)
+
+            if search:
+                search_filter = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        TbMPatient.full_name.ilike(search_filter),
+                        TbMPatient.nik.ilike(search_filter),
+                        TbMPatient.id.ilike(search_filter),
+                    )
+                )
+
+            total = query.count()
+            results = (
+                query.order_by(TbMPatient.created_dt.desc())
+                .offset(skip)
+                .limit(limit)
+                .all()
+            )
+            logger.debug("[PatientRepository] Successfully completed list_all.")
+            return results, total
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[PatientRepository] Unexpected error in list_all: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def delete_patient(self, patient_id: str) -> bool:
+        logger.debug("[PatientRepository] Starting delete_patient...")
+        try:
+            patient = (
+                self.db.query(TbMPatient)
+                .filter(
+                    TbMPatient.id == patient_id,
+                    TbMPatient.user_id.is_(None),
+                )
+                .first()
+            )
+            if not patient:
+                return False
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.patient_id == patient_id
+            )
+
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.delete(patient)
+
+            self.db.commit()
+            logger.info(f"[Patient] Walk-in patient {patient_id} deleted.")
+            logger.debug("[PatientRepository] Successfully completed delete_patient.")
+            return True
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"[PatientRepository] Unexpected error in delete_patient: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
@@ -510,50 +555,6 @@ class PatientRepository(BaseRepository[TbMPatient]):
             self.db.rollback()
             logger.error(
                 f"[PatientRepository] Unexpected error in convert_walkin_to_user: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def delete_walkin_patient(self, patient_id: str) -> bool:
-        logger.debug("[PatientRepository] Starting delete_walkin_patient...")
-        try:
-            patient = (
-                self.db.query(TbMPatient)
-                .filter(
-                    TbMPatient.id == patient_id,
-                    TbMPatient.user_id.is_(None),
-                )
-                .first()
-            )
-            if not patient:
-                return False
-            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
-                TbREcgSession.patient_id == patient_id
-            )
-
-            self.db.query(TbRPerformanceLog).filter(
-                TbRPerformanceLog.recording_id.in_(session_ids_subq)
-            ).delete(synchronize_session=False)
-
-            self.db.query(TbREcgSessionParameter).filter(
-                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
-            ).delete(synchronize_session=False)
-
-            self.db.delete(patient)
-
-            self.db.commit()
-            logger.info(f"[Patient] Walk-in patient {patient_id} deleted.")
-            logger.debug(
-                "[PatientRepository] Successfully completed delete_walkin_patient."
-            )
-            return True
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(
-                f"[PatientRepository] Unexpected error in delete_walkin_patient: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")

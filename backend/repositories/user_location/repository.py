@@ -12,14 +12,14 @@ class UserLocationRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def assign(
+    def create_user_location(
         self,
         user_id: str,
         location_id: str,
         assigned_by_id: str,
         is_primary: bool = False,
     ) -> TbRUserLocation:
-        logger.debug("[UserLocationRepository] Starting assign...")
+        logger.debug("[UserLocationRepository] Starting create_user_location...")
         try:
             existing = (
                 self.db.query(TbRUserLocation)
@@ -51,80 +51,25 @@ class UserLocationRepository:
             )
             self.db.add(link)
             self.db.commit()
-            logger.debug("[UserLocationRepository] Successfully completed assign.")
+            logger.debug(
+                "[UserLocationRepository] Successfully completed create_user_location."
+            )
             return link
         except AppException as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[UserLocationRepository] Unexpected error in assign: {e}")
+            logger.error(
+                f"[UserLocationRepository] Unexpected error in create_user_location: {e}"
+            )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def get_user_locations(self, user_id: str) -> List[TbRUserLocation]:
-        logger.debug("[UserLocationRepository] Starting get_user_locations...")
-        try:
-            return (
-                self.db.query(TbRUserLocation)
-                .filter(TbRUserLocation.user_id == user_id)
-                .order_by(
-                    TbRUserLocation.is_primary.desc(), TbRUserLocation.assigned_dt
-                )
-                .all()
-            )
-        except Exception as e:
-            logger.error(
-                f"[UserLocationRepository] Unexpected error in get_user_locations: {e}"
-            )
-            raise DatabaseException("Database operation failed")
-
-    def get_location_staff(self, location_id: str) -> List[TbRUserLocation]:
-        logger.debug("[UserLocationRepository] Starting get_location_staff...")
-        try:
-            return (
-                self.db.query(TbRUserLocation)
-                .filter(TbRUserLocation.location_id == location_id)
-                .all()
-            )
-        except Exception as e:
-            logger.error(
-                f"[UserLocationRepository] Unexpected error in get_location_staff: {e}"
-            )
-            raise DatabaseException("Database operation failed")
-
-    def remove(self, user_id: str, location_id: str) -> bool:
-        logger.debug("[UserLocationRepository] Starting remove...")
-        try:
-            link = (
-                self.db.query(TbRUserLocation)
-                .filter(
-                    TbRUserLocation.user_id == user_id,
-                    TbRUserLocation.location_id == location_id,
-                )
-                .first()
-            )
-            if not link:
-                return False
-            if link.is_primary:
-                raise AppException(
-                    message="Cannot remove primary location assignment. Reassign primary first.",
-                    status_code=400,
-                )
-            self.db.delete(link)
-            self.db.commit()
-            logger.debug("[UserLocationRepository] Successfully completed remove.")
-            return True
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"[UserLocationRepository] Unexpected error in remove: {e}")
-            raise DatabaseException("Database operation failed")
-
-    def set_primary(self, user_id: str, location_id: str) -> Optional[TbRUserLocation]:
-        logger.debug("[UserLocationRepository] Starting set_primary...")
+    def update_primary_location(
+        self, user_id: str, location_id: str
+    ) -> Optional[TbRUserLocation]:
+        logger.debug("[UserLocationRepository] Starting update_primary_location...")
         try:
             self.db.query(TbRUserLocation).filter(
                 TbRUserLocation.user_id == user_id,
@@ -146,7 +91,9 @@ class UserLocationRepository:
                 )
             setattr(link, "is_primary", True)
             self.db.commit()
-            logger.debug("[UserLocationRepository] Successfully completed set_primary.")
+            logger.debug(
+                "[UserLocationRepository] Successfully completed update_primary_location."
+            )
             return link
         except AppException as e:
             self.db.rollback()
@@ -154,7 +101,72 @@ class UserLocationRepository:
         except Exception as e:
             self.db.rollback()
             logger.error(
-                f"[UserLocationRepository] Unexpected error in set_primary: {e}"
+                f"[UserLocationRepository] Unexpected error in update_primary_location: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def list_by_user(self, user_id: str) -> List[TbRUserLocation]:
+        logger.debug("[UserLocationRepository] Starting list_by_user...")
+        try:
+            return (
+                self.db.query(TbRUserLocation)
+                .filter(TbRUserLocation.user_id == user_id)
+                .order_by(
+                    TbRUserLocation.is_primary.desc(), TbRUserLocation.assigned_dt
+                )
+                .all()
+            )
+        except Exception as e:
+            logger.error(
+                f"[UserLocationRepository] Unexpected error in list_by_user: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def list_by_location(self, location_id: str) -> List[TbRUserLocation]:
+        logger.debug("[UserLocationRepository] Starting list_by_location...")
+        try:
+            return (
+                self.db.query(TbRUserLocation)
+                .filter(TbRUserLocation.location_id == location_id)
+                .all()
+            )
+        except Exception as e:
+            logger.error(
+                f"[UserLocationRepository] Unexpected error in list_by_location: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def delete_user_location(self, user_id: str, location_id: str) -> bool:
+        logger.debug("[UserLocationRepository] Starting delete_user_location...")
+        try:
+            link = (
+                self.db.query(TbRUserLocation)
+                .filter(
+                    TbRUserLocation.user_id == user_id,
+                    TbRUserLocation.location_id == location_id,
+                )
+                .first()
+            )
+            if not link:
+                return False
+            if link.is_primary:
+                raise AppException(
+                    message="Cannot remove primary location assignment. Reassign primary first.",
+                    status_code=400,
+                )
+            self.db.delete(link)
+            self.db.commit()
+            logger.debug(
+                "[UserLocationRepository] Successfully completed delete_user_location."
+            )
+            return True
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[UserLocationRepository] Unexpected error in delete_user_location: {e}"
             )
             raise DatabaseException("Database operation failed")
 

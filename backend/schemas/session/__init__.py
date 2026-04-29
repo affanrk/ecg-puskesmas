@@ -1,4 +1,5 @@
 from .schema import (
+    SessionParameterSchema,
     SessionResponse,
     DeviceStatusResponse,
     ClassificationCount,
@@ -6,6 +7,7 @@ from .schema import (
 )
 
 __all__ = [
+    "SessionParameterSchema",
     "SessionResponse",
     "DeviceStatusResponse",
     "ClassificationCount",

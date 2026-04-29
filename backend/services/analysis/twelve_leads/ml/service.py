@@ -40,7 +40,7 @@ class MLEngineService:
         self.kmeans_abnormal = None
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.is_loaded = False
-        self.api_url = "https://ecg-12.vps.ctailab.com/api/v1/analyze"
+        self.api_url = "https://ecg-12-class-api.vps-1.ctailab.com/api/v1/analyze"
 
     def load_model(self):
         logger.debug("[MLEngineService] Starting load_model...")

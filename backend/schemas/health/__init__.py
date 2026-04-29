@@ -1,11 +1,11 @@
 from .schema import (
-    HealthCheckResponse,
     DatabaseHealth,
     MqttHealth,
     MlModelHealth,
     DeviceSummary,
     BuffersSummary,
     SystemPerformanceSummary,
+    HealthCheckResponse,
     DetailedHealthCheckResponse,
     DevicePerformance,
     DeviceStatus,
@@ -18,13 +18,13 @@ from .schema import (
 )
 
 __all__ = [
-    "HealthCheckResponse",
     "DatabaseHealth",
     "MqttHealth",
     "MlModelHealth",
     "DeviceSummary",
     "BuffersSummary",
     "SystemPerformanceSummary",
+    "HealthCheckResponse",
     "DetailedHealthCheckResponse",
     "DevicePerformance",
     "DeviceStatus",

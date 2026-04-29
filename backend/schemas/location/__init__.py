@@ -1,4 +1,5 @@
 from .schema import (
+    LocationBase,
     LocationCreate,
     LocationUpdate,
     LocationResponse,
@@ -6,6 +7,7 @@ from .schema import (
 )
 
 __all__ = [
+    "LocationBase",
     "LocationCreate",
     "LocationUpdate",
     "LocationResponse",

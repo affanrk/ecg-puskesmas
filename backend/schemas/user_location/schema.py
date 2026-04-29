@@ -3,9 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 
 
-class StaffLocationAssign(BaseModel):
+class UserLocationBase(BaseModel):
     user_id: str = Field(..., description="User ID of the Operator or Doctor")
     location_id: str = Field(..., description="Location ID to assign them to")
+
+
+class StaffLocationAssign(UserLocationBase):
     is_primary: Optional[bool] = Field(
         default=False, description="Set as primary location"
     )
@@ -23,10 +26,8 @@ class StaffLocationAssign(BaseModel):
     )
 
 
-class StaffLocationResponse(BaseModel):
+class StaffLocationResponse(UserLocationBase):
     id: str = Field(..., description="Assignment record ID")
-    user_id: str = Field(..., description="User ID of the assigned staff")
-    location_id: str = Field(..., description="Location ID")
     is_primary: bool = Field(..., description="Whether this is their primary location")
     assigned_by: Optional[str] = Field(
         default=None, description="Who made the assignment"

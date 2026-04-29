@@ -62,7 +62,7 @@ def create_doctor_profile(
         if doctor_repo.find_by_user_id(str(current_user.id)):
             raise HTTPException(status_code=400, detail="Doctor profile already exists")
 
-        doctor_repo.create_profile(
+        doctor_repo.create_doctor(
             profile_in, str(current_user.id), source=str(profile_in.source)
         )
         updated_user = user_repo.find_by_id(str(current_user.id))

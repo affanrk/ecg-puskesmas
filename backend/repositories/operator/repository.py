@@ -43,14 +43,14 @@ class OperatorRepository(BaseRepository[TbMOperator]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def create_profile(
+    def create_operator(
         self,
         operator_in: OperatorCreate,
         user_id: str,
         source: str = "WEB",
         initial_status: str = "QUEUE",
     ) -> TbMOperator:
-        logger.debug("[OperatorRepository] Starting create_profile...")
+        logger.debug("[OperatorRepository] Starting create_operator...")
         try:
             if operator_in.nik and check_global_nik(self.db, operator_in.nik, user_id):
                 raise DuplicateNIKException(nik=operator_in.nik)
@@ -100,7 +100,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
             logger.info(
                 f"[Operator] Created operator profile {operator_id} for User {user_id}"
             )
-            logger.debug("[OperatorRepository] Successfully completed create_profile.")
+            logger.debug("[OperatorRepository] Successfully completed create_operator.")
             return operator
         except (DuplicateNIKException, AppException) as e:
             self.db.rollback()
@@ -108,7 +108,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
         except Exception as e:
             self.db.rollback()
             logger.error(
-                f"[OperatorRepository] Unexpected error in create_profile: {e}"
+                f"[OperatorRepository] Unexpected error in create_operator: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")

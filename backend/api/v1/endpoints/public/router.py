@@ -17,7 +17,7 @@ def get_public_locations(
     location_repo: LocationRepository = Depends(get_location_repository),
 ):
     try:
-        locations = location_repo.get_public_list()
+        locations = location_repo.list_public()
         return GenericResponse(
             status=ApiStatus.SUCCESS,
             data=locations,

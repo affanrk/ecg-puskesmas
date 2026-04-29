@@ -3,11 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict
 
 
-class PatientDoctorAssign(BaseModel):
-    patient_id: str = Field(..., description="Patient ID to assign")
-    doctor_id: str = Field(..., description="Doctor user ID to assign")
-    location_id: str = Field(..., description="Location where the assignment occurs")
+class PatientDoctorBase(BaseModel):
+    patient_id: str = Field(..., description="Patient ID")
+    doctor_id: str = Field(..., description="Doctor user ID")
+    location_id: str = Field(..., description="Location of assignment")
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
+
+class PatientDoctorAssign(PatientDoctorBase):
     model_config = ConfigDict(
         populate_by_name=True,
         from_attributes=True,
@@ -21,11 +28,8 @@ class PatientDoctorAssign(BaseModel):
     )
 
 
-class PatientDoctorResponse(BaseModel):
+class PatientDoctorResponse(PatientDoctorBase):
     id: str = Field(..., description="Assignment record ID")
-    patient_id: str = Field(..., description="Patient ID")
-    doctor_id: str = Field(..., description="Doctor user ID")
-    location_id: str = Field(..., description="Location of assignment")
     assigned_by: Optional[str] = Field(
         default=None, description="Who made the assignment"
     )

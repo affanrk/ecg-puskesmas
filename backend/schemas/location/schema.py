@@ -8,7 +8,7 @@ from utils.helpers.validation import (
 )
 
 
-class LocationCreate(BaseModel):
+class LocationBase(BaseModel):
     name: str = Field(..., description="Full name of the location")
     location_type: str = Field(..., description="PUSKESMAS | HOSPITAL | CLINIC")
     address: str = Field(..., description="Full street address")
@@ -20,6 +20,13 @@ class LocationCreate(BaseModel):
     )
     phone: Optional[str] = Field(default=None, description="Contact phone number")
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+    )
+
+
+class LocationCreate(LocationBase):
     _blank_strings_to_none = model_validator(mode="before")(blank_strings_to_none)
     _validate_phone = field_validator("phone")(validate_contact_number)
     _validate_name = field_validator("name")(validate_required_string)
@@ -78,26 +85,6 @@ class LocationUpdate(BaseModel):
     )
 
 
-class LocationPublicResponse(BaseModel):
-
-    id: str = Field(..., description="Location ID")
-    name: str = Field(..., description="Location name")
-    location_type: str = Field(..., description="Location type")
-    city: Optional[str] = Field(default=None, description="City")
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_schema_extra={
-            "example": {
-                "id": "LOC20260420000001",
-                "name": "Puskesmas Menteng",
-                "location_type": "PUSKESMAS",
-                "city": "Jakarta Pusat",
-            }
-        },
-    )
-
-
 class LocationResponse(BaseModel):
     id: str = Field(..., description="Location ID")
     location_code: str = Field(..., description="Unique location code")
@@ -130,6 +117,26 @@ class LocationResponse(BaseModel):
                 "is_active": True,
                 "created_dt": "2026-04-20T07:00:00Z",
                 "changed_dt": None,
+            }
+        },
+    )
+
+
+class LocationPublicResponse(BaseModel):
+
+    id: str = Field(..., description="Location ID")
+    name: str = Field(..., description="Location name")
+    location_type: str = Field(..., description="Location type")
+    city: Optional[str] = Field(default=None, description="City")
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "LOC20260420000001",
+                "name": "Puskesmas Menteng",
+                "location_type": "PUSKESMAS",
+                "city": "Jakarta Pusat",
             }
         },
     )

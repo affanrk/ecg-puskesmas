@@ -46,14 +46,14 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def create_profile(
+    def create_doctor(
         self,
         doctor_in: DoctorCreate,
         user_id: str,
         source: str = "WEB",
         initial_status: str = "QUEUE",
     ) -> TbMDoctor:
-        logger.debug("[DoctorRepository] Starting create_profile...")
+        logger.debug("[DoctorRepository] Starting create_doctor...")
         try:
             if doctor_in.nik and check_global_nik(self.db, doctor_in.nik, user_id):
                 raise DuplicateNIKException(nik=doctor_in.nik)
@@ -104,19 +104,19 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
             logger.info(
                 f"[Doctor] Created doctor profile {doctor_id} for User {user_id}"
             )
-            logger.debug("[DoctorRepository] Successfully completed create_profile.")
+            logger.debug("[DoctorRepository] Successfully completed create_doctor.")
             return doctor
         except AppException:
             self.db.rollback()
             raise
         except (IntegrityError, DataError) as e:
             self.db.rollback()
-            logger.error(f"[DoctorRepository] Integrity Error in create_profile: {e}")
+            logger.error(f"[DoctorRepository] Integrity Error in create_doctor: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[DoctorRepository] Unexpected error in create_profile: {e}")
+            logger.error(f"[DoctorRepository] Unexpected error in create_doctor: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 

@@ -2,15 +2,6 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
 
-class HealthCheckResponse(BaseModel):
-    status: str = Field(..., description="Overall health status of the system")
-    timestamp: float = Field(..., description="Timestamp of the health check")
-
-    model_config = ConfigDict(
-        json_schema_extra={"example": {"status": "healthy", "timestamp": 1672531200.0}}
-    )
-
-
 class DatabaseHealth(BaseModel):
     status: str = Field(..., description="Health status of the database")
     latency_ms: Optional[float] = Field(
@@ -93,6 +84,15 @@ class SystemPerformanceSummary(BaseModel):
                 "active_devices": 10,
             }
         }
+    )
+
+
+class HealthCheckResponse(BaseModel):
+    status: str = Field(..., description="Overall health status of the system")
+    timestamp: float = Field(..., description="Timestamp of the health check")
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"status": "healthy", "timestamp": 1672531200.0}}
     )
 
 

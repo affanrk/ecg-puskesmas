@@ -105,8 +105,8 @@ async def get_operator_dashboard(
 
         operator_id = str(op_profile.id)
 
-        recent_sessions = session_repo.get_sessions_by_operator(operator_id, limit=10)
-        notifications = session_repo.get_recent_arrhythmia_notifications(
+        recent_sessions = session_repo.list_sessions_by_operator(operator_id, limit=10)
+        notifications = session_repo.list_recent_arrhythmia_notifications(
             operator_id, limit=20
         )
         stats = session_repo.get_stats_by_operator(operator_id)
@@ -214,6 +214,38 @@ async def create_walkin_patient(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+@router.post("/profile", response_model=GenericResponse[UserResponse])
+def create_operator_profile(
+    profile_in: OperatorCreate,
+    current_user: TbMUser = Depends(get_unassigned_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+    operator_repo: OperatorRepository = Depends(get_operator_repository),
+):
+    try:
+        if operator_repo.find_by_user_id(str(current_user.id)):
+            raise HTTPException(
+                status_code=400, detail="Operator profile already exists"
+            )
+
+        operator_repo.create_operator(
+            profile_in, str(current_user.id), source=str(profile_in.source)
+        )
+        updated_user = user_repo.find_by_id(str(current_user.id))
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=updated_user,
+            message="Operator profile created successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[OperatorEndpoint] Unexpected error in create_operator_profile: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.get(
     "/patients",
     response_model=GenericResponse[PaginatedData[WalkinPatientResponse]],
@@ -231,7 +263,7 @@ async def get_patients(
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
-        patients, total = patient_repo.list_all_patients(
+        patients, total = patient_repo.list_all(
             skip=skip,
             limit=limit,
             search=search,
@@ -248,38 +280,6 @@ async def get_patients(
         raise
     except Exception as e:
         logger.error(f"[OperatorEndpoint] Failed to retrieve patients: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.post("/profile", response_model=GenericResponse[UserResponse])
-def create_operator_profile(
-    profile_in: OperatorCreate,
-    current_user: TbMUser = Depends(get_unassigned_user),
-    user_repo: UserRepository = Depends(get_user_repository),
-    operator_repo: OperatorRepository = Depends(get_operator_repository),
-):
-    try:
-        if operator_repo.find_by_user_id(str(current_user.id)):
-            raise HTTPException(
-                status_code=400, detail="Operator profile already exists"
-            )
-
-        operator_repo.create_profile(
-            profile_in, str(current_user.id), source=str(profile_in.source)
-        )
-        updated_user = user_repo.find_by_id(str(current_user.id))
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=updated_user,
-            message="Operator profile created successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[OperatorEndpoint] Unexpected error in create_operator_profile: {str(e)}"
-        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 

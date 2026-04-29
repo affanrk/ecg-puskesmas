@@ -182,13 +182,13 @@ async def get_performance_monitoring(
     admin: TbMUser = Depends(get_admin_user),
 ):
     try:
-        system_summary = perf_repo.get_system_health_summary()
+        system_summary = perf_repo.find_system_health_summary()
 
-        worst_latency = perf_repo.get_worst_performing_devices(
+        worst_latency = perf_repo.find_worst_performing_devices(
             metric="latency", limit=5, hours=hours
         )
 
-        worst_loss = perf_repo.get_worst_performing_devices(
+        worst_loss = perf_repo.find_worst_performing_devices(
             metric="packet_loss", limit=5, hours=hours
         )
 

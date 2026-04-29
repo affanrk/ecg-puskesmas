@@ -79,7 +79,7 @@ def get_admin_dashboard(
         total_operators = sum(1 for u in all_users if u.is_operator)
         total_doctors = sum(1 for u in all_users if u.is_doctor)
 
-        logs_records = approval_repo.list_logs(location_id=location_id, limit=5)
+        logs_records = approval_repo.list_all(location_id=location_id, limit=5)
         recent_logs = []
         for log in logs_records:
             recent_logs.append(
@@ -114,142 +114,6 @@ def get_admin_dashboard(
         )
     except Exception as e:
         logger.error(f"[AdminEndpoint] Failed to get dashboard: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get("/pending-approvals", response_model=GenericResponse[List[UserResponse]])
-def get_pending_approvals(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = Query(None),
-    start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None),
-    is_patient: Optional[bool] = Query(None),
-    is_operator: Optional[bool] = Query(None),
-    is_doctor: Optional[bool] = Query(None),
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-):
-    try:
-        data = user_repo.list_pending_approval(
-            skip=skip,
-            limit=limit,
-            search=search,
-            start_date=start_date,
-            end_date=end_date,
-            is_patient=is_patient,
-            is_operator=is_operator,
-            is_doctor=is_doctor,
-            location_id=location_id,
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=data,
-            message="Pending approvals retrieved successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in get_pending_approvals: {str(e)}"
-        )
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get("/approval-logs", response_model=GenericResponse[List[ApprovalLogResponse]])
-def get_approval_logs(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = Query(None),
-    start_date: Optional[str] = Query(None),
-    end_date: Optional[str] = Query(None),
-    is_patient: Optional[bool] = Query(None),
-    is_operator: Optional[bool] = Query(None),
-    is_doctor: Optional[bool] = Query(None),
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    approval_repo: ApprovalRepository = Depends(get_approval_repository),
-):
-    try:
-        logs = approval_repo.list_logs(
-            skip=skip,
-            limit=limit,
-            search=search,
-            start_date=start_date,
-            end_date=end_date,
-            is_patient=is_patient,
-            is_operator=is_operator,
-            is_doctor=is_doctor,
-            location_id=location_id,
-        )
-
-        response = []
-        for log in logs:
-            response.append(
-                ApprovalLogResponse(
-                    id=str(log.id),
-                    user_id=str(log.user_id),
-                    username=str(log.user.username) if log.user else None,
-                    full_name=str(log.user.full_name) if log.user else None,
-                    is_patient=bool(log.user.is_patient) if log.user else False,
-                    is_operator=bool(log.user.is_operator) if log.user else False,
-                    is_doctor=bool(log.user.is_doctor) if log.user else False,
-                    status=str(log.status),
-                    reason=cast(str, log.reason) if log.reason else None,
-                    created_dt=cast(datetime, log.created_dt),
-                    created_by=str(log.created_by),
-                )
-            )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=response,
-            message="Approval logs retrieved successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in get_approval_logs: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.post("/update-status/{user_id}", response_model=GenericResponse[UserResponse])
-def update_user_status(
-    user_id: str,
-    status_in: UserApprovalUpdate,
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-):
-    try:
-        target = user_repo.find_by_id(user_id)
-        if not target:
-            raise HTTPException(status_code=404, detail="User not found")
-        if target.location_id != location_id:
-            raise HTTPException(
-                status_code=403, detail="User does not belong to your location"
-            )
-
-        user = user_repo.update_activation_status(
-            user_id, status_in.action, status_in.reason
-        )
-        logger.info(
-            f"Admin {admin.username} performed action {status_in.action} for user {user_id}"
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=user,
-            message=f"User status updated to {status_in.action} successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in update_user_status: {str(e)}"
-        )
-        traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -325,7 +189,7 @@ def create_user(
                         status_code=400, detail="Patient profile is required"
                     )
                 user_in.patient_profile.source = "ADMIN"
-                patient_repo.create_profile(
+                patient_repo.create_patient(
                     user_in.patient_profile,
                     str(user.id),
                     source="ADMIN",
@@ -340,7 +204,7 @@ def create_user(
                         status_code=400, detail="Operator profile is required"
                     )
                 user_in.operator_profile.source = "ADMIN"
-                operator_repo.create_profile(
+                operator_repo.create_operator(
                     user_in.operator_profile,
                     str(user.id),
                     source="ADMIN",
@@ -355,7 +219,7 @@ def create_user(
                         status_code=400, detail="Doctor profile is required"
                     )
                 user_in.doctor_profile.source = "ADMIN"
-                doctor_repo.create_profile(
+                doctor_repo.create_doctor(
                     user_in.doctor_profile,
                     str(user.id),
                     source="ADMIN",
@@ -425,8 +289,310 @@ def create_user(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+@router.post(
+    "/walkin-patients/{patient_id}/register",
+    response_model=GenericResponse[UserResponse],
+)
+def convert_walkin_to_user(
+    patient_id: str,
+    req_in: ConvertWalkinRequest,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        walkin = patient_repo.find_walkin_by_id(patient_id)
+        if not walkin:
+            raise HTTPException(status_code=404, detail="Walk-in patient not found")
+        if walkin.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient belongs to a different location."
+            )
+
+        if user_repo.find_by_username(req_in.username):
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Username is already taken", "field": "username"},
+            )
+        if user_repo.find_by_email(req_in.email):
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "Email is already registered", "field": "email"},
+            )
+
+        password_to_use = (
+            req_in.password
+            if req_in.password and req_in.password.strip()
+            else "user1234"
+        )
+        must_reset = 1 if not (req_in.password and req_in.password.strip()) else 0
+
+        create_data = {
+            "username": req_in.username,
+            "email": req_in.email,
+            "password": password_to_use,
+            "must_reset_password": must_reset,
+            "role": "patient",
+            "is_patient": True,
+            "is_operator": False,
+            "is_doctor": False,
+            "is_active": 1,
+            "is_activated": 1,
+            "location_id": location_id,
+            "source": "ADMIN",
+        }
+        new_user = user_repo.create_from_dict(create_data)
+        patient_repo.convert_walkin_to_user(patient_id, str(new_user.id))
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=user_repo.find_by_id(str(new_user.id)),
+            message="Walk-in patient converted to user successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in convert_walkin_to_user: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/staff/{staff_id}/locations",
+    response_model=GenericResponse[StaffLocationResponse],
+)
+def assign_staff_location(
+    staff_id: str,
+    data: StaffLocationAssign,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    try:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="User is not a staff member (operator/doctor)"
+            )
+
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
+            raise HTTPException(
+                status_code=403, detail="Staff does not belong to your location"
+            )
+
+        if data.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="You can only assign staff to your own location"
+            )
+
+        assignment = user_location_repo.create_user_location(
+            user_id=staff_id,
+            location_id=data.location_id,
+            assigned_by_id=str(admin.id),
+            is_primary=bool(data.is_primary),
+        )
+
+        logger.info(
+            f"Admin {admin.username} assigned staff {staff_id} to location {data.location_id}"
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignment,
+            message="Staff assigned to location successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in assign_staff_location: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/patients/{patient_id}/doctors",
+    response_model=GenericResponse[PatientDoctorResponse],
+)
+def assign_doctor_to_patient(
+    patient_id: str,
+    data: PatientDoctorAssign,
+    current_user: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+    patient_doctor_repo: PatientDoctorRepository = Depends(
+        get_patient_doctor_repository
+    ),
+):
+    try:
+        if data.location_id != location_id:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only manage assignments for your location",
+            )
+
+        patient = (
+            patient_repo.find_by_user_id(patient_id)
+            if patient_id.startswith("USR")
+            else patient_repo.get_by(id=patient_id)
+        )
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient does not belong to your location"
+            )
+
+        doctor = user_repo.find_by_id(data.doctor_id)
+        if not doctor or not doctor.is_doctor:
+            raise HTTPException(status_code=400, detail="Target is not a doctor")
+
+        if not doctor.is_active:
+            raise HTTPException(status_code=400, detail="Doctor is not active")
+
+        if not user_location_repo.is_user_at_location(str(doctor.id), location_id):
+            raise HTTPException(
+                status_code=400, detail="Doctor is not assigned to this location"
+            )
+
+        old_assignments = patient_doctor_repo.list_patient_doctors(str(patient.id))
+        for old_assignment in old_assignments:
+            if old_assignment.is_active:
+                setattr(old_assignment, "is_active", False)
+        patient_doctor_repo.db.commit()
+
+        assignment = patient_doctor_repo.create_patient_doctor(
+            patient_id=str(patient.id),
+            doctor_id=str(doctor.id),
+            location_id=location_id,
+            assigned_by=str(current_user.id),
+        )
+
+        logger.info(
+            f"Admin {current_user.username} assigned doctor {data.doctor_id} to patient {patient_id}"
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignment,
+            message="Doctor assigned to patient successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in assign_doctor_to_patient: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/pending-approvals", response_model=GenericResponse[List[UserResponse]])
+def get_pending_approvals(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    is_patient: Optional[bool] = Query(None),
+    is_operator: Optional[bool] = Query(None),
+    is_doctor: Optional[bool] = Query(None),
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        data = user_repo.list_pending_approval(
+            skip=skip,
+            limit=limit,
+            search=search,
+            start_date=start_date,
+            end_date=end_date,
+            is_patient=is_patient,
+            is_operator=is_operator,
+            is_doctor=is_doctor,
+            location_id=location_id,
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=data,
+            message="Pending approvals retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in get_pending_approvals: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/approval-logs", response_model=GenericResponse[List[ApprovalLogResponse]])
+def get_approval_logs(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = Query(None),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    is_patient: Optional[bool] = Query(None),
+    is_operator: Optional[bool] = Query(None),
+    is_doctor: Optional[bool] = Query(None),
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    approval_repo: ApprovalRepository = Depends(get_approval_repository),
+):
+    try:
+        logs = approval_repo.list_all(
+            skip=skip,
+            limit=limit,
+            search=search,
+            start_date=start_date,
+            end_date=end_date,
+            is_patient=is_patient,
+            is_operator=is_operator,
+            is_doctor=is_doctor,
+            location_id=location_id,
+        )
+
+        response = []
+        for log in logs:
+            response.append(
+                ApprovalLogResponse(
+                    id=str(log.id),
+                    user_id=str(log.user_id),
+                    username=str(log.user.username) if log.user else None,
+                    full_name=str(log.user.full_name) if log.user else None,
+                    is_patient=bool(log.user.is_patient) if log.user else False,
+                    is_operator=bool(log.user.is_operator) if log.user else False,
+                    is_doctor=bool(log.user.is_doctor) if log.user else False,
+                    status=str(log.status),
+                    reason=cast(str, log.reason) if log.reason else None,
+                    created_dt=cast(datetime, log.created_dt),
+                    created_by=str(log.created_by),
+                )
+            )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=response,
+            message="Approval logs retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in get_approval_logs: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.get("/users", response_model=GenericResponse[List[UserResponse]])
-def get_all_users(
+def list_users(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = Query(None),
@@ -445,7 +611,164 @@ def get_all_users(
     except (HTTPException, AppException):
         raise
     except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in get_all_users: {str(e)}")
+        logger.error(f"[AdminEndpoint] Unexpected error in list_users: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/walkin-patients",
+    response_model=GenericResponse[PaginatedData[WalkinPatientResponse]],
+)
+def list_walkin_patients(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        patients, total = patient_repo.list_all(
+            skip=skip,
+            limit=limit,
+            search=search,
+            status=status,
+            only_walkins=True,
+            location_id=location_id,
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=PaginatedData(items=patients, total=total, limit=limit, skip=skip),
+            message="Patients retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in list_walkin_patients: {str(e)}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/staff/{staff_id}/locations",
+    response_model=GenericResponse[List[StaffLocationResponse]],
+)
+def get_staff_locations(
+    staff_id: str,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
+):
+    try:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
+            raise HTTPException(
+                status_code=400, detail="User is not a staff member (operator/doctor)"
+            )
+
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
+            raise HTTPException(
+                status_code=403, detail="Staff does not belong to your location"
+            )
+
+        locations = user_location_repo.list_by_user(staff_id)
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=locations,
+            message="Staff locations retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in get_staff_locations: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/patients/{patient_id}/doctors",
+    response_model=GenericResponse[List[PatientDoctorResponse]],
+)
+def get_patient_assigned_doctors(
+    patient_id: str,
+    _: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+    patient_doctor_repo: PatientDoctorRepository = Depends(
+        get_patient_doctor_repository
+    ),
+):
+    try:
+        patient = (
+            patient_repo.find_by_user_id(patient_id)
+            if patient_id.startswith("USR")
+            else patient_repo.get_by(id=patient_id)
+        )
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        if patient.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="Patient does not belong to your location"
+            )
+
+        assignments = patient_doctor_repo.list_patient_doctors(str(patient.id))
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=assignments,
+            message="Patient doctor assignments retrieved successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in get_patient_assigned_doctors: {e}"
+        )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post("/update-status/{user_id}", response_model=GenericResponse[UserResponse])
+def update_user_status(
+    user_id: str,
+    status_in: UserApprovalUpdate,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        target = user_repo.find_by_id(user_id)
+        if not target:
+            raise HTTPException(status_code=404, detail="User not found")
+        if target.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to your location"
+            )
+
+        user = user_repo.update_activation_status(
+            user_id, status_in.action, status_in.reason
+        )
+        logger.info(
+            f"Admin {admin.username} performed action {status_in.action} for user {user_id}"
+        )
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=user,
+            message=f"User status updated to {status_in.action} successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(
+            f"[AdminEndpoint] Unexpected error in update_user_status: {str(e)}"
+        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -572,7 +895,7 @@ def update_user(
         if is_patient and (user_in.patient_profile or activation_status):
             update_prof_pat = user_in.patient_profile or PatientUpdate.model_construct()
             update_prof_pat.source = "ADMIN"
-            patient_repo.update_by_user_id(
+            patient_repo.update_patient(
                 user_id, update_prof_pat, admin_action=activation_status
             )
             pat_prof = patient_repo.find_by_user_id(user_id)
@@ -633,75 +956,6 @@ def update_user(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.delete("/users/{user_id}", response_model=MessageResponse)
-def delete_user(
-    user_id: str,
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-):
-    try:
-        target_user = user_repo.find_by_id(user_id)
-        if not target_user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if target_user.location_id != location_id:
-            raise HTTPException(
-                status_code=403, detail="User does not belong to your location"
-            )
-
-        if target_user.role == "admin":
-            raise HTTPException(
-                status_code=403, detail="Administrative accounts cannot be deleted"
-            )
-
-        user_repo.delete(user_id)
-        logger.info(f"Admin {admin.username} deleted user {user_id}")
-        return MessageResponse(
-            status=ApiStatus.SUCCESS, message="User deleted successfully"
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in delete_user: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get(
-    "/walkin-patients",
-    response_model=GenericResponse[PaginatedData[WalkinPatientResponse]],
-)
-def get_all_patients(
-    skip: int = 0,
-    limit: int = 100,
-    search: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    patient_repo: PatientRepository = Depends(get_patient_repository),
-):
-    try:
-        patients, total = patient_repo.list_all_patients(
-            skip=skip,
-            limit=limit,
-            search=search,
-            status=status,
-            only_walkins=True,
-            location_id=location_id,
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=PaginatedData(items=patients, total=total, limit=limit, skip=skip),
-            message="Patients retrieved successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in get_all_patients: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
 @router.put(
     "/walkin-patients/{patient_id}",
     response_model=GenericResponse[WalkinPatientResponse],
@@ -748,73 +1002,89 @@ def update_walkin_patient(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.post(
-    "/walkin-patients/{patient_id}/register",
-    response_model=GenericResponse[UserResponse],
+@router.patch(
+    "/staff/{staff_id}/locations/{target_location_id}/primary",
+    response_model=GenericResponse[StaffLocationResponse],
 )
-def convert_walkin_to_user(
-    patient_id: str,
-    req_in: ConvertWalkinRequest,
+def set_staff_primary_location(
+    staff_id: str,
+    target_location_id: str,
     admin: TbMUser = Depends(get_admin_user),
     location_id: str = Depends(get_admin_location),
     user_repo: UserRepository = Depends(get_user_repository),
-    patient_repo: PatientRepository = Depends(get_patient_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
 ):
     try:
-        walkin = patient_repo.find_walkin_by_id(patient_id)
-        if not walkin:
-            raise HTTPException(status_code=404, detail="Walk-in patient not found")
-        if walkin.location_id != location_id:
+        staff = user_repo.find_by_id(staff_id)
+        if not staff:
+            raise HTTPException(status_code=404, detail="Staff not found")
+
+        if not (staff.is_operator or staff.is_doctor):
             raise HTTPException(
-                status_code=403, detail="Patient belongs to a different location."
+                status_code=400, detail="User is not a staff member (operator/doctor)"
             )
 
-        if user_repo.find_by_username(req_in.username):
+        if not user_location_repo.is_user_at_location(staff_id, location_id):
             raise HTTPException(
-                status_code=400,
-                detail={"message": "Username is already taken", "field": "username"},
-            )
-        if user_repo.find_by_email(req_in.email):
-            raise HTTPException(
-                status_code=400,
-                detail={"message": "Email is already registered", "field": "email"},
+                status_code=403, detail="Staff does not belong to your location"
             )
 
-        password_to_use = (
-            req_in.password
-            if req_in.password and req_in.password.strip()
-            else "user1234"
+        updated = user_location_repo.update_primary_location(
+            staff_id, target_location_id
         )
-        must_reset = 1 if not (req_in.password and req_in.password.strip()) else 0
+        if not updated:
+            raise HTTPException(
+                status_code=404, detail="Staff location assignment not found"
+            )
 
-        create_data = {
-            "username": req_in.username,
-            "email": req_in.email,
-            "password": password_to_use,
-            "must_reset_password": must_reset,
-            "role": "patient",
-            "is_patient": True,
-            "is_operator": False,
-            "is_doctor": False,
-            "is_active": 1,
-            "is_activated": 1,
-            "location_id": location_id,
-            "source": "ADMIN",
-        }
-        new_user = user_repo.create_from_dict(create_data)
-        patient_repo.convert_walkin_to_user(patient_id, str(new_user.id))
-
+        logger.info(
+            f"Admin {admin.username} set location {target_location_id} as primary for staff {staff_id}"
+        )
         return GenericResponse(
             status=ApiStatus.SUCCESS,
-            data=user_repo.find_by_id(str(new_user.id)),
-            message="Walk-in patient converted to user successfully",
+            data=updated,
+            message="Primary location updated successfully",
         )
     except (HTTPException, AppException):
         raise
     except Exception as e:
         logger.error(
-            f"[AdminEndpoint] Unexpected error in convert_walkin_to_user: {str(e)}"
+            f"[AdminEndpoint] Unexpected error in set_staff_primary_location: {e}"
         )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete("/users/{user_id}", response_model=MessageResponse)
+def delete_user(
+    user_id: str,
+    admin: TbMUser = Depends(get_admin_user),
+    location_id: str = Depends(get_admin_location),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        target_user = user_repo.find_by_id(user_id)
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if target_user.location_id != location_id:
+            raise HTTPException(
+                status_code=403, detail="User does not belong to your location"
+            )
+
+        if target_user.role == "admin":
+            raise HTTPException(
+                status_code=403, detail="Administrative accounts cannot be deleted"
+            )
+
+        user_repo.delete(user_id)
+        logger.info(f"Admin {admin.username} deleted user {user_id}")
+        return MessageResponse(
+            status=ApiStatus.SUCCESS, message="User deleted successfully"
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AdminEndpoint] Unexpected error in delete_user: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -835,7 +1105,7 @@ def delete_walkin_patient(
                 status_code=403, detail="Patient belongs to a different location."
             )
 
-        patient_repo.delete_walkin_patient(patient_id)
+        patient_repo.delete_patient(patient_id)
         return MessageResponse(
             status=ApiStatus.SUCCESS, message="Walk-in patient deleted successfully"
         )
@@ -845,101 +1115,6 @@ def delete_walkin_patient(
         logger.error(
             f"[AdminEndpoint] Unexpected error in delete_walkin_patient: {str(e)}"
         )
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get(
-    "/staff/{staff_id}/locations",
-    response_model=GenericResponse[List[StaffLocationResponse]],
-)
-def get_staff_locations(
-    staff_id: str,
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
-):
-    try:
-        staff = user_repo.find_by_id(staff_id)
-        if not staff:
-            raise HTTPException(status_code=404, detail="Staff not found")
-
-        if not (staff.is_operator or staff.is_doctor):
-            raise HTTPException(
-                status_code=400, detail="User is not a staff member (operator/doctor)"
-            )
-
-        if not user_location_repo.is_user_at_location(staff_id, location_id):
-            raise HTTPException(
-                status_code=403, detail="Staff does not belong to your location"
-            )
-
-        locations = user_location_repo.get_user_locations(staff_id)
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=locations,
-            message="Staff locations retrieved successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in get_staff_locations: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.post(
-    "/staff/{staff_id}/locations",
-    response_model=GenericResponse[StaffLocationResponse],
-)
-def assign_staff_location(
-    staff_id: str,
-    data: StaffLocationAssign,
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
-):
-    try:
-        staff = user_repo.find_by_id(staff_id)
-        if not staff:
-            raise HTTPException(status_code=404, detail="Staff not found")
-
-        if not (staff.is_operator or staff.is_doctor):
-            raise HTTPException(
-                status_code=400, detail="User is not a staff member (operator/doctor)"
-            )
-
-        if not user_location_repo.is_user_at_location(staff_id, location_id):
-            raise HTTPException(
-                status_code=403, detail="Staff does not belong to your location"
-            )
-
-        if data.location_id != location_id:
-            raise HTTPException(
-                status_code=403, detail="You can only assign staff to your own location"
-            )
-
-        assignment = user_location_repo.assign(
-            user_id=staff_id,
-            location_id=data.location_id,
-            assigned_by_id=str(admin.id),
-            is_primary=bool(data.is_primary),
-        )
-
-        logger.info(
-            f"Admin {admin.username} assigned staff {staff_id} to location {data.location_id}"
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=assignment,
-            message="Staff assigned to location successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AdminEndpoint] Unexpected error in assign_staff_location: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -971,14 +1146,14 @@ def remove_staff_location(
                 status_code=403, detail="Staff does not belong to your location"
             )
 
-        locations = user_location_repo.get_user_locations(staff_id)
+        locations = user_location_repo.list_by_user(staff_id)
         if len(locations) <= 1:
             raise HTTPException(
                 status_code=400,
                 detail="Cannot remove last location assignment. Staff must have at least one location.",
             )
 
-        removed = user_location_repo.remove(staff_id, target_location_id)
+        removed = user_location_repo.delete_user_location(staff_id, target_location_id)
         if not removed:
             raise HTTPException(
                 status_code=404, detail="Staff location assignment not found"
@@ -995,177 +1170,6 @@ def remove_staff_location(
         raise
     except Exception as e:
         logger.error(f"[AdminEndpoint] Unexpected error in remove_staff_location: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.patch(
-    "/staff/{staff_id}/locations/{target_location_id}/primary",
-    response_model=GenericResponse[StaffLocationResponse],
-)
-def set_staff_primary_location(
-    staff_id: str,
-    target_location_id: str,
-    admin: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    user_repo: UserRepository = Depends(get_user_repository),
-    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
-):
-    try:
-        staff = user_repo.find_by_id(staff_id)
-        if not staff:
-            raise HTTPException(status_code=404, detail="Staff not found")
-
-        if not (staff.is_operator or staff.is_doctor):
-            raise HTTPException(
-                status_code=400, detail="User is not a staff member (operator/doctor)"
-            )
-
-        if not user_location_repo.is_user_at_location(staff_id, location_id):
-            raise HTTPException(
-                status_code=403, detail="Staff does not belong to your location"
-            )
-
-        updated = user_location_repo.set_primary(staff_id, target_location_id)
-        if not updated:
-            raise HTTPException(
-                status_code=404, detail="Staff location assignment not found"
-            )
-
-        logger.info(
-            f"Admin {admin.username} set location {target_location_id} as primary for staff {staff_id}"
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=updated,
-            message="Primary location updated successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in set_staff_primary_location: {e}"
-        )
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.post(
-    "/patients/{patient_id}/doctors",
-    response_model=GenericResponse[PatientDoctorResponse],
-)
-def assign_doctor_to_patient(
-    patient_id: str,
-    data: PatientDoctorAssign,
-    current_user: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    patient_repo: PatientRepository = Depends(get_patient_repository),
-    user_repo: UserRepository = Depends(get_user_repository),
-    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
-    patient_doctor_repo: PatientDoctorRepository = Depends(
-        get_patient_doctor_repository
-    ),
-):
-    try:
-        if data.location_id != location_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You can only manage assignments for your location",
-            )
-
-        patient = (
-            patient_repo.find_by_user_id(patient_id)
-            if patient_id.startswith("USR")
-            else patient_repo.get_by(id=patient_id)
-        )
-        if not patient:
-            raise HTTPException(status_code=404, detail="Patient not found")
-        if patient.location_id != location_id:
-            raise HTTPException(
-                status_code=403, detail="Patient does not belong to your location"
-            )
-
-        doctor = user_repo.find_by_id(data.doctor_id)
-        if not doctor or not doctor.is_doctor:
-            raise HTTPException(status_code=400, detail="Target is not a doctor")
-
-        if not doctor.is_active:
-            raise HTTPException(status_code=400, detail="Doctor is not active")
-
-        if not user_location_repo.is_user_at_location(str(doctor.id), location_id):
-            raise HTTPException(
-                status_code=400, detail="Doctor is not assigned to this location"
-            )
-
-        old_assignments = patient_doctor_repo.get_patient_doctors(str(patient.id))
-        for old_assignment in old_assignments:
-            if old_assignment.is_active:
-                setattr(old_assignment, "is_active", False)
-        patient_doctor_repo.db.commit()
-
-        assignment = patient_doctor_repo.assign(
-            patient_id=str(patient.id),
-            doctor_id=str(doctor.id),
-            location_id=location_id,
-            assigned_by=str(current_user.id),
-        )
-
-        logger.info(
-            f"Admin {current_user.username} assigned doctor {data.doctor_id} to patient {patient_id}"
-        )
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=assignment,
-            message="Doctor assigned to patient successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in assign_doctor_to_patient: {e}"
-        )
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
-@router.get(
-    "/patients/{patient_id}/doctors",
-    response_model=GenericResponse[List[PatientDoctorResponse]],
-)
-def get_patient_assigned_doctors(
-    patient_id: str,
-    _: TbMUser = Depends(get_admin_user),
-    location_id: str = Depends(get_admin_location),
-    patient_repo: PatientRepository = Depends(get_patient_repository),
-    patient_doctor_repo: PatientDoctorRepository = Depends(
-        get_patient_doctor_repository
-    ),
-):
-    try:
-        patient = (
-            patient_repo.find_by_user_id(patient_id)
-            if patient_id.startswith("USR")
-            else patient_repo.get_by(id=patient_id)
-        )
-        if not patient:
-            raise HTTPException(status_code=404, detail="Patient not found")
-        if patient.location_id != location_id:
-            raise HTTPException(
-                status_code=403, detail="Patient does not belong to your location"
-            )
-
-        assignments = patient_doctor_repo.get_patient_doctors(str(patient.id))
-        return GenericResponse(
-            status=ApiStatus.SUCCESS,
-            data=assignments,
-            message="Patient doctor assignments retrieved successfully",
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(
-            f"[AdminEndpoint] Unexpected error in get_patient_assigned_doctors: {e}"
-        )
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -1196,7 +1200,9 @@ def unassign_doctor_from_patient(
                 status_code=403, detail="Patient does not belong to your location"
             )
 
-        removed = patient_doctor_repo.remove(str(patient.id), doctor_id, location_id)
+        removed = patient_doctor_repo.delete_patient_doctor(
+            str(patient.id), doctor_id, location_id
+        )
         if not removed:
             raise HTTPException(
                 status_code=404, detail="Assignment not found or already removed"

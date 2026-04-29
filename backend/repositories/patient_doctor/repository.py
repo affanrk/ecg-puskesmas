@@ -12,10 +12,10 @@ class PatientDoctorRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def assign(
+    def create_patient_doctor(
         self, patient_id: str, doctor_id: str, location_id: str, assigned_by: str
     ) -> TbRPatientDoctor:
-        logger.debug("[PatientDoctorRepository] Starting assign...")
+        logger.debug("[PatientDoctorRepository] Starting create_patient_doctor...")
         try:
             existing = (
                 self.db.query(TbRPatientDoctor)
@@ -49,33 +49,25 @@ class PatientDoctorRepository:
             self.db.add(link)
             self.db.commit()
             self.db.refresh(link)
-            logger.debug("[PatientDoctorRepository] Successfully completed assign.")
+            logger.debug(
+                "[PatientDoctorRepository] Successfully completed create_patient_doctor."
+            )
             return link
         except AppException as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[PatientDoctorRepository] Unexpected error in assign: {e}")
+            logger.error(
+                f"[PatientDoctorRepository] Unexpected error in create_patient_doctor: {e}"
+            )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def is_assigned(self, patient_id: str, doctor_id: str) -> bool:
-        return (
-            self.db.query(TbRPatientDoctor)
-            .filter(
-                TbRPatientDoctor.patient_id == patient_id,
-                TbRPatientDoctor.doctor_id == doctor_id,
-                TbRPatientDoctor.is_active.is_(True),
-            )
-            .first()
-            is not None
-        )
-
-    def get_doctor_patients(
+    def list_doctor_patients(
         self, doctor_id: str, location_id: Optional[str] = None
     ) -> List[TbRPatientDoctor]:
-        logger.debug("[PatientDoctorRepository] Starting get_doctor_patients...")
+        logger.debug("[PatientDoctorRepository] Starting list_doctor_patients...")
         try:
             query = self.db.query(TbRPatientDoctor).filter(
                 TbRPatientDoctor.doctor_id == doctor_id,
@@ -86,12 +78,12 @@ class PatientDoctorRepository:
             return query.all()
         except Exception as e:
             logger.error(
-                f"[PatientDoctorRepository] Unexpected error in get_doctor_patients: {e}"
+                f"[PatientDoctorRepository] Unexpected error in list_doctor_patients: {e}"
             )
             raise DatabaseException("Database operation failed")
 
-    def get_patient_doctors(self, patient_id: str) -> List[TbRPatientDoctor]:
-        logger.debug("[PatientDoctorRepository] Starting get_patient_doctors...")
+    def list_patient_doctors(self, patient_id: str) -> List[TbRPatientDoctor]:
+        logger.debug("[PatientDoctorRepository] Starting list_patient_doctors...")
         try:
             return (
                 self.db.query(TbRPatientDoctor)
@@ -103,12 +95,14 @@ class PatientDoctorRepository:
             )
         except Exception as e:
             logger.error(
-                f"[PatientDoctorRepository] Unexpected error in get_patient_doctors: {e}"
+                f"[PatientDoctorRepository] Unexpected error in list_patient_doctors: {e}"
             )
             raise DatabaseException("Database operation failed")
 
-    def remove(self, patient_id: str, doctor_id: str, location_id: str) -> bool:
-        logger.debug("[PatientDoctorRepository] Starting remove...")
+    def delete_patient_doctor(
+        self, patient_id: str, doctor_id: str, location_id: str
+    ) -> bool:
+        logger.debug("[PatientDoctorRepository] Starting delete_patient_doctor...")
         try:
             link = (
                 self.db.query(TbRPatientDoctor)
@@ -124,12 +118,28 @@ class PatientDoctorRepository:
                 return False
             setattr(link, "is_active", False)
             self.db.commit()
-            logger.debug("[PatientDoctorRepository] Successfully completed remove.")
+            logger.debug(
+                "[PatientDoctorRepository] Successfully completed delete_patient_doctor."
+            )
             return True
         except AppException as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[PatientDoctorRepository] Unexpected error in remove: {e}")
+            logger.error(
+                f"[PatientDoctorRepository] Unexpected error in delete_patient_doctor: {e}"
+            )
             raise DatabaseException("Database operation failed")
+
+    def is_assigned(self, patient_id: str, doctor_id: str) -> bool:
+        return (
+            self.db.query(TbRPatientDoctor)
+            .filter(
+                TbRPatientDoctor.patient_id == patient_id,
+                TbRPatientDoctor.doctor_id == doctor_id,
+                TbRPatientDoctor.is_active.is_(True),
+            )
+            .first()
+            is not None
+        )

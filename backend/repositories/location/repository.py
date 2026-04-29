@@ -13,7 +13,17 @@ class LocationRepository(BaseRepository[TbMLocation]):
     def __init__(self, db: Session):
         super().__init__(TbMLocation, db)
 
-    def create(self, data, created_by: str = "SUPERADMIN") -> TbMLocation:
+    def find_by_id(self, location_id: str) -> Optional[TbMLocation]:
+        logger.debug("[LocationRepository] Starting find_by_id...")
+        try:
+            return (
+                self.db.query(TbMLocation).filter(TbMLocation.id == location_id).first()
+            )
+        except Exception as e:
+            logger.error(f"[LocationRepository] Unexpected error in find_by_id: {e}")
+            raise DatabaseException("Database operation failed")
+
+    def create_location(self, data, created_by: str = "SUPERADMIN") -> TbMLocation:
         logger.debug("[LocationRepository] Starting create...")
         try:
             if hasattr(data, "model_dump"):
@@ -75,69 +85,12 @@ class LocationRepository(BaseRepository[TbMLocation]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def get_all(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
-        location_type: Optional[str] = None,
-        is_active: Optional[bool] = None,
-    ) -> List[TbMLocation]:
-        logger.debug("[LocationRepository] Starting get_all...")
-        try:
-            query = self.db.query(TbMLocation)
-            if is_active is not None:
-                query = query.filter(TbMLocation.is_active == is_active)
-            if location_type:
-                query = query.filter(TbMLocation.location_type == location_type.upper())
-            if search:
-                search_filter = f"%{search}%"
-                query = query.filter(
-                    TbMLocation.name.ilike(search_filter)
-                    | TbMLocation.location_code.ilike(search_filter)
-                    | TbMLocation.city.ilike(search_filter)
-                )
-            result = query.order_by(TbMLocation.name).offset(skip).limit(limit).all()
-            logger.debug("[LocationRepository] Successfully completed get_all.")
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(f"[LocationRepository] Unexpected error in get_all: {e}")
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def get_public_list(self) -> List[TbMLocation]:
-        logger.debug("[LocationRepository] Starting get_public_list...")
-        try:
-            return (
-                self.db.query(TbMLocation)
-                .filter(TbMLocation.is_active == 1)
-                .order_by(TbMLocation.name)
-                .all()
-            )
-        except Exception as e:
-            logger.error(
-                f"[LocationRepository] Unexpected error in get_public_list: {e}"
-            )
-            raise DatabaseException("Database operation failed")
-
-    def get_by_id(self, location_id: str) -> Optional[TbMLocation]:
-        logger.debug("[LocationRepository] Starting get_by_id...")
-        try:
-            return (
-                self.db.query(TbMLocation).filter(TbMLocation.id == location_id).first()
-            )
-        except Exception as e:
-            logger.error(f"[LocationRepository] Unexpected error in get_by_id: {e}")
-            raise DatabaseException("Database operation failed")
-
-    def update(
+    def update_location(
         self, location_id: str, data, changed_by: str = "SUPERADMIN"
     ) -> Optional[TbMLocation]:
-        logger.debug("[LocationRepository] Starting update...")
+        logger.debug("[LocationRepository] Starting update_location...")
         try:
-            location = self.get_by_id(location_id)
+            location = self.find_by_id(location_id)
             if not location:
                 return None
 
@@ -154,55 +107,142 @@ class LocationRepository(BaseRepository[TbMLocation]):
             setattr(location, "changed_by", changed_by)
             self.db.commit()
             self.db.refresh(location)
-            logger.debug("[LocationRepository] Successfully completed update.")
+            logger.debug("[LocationRepository] Successfully completed update_location.")
             return location
         except AppException as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[LocationRepository] Unexpected error in update: {e}")
+            logger.error(
+                f"[LocationRepository] Unexpected error in update_location: {e}"
+            )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def deactivate(self, location_id: str, changed_by: str) -> Optional[TbMLocation]:
-        logger.debug("[LocationRepository] Starting deactivate...")
+    def activate_location(
+        self, location_id: str, changed_by: str
+    ) -> Optional[TbMLocation]:
+        logger.debug("[LocationRepository] Starting activate_location...")
         try:
-            location = self.get_by_id(location_id)
-            if not location:
-                return None
-            setattr(location, "is_active", False)
-            setattr(location, "changed_by", changed_by)
-            self.db.commit()
-            self.db.refresh(location)
-            logger.debug("[LocationRepository] Successfully completed deactivate.")
-            return location
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"[LocationRepository] Unexpected error in deactivate: {e}")
-            raise DatabaseException("Database operation failed")
-
-    def activate(self, location_id: str, changed_by: str) -> Optional[TbMLocation]:
-        logger.debug("[LocationRepository] Starting activate...")
-        try:
-            location = self.get_by_id(location_id)
+            location = self.find_by_id(location_id)
             if not location:
                 return None
             setattr(location, "is_active", True)
             setattr(location, "changed_by", changed_by)
             self.db.commit()
             self.db.refresh(location)
-            logger.debug("[LocationRepository] Successfully completed activate.")
+            logger.debug(
+                "[LocationRepository] Successfully completed activate_location."
+            )
             return location
         except AppException as e:
             self.db.rollback()
             raise e
         except Exception as e:
             self.db.rollback()
-            logger.error(f"[LocationRepository] Unexpected error in activate: {e}")
+            logger.error(
+                f"[LocationRepository] Unexpected error in activate_location: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def deactivate_location(
+        self, location_id: str, changed_by: str
+    ) -> Optional[TbMLocation]:
+        logger.debug("[LocationRepository] Starting deactivate_location...")
+        try:
+            location = self.find_by_id(location_id)
+            if not location:
+                return None
+            setattr(location, "is_active", False)
+            setattr(location, "changed_by", changed_by)
+            self.db.commit()
+            self.db.refresh(location)
+            logger.debug(
+                "[LocationRepository] Successfully completed deactivate_location."
+            )
+            return location
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[LocationRepository] Unexpected error in deactivate_location: {e}"
+            )
+            raise DatabaseException("Database operation failed")
+
+    def list_all(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        location_type: Optional[str] = None,
+        is_active: Optional[bool] = None,
+    ) -> List[TbMLocation]:
+        logger.debug("[LocationRepository] Starting list_all...")
+        try:
+            query = self.db.query(TbMLocation)
+            if is_active is not None:
+                query = query.filter(TbMLocation.is_active == is_active)
+            if location_type:
+                query = query.filter(TbMLocation.location_type == location_type.upper())
+            if search:
+                search_filter = f"%{search}%"
+                query = query.filter(
+                    TbMLocation.name.ilike(search_filter)
+                    | TbMLocation.location_code.ilike(search_filter)
+                    | TbMLocation.city.ilike(search_filter)
+                )
+            result = query.order_by(TbMLocation.name).offset(skip).limit(limit).all()
+            logger.debug("[LocationRepository] Successfully completed list_all.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[LocationRepository] Unexpected error in list_all: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_public(self) -> List[TbMLocation]:
+        logger.debug("[LocationRepository] Starting list_public...")
+        try:
+            return (
+                self.db.query(TbMLocation)
+                .filter(TbMLocation.is_active == 1)
+                .order_by(TbMLocation.name)
+                .all()
+            )
+        except Exception as e:
+            logger.error(f"[LocationRepository] Unexpected error in list_public: {e}")
+            raise DatabaseException("Database operation failed")
+
+    def delete_location(self, location_id: str) -> bool:
+        logger.debug("[LocationRepository] Starting delete_location...")
+        try:
+            location = self.find_by_id(location_id)
+            if not location:
+                return False
+
+            if self.has_active_assignments(location_id):
+                raise AppException(
+                    message="Cannot delete location with active assignments",
+                    status_code=400,
+                )
+
+            self.db.delete(location)
+            self.db.commit()
+            logger.debug("[LocationRepository] Successfully completed delete_location.")
+            return True
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[LocationRepository] Unexpected error in delete_location: {e}"
+            )
+            traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
     def has_active_assignments(self, location_id: str) -> bool:
@@ -229,32 +269,6 @@ class LocationRepository(BaseRepository[TbMLocation]):
             logger.error(
                 f"[LocationRepository] Unexpected error in has_active_assignments: {e}"
             )
-            raise DatabaseException("Database operation failed")
-
-    def delete(self, location_id: str) -> bool:
-        logger.debug("[LocationRepository] Starting delete...")
-        try:
-            location = self.get_by_id(location_id)
-            if not location:
-                return False
-
-            if self.has_active_assignments(location_id):
-                raise AppException(
-                    message="Cannot delete location with active assignments",
-                    status_code=400,
-                )
-
-            self.db.delete(location)
-            self.db.commit()
-            logger.debug("[LocationRepository] Successfully completed delete.")
-            return True
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"[LocationRepository] Unexpected error in delete: {e}")
-            traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
     def count_admins_by_location(self, location_id: str) -> int:

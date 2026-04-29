@@ -116,27 +116,6 @@ async def login(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@router.post("/logout", response_model=MessageResponse)
-def logout(
-    current_user: TbMUser = Depends(get_current_user),
-    user_repo: UserRepository = Depends(get_user_repository),
-):
-    try:
-        user_repo.update_record_login(
-            str(current_user.id), str(current_user.last_login_source), session_id=None
-        )
-        logger.info(f"[Auth] User logged out: {current_user.username}")
-        return MessageResponse(
-            status=ApiStatus.SUCCESS, message="Logged out successfully"
-        )
-    except (HTTPException, AppException):
-        raise
-    except Exception as e:
-        logger.error(f"[AuthEndpoint] Unexpected error in logout: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-
 @router.get("/me", response_model=GenericResponse[UserResponse])
 def get_current_user_profile(current_user: TbMUser = Depends(get_current_user)):
     try:
@@ -205,5 +184,26 @@ def update_user_password(
         logger.error(
             f"[AuthEndpoint] Unexpected error in update_user_password: {str(e)}"
         )
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post("/logout", response_model=MessageResponse)
+def logout(
+    current_user: TbMUser = Depends(get_current_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        user_repo.update_record_login(
+            str(current_user.id), str(current_user.last_login_source), session_id=None
+        )
+        logger.info(f"[Auth] User logged out: {current_user.username}")
+        return MessageResponse(
+            status=ApiStatus.SUCCESS, message="Logged out successfully"
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[AuthEndpoint] Unexpected error in logout: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")

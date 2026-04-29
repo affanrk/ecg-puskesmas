@@ -270,7 +270,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def get_nodes(
+    def list_nodes(
         self,
         user_id: Optional[str] = None,
         year: Optional[int] = None,
@@ -279,7 +279,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
         hour: Optional[int] = None,
         minute: Optional[int] = None,
     ) -> List[CalendarNode]:
-        logger.debug("[CalendarRepository] Starting get_nodes...")
+        logger.debug("[CalendarRepository] Starting list_nodes...")
         try:
             local_dt = self._get_local_dt()
             severity_case = self._get_severity_case()
@@ -304,14 +304,14 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                     current_year = datetime.now().year
                     res = self._build_nodes([], current_year, current_year + 1, "year")
                     logger.debug(
-                        "[CalendarRepository] Successfully completed get_nodes."
+                        "[CalendarRepository] Successfully completed list_nodes."
                     )
                     return res
 
                 res = self._build_nodes(
                     results, min(years_found), max(years_found) + 1, "year"
                 )
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
 
             elif month is None:
@@ -328,7 +328,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
 
                 results = query.group_by("month").all()
                 res = self._build_nodes(results, 1, 13, "month")
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
 
             elif day is None:
@@ -349,7 +349,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
                 results = query.group_by("day").all()
                 _, last_day = calendar.monthrange(year, month)
                 res = self._build_nodes(results, 1, last_day + 1, "day")
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
 
             elif hour is None:
@@ -370,7 +370,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
 
                 results = query.group_by("hour").all()
                 res = self._build_nodes(results, 0, 24, "hour")
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
 
             elif minute is None:
@@ -392,7 +392,7 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
 
                 results = query.group_by("minute").all()
                 res = self._build_nodes(results, 0, 60, "minute")
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
 
             else:
@@ -415,11 +415,11 @@ class CalendarRepository(BaseRepository[TbREcgSession]):
 
                 results = query.group_by("second").all()
                 res = self._build_nodes(results, 0, 60, "second")
-                logger.debug("[CalendarRepository] Successfully completed get_nodes.")
+                logger.debug("[CalendarRepository] Successfully completed list_nodes.")
                 return res
         except AppException:
             raise
         except Exception as e:
-            logger.error(f"[CalendarRepository] Unexpected error in get_nodes: {e}")
+            logger.error(f"[CalendarRepository] Unexpected error in list_nodes: {e}")
             traceback.print_exc()
             raise DatabaseException("Database operation failed")

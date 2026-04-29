@@ -1,10 +1,10 @@
 from .schema import (
     PatientBase,
     PatientCreate,
-    PatientUpdate,
-    PatientResponse,
     WalkinPatientCreate,
+    PatientUpdate,
     WalkinPatientUpdate,
+    PatientResponse,
     WalkinPatientResponse,
     ConvertWalkinRequest,
 )
@@ -12,10 +12,10 @@ from .schema import (
 __all__ = [
     "PatientBase",
     "PatientCreate",
-    "PatientUpdate",
-    "PatientResponse",
     "WalkinPatientCreate",
+    "PatientUpdate",
     "WalkinPatientUpdate",
+    "PatientResponse",
     "WalkinPatientResponse",
     "ConvertWalkinRequest",
 ]

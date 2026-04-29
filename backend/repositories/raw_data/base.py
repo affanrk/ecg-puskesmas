@@ -40,8 +40,8 @@ class BaseRawDataRepository(BaseRepository[T_Base]):
             )
             raise DatabaseException(f"Failed get {self.platform_name} raw: {e}")
 
-    def bulk_insert_dicts(self, data_list: List[Dict[str, Any]]) -> int:
-        logger.debug("[BaseRawDataRepository] Starting bulk_insert_dicts...")
+    def create_raw_data_bulk(self, data_list: List[Dict[str, Any]]) -> int:
+        logger.debug("[BaseRawDataRepository] Starting create_raw_data_bulk...")
         try:
             if not data_list:
                 return 0
@@ -52,7 +52,7 @@ class BaseRawDataRepository(BaseRepository[T_Base]):
                 f"[RawData-{self.platform_name}] Bulk created {len(data_list)} samples"
             )
             logger.debug(
-                "[BaseRawDataRepository] Successfully completed bulk_insert_dicts."
+                "[BaseRawDataRepository] Successfully completed create_raw_data_bulk."
             )
             return len(data_list)
         except IntegrityError as e:
@@ -62,11 +62,11 @@ class BaseRawDataRepository(BaseRepository[T_Base]):
                 or "foreign key constraint" in str(e).lower()
             ):
                 logger.warning(
-                    f"[BaseRawDataRepository] Race condition in bulk_insert_dicts - recording was likely deleted by watchdog. Ignoring insert. Detail: {e}"
+                    f"[BaseRawDataRepository] Race condition in create_raw_data_bulk - recording was likely deleted by watchdog. Ignoring insert. Detail: {e}"
                 )
                 return 0
             logger.error(
-                f"[BaseRawDataRepository] Integrity error in bulk_insert_dicts: {e}"
+                f"[BaseRawDataRepository] Integrity error in create_raw_data_bulk: {e}"
             )
             raise DatabaseException(
                 f"Failed {self.platform_name} bulk insert (IntegrityError)",
@@ -78,7 +78,7 @@ class BaseRawDataRepository(BaseRepository[T_Base]):
         except Exception as e:
             self.db.rollback()
             logger.error(
-                f"[BaseRawDataRepository] Unexpected error in bulk_insert_dicts: {e}"
+                f"[BaseRawDataRepository] Unexpected error in create_raw_data_bulk: {e}"
             )
             raise DatabaseException(
                 f"Failed {self.platform_name} bulk insert", details={"error": str(e)}

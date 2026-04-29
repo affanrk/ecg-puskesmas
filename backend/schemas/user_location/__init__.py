@@ -1,3 +1,3 @@
-from .schema import StaffLocationAssign, StaffLocationResponse
+from .schema import UserLocationBase, StaffLocationAssign, StaffLocationResponse
 
-__all__ = ["StaffLocationAssign", "StaffLocationResponse"]
+__all__ = ["UserLocationBase", "StaffLocationAssign", "StaffLocationResponse"]

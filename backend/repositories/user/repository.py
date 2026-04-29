@@ -45,19 +45,6 @@ class UserRepository(BaseRepository[TbMUser]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def refresh_user(self, user: TbMUser):
-        logger.debug("[UserRepository] Starting refresh_user...")
-        try:
-            self.db.refresh(user)
-            logger.debug("[UserRepository] Successfully completed refresh_user.")
-        except AppException as e:
-            raise e
-        except Exception:
-            self.db.expire(user)
-            logger.debug(
-                "[UserRepository] Successfully completed refresh_user (expired)."
-            )
-
     def find_by_email(self, email: str) -> Optional[TbMUser]:
         logger.debug("[UserRepository] Starting find_by_email...")
         try:
@@ -115,177 +102,6 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             logger.error(
                 f"[UserRepository] Unexpected error in find_by_identifier: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def list_all(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
-        role: Optional[str] = None,
-        exclude_admins: bool = True,
-        location_id: Optional[str] = None,
-    ) -> List[TbMUser]:
-        logger.debug("[UserRepository] Starting list_all...")
-        try:
-            query = (
-                self.db.query(TbMUser)
-                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
-                .options(
-                    contains_eager(TbMUser.patient_profile),
-                    joinedload(TbMUser.admin_profile),
-                    joinedload(TbMUser.operator_profile),
-                    joinedload(TbMUser.doctor_profile),
-                )
-            )
-
-            if exclude_admins:
-                query = query.filter(TbMUser.role != "admin")
-
-            query = query.filter(TbMUser.role != "superadmin")
-
-            if location_id:
-                query = query.filter(TbMUser.location_id == location_id)
-
-            if role:
-                if role == "patient":
-                    query = query.filter(TbMUser.is_patient.is_(True))
-                elif role == "operator":
-                    query = query.filter(TbMUser.is_operator.is_(True))
-                elif role == "doctor":
-                    query = query.filter(TbMUser.is_doctor.is_(True))
-                elif role == "user":
-                    query = query.filter(
-                        TbMUser.role == "user",
-                        TbMUser.is_patient.is_(False),
-                        TbMUser.is_operator.is_(False),
-                        TbMUser.is_doctor.is_(False),
-                    )
-                else:
-                    query = query.filter(TbMUser.role == role)
-
-            if search:
-                search_filter = f"%{search}%"
-                query = query.filter(
-                    or_(
-                        TbMUser.username.ilike(search_filter),
-                        TbMUser.email.ilike(search_filter),
-                        TbMUser.id.ilike(search_filter),
-                        TbMPatient.full_name.ilike(search_filter),
-                        TbMPatient.nik.ilike(search_filter),
-                    )
-                )
-
-            query = query.order_by(desc(TbMUser.created_dt))
-            result = query.offset(skip).limit(limit).all()
-            logger.debug("[UserRepository] Successfully completed list_all.")
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(f"[UserRepository] Unexpected error in list_all: {e}")
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
-    def list_pending_approval(
-        self,
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        is_patient: Optional[bool] = None,
-        is_operator: Optional[bool] = None,
-        is_doctor: Optional[bool] = None,
-        location_id: Optional[str] = None,
-    ) -> List[TbMUser]:
-        logger.debug("[UserRepository] Starting list_pending_approval...")
-        try:
-            query = (
-                self.db.query(TbMUser)
-                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
-                .outerjoin(TbMOperator, TbMUser.id == TbMOperator.user_id)
-                .outerjoin(TbMDoctor, TbMUser.id == TbMDoctor.user_id)
-                .options(
-                    contains_eager(TbMUser.patient_profile),
-                    contains_eager(TbMUser.operator_profile),
-                    contains_eager(TbMUser.doctor_profile),
-                )
-                .filter(TbMUser.is_active == 1)
-            )
-
-            if location_id:
-                query = query.filter(TbMUser.location_id == location_id)
-
-            if search:
-                search_filter = f"%{search}%"
-                query = query.filter(
-                    or_(
-                        TbMUser.username.ilike(search_filter),
-                        TbMUser.email.ilike(search_filter),
-                        TbMPatient.full_name.ilike(search_filter),
-                        TbMPatient.nik.ilike(search_filter),
-                        TbMOperator.full_name.ilike(search_filter),
-                        TbMOperator.nik.ilike(search_filter),
-                        TbMDoctor.full_name.ilike(search_filter),
-                        TbMDoctor.nik.ilike(search_filter),
-                    )
-                )
-
-            if start_date:
-                query = query.filter(TbMUser.changed_dt >= start_date)
-            if end_date:
-                query = query.filter(TbMUser.changed_dt <= f"{end_date} 23:59:59")
-
-            role_status_filters = []
-            if is_patient is not None:
-                query = query.filter(TbMUser.is_patient == is_patient)
-                if is_patient:
-                    role_status_filters.append(TbMPatient.status == "QUEUE")
-            if is_operator is not None:
-                query = query.filter(TbMUser.is_operator == is_operator)
-                if is_operator:
-                    role_status_filters.append(TbMOperator.status == "QUEUE")
-            if is_doctor is not None:
-                query = query.filter(TbMUser.is_doctor == is_doctor)
-                if is_doctor:
-                    role_status_filters.append(TbMDoctor.status == "QUEUE")
-
-            if role_status_filters:
-                query = query.filter(or_(*role_status_filters))
-            else:
-                query = query.filter(
-                    or_(
-                        TbMPatient.status == "QUEUE",
-                        TbMOperator.status == "QUEUE",
-                        TbMDoctor.status == "QUEUE",
-                    )
-                )
-
-            query = query.order_by(
-                asc(
-                    func.coalesce(
-                        TbMPatient.changed_dt,
-                        TbMPatient.created_dt,
-                        TbMOperator.changed_dt,
-                        TbMOperator.created_dt,
-                        TbMDoctor.changed_dt,
-                        TbMDoctor.created_dt,
-                    )
-                )
-            )
-            result = query.offset(skip).limit(limit).all()
-            logger.debug(
-                "[UserRepository] Successfully completed list_pending_approval."
-            )
-            return result
-        except AppException as e:
-            raise e
-        except Exception as e:
-            logger.error(
-                f"[UserRepository] Unexpected error in list_pending_approval: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
@@ -555,65 +371,6 @@ class UserRepository(BaseRepository[TbMUser]):
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
-    def cleanup_patient_data(self, user_id: str):
-        logger.debug("[UserRepository] Starting cleanup_patient_data...")
-        try:
-            logger.info("[User] Cleaning up patient data for user %s", user_id)
-
-            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
-                TbREcgSession.user_id == user_id
-            )
-
-            self.db.query(TbRPerformanceLog).filter(
-                TbRPerformanceLog.recording_id.in_(session_ids_subq)
-            ).delete(synchronize_session=False)
-
-            self.db.query(TbREcgSessionParameter).filter(
-                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
-            ).delete(synchronize_session=False)
-
-            self.db.query(TbREcgSession).filter(
-                TbREcgSession.user_id == user_id
-            ).delete(synchronize_session=False)
-
-            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
-            if patient:
-                pat_session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
-                    TbREcgSession.patient_id == patient.id
-                )
-                self.db.query(TbRPerformanceLog).filter(
-                    TbRPerformanceLog.recording_id.in_(pat_session_ids_subq)
-                ).delete(synchronize_session=False)
-                self.db.query(TbREcgSessionParameter).filter(
-                    TbREcgSessionParameter.recording_id.in_(pat_session_ids_subq)
-                ).delete(synchronize_session=False)
-                self.db.query(TbREcgSession).filter(
-                    TbREcgSession.patient_id == patient.id
-                ).delete(synchronize_session=False)
-
-            self.db.query(TbRLogApproval).filter(
-                TbRLogApproval.user_id == user_id
-            ).delete(synchronize_session=False)
-
-            self.db.query(TbMPatient).filter(TbMPatient.user_id == user_id).delete(
-                synchronize_session=False
-            )
-
-            self.db.commit()
-            logger.debug(
-                "[UserRepository] Successfully completed cleanup_patient_data."
-            )
-        except AppException as e:
-            self.db.rollback()
-            raise e
-        except Exception as e:
-            self.db.rollback()
-            logger.error(
-                f"[UserRepository] Unexpected error in cleanup_patient_data for user {user_id}: {e}"
-            )
-            traceback.print_exc()
-            raise DatabaseException("Database operation failed")
-
     def activate_user(self, user_id: str, changed_by: str) -> Optional[TbMUser]:
         logger.debug("[UserRepository] Starting activate_user...")
         try:
@@ -653,6 +410,177 @@ class UserRepository(BaseRepository[TbMUser]):
         except Exception as e:
             self.db.rollback()
             logger.error(f"[UserRepository] Unexpected error in deactivate_user: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_all(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        role: Optional[str] = None,
+        exclude_admins: bool = True,
+        location_id: Optional[str] = None,
+    ) -> List[TbMUser]:
+        logger.debug("[UserRepository] Starting list_all...")
+        try:
+            query = (
+                self.db.query(TbMUser)
+                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+                .options(
+                    contains_eager(TbMUser.patient_profile),
+                    joinedload(TbMUser.admin_profile),
+                    joinedload(TbMUser.operator_profile),
+                    joinedload(TbMUser.doctor_profile),
+                )
+            )
+
+            if exclude_admins:
+                query = query.filter(TbMUser.role != "admin")
+
+            query = query.filter(TbMUser.role != "superadmin")
+
+            if location_id:
+                query = query.filter(TbMUser.location_id == location_id)
+
+            if role:
+                if role == "patient":
+                    query = query.filter(TbMUser.is_patient.is_(True))
+                elif role == "operator":
+                    query = query.filter(TbMUser.is_operator.is_(True))
+                elif role == "doctor":
+                    query = query.filter(TbMUser.is_doctor.is_(True))
+                elif role == "user":
+                    query = query.filter(
+                        TbMUser.role == "user",
+                        TbMUser.is_patient.is_(False),
+                        TbMUser.is_operator.is_(False),
+                        TbMUser.is_doctor.is_(False),
+                    )
+                else:
+                    query = query.filter(TbMUser.role == role)
+
+            if search:
+                search_filter = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        TbMUser.username.ilike(search_filter),
+                        TbMUser.email.ilike(search_filter),
+                        TbMUser.id.ilike(search_filter),
+                        TbMPatient.full_name.ilike(search_filter),
+                        TbMPatient.nik.ilike(search_filter),
+                    )
+                )
+
+            query = query.order_by(desc(TbMUser.created_dt))
+            result = query.offset(skip).limit(limit).all()
+            logger.debug("[UserRepository] Successfully completed list_all.")
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(f"[UserRepository] Unexpected error in list_all: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_pending_approval(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        search: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        is_patient: Optional[bool] = None,
+        is_operator: Optional[bool] = None,
+        is_doctor: Optional[bool] = None,
+        location_id: Optional[str] = None,
+    ) -> List[TbMUser]:
+        logger.debug("[UserRepository] Starting list_pending_approval...")
+        try:
+            query = (
+                self.db.query(TbMUser)
+                .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+                .outerjoin(TbMOperator, TbMUser.id == TbMOperator.user_id)
+                .outerjoin(TbMDoctor, TbMUser.id == TbMDoctor.user_id)
+                .options(
+                    contains_eager(TbMUser.patient_profile),
+                    contains_eager(TbMUser.operator_profile),
+                    contains_eager(TbMUser.doctor_profile),
+                )
+                .filter(TbMUser.is_active == 1)
+            )
+
+            if location_id:
+                query = query.filter(TbMUser.location_id == location_id)
+
+            if search:
+                search_filter = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        TbMUser.username.ilike(search_filter),
+                        TbMUser.email.ilike(search_filter),
+                        TbMPatient.full_name.ilike(search_filter),
+                        TbMPatient.nik.ilike(search_filter),
+                        TbMOperator.full_name.ilike(search_filter),
+                        TbMOperator.nik.ilike(search_filter),
+                        TbMDoctor.full_name.ilike(search_filter),
+                        TbMDoctor.nik.ilike(search_filter),
+                    )
+                )
+
+            if start_date:
+                query = query.filter(TbMUser.changed_dt >= start_date)
+            if end_date:
+                query = query.filter(TbMUser.changed_dt <= f"{end_date} 23:59:59")
+
+            role_status_filters = []
+            if is_patient is not None:
+                query = query.filter(TbMUser.is_patient == is_patient)
+                if is_patient:
+                    role_status_filters.append(TbMPatient.status == "QUEUE")
+            if is_operator is not None:
+                query = query.filter(TbMUser.is_operator == is_operator)
+                if is_operator:
+                    role_status_filters.append(TbMOperator.status == "QUEUE")
+            if is_doctor is not None:
+                query = query.filter(TbMUser.is_doctor == is_doctor)
+                if is_doctor:
+                    role_status_filters.append(TbMDoctor.status == "QUEUE")
+
+            if role_status_filters:
+                query = query.filter(or_(*role_status_filters))
+            else:
+                query = query.filter(
+                    or_(
+                        TbMPatient.status == "QUEUE",
+                        TbMOperator.status == "QUEUE",
+                        TbMDoctor.status == "QUEUE",
+                    )
+                )
+
+            query = query.order_by(
+                asc(
+                    func.coalesce(
+                        TbMPatient.changed_dt,
+                        TbMPatient.created_dt,
+                        TbMOperator.changed_dt,
+                        TbMOperator.created_dt,
+                        TbMDoctor.changed_dt,
+                        TbMDoctor.created_dt,
+                    )
+                )
+            )
+            result = query.offset(skip).limit(limit).all()
+            logger.debug(
+                "[UserRepository] Successfully completed list_pending_approval."
+            )
+            return result
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[UserRepository] Unexpected error in list_pending_approval: {e}"
+            )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
@@ -792,6 +720,78 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.rollback()
             logger.error(
                 f"[UserRepository] Unexpected error in delete for user with ID {user_id}: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def refresh_user(self, user: TbMUser):
+        logger.debug("[UserRepository] Starting refresh_user...")
+        try:
+            self.db.refresh(user)
+            logger.debug("[UserRepository] Successfully completed refresh_user.")
+        except AppException as e:
+            raise e
+        except Exception:
+            self.db.expire(user)
+            logger.debug(
+                "[UserRepository] Successfully completed refresh_user (expired)."
+            )
+
+    def cleanup_patient_data(self, user_id: str):
+        logger.debug("[UserRepository] Starting cleanup_patient_data...")
+        try:
+            logger.info("[User] Cleaning up patient data for user %s", user_id)
+
+            session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                TbREcgSession.user_id == user_id
+            )
+
+            self.db.query(TbRPerformanceLog).filter(
+                TbRPerformanceLog.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSessionParameter).filter(
+                TbREcgSessionParameter.recording_id.in_(session_ids_subq)
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbREcgSession).filter(
+                TbREcgSession.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            patient = self.db.query(TbMPatient).filter_by(user_id=user_id).first()
+            if patient:
+                pat_session_ids_subq = self.db.query(TbREcgSession.recording_id).filter(
+                    TbREcgSession.patient_id == patient.id
+                )
+                self.db.query(TbRPerformanceLog).filter(
+                    TbRPerformanceLog.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSessionParameter).filter(
+                    TbREcgSessionParameter.recording_id.in_(pat_session_ids_subq)
+                ).delete(synchronize_session=False)
+                self.db.query(TbREcgSession).filter(
+                    TbREcgSession.patient_id == patient.id
+                ).delete(synchronize_session=False)
+
+            self.db.query(TbRLogApproval).filter(
+                TbRLogApproval.user_id == user_id
+            ).delete(synchronize_session=False)
+
+            self.db.query(TbMPatient).filter(TbMPatient.user_id == user_id).delete(
+                synchronize_session=False
+            )
+
+            self.db.commit()
+            logger.debug(
+                "[UserRepository] Successfully completed cleanup_patient_data."
+            )
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[UserRepository] Unexpected error in cleanup_patient_data for user {user_id}: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
