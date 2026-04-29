@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Activity, Square, XCircle, Loader2 } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Activity, Square, XCircle, Loader2 } from 'lucide-react';
+
 import DeviceDropdown from './DeviceDropdown';
 
 interface ECGFooterProps {

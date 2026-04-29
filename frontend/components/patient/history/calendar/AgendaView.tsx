@@ -1,10 +1,11 @@
 'use client';
 
-import { AnalysisResult } from '@/types/models';
-import { Activity, ChevronRight, Clock, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
-import { TimePickerField } from './parts/TimePickerField';
+import { Activity, ChevronRight, Clock, RotateCcw } from 'lucide-react';
+
 import { AgendaResultItem } from './parts/AgendaResultItem';
+import { TimePickerField } from './parts/TimePickerField';
+import { AnalysisResult } from '@/types/models';
 
 interface AgendaViewProps {
     results: AnalysisResult[];

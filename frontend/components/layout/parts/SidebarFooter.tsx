@@ -1,6 +1,5 @@
-import React from 'react';
-import { LogOut, Pin, PinOff } from 'lucide-react';
 import clsx from 'clsx';
+import { LogOut, Pin, PinOff } from 'lucide-react';
 
 interface SidebarFooterProps {
     className?: string;

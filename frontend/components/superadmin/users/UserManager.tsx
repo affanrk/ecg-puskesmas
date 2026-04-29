@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
-import { User, LocationResponse } from '@/types/user';
-import { useToast } from '@/hooks/useToast';
-import { Users, RefreshCcw, ChevronLeft, ChevronRight, Info } from 'lucide-react';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
-import { useStore } from '@/store/useStore';
+import { useState, useEffect, useCallback } from 'react';
+
+import { Users, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import UserFilters from './parts/UserFilters';
 import UserTableRow from './parts/UserTableRow';
+import { EVENTS } from '@/config/constants';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
+import { User, LocationResponse } from '@/types/user';
 
 export default function UserManager() {
     const { show: toast } = useToast();
@@ -17,7 +19,11 @@ export default function UserManager() {
     const [users, setUsers] = useState<User[]>([]);
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const initialized = useRef(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    useEffect(() => {
+        setAdminLoading(loading);
+    }, [loading, setAdminLoading]);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
@@ -59,55 +65,46 @@ export default function UserManager() {
             ]);
             setUsers(Array.isArray(usersRes) ? usersRes : usersRes?.data || []);
             setLocations(Array.isArray(locRes) ? locRes : locRes?.data || []);
+            return true;
         } catch {
             toast('Failed to load users', 'error');
+            return false;
         } finally {
             setLoading(false);
-            setAdminLoading(false);
         }
-    }, [toast, setAdminLoading]);
+    }, [toast]);
+
+    const handleRefresh = useCallback(() => {
+        setRefreshKey(prev => prev + 1);
+        toast('Users refreshed successfully', 'success');
+    }, [toast]);
 
     useEffect(() => {
-        if (initialized.current) return;
-        initialized.current = true;
+        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+        return () => globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+    }, [handleRefresh]);
 
+    useEffect(() => {
         loadUsers();
-
-        const handleRefreshEvent = () => loadUsers();
-        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        return () => {
-            globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        };
-    }, [loadUsers]);
+    }, [loadUsers, refreshKey]);
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
-                <div>
-                    <p className="text-sm font-medium text-blue-900">Read-Only User View</p>
-                    <p className="text-xs text-blue-700 mt-1">
-                        SuperAdmin can view users for oversight purposes. To manage users (activate/deactivate/delete), please contact the location Admin.
-                    </p>
-                </div>
-            </div>
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden animate-in fade-in duration-500">
+            <UserFilters
+                searchTerm={searchTerm}
+                roleFilter={roleFilter}
+                statusFilter={statusFilter}
+                locations={locations}
+                selectedLocationIds={selectedLocationIds}
+                onSearchChange={setSearchTerm}
+                onRoleChange={setRoleFilter}
+                onStatusChange={setStatusFilter}
+                onLocationChange={setSelectedLocationIds}
+            />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-                <UserFilters
-                    searchTerm={searchTerm}
-                    roleFilter={roleFilter}
-                    statusFilter={statusFilter}
-                    locations={locations}
-                    selectedLocationIds={selectedLocationIds}
-                    onSearchChange={setSearchTerm}
-                    onRoleChange={setRoleFilter}
-                    onStatusChange={setStatusFilter}
-                    onLocationChange={setSelectedLocationIds}
-                />
-            </div>
-
-            <div className="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-x-auto flex-1">
+            <div className="flex-1 p-4 lg:px-10 lg:py-6 bg-slate-50/30 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+                    <div className="overflow-x-auto flex-1">
                     <table className="w-full text-left text-sm text-slate-600">
                         <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
                             <tr>
@@ -180,6 +177,7 @@ export default function UserManager() {
                         </div>
                     </div>
                 )}
+                </div>
             </div>
         </div>
     );

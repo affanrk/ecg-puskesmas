@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LocationResponse } from '@/types/user';
-import { MapPin, ChevronDown, Search, X } from 'lucide-react';
+
 import clsx from 'clsx';
+import { MapPin, ChevronDown, Search, X } from 'lucide-react';
+
+import { LocationResponse } from '@/types/user';
 
 interface LocationFilterMultiProps {
     locations: LocationResponse[];

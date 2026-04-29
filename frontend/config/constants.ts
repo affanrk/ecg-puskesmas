@@ -50,11 +50,11 @@ export const LEAD_CONFIGS = {
 export const CONFIG = {
     SAMPLING_RATE: {
         [LEAD_MODES.FIVE]: 100,
-        [LEAD_MODES.TWELVE]: 853,
+        [LEAD_MODES.TWELVE]: 100,
     },
     MAX_DATA_POINTS: {
         [LEAD_MODES.FIVE]: 500,
-        [LEAD_MODES.TWELVE]: 853,
+        [LEAD_MODES.TWELVE]: 500,
     },
     ERASE_GAP: 20,
     COLORS: {

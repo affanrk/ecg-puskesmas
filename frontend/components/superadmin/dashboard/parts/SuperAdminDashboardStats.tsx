@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { Users, MapPin, ShieldCheck, ArrowRight, Cpu } from 'lucide-react';
 

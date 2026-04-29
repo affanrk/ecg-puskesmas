@@ -1,14 +1,16 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+
 import { usePathname } from 'next/navigation';
+
 import { useRouter } from 'nextjs-toploader/app';
-import { useStore } from '@/store/useStore';
-import { useToast } from '@/hooks/useToast';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import PatientSidebar from '@/components/layout/PatientSidebar';
 import PatientHeader from '@/components/layout/PatientHeader';
+import PatientSidebar from '@/components/layout/PatientSidebar';
+import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 
 export default function PatientLayout({ children }: { children: ReactNode }) {
     const router = useRouter();

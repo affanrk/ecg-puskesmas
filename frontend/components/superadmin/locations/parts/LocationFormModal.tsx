@@ -1,10 +1,11 @@
 'use client';
 
-import { LocationCreatePayload } from '@/types/user';
 import { X } from 'lucide-react';
-import StandardInput from '@/components/shared/StandardInput';
+
 import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { locationTypeOptions } from '@/data';
+import { LocationCreatePayload } from '@/types/user';
 
 interface LocationFormModalProps {
     mode: 'create' | 'edit';
@@ -65,6 +66,7 @@ export default function LocationFormModal({
                         onChange={(e) => onFieldChange('name', e.target.value)}
                         placeholder="e.g. Puskesmas Menteng"
                         errorMessage={errors.name}
+                        colorTheme="violet"
                     />
                     <SelectInput
                         label="Location Type"
@@ -76,6 +78,7 @@ export default function LocationFormModal({
                             ...locationTypeOptions
                         ]}
                         errorMessage={errors.location_type}
+                        colorTheme="violet"
                     />
                     <StandardInput
                         label="Full Address"
@@ -84,6 +87,7 @@ export default function LocationFormModal({
                         onChange={(e) => onFieldChange('address', e.target.value)}
                         placeholder="e.g. Jl. Menteng Raya No. 1"
                         errorMessage={errors.address}
+                        colorTheme="violet"
                     />
                     
                     <div className="grid grid-cols-2 gap-3">
@@ -98,6 +102,7 @@ export default function LocationFormModal({
                             ]}
                             disabled={regionLoading.provinces}
                             errorMessage={errors.province}
+                            colorTheme="violet"
                         />
                         <SelectInput
                             label="City / Kabupaten"
@@ -110,6 +115,7 @@ export default function LocationFormModal({
                             ]}
                             disabled={!formData.province || regionLoading.cities}
                             errorMessage={errors.city}
+                            colorTheme="violet"
                         />
                     </div>
 
@@ -123,6 +129,7 @@ export default function LocationFormModal({
                                 ...districtOptions
                             ]}
                             disabled={!formData.city || regionLoading.districts}
+                            colorTheme="violet"
                         />
                         <SelectInput
                             label="Kelurahan / Desa"
@@ -133,6 +140,7 @@ export default function LocationFormModal({
                                 ...villageOptions
                             ]}
                             disabled={!formData.kecamatan || regionLoading.villages}
+                            colorTheme="violet"
                         />
                     </div>
 
@@ -142,6 +150,7 @@ export default function LocationFormModal({
                         onChange={(e) => onFieldChange('phone', e.target.value)}
                         placeholder="e.g. 02131000001"
                         errorMessage={errors.phone}
+                        colorTheme="violet"
                     />
                     <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 mt-6 shrink-0">
                         <button

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import clsx from 'clsx';
-import { AnalysisResult } from '@/types/models';
-import { AnalysisTableRow } from './AnalysisTableRow';
+import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { AnalysisTableEmpty } from './AnalysisTableEmpty';
+import { AnalysisTableRow } from './AnalysisTableRow';
+import { AnalysisResult } from '@/types/models';
 
 interface RecentAnalysisTableProps {
     loading: boolean;

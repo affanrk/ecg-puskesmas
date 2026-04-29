@@ -1,6 +1,6 @@
-import React from 'react';
-import { Activity, Clock, UserCircle, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
+import { Activity, Clock, UserCircle, AlertCircle } from 'lucide-react';
+
 import { ApprovalLog } from '@/types/user';
 
 interface AdminAuditLogsProps {

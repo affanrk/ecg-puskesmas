@@ -1,12 +1,13 @@
 'use client';
 
 import { User, Info, Save, BadgeCheck, Fingerprint } from 'lucide-react';
-import StandardInput from '@/components/shared/StandardInput';
+
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
+import { genderOptions } from '@/data';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
-import { genderOptions } from '@/data';
 
 interface SharedIdentityCardProps {
     isLocked: boolean;

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, ReactNode } from 'react';
-import axiosInstance from '@/services/axiosInstance';
-import { api } from '@/services/api';
+import axiosInstance from '@/services/http/axiosInstance';
+import { api } from '@/services';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/hooks/useToast';
 import { parseApiError } from '@/utils/helpers';

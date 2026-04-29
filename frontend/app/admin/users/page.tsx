@@ -1,25 +1,25 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/services/api';
-import { User, UserFormPayload, WalkinPatient, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
+
 import {
-    Search,
-    Filter,
-    RefreshCcw,
-    Plus
+    RefreshCcw
 } from 'lucide-react';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import EditUserModal from '@/components/admin/users/parts/EditUserModal';
+
 import CreateUserModal from '@/components/admin/users/parts/CreateUserModal';
-import WalkinPatientModal from '@/components/admin/users/parts/WalkinPatientModal';
+import EditUserModal from '@/components/admin/users/parts/EditUserModal';
 import PatientDetailModal from '@/components/admin/users/parts/PatientDetailModal';
-import { parseApiError } from '@/utils/helpers';
-import { useToast } from '@/hooks/useToast';
-import { useStore } from '@/store/useStore';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
+import UserManagementFilters from '@/components/admin/users/parts/UserManagementFilters';
+import WalkinPatientModal from '@/components/admin/users/parts/WalkinPatientModal';
 import UserManagementTable from '@/components/admin/users/UserManagementTable';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { EVENTS } from '@/config/constants';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
+import { User, UserFormPayload, WalkinPatient, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 export default function UserManagementPage() {
     const showToast = useToast((state) => state.show);
@@ -211,64 +211,35 @@ export default function UserManagementPage() {
     }, []);
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
-                <p className="text-sm font-medium text-slate-500">Manage accounts, roles, and access permissions.</p>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64 group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-rose-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search users..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all shadow-sm"
-                        />
-                    </div>
-                    <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                            <Filter size={14} />
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden animate-in fade-in duration-500">
+            <UserManagementFilters
+                search={search}
+                setSearch={setSearch}
+                roleFilter={roleFilter}
+                setRoleFilter={setRoleFilter}
+                onCreateUser={() => setIsCreatingUser(true)}
+            />
+
+            <div className="flex-1 p-4 lg:px-10 lg:py-6 bg-slate-50/30 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+                    {isLoading ? (
+                        <div className="h-full w-full flex flex-col items-center justify-center py-20">
+                            <RefreshCcw size={40} className="text-rose-200 animate-spin mb-4" />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Users...</p>
                         </div>
-                        <select
-                            value={roleFilter}
-                            onChange={(e) => setRoleFilter(e.target.value)}
-                            className="pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 focus:border-rose-500 outline-none appearance-none cursor-pointer hover:bg-slate-50 transition-colors shadow-sm"
-                        >
-                            <option value="">All Access</option>
-                            <option value="user">User (Standard Account)</option>
-                            <option value="patient">Patient</option>
-                            <option value="operator">Operator (Nurse / General Doctor)</option>
-                            <option value="doctor">Specialist (Doctor Specialist)</option>
-                        </select>
-                    </div>
-
-                    <button
-                        onClick={() => setIsCreatingUser(true)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
-                    >
-                        <Plus size={16} /> <span className="hidden sm:inline">New User</span>
-                    </button>
+                    ) : (
+                        <UserManagementTable
+                            users={users}
+                            rowsPerPage={rowsPerPage}
+                            setRowsPerPage={setRowsPerPage}
+                            currentPage={page}
+                            setCurrentPage={setPage}
+                            onEdit={handleSetEditingUser}
+                            onDelete={handleSetDeletingUser}
+                            onViewDetails={handleSetViewingPatient}
+                        />
+                    )}
                 </div>
-            </div>
-
-            <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0 relative">
-                {isLoading ? (
-                    <div className="h-full w-full flex flex-col items-center justify-center py-20">
-                        <RefreshCcw size={40} className="text-rose-200 animate-spin mb-4" />
-                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Loading Users...</p>
-                    </div>
-                ) : (
-                    <UserManagementTable
-                        users={users}
-                        rowsPerPage={rowsPerPage}
-                        setRowsPerPage={setRowsPerPage}
-                        currentPage={page}
-                        setCurrentPage={setPage}
-                        onEdit={handleSetEditingUser}
-                        onDelete={handleSetDeletingUser}
-                        onViewDetails={handleSetViewingPatient}
-                    />
-                )}
             </div>
 
             {editingUser && (

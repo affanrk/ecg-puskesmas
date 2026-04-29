@@ -1,10 +1,12 @@
 'use client';
 
-import { User } from '@/types/user';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { EmptyQueue } from './EmptyQueue';
 import { QueueTableRow } from './QueueTableRow';
+import { User } from '@/types/user';
 
 interface ApprovalsQueueProps {
     users: User[];

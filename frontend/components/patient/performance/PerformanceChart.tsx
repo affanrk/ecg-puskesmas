@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import '@/config/chartSetup';
+import '@/config/chart-setup';
 import { usePerformanceChart } from '@/hooks/usePerformanceChart';
 
 interface PerformanceChartProps {

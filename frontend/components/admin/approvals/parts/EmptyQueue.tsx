@@ -1,4 +1,3 @@
-import React from 'react';
 import { UserX } from 'lucide-react';
 
 interface EmptyQueueProps {

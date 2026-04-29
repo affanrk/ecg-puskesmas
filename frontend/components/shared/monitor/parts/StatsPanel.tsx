@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
+
+import clsx from 'clsx';
+import { Timer, Heart } from 'lucide-react';
+
 import { useStore } from '@/store/useStore';
 import { formatDuration } from '@/utils/helpers';
-import { Timer, Heart } from 'lucide-react';
-import { useEffect } from 'react';
-import clsx from 'clsx';
 
 interface StatsPanelProps {
     className?: string;

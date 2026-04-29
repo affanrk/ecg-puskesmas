@@ -1,11 +1,13 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useStore } from '@/store/useStore';
-import SidebarContainer from './SidebarContainer';
+
+import { LayoutDashboard, Activity, Settings } from 'lucide-react';
+
 import { SidebarItem } from './parts/SidebarItem';
 import { SidebarSection } from './parts/SidebarSection';
-import { LayoutDashboard, Activity, Settings } from 'lucide-react';
+import SidebarContainer from './SidebarContainer';
+import { useStore } from '@/store/useStore';
 import { getActiveProfile } from '@/utils/helpers';
 
 export default function OperatorSidebar() {

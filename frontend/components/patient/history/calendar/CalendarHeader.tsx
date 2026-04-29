@@ -1,8 +1,10 @@
 'use client';
 
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
-import clsx from 'clsx';
 import { useState, useRef, useEffect } from 'react';
+
+import clsx from 'clsx';
+import { ChevronLeft, ChevronRight, ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
+
 import { CalendarNode } from '@/types/models';
 
 interface CalendarHeaderProps {

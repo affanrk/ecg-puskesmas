@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useState, useRef, ReactNode } from 'react';
+
 import { usePathname } from 'next/navigation';
-import { useRouter } from 'nextjs-toploader/app';
+
 import { Loader2 } from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import { api } from '@/services/api';
+import { useRouter } from 'nextjs-toploader/app';
+
 import ChangePasswordModal from '@/components/shared/ChangePasswordModal';
+import { api } from '@/services';
+import { connectWebSocket } from '@/services/websocket';
+import { useStore } from '@/store/useStore';
 import { User } from '@/types/user';
-import { connectWebSocket } from '@/services/socket';
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
     const router = useRouter();

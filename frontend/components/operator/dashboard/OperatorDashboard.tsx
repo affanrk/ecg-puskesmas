@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useStore } from '@/store/useStore';
-import { api } from '@/services/api';
-import { OperatorDashboardData } from '@/types/models';
-import { formatDateTime } from '@/utils/helpers';
-import OperatorSummaryCards from './parts/OperatorSummaryCards';
-import OperatorRecentTable from './parts/OperatorRecentTable';
+
 import OperatorDistributionChart from './parts/OperatorDistributionChart';
 import OperatorNotifications from './parts/OperatorNotifications';
+import OperatorRecentTable from './parts/OperatorRecentTable';
+import OperatorSummaryCards from './parts/OperatorSummaryCards';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
+import { OperatorDashboardData } from '@/types/models';
+import { formatDateTime } from '@/utils/helpers';
 
 export default function OperatorDashboard() {
     const user = useStore(state => state.user);

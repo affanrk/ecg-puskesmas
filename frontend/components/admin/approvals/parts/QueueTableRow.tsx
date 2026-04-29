@@ -1,6 +1,6 @@
-import React from 'react';
-import { User } from '@/types/user';
 import { Calendar } from 'lucide-react';
+
+import { User } from '@/types/user';
 import { formatDateShort, getActiveProfile } from '@/utils/helpers';
 
 interface QueueTableRowProps {

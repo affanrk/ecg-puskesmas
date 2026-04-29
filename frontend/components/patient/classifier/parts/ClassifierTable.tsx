@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Clock, Database, HeartPulse } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Clock, Database, HeartPulse } from 'lucide-react';
+
 import { AnalysisResult } from '@/types/models';
 import { formatDate } from '@/utils/helpers';
 

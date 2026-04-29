@@ -1,6 +1,6 @@
 'use client';
 
-import { User } from '@/types/user';
+import clsx from 'clsx';
 import {
     X,
     UserCheck,
@@ -12,8 +12,9 @@ import {
     HeartPulse,
     BadgeCheck
 } from 'lucide-react';
+
+import { User } from '@/types/user';
 import { getActiveProfile, formatDate, calculateAge } from '@/utils/helpers';
-import clsx from 'clsx';
 
 interface UserDetailModalProps {
     user: User;

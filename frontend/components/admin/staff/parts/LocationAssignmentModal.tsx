@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MapPin, Star, Plus, Trash2, RefreshCcw } from 'lucide-react';
-import { User, LocationResponse, StaffLocationResponse } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
+
 import clsx from 'clsx';
+import { X, MapPin, Star, Plus, Trash2, RefreshCcw } from 'lucide-react';
+
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User, LocationResponse, StaffLocationResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface LocationAssignmentModalProps {
     staff: User;

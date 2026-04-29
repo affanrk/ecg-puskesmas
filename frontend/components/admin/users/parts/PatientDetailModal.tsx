@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+
 import { X, User as UserIcon, Mail, Phone, Calendar, FileText } from 'lucide-react';
-import { User } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
+
 import PatientDoctorAssignment from '@/components/admin/patients/parts/PatientDoctorAssignment';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface PatientDetailModalProps {
     patientId: string;
@@ -76,7 +78,6 @@ export default function PatientDetailModal({ patientId, onClose, onUpdate }: Pat
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
                     <div>
                         <h3 className="text-lg font-black text-slate-800 tracking-tight">
@@ -94,9 +95,7 @@ export default function PatientDetailModal({ patientId, onClose, onUpdate }: Pat
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                    {/* Patient Header Card */}
                     <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
                         <div className="flex items-start gap-4">
                             <div className="w-20 h-20 bg-rose-600 text-white rounded-xl flex items-center justify-center text-2xl font-black shrink-0">
@@ -135,7 +134,6 @@ export default function PatientDetailModal({ patientId, onClose, onUpdate }: Pat
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Patient Information */}
                         <div className="space-y-6">
                             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
                                 <h2 className="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
@@ -197,7 +195,6 @@ export default function PatientDetailModal({ patientId, onClose, onUpdate }: Pat
                             </div>
                         </div>
 
-                        {/* Doctor Assignment */}
                         <div className="space-y-6">
                             <PatientDoctorAssignment 
                                 patient={patient}
@@ -207,7 +204,6 @@ export default function PatientDetailModal({ patientId, onClose, onUpdate }: Pat
                     </div>
                 </div>
 
-                {/* Footer */}
                 <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
                     <button
                         onClick={onClose}

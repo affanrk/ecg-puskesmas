@@ -1,4 +1,3 @@
-import React from 'react';
 import { Edit2, Save, X, Mail, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { User } from '@/types/user';
 

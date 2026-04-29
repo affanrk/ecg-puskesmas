@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { PieChart, Activity } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, LegendItem } from 'chart.js';
+import { PieChart, Activity } from 'lucide-react';
 import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement, Tooltip, Legend);

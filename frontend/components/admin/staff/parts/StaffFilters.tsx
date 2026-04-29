@@ -1,8 +1,9 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { LocationResponse } from '@/types/user';
+
 import LocationFilterSingle from '@/components/superadmin/admins/parts/LocationFilterSingle';
+import { LocationResponse } from '@/types/user';
 
 interface StaffFiltersProps {
     searchTerm: string;

@@ -1,9 +1,10 @@
 'use client';
 
-import { User, Clock, Activity } from 'lucide-react';
 import clsx from 'clsx';
-import { calculateAge } from '@/utils/helpers';
+import { User, Clock, Activity } from 'lucide-react';
+
 import { useStore } from '@/store/useStore';
+import { calculateAge } from '@/utils/helpers';
 import { getActiveProfile } from '@/utils/helpers';
 
 interface SummaryCardsProps {

@@ -1,14 +1,16 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+
 import { AlertCircle } from 'lucide-react';
+
+import SharedContactCard from './parts/SharedContactCard';
+import SharedIdentityCard from './parts/SharedIdentityCard';
+import SharedPasswordCard from './parts/SharedPasswordCard';
+import SharedUsernameCard from './parts/SharedUsernameCard';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useProfileManager } from '@/hooks/useProfileManager';
 import { User } from '@/types/user';
-import SharedIdentityCard from './parts/SharedIdentityCard';
-import SharedContactCard from './parts/SharedContactCard';
-import SharedUsernameCard from './parts/SharedUsernameCard';
-import SharedPasswordCard from './parts/SharedPasswordCard';
 
 export interface HeaderRenderProps {
     user: User;

@@ -1,7 +1,10 @@
 import React from 'react';
+
 import Link from 'next/link';
-import { User as UserIcon, ChevronDown, Settings, LogOut } from 'lucide-react';
+
 import clsx from 'clsx';
+import { User as UserIcon, ChevronDown, Settings, LogOut } from 'lucide-react';
+
 import { User } from '@/types/user';
 import { getActiveProfile } from '@/utils/helpers';
 
@@ -96,10 +99,10 @@ export function UserMenu({
                             onClick={() => setShowLogoutConfirm(true)}
                             className={clsx(
                                 "flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-md w-full text-left transition-colors group cursor-pointer",
-                                isDark ? (isSuperAdmin ? "text-violet-500 hover:bg-violet-500/10" : "text-rose-500 hover:bg-rose-500/10") : "text-rose-600 hover:bg-rose-50"
+                                "text-rose-500 hover:bg-rose-500/10"
                             )}
                         >
-                            <LogOut size={16} className={clsx("transition-colors", isDark ? "" : "text-rose-400 group-hover:text-rose-600")} />
+                            <LogOut size={16} className="transition-colors" />
                             Sign Out
                         </button>
                     </div>

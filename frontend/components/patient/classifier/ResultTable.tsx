@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+
 import { useSearchParams } from 'next/navigation';
-import { api } from '@/services/api';
-import { useStore } from '@/store/useStore';
-import ClassifierToolbar from './parts/ClassifierToolbar';
-import ClassifierTable from './parts/ClassifierTable';
+
 import ClassifierPagination from './parts/ClassifierPagination';
+import ClassifierTable from './parts/ClassifierTable';
+import ClassifierToolbar from './parts/ClassifierToolbar';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
 
 export default function ResultTable() {
     const user = useStore(state => state.user);

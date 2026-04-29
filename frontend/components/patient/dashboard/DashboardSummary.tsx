@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+
+import DistributionChart from './parts/DistributionChart';
+import RecentAnalysisTable from './parts/RecentAnalysisTable';
+import SummaryCards from './parts/SummaryCards';
+import { api } from '@/services';
 import { useStore } from '@/store/useStore';
 import { AnalysisResult } from '@/types/models';
-import { api } from '@/services/api';
 import { formatDateTime } from '@/utils/helpers';
-import SummaryCards from './parts/SummaryCards';
-import RecentAnalysisTable from './parts/RecentAnalysisTable';
-import DistributionChart from './parts/DistributionChart';
 
 export default function DashboardSummary() {
     const user = useStore(state => state.user);

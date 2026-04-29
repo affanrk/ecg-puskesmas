@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
-import { useStore } from '@/store/useStore';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
+
 import clsx from 'clsx';
 import {
     ChevronsRight
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+
 import { MobileMenuToggle } from './parts/MobileMenuToggle';
 import { SidebarBrand } from './parts/SidebarBrand';
 import { SidebarFooter } from './parts/SidebarFooter';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
 
 interface SidebarContainerProps {
     children: ReactNode;

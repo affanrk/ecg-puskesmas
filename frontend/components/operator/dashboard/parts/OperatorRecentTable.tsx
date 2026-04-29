@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight, User } from 'lucide-react';
+
 import clsx from 'clsx';
+import { History, RefreshCcw, Clock, ChevronLeft, ChevronRight, User } from 'lucide-react';
+
 import { AnalysisResult } from '@/types/models';
 import { formatDateTime } from '@/utils/helpers';
 

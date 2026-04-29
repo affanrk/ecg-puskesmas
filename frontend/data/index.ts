@@ -1,7 +1,7 @@
-export { genderOptions } from './genderOptions';
-export { locationTypeOptions } from './locationTypeOptions';
-export { medicalHistoryOptions } from './medicalHistoryOptions';
-export { operatorRoleOptions } from './operatorRoleOptions';
-export { doctorSpecialtyOptions } from './doctorSpecialtyOptions';
-export { userRoleOptions } from './userRoleOptions';
+export { genderOptions } from './gender-options';
+export { locationTypeOptions } from './location-type-options';
+export { medicalHistoryOptions } from './medical-history-options';
+export { operatorRoleOptions } from './operator-role-options';
+export { doctorSpecialtyOptions } from './doctor-specialty-options';
+export { userRoleOptions } from './user-role-options';
 export type { SelectOption, SelectOptions } from './types';

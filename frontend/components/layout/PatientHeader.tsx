@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+
 import { usePathname } from 'next/navigation';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { useStore } from '@/store/useStore';
-import { useAuth } from '@/hooks/useAuth';
-import { UserMenu } from './parts/UserMenu';
+
 import { RecordingIndicator } from './parts/RecordingIndicator';
+import { UserMenu } from './parts/UserMenu';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
 
 export default function PatientHeader() {
     const pathname = usePathname();

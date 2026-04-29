@@ -1,6 +1,8 @@
 import React, { memo } from 'react';
-import { User } from '@/types/user';
+
 import clsx from 'clsx';
+
+import { User } from '@/types/user';
 import { formatDateShort, getActiveProfile } from '@/utils/helpers';
 
 interface UserTableRowProps {

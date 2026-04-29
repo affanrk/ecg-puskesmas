@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+
 import axios from 'axios';
-import axiosInstance from '@/services/axiosInstance';
-import { api } from '@/services/api';
-import { useStore } from '@/store/useStore';
-import StandardInput from '@/components/shared/StandardInput';
 import clsx from 'clsx';
 import { Key } from 'lucide-react';
-import { patterns, validators } from '@/utils/validators';
-import { parseApiError } from '@/utils/helpers';
+
+import StandardInput from '@/components/shared/StandardInput';
 import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import axiosInstance from '@/services/http/axiosInstance';
+import { useStore } from '@/store/useStore';
+import { parseApiError } from '@/utils/helpers';
+import { patterns, validators } from '@/utils/validators';
 
 interface Props {
     isOpen: boolean;

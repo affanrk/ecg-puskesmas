@@ -1,7 +1,7 @@
 'use client';
 
-import { UserCheck, UserX } from 'lucide-react';
 import clsx from 'clsx';
+import { UserCheck, UserX } from 'lucide-react';
 
 interface UserActionModalsProps {
     approvingUser: { id: string, name: string } | null;

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+
 import { LogOut, Loader2 } from 'lucide-react';
+
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DoctorDashboard() {
     const { logout } = useAuth();

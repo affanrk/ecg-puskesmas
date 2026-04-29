@@ -1,7 +1,8 @@
 'use client';
 
-import PatientProfile from '@/components/patient/profile/PatientProfile';
 import { useSearchParams } from 'next/navigation';
+
+import PatientProfile from '@/components/patient/profile/PatientProfile';
 
 export default function ProfilePage() {
     const searchParams = useSearchParams();

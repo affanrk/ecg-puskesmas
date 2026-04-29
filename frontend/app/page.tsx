@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'nextjs-toploader/app';
+
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'nextjs-toploader/app';
+
 import { useStore } from '@/store/useStore';
 
 export default function Home() {

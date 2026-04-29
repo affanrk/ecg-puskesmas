@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Wifi, AlertTriangle, Zap, Server } from 'lucide-react';
+
 import clsx from 'clsx';
-import { useStore } from '@/store/useStore';
+import { Wifi, AlertTriangle, Zap, Server } from 'lucide-react';
+
 import PerformanceChart from '@/components/patient/performance/PerformanceChart';
+import { useStore } from '@/store/useStore';
 
 export default function PerformancePage() {
     const { performance, setPerformanceTrackingEnabled } = useStore();

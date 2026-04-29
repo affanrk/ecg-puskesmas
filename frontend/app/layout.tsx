@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
-import "./globals.css";
+
+import NextTopLoader from 'nextjs-toploader';
+
 import AuthGuard from "@/components/shared/AuthGuard";
 import ToastContainer from "@/components/shared/ToastContainer";
-import NextTopLoader from 'nextjs-toploader';
+
+import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],

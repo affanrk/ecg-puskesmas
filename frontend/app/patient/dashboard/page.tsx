@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldAlert, ArrowRight, Lock, Activity, FileCheck, Stethoscope } from 'lucide-react';
+
 import clsx from 'clsx';
+import { ShieldAlert, ArrowRight, Lock, Activity, FileCheck, Stethoscope } from 'lucide-react';
+
 import DashboardSummary from '@/components/patient/dashboard/DashboardSummary';
 import { useStore } from '@/store/useStore';
 

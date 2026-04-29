@@ -1,12 +1,13 @@
 'use client';
 
-import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
 import clsx from 'clsx';
+import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
+
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
+import { medicalHistoryOptions, doctorSpecialtyOptions } from '@/data';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
-import { medicalHistoryOptions, doctorSpecialtyOptions } from '@/data';
 
 interface SharedContactCardProps {
     isLocked: boolean;

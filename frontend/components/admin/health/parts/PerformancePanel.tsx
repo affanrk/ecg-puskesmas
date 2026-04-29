@@ -1,6 +1,6 @@
-import React from 'react';
-import { Activity, CheckCircle2, AlertCircle, HardDrive } from 'lucide-react';
 import clsx from 'clsx';
+import { Activity, CheckCircle2, AlertCircle, HardDrive } from 'lucide-react';
+
 import { HealthData } from '@/types/models';
 
 interface PerformancePanelProps {

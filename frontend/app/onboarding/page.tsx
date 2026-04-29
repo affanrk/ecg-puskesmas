@@ -1,12 +1,14 @@
 'use client';
 
-import { useRouter } from 'nextjs-toploader/app';
 import { useState } from 'react';
-import { Shield, User, Clock, ArrowRight, ArrowLeft, Stethoscope, LogOut } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Shield, User, Clock, ArrowRight, ArrowLeft, Stethoscope, LogOut } from 'lucide-react';
+import { useRouter } from 'nextjs-toploader/app';
+
 import FloatingNav from '@/components/shared/FloatingNav';
-import { useStore } from '@/store/useStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
 
 export default function OnboardingPage() {
     const router = useRouter();

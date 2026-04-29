@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
+
 import {
     Database,
     Cpu,
@@ -9,11 +10,12 @@ import {
     Server,
     Activity
 } from 'lucide-react';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { useStore } from '@/store/useStore';
+
 import { HealthCard } from './parts/HealthCard';
 import { PerformancePanel } from './parts/PerformancePanel';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
 
 export default function HealthDashboard() {
     const healthData = useStore(state => state.healthData);

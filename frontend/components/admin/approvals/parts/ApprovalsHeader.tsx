@@ -1,16 +1,18 @@
 import React from 'react';
-import { Trash2, Calendar as CalendarIcon, Search } from 'lucide-react';
 import clsx from 'clsx';
+import ApprovalFilters from './ApprovalFilters';
 
 interface ApprovalsHeaderProps {
     approvalType: 'patient' | 'operator' | 'doctor';
     setApprovalType: (type: 'patient' | 'operator' | 'doctor') => void;
     searchTerm: string;
     setSearchTerm: (term: string) => void;
+    startDate: string;
+    endDate: string;
+    onDateRangeChange: (start: string, end: string) => void;
     resetFilters: () => void;
     isFilterActive: boolean;
     isResetting: boolean;
-    dateInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export function ApprovalsHeader({
@@ -18,10 +20,12 @@ export function ApprovalsHeader({
     setApprovalType,
     searchTerm,
     setSearchTerm,
+    startDate,
+    endDate,
+    onDateRangeChange,
     resetFilters,
     isFilterActive,
-    isResetting,
-    dateInputRef
+    isResetting
 }: ApprovalsHeaderProps) {
     return (
         <div className="h-[64px] shrink-0 border-b border-slate-100 flex items-center px-8 bg-slate-50/50 gap-8">
@@ -39,18 +43,17 @@ export function ApprovalsHeader({
 
             <div className="w-px h-6 bg-slate-200 shrink-0" />
 
-            <div className="flex-1 flex items-center justify-end gap-3 min-w-0">
-                <button onClick={resetFilters} disabled={!isFilterActive || isResetting} className={clsx("flex items-center gap-2 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0", isFilterActive ? "bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 shadow-sm cursor-pointer" : "text-slate-300 cursor-not-allowed border border-slate-100", isResetting && "opacity-50 cursor-wait")}>
-                    {isResetting ? <div className="w-3 h-3 border-2 border-rose-500/30 border-t-rose-500 rounded-full animate-spin" /> : <Trash2 size={12} />} Reset
-                </button>
-                <div className="relative group/date shrink-0">
-                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none z-10" />
-                    <input type="text" ref={dateInputRef} className="hidden" />
-                </div>
-                <div className="relative group shrink-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 group-focus-within:text-rose-500 transition-colors" />
-                    <input type="text" placeholder="Search by Name or NIK..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm" />
-                </div>
+            <div className="flex-1 flex items-center min-w-0">
+                <ApprovalFilters
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    startDate={startDate}
+                    endDate={endDate}
+                    onDateRangeChange={onDateRangeChange}
+                    onResetFilters={resetFilters}
+                    isFilterActive={isFilterActive}
+                    isResetting={isResetting}
+                />
             </div>
         </div>
     );

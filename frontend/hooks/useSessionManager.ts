@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { sendJson } from '@/services/socket';
+import { sendJson } from '@/services/websocket';
 import { useToast } from '@/hooks/useToast';
 
 export function useSessionManager() {

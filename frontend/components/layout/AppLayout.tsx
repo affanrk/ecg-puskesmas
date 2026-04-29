@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, ReactNode, useRef } from 'react';
+
 import { useRouter } from 'nextjs-toploader/app';
+
 import DashboardLayout from './DashboardLayout';
-import { useStore } from '@/store/useStore';
-import { connectWebSocket } from '@/services/socket';
-import { useDeviceManager } from '@/hooks/useDeviceManager';
 import { useDeviceListeners } from '@/hooks/useDeviceListeners';
+import { useDeviceManager } from '@/hooks/useDeviceManager';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { useToast } from '@/hooks/useToast';
+import { connectWebSocket } from '@/services/websocket';
+import { useStore } from '@/store/useStore';
 
 export default function AppLayout({ children }: { children: ReactNode }) {
     const router = useRouter();

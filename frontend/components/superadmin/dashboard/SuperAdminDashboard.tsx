@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useStore } from '@/store/useStore';
-import { api } from '@/services/api';
+
 import { SuperAdminDashboardStats } from './parts/SuperAdminDashboardStats';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
 
 export default function SuperAdminDashboard() {
     const user = useStore(state => state.user);

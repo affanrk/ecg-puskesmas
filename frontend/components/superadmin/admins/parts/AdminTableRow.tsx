@@ -1,9 +1,10 @@
 'use client';
 
-import { User, LocationResponse } from '@/types/user';
-import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
+import { MapPin, RefreshCw, AlertTriangle } from 'lucide-react';
+
 import Tooltip from '@/components/shared/Tooltip';
+import { User, LocationResponse } from '@/types/user';
 
 interface AdminTableRowProps {
     admin: User;

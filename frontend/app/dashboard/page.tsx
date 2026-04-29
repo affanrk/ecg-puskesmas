@@ -1,11 +1,13 @@
 'use client';
 
-import { useRouter } from 'nextjs-toploader/app';
 import { useState } from 'react';
+
 import { Shield, ArrowRight, LogOut, HeartPulse, Fingerprint, Lock } from 'lucide-react';
-import { useStore } from '@/store/useStore';
-import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'nextjs-toploader/app';
+
 import FloatingNav from '@/components/shared/FloatingNav';
+import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
 
 export default function DashboardPage() {
     const router = useRouter();

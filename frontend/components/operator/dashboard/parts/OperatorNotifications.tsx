@@ -1,7 +1,8 @@
 'use client';
 
-import { Bell, AlertTriangle, Clock } from 'lucide-react';
 import clsx from 'clsx';
+import { Bell, AlertTriangle, Clock } from 'lucide-react';
+
 import { AnalysisResult } from '@/types/models';
 import { formatTimeShort } from '@/utils/helpers';
 

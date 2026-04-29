@@ -1,30 +1,22 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { api } from '@/services/api';
+
+import { RefreshCcw } from 'lucide-react';
+
+import ApprovalLogs from './parts/ApprovalLogs';
+import { ApprovalsComingSoon } from './parts/ApprovalsComingSoon';
+import { ApprovalsHeader } from './parts/ApprovalsHeader';
+import ApprovalsQueue from './parts/ApprovalsQueue';
+import UserActionModals from './parts/UserActionModals';
+import UserDetailModal from './parts/UserDetailModal';
+import { EVENTS } from '@/config/constants';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
 import { useStore } from '@/store/useStore';
 import { User } from '@/types/user';
-import { useToast } from '@/hooks/useToast';
-import { RefreshCcw } from 'lucide-react';
-import ApprovalsQueue from './parts/ApprovalsQueue';
-import ApprovalLogs from './parts/ApprovalLogs';
 import { ApprovalLog } from '@/types/user';
-import UserDetailModal from './parts/UserDetailModal';
-import UserActionModals from './parts/UserActionModals';
-import flatpickr from 'flatpickr';
-import 'flatpickr/dist/flatpickr.min.css';
-
-import { ApprovalsHeader } from './parts/ApprovalsHeader';
-import { ApprovalsComingSoon } from './parts/ApprovalsComingSoon';
-
-interface FlatpickrInstance {
-    destroy: () => void;
-    clear: (triggerChange?: boolean) => void;
-    setDate: (date: string | Date | string[] | Date[], triggerChange?: boolean) => void;
-}
-
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
 
 export default function UserApprovals() {
     const adminViewMode = useStore(state => state.adminViewMode);
@@ -52,12 +44,15 @@ export default function UserApprovals() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const showToast = useToast((state) => state.show);
-    const dateInputRef = useRef<HTMLInputElement>(null);
-    const fpRef = useRef<FlatpickrInstance | null>(null);
     const fetchIdRef = useRef(0);
     const lastFetchedRef = useRef("");
 
     const isFilterActive = searchTerm !== '' || startDate !== '' || endDate !== '';
+
+    const handleDateRangeChange = (start: string, end: string) => {
+        setStartDate(start);
+        setEndDate(end);
+    };
 
     const handleRefresh = useCallback(() => {
         setRefreshKey(prev => prev + 1);
@@ -141,47 +136,12 @@ export default function UserApprovals() {
         loadData();
     }, [debouncedSearch, startDate, endDate, approvalType, adminViewMode, refreshKey, showToast, setAdminLoading]);
 
-    useEffect(() => {
-        if (dateInputRef.current) {
-            fpRef.current = flatpickr(dateInputRef.current, {
-                mode: 'range',
-                dateFormat: 'Y-m-d',
-                altInput: true,
-                altFormat: 'j F Y',
-                altInputClass: "pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold w-64 focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all shadow-sm cursor-pointer placeholder:text-slate-400 text-slate-700",
-                onChange: (selectedDates, dateStr) => {
-                    if (selectedDates.length === 2) {
-                        const [start, end] = dateStr.split(' to ');
-                        setStartDate(start);
-                        setEndDate(end || start);
-                    } else if (selectedDates.length === 0) {
-                        setStartDate('');
-                        setEndDate('');
-                    }
-                },
-                onReady: (_, __, instance) => {
-                    if (instance.altInput) instance.altInput.placeholder = "Select Date Range";
-                }
-            }) as object as FlatpickrInstance;
-        }
-        return () => fpRef.current?.destroy();
-    }, []);
-
-    useEffect(() => {
-        if (startDate && endDate) {
-            fpRef.current?.setDate([startDate, endDate], false);
-        } else if (!startDate && !endDate) {
-            fpRef.current?.clear(false);
-        }
-    }, [startDate, endDate]);
-
     const resetFilters = async () => {
         setIsResetting(true);
         setSearchTerm('');
         setDebouncedSearch('');
         setStartDate('');
         setEndDate('');
-        if (fpRef.current) fpRef.current.clear(false);
         setIsResetting(false);
         showToast("Filters cleared", "success");
     };
@@ -227,14 +187,16 @@ export default function UserApprovals() {
                 setApprovalType={setApprovalType}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
+                startDate={startDate}
+                endDate={endDate}
+                onDateRangeChange={handleDateRangeChange}
                 resetFilters={resetFilters}
                 isFilterActive={isFilterActive}
                 isResetting={isResetting}
-                dateInputRef={dateInputRef}
             />
 
             <div className="flex-1 p-4 lg:px-10 lg:py-6 bg-slate-50/30 min-h-0 flex flex-col overflow-hidden">
-                {loading && (adminViewMode === 'queue' ? pendingUsers.length === 0 : logs.length === 0) ? (
+                {loading ? (
                     <div className="h-full w-full flex flex-col items-center justify-center py-20">
                         <RefreshCcw size={40} className="text-rose-200 animate-spin mb-4" />
                         <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>

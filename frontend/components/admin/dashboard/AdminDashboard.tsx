@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useStore } from '@/store/useStore';
-import { User, ApprovalLog } from '@/types/user';
-import { api } from '@/services/api';
+
+import { AdminAuditLogs } from './parts/AdminAuditLogs';
 import { AdminDashboardStats } from './parts/AdminDashboardStats';
 import { AdminPendingQueue } from './parts/AdminPendingQueue';
-import { AdminAuditLogs } from './parts/AdminAuditLogs';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
+import { User, ApprovalLog } from '@/types/user';
 
 export default function AdminDashboard() {
     const user = useStore(state => state.user);

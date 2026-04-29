@@ -1,7 +1,8 @@
 'use client';
 
-import { User } from '@/types/user';
 import clsx from 'clsx';
+
+import { User } from '@/types/user';
 
 interface UserTableRowProps {
     user: User;

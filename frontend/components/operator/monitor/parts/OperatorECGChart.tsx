@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useStore } from '@/store/useStore';
-import { useSessionManager } from '@/hooks/useSessionManager';
-import { useDeviceManager } from '@/hooks/useDeviceManager';
-import { useToast } from '@/hooks/useToast';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
 import { OperatorECGHeader } from './OperatorECGHeader';
+import PatientSelectorModal from './PatientSelectorModal';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import DeviceDropdown from '@/components/shared/monitor/parts/DeviceDropdown';
 import { ECGFooter } from '@/components/shared/monitor/parts/ECGFooter';
 import { ECGMonitor } from '@/components/shared/monitor/parts/ECGMonitor';
-import PatientSelectorModal from './PatientSelectorModal';
-import DeviceDropdown from '@/components/shared/monitor/parts/DeviceDropdown';
+import { useDeviceManager } from '@/hooks/useDeviceManager';
+import { useSessionManager } from '@/hooks/useSessionManager';
+import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 
 export default function OperatorECGChart() {
 

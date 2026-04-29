@@ -1,11 +1,12 @@
 'use client';
 
-import { LocationResponse } from '@/types/user';
 import { X } from 'lucide-react';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
+
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { genderOptions } from '@/data';
+import { LocationResponse } from '@/types/user';
 
 interface AdminFormData {
     username: string;
@@ -62,7 +63,7 @@ export default function AdminFormModal({
                     <h3 className="text-lg font-black text-slate-800 tracking-tight">
                         {mode === 'create' ? 'Register Admin User' : 'Reassign Admin Location'}
                     </h3>
-                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                    <button onClick={onClose} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer">
                         <X size={20} />
                     </button>
                 </div>
@@ -80,6 +81,7 @@ export default function AdminFormModal({
                                         onChange={(e) => onFieldChange('username', e.target.value)}
                                         placeholder="e.g. jdoe"
                                         errorMessage={errors.username}
+                                        colorTheme="violet"
                                     />
                                     <StandardInput
                                         label="Email" required type="email"
@@ -87,6 +89,7 @@ export default function AdminFormModal({
                                         onChange={(e) => onFieldChange('email', e.target.value)}
                                         placeholder="e.g. user@puskesmas.id"
                                         errorMessage={errors.email}
+                                        colorTheme="violet"
                                     />
                                 </div>
                                 <StandardInput
@@ -95,6 +98,7 @@ export default function AdminFormModal({
                                     onChange={(e) => onFieldChange('password', e.target.value)}
                                     placeholder="Leave empty for default password"
                                     errorMessage={errors.password}
+                                    colorTheme="violet"
                                 />
                             </div>
 
@@ -109,6 +113,7 @@ export default function AdminFormModal({
                                         onChange={(e) => onFieldChange('full_name', e.target.value)}
                                         placeholder="e.g. Dr. John Doe"
                                         errorMessage={errors.full_name}
+                                        colorTheme="violet"
                                     />
                                     <StandardInput
                                         label="NIK (16 Digits)" required
@@ -117,6 +122,7 @@ export default function AdminFormModal({
                                         placeholder="e.g. 3201234567890123"
                                         maxLength={16}
                                         errorMessage={errors.nik}
+                                        colorTheme="violet"
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -126,6 +132,7 @@ export default function AdminFormModal({
                                         onChange={(e) => onFieldChange('pob', e.target.value)}
                                         placeholder="e.g. Jakarta"
                                         errorMessage={errors.pob}
+                                        colorTheme="violet"
                                     />
                                     <FlatpickrInput
                                         label="Date of Birth" required
@@ -133,6 +140,7 @@ export default function AdminFormModal({
                                         onChange={(date) => onFieldChange('dob', date)}
                                         placeholder="Select date"
                                         errorMessage={errors.dob}
+                                        colorTheme="violet"
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,6 +153,7 @@ export default function AdminFormModal({
                                             ...genderOptions
                                         ]}
                                         errorMessage={errors.gender}
+                                        colorTheme="violet"
                                     />
                                     <StandardInput
                                         label="Contact Number"
@@ -152,6 +161,7 @@ export default function AdminFormModal({
                                         onChange={(e) => onFieldChange('contact_number', e.target.value)}
                                         placeholder="e.g. 081234567890"
                                         errorMessage={errors.contact_number}
+                                        colorTheme="violet"
                                     />
                                 </div>
                                 <StandardInput
@@ -160,6 +170,7 @@ export default function AdminFormModal({
                                     onChange={(e) => onFieldChange('address', e.target.value)}
                                     placeholder="e.g. Jl. Merdeka No. 123"
                                     errorMessage={errors.address}
+                                    colorTheme="violet"
                                 />
                             </div>
                         </>
@@ -178,6 +189,7 @@ export default function AdminFormModal({
                             onChange={(e) => onFieldChange('location_id', e.target.value)}
                             options={locationOptions}
                             errorMessage={errors.location_id}
+                            colorTheme="violet"
                         />
                     </div>
 

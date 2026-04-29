@@ -1,5 +1,5 @@
-import { Activity, ArrowLeft, User, Loader2, type LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
+import { Activity, ArrowLeft, User, Loader2, type LucideIcon } from 'lucide-react';
 
 interface FloatingNavProps {
     title?: string;

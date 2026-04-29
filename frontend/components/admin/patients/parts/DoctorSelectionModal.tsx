@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Search, UserCheck, Stethoscope, Users, RefreshCcw, AlertCircle } from 'lucide-react';
-import { User, PatientDoctorResponse } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
+
 import clsx from 'clsx';
+import { X, Search, UserCheck, Stethoscope, Users, RefreshCcw, AlertCircle } from 'lucide-react';
+
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User, PatientDoctorResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface DoctorSelectionModalProps {
     patient: User;

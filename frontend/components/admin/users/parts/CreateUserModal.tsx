@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+
 import { X, UserPlus } from 'lucide-react';
-import { User, UserFormPayload } from '@/types/user';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { validators } from '@/utils/validators';
-import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
+
 import ReviewSummaryTable from '../../../shared/ReviewSummaryTable';
+import { PatientIdentitySection, OperatorIdentitySection } from './UserFormFields';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { userRoleOptions } from '@/data';
+import { User, UserFormPayload } from '@/types/user';
+import { validators } from '@/utils/validators';
 
 interface CreateUserModalProps {
     onClose: () => void;

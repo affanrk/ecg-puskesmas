@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef, useEffect, useState } from 'react';
-import { Hash, Calendar, Trash2, RefreshCcw, AlertTriangle } from 'lucide-react';
+
 import clsx from 'clsx';
 import flatpickr from 'flatpickr';
+import { Hash, Calendar, Trash2, RefreshCcw, AlertTriangle } from 'lucide-react';
+
 import 'flatpickr/dist/flatpickr.min.css';
 
 interface ClassifierToolbarProps {

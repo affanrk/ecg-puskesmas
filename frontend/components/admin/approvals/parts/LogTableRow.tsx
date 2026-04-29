@@ -1,8 +1,8 @@
-import React from 'react';
-import { CheckCircle2, XCircle, Clock, User as UserIcon } from 'lucide-react';
 import clsx from 'clsx';
-import { formatDate, getActiveProfile } from '@/utils/helpers';
+import { CheckCircle2, XCircle, Clock, User as UserIcon } from 'lucide-react';
+
 import { ApprovalLog } from '@/types/user';
+import { formatDate, getActiveProfile } from '@/utils/helpers';
 
 interface LogTableRowProps {
     log: ApprovalLog;

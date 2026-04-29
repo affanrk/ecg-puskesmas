@@ -1,7 +1,7 @@
-import React from 'react';
-import { AnalysisResult } from '@/types/models';
-import { HeartPulse, Activity, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
+import { HeartPulse, Activity, AlertTriangle } from 'lucide-react';
+
+import { AnalysisResult } from '@/types/models';
 
 interface AgendaResultItemProps {
     result: AnalysisResult;

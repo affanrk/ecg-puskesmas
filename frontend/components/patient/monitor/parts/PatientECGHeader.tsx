@@ -1,10 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Activity } from 'lucide-react';
+
 import clsx from 'clsx';
-import { getActiveProfile } from '@/utils/helpers';
+import { Activity } from 'lucide-react';
+
 import { User } from '@/types/user';
+import { getActiveProfile } from '@/utils/helpers';
 
 interface PatientECGHeaderProps {
     user: User | null;

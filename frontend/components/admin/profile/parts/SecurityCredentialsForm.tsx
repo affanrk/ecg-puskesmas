@@ -1,4 +1,3 @@
-import React from 'react';
 import { Key } from 'lucide-react';
 import StandardInput from '@/components/shared/StandardInput';
 

@@ -1,21 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
-import { LocationResponse, LocationCreatePayload, LocationUpdatePayload } from '@/types/user';
-import { useToast } from '@/hooks/useToast';
-import { Plus, MapPin, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
-import { parseApiError } from '@/utils/helpers';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
-import { useStore } from '@/store/useStore';
-import { useIndonesiaRegions } from '@/hooks/useIndonesiaRegions';
-import { validators } from '@/utils/validators';
+import { useState, useEffect, useCallback } from 'react';
+
+import { MapPin, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import LocationFilters from './parts/LocationFilters';
 import LocationFormModal from './parts/LocationFormModal';
 import LocationTableRow from './parts/LocationTableRow';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
+import { EVENTS } from '@/config/constants';
+import { useIndonesiaRegions } from '@/hooks/useIndonesiaRegions';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
+import { LocationResponse, LocationCreatePayload, LocationUpdatePayload } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
+import { validators } from '@/utils/validators';
 
 type ModalMode = 'create' | 'edit' | null;
 
@@ -35,7 +37,11 @@ export default function LocationManager() {
     const setAdminLoading = useStore(state => state.setAdminLoading);
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const initialized = useRef(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    useEffect(() => {
+        setAdminLoading(loading);
+    }, [loading, setAdminLoading]);
 
     const [modalMode, setModalMode] = useState<ModalMode>(null);
     const [selectedLoc, setSelectedLoc] = useState<LocationResponse | null>(null);
@@ -98,22 +104,22 @@ export default function LocationManager() {
             toast('Failed to load locations', 'error');
         } finally {
             setLoading(false);
-            setAdminLoading(false);
         }
-    }, [toast, setAdminLoading]);
+    }, [toast]);
+
+    const handleRefresh = useCallback(() => {
+        setRefreshKey(prev => prev + 1);
+        toast('Locations refreshed successfully', 'success');
+    }, [toast]);
 
     useEffect(() => {
-        if (initialized.current) return;
-        initialized.current = true;
+        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+        return () => globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+    }, [handleRefresh]);
 
+    useEffect(() => {
         loadLocations();
-
-        const handleRefreshEvent = () => loadLocations();
-        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        return () => {
-            globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        };
-    }, [loadLocations]);
+    }, [loadLocations, refreshKey]);
 
     const openModal = (mode: 'create' | 'edit', loc?: LocationResponse) => {
         setModalMode(mode);
@@ -303,26 +309,20 @@ export default function LocationManager() {
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-                <LocationFilters
-                    searchTerm={searchTerm}
-                    filterType={filterType}
-                    filterStatus={filterStatus}
-                    onSearchChange={setSearchTerm}
-                    onTypeChange={setFilterType}
-                    onStatusChange={setFilterStatus}
-                />
-                <button
-                    onClick={() => openModal('create')}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-bold text-sm shadow-sm transition-all cursor-pointer"
-                >
-                    <Plus size={16} /> New Location
-                </button>
-            </div>
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden animate-in fade-in duration-500">
+            <LocationFilters
+                searchTerm={searchTerm}
+                filterType={filterType}
+                filterStatus={filterStatus}
+                onSearchChange={setSearchTerm}
+                onTypeChange={setFilterType}
+                onStatusChange={setFilterStatus}
+                onCreateLocation={() => openModal('create')}
+            />
 
-            <div className="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-x-auto flex-1">
+            <div className="flex-1 p-4 lg:px-10 lg:py-6 bg-slate-50/30 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+                    <div className="overflow-x-auto flex-1">
                     <table className="w-full text-left text-sm text-slate-600">
                         <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
                             <tr>
@@ -398,6 +398,7 @@ export default function LocationManager() {
                         </div>
                     </div>
                 )}
+                </div>
             </div>
 
             {modalMode && (

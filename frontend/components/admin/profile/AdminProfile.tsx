@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useStore } from '@/store/useStore';
-import { useToast } from '@/hooks/useToast';
-import axiosInstance from '@/services/axiosInstance';
-import { parseApiError } from '@/utils/helpers';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
+
 import { AdminProfileCard } from './parts/AdminProfileCard';
 import { SecurityCredentialsForm } from './parts/SecurityCredentialsForm';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { useToast } from '@/hooks/useToast';
+import axiosInstance from '@/services/http/axiosInstance';
+import { useStore } from '@/store/useStore';
+import { parseApiError } from '@/utils/helpers';
 
 export default function AdminProfile() {
     const user = useStore(state => state.user);

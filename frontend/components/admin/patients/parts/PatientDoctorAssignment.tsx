@@ -1,14 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { User, PatientDoctorResponse } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
+
+import { Trash2 } from 'lucide-react';
+
 import AssignedDoctorCard from './AssignedDoctorCard';
 import DoctorSelectionModal from './DoctorSelectionModal';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User, PatientDoctorResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface PatientDoctorAssignmentProps {
     patient: User;

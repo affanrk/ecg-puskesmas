@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Activity, User as UserIcon } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Activity, User as UserIcon } from 'lucide-react';
 
 import { WalkinPatient } from '@/types/user';
 

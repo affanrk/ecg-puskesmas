@@ -1,8 +1,8 @@
 'use client';
 
 import { useStore } from '@/store/useStore';
-import { api } from '@/services/api';
-import { terminateWebSocket, sendJson } from '@/services/socket';
+import { api } from '@/services';
+import { terminateWebSocket, sendJson } from '@/services/websocket';
 import { useCallback } from 'react';
 
 export function useAuth() {

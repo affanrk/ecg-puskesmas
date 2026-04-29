@@ -2,10 +2,13 @@
 
 import { use } from 'react';
 import { useState, useEffect, useRef } from 'react';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { MapPin } from 'lucide-react';
+
 import Link from 'next/link';
+
+import { MapPin } from 'lucide-react';
+
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
 
 export default function LocationDashboardPage({ params }: { params: Promise<{ locationId: string }> }) {
     const { locationId } = use(params);

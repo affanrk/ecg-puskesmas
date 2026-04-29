@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
+
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'nextjs-toploader/app';
-import axiosInstance from '@/services/axiosInstance';
-import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
+
 import clsx from 'clsx';
+import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Activity } from 'lucide-react';
+import { useRouter } from 'nextjs-toploader/app';
+
 import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
-import { reconnectWebSocket } from '@/services/socket';
-import { api } from '@/services/api';
+import { api } from '@/services';
+import axiosInstance from '@/services/http/axiosInstance';
+import { reconnectWebSocket } from '@/services/websocket';
 import { useStore } from '@/store/useStore';
+import { parseApiError } from '@/utils/helpers';
 import { getActiveProfile } from '@/utils/helpers';
 
 function LoginContent() {

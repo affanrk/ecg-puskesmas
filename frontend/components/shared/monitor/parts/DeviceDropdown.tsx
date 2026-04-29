@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useStore } from '@/store/useStore';
-import { useDeviceManager } from '@/hooks/useDeviceManager';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { Wifi, WifiOff, ChevronDown, Info, Power, XCircle, Loader2 } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Wifi, WifiOff, ChevronDown, Info, Power, XCircle, Loader2 } from 'lucide-react';
+
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { useDeviceManager } from '@/hooks/useDeviceManager';
+import { useStore } from '@/store/useStore';
 
 export default function DeviceDropdown() {
     const user = useStore(state => state.user);

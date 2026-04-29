@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getApiUrl } from '../utils/helpers';
+import { getApiUrl } from '../../utils/helpers';
 import { useStore } from '@/store/useStore';
 
 const axiosInstance = axios.create({

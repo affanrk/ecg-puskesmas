@@ -1,21 +1,23 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
-import { User, LocationResponse } from '@/types/user';
-import { useToast } from '@/hooks/useToast';
+
 import { Plus, Users, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
-import { useStore } from '@/store/useStore';
-import { validators } from '@/utils/validators';
-import { parseApiError } from '@/utils/helpers';
+
+import LocationAssignmentModal from './parts/LocationAssignmentModal';
 import StaffFilters from './parts/StaffFilters';
 import StaffFormModal from './parts/StaffFormModal'
 import StaffTableRow from './parts/StaffTableRow';
-import LocationAssignmentModal from './parts/LocationAssignmentModal';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
+import { EVENTS } from '@/config/constants';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
+import { User, LocationResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
+import { validators } from '@/utils/validators';
 
 type ModalMode = 'create' | 'edit' | null;
 

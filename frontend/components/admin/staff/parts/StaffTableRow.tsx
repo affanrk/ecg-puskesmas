@@ -1,9 +1,10 @@
 'use client';
 
-import { User, LocationResponse } from '@/types/user';
-import { MapPin, Edit, Users2, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
+import { MapPin, Edit, Users2, AlertTriangle } from 'lucide-react';
+
 import Tooltip from '@/components/shared/Tooltip';
+import { User, LocationResponse } from '@/types/user';
 
 interface StaffTableRowProps {
     staff: User;

@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { ApprovalLog } from '@/types/user';
+
 import { EmptyLogs } from './EmptyLogs';
 import { LogTableRow } from './LogTableRow';
+import { ApprovalLog } from '@/types/user';
 
 interface ApprovalLogsProps {
     logs: ApprovalLog[];

@@ -1,7 +1,7 @@
 'use client';
 
-import ProfileShell from '@/components/shared/profile/ProfileShell';
 import OperatorProfileHeader from './parts/OperatorProfileHeader';
+import ProfileShell from '@/components/shared/profile/ProfileShell';
 
 export default function OperatorProfile({ openTab }: { openTab?: string }) {
     return (

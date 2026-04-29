@@ -1,10 +1,11 @@
 'use client';
 
-import { CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
+import { CheckCircle2 } from 'lucide-react';
+
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { genderOptions, medicalHistoryOptions, operatorRoleOptions } from '@/data';
 
 interface UserFormFieldsProps {

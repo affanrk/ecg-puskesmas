@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+
 import { usePathname } from 'next/navigation';
+
+import clsx from 'clsx';
 import { 
     ShieldCheck, 
     LayoutDashboard,
@@ -12,15 +15,15 @@ import {
     CheckCircle2,
     AlertCircle
 } from 'lucide-react';
-import clsx from 'clsx';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { useStore } from '@/store/useStore';
-import { useAuth } from '@/hooks/useAuth';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
+
 import { UserMenu } from './parts/UserMenu';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { EVENTS } from '@/config/constants';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
 
 export default function AdminHeader() {
     const pathname = usePathname();

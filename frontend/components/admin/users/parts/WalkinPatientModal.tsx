@@ -1,15 +1,17 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+
 import { X, Save, UserCheck, ArrowLeft, RefreshCw } from 'lucide-react';
-import { WalkinPatientPayload, ConvertWalkinPayload, User, ProfileData } from '@/types/user';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
-import FlatpickrInput from '@/components/shared/FlatpickrInput';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
+
 import ReviewSummaryTable from '../../../shared/ReviewSummaryTable';
-import { validators } from '@/utils/validators';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { genderOptions, medicalHistoryOptions } from '@/data';
+import { WalkinPatientPayload, ConvertWalkinPayload, User, ProfileData } from '@/types/user';
+import { validators } from '@/utils/validators';
 
 interface WalkinPatientModalProps {
     patient: User;

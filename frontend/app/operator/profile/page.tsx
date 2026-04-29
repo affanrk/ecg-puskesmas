@@ -1,7 +1,8 @@
 'use client';
 
-import OperatorProfile from '@/components/operator/profile/OperatorProfile';
 import { useSearchParams } from 'next/navigation';
+
+import OperatorProfile from '@/components/operator/profile/OperatorProfile';
 
 export default function OperatorProfilePage() {
     const searchParams = useSearchParams();

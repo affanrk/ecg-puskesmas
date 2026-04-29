@@ -1,11 +1,12 @@
 'use client';
 
-import { LocationResponse } from '@/types/user';
 import { X } from 'lucide-react';
-import StandardInput from '@/components/shared/StandardInput';
-import SelectInput from '@/components/shared/SelectInput';
+
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
 import { genderOptions } from '@/data';
+import { LocationResponse } from '@/types/user';
 
 interface StaffFormData {
     username: string;

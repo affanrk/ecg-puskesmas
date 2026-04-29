@@ -1,6 +1,5 @@
-import React from 'react';
-import { HeartPulse } from 'lucide-react';
 import clsx from 'clsx';
+import { HeartPulse } from 'lucide-react';
 
 interface SidebarBrandProps {
     className?: string;

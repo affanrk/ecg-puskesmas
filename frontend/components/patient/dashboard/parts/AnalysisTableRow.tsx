@@ -1,4 +1,3 @@
-import React from 'react';
 import clsx from 'clsx';
 import { AnalysisResult } from '@/types/models';
 import { formatDateTime } from '@/utils/helpers';

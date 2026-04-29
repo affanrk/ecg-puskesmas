@@ -1,8 +1,9 @@
 'use client';
 
-import { AlertTriangle, Check } from 'lucide-react';
-import clsx from 'clsx';
 import { ReactNode } from 'react';
+
+import clsx from 'clsx';
+import { AlertTriangle, Check } from 'lucide-react';
 
 interface ConfirmationModalProps {
     isOpen: boolean;

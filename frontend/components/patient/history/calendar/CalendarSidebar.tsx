@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, ShieldAlert } from 'lucide-react';
+
 import clsx from 'clsx';
+import { ChevronLeft, ChevronRight, Check, ShieldAlert } from 'lucide-react';
+
 import { CalendarNode } from '@/types/models';
 
 interface CalendarSidebarProps {

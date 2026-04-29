@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+
 import { Chart, ChartOptions } from 'chart.js';
-import '@/config/chartSetup';
-import { globalEventBus } from '@/services/events';
+import clsx from 'clsx';
+
+import { LeadChart } from './LeadChart';
+import '@/config/chart-setup';
 import { CONFIG, EVENTS, LEAD_CONFIGS } from '@/config/constants';
+import { globalEventBus } from '@/services/websocket/events';
 import { useStore } from '@/store/useStore';
 import { EcgSample5Leads, EcgSample12Leads } from '@/types/models';
-import clsx from 'clsx';
-import { LeadChart } from './LeadChart';
 
 type EcgSample = EcgSample5Leads | EcgSample12Leads;
 

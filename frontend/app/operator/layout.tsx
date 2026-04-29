@@ -1,14 +1,16 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
+
 import { usePathname } from 'next/navigation';
+
 import { useRouter } from 'nextjs-toploader/app';
-import { useStore } from '@/store/useStore';
-import { useToast } from '@/hooks/useToast';
 
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import OperatorSidebar from '@/components/layout/OperatorSidebar';
 import OperatorHeader from '@/components/layout/OperatorHeader';
+import OperatorSidebar from '@/components/layout/OperatorSidebar';
+import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 
 export default function OperatorLayout({ children }: { children: ReactNode }) {
     const router = useRouter();

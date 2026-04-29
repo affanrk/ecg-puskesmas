@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, ChangeEvent } from 'react';
-import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+
 import clsx from 'clsx';
+import { Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface InputProps {
-    label: string;
+    label?: string;
     value: string;
     onChange: (e: ChangeEvent<HTMLInputElement>) => void;
     disabled?: boolean;
@@ -16,6 +17,9 @@ interface InputProps {
     errorMessage?: string;
     onFocus?: () => void;
     onBlur?: () => void;
+    icon?: React.ReactNode;
+    colorTheme?: 'brand' | 'rose' | 'violet';
+    className?: string;
 }
 
 export default function StandardInput({
@@ -29,7 +33,10 @@ export default function StandardInput({
     maxLength,
     errorMessage,
     onFocus,
-    onBlur
+    onBlur,
+    icon,
+    colorTheme = 'brand',
+    className = ''
 }: InputProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -38,16 +45,38 @@ export default function StandardInput({
 
     const isValidAndFilled = !errorMessage && value && value.toString().trim().length > 0;
 
+    const themeClasses = {
+        brand: "focus:border-brand-400 focus:ring-brand-100",
+        rose: "focus:border-rose-500 focus:ring-rose-500/10",
+        violet: "focus:border-violet-500 focus:ring-violet-500/10"
+    };
+
+    const labelThemeClasses = {
+        brand: "text-brand-600",
+        rose: "text-rose-600",
+        violet: "text-violet-600"
+    };
+
     return (
-        <div className="relative group w-full space-y-1.5 flex flex-col items-start transition-all duration-300">
-            <label className={clsx(
-                "text-[10px] font-black uppercase tracking-[0.15em] ml-1 transition-colors duration-300",
-                errorMessage ? "text-rose-500" : (isValidAndFilled ? "text-emerald-500" : (isFocused ? "text-brand-600" : "text-slate-400"))
-            )}>
-                {label}
-                {required && <span className="text-rose-500 ml-1">*</span>}
-            </label>
-            <div className="relative w-full transition-transform duration-300 origin-bottom hover:scale-[1.01]">
+        <div className={clsx(
+            "relative group w-full flex flex-col items-start",
+            label ? "space-y-1.5" : ""
+        )}>
+            {label && (
+                <label className={clsx(
+                    "text-[10px] font-semibold uppercase tracking-wide ml-0.5 transition-colors",
+                    errorMessage ? "text-rose-600" : (isValidAndFilled ? "text-emerald-600" : (isFocused ? labelThemeClasses[colorTheme] : "text-slate-500"))
+                )}>
+                    {label}
+                    {required && <span className="text-rose-500 ml-1">*</span>}
+                </label>
+            )}
+            <div className="relative w-full">
+                {icon && (
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10">
+                        {icon}
+                    </div>
+                )}
                 <input
                     required={required}
                     type={inputType}
@@ -59,22 +88,24 @@ export default function StandardInput({
                     placeholder={placeholder}
                     maxLength={maxLength}
                     className={clsx(
-                        "w-full px-4 py-3 rounded-lg border-2 text-xs font-bold transition-all duration-300 outline-none",
+                        "w-full rounded-lg border text-sm font-semibold transition-all outline-none",
+                        icon ? "pl-9 pr-3.5 py-2.5" : "px-3.5 py-2.5",
                         errorMessage
-                            ? "border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 bg-rose-50 border-rose-100 text-rose-900 placeholder:text-rose-300"
+                            ? "border-rose-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 bg-rose-50/50 text-rose-900 placeholder:text-rose-300"
                             : isValidAndFilled
-                                ? "border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 bg-emerald-50/30 text-emerald-900"
-                                : "border-slate-100/80 hover:border-slate-200 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10 bg-slate-50/50 focus:bg-white text-slate-800 placeholder:text-slate-400 shadow-sm shadow-slate-100/50",
-                        disabled && "bg-slate-100/50 text-slate-400 cursor-not-allowed border-transparent shadow-none hover:scale-100 placeholder:text-slate-300"
+                                ? "border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-emerald-50/30 text-slate-900"
+                                : `border-slate-200 hover:border-slate-300 focus:ring-2 bg-white text-slate-900 placeholder:text-slate-400 ${themeClasses[colorTheme]}`,
+                        disabled && "bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200 placeholder:text-slate-300",
+                        className
                     )}
                 />
 
-                {!isPasswordType && !disabled && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none transition-all duration-300">
+                {!isPasswordType && !disabled && !icon && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
                         {errorMessage ? (
-                            <AlertCircle size={16} className="text-rose-500 animate-in fade-in zoom-in-50 duration-300" strokeWidth={2.5} />
+                            <AlertCircle size={16} className="text-rose-400" strokeWidth={2} />
                         ) : isValidAndFilled ? (
-                            <CheckCircle2 size={16} className="text-emerald-500 animate-in fade-in zoom-in-50 duration-300" strokeWidth={2.5} />
+                            <CheckCircle2 size={16} className="text-emerald-500" strokeWidth={2} />
                         ) : null}
                     </div>
                 )}
@@ -83,22 +114,24 @@ export default function StandardInput({
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600 transition-colors p-1 hover:bg-slate-100 rounded-full"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
                         tabIndex={-1}
                     >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPassword ? <EyeOff size={16} strokeWidth={2} /> : <Eye size={16} strokeWidth={2} />}
                     </button>
                 )}
             </div>
 
-            <div className={clsx("h-4 flex items-start overflow-hidden w-full", errorMessage ? "opacity-100" : "opacity-0")}>
-                {errorMessage && (
-                    <div className="flex items-center gap-1.5 ml-1 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200 w-full">
-                        <AlertCircle size={10} strokeWidth={3} className="shrink-0" />
-                        <span className="text-[9px] font-black uppercase tracking-wider truncate">{errorMessage}</span>
-                    </div>
-                )}
-            </div>
+            {label && (
+                <div className={clsx("h-4 flex items-start overflow-hidden w-full", errorMessage ? "opacity-100" : "opacity-0")}>
+                    {errorMessage && (
+                        <div className="flex items-center gap-1.5 ml-0.5 text-rose-600 w-full">
+                            <AlertCircle size={10} strokeWidth={2.5} className="shrink-0 mt-0.5" />
+                            <span className="text-[10px] font-medium truncate">{errorMessage}</span>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

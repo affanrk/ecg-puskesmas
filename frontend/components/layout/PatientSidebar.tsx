@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useStore } from '@/store/useStore';
+
 import {
     LayoutDashboard,
     Activity,
@@ -9,9 +9,11 @@ import {
     BrainCircuit,
     Settings
 } from 'lucide-react';
-import SidebarContainer from './SidebarContainer';
+
 import { SidebarItem } from './parts/SidebarItem';
 import { SidebarSection } from './parts/SidebarSection';
+import SidebarContainer from './SidebarContainer';
+import { useStore } from '@/store/useStore';
 import { getActiveProfile } from '@/utils/helpers';
 
 export default function PatientSidebar() {

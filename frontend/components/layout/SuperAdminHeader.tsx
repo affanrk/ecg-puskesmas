@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+
 import { usePathname } from 'next/navigation';
+
+import clsx from 'clsx';
 import {
     ShieldCheck,
     LayoutDashboard,
@@ -9,20 +12,19 @@ import {
     MapPin,
     RefreshCcw
 } from 'lucide-react';
-import clsx from 'clsx';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import { useStore } from '@/store/useStore';
-import { useAuth } from '@/hooks/useAuth';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
+
 import { UserMenu } from './parts/UserMenu';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import { EVENTS } from '@/config/constants';
+import { useAuth } from '@/hooks/useAuth';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
 
 export default function SuperAdminHeader() {
     const pathname = usePathname();
     const user = useStore(state => state.user);
     const { logout } = useAuth();
     const adminLoading = useStore(state => state.adminLoading);
-    const setAdminLoading = useStore(state => state.setAdminLoading);
 
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -49,9 +51,7 @@ export default function SuperAdminHeader() {
     }, []);
 
     const handleRefresh = () => {
-        setAdminLoading(true);
         globalEventBus.emit(EVENTS.STATE.LIVE_DATA_UPDATED);
-        setTimeout(() => setAdminLoading(false), 2000);
     };
 
     const getPageConfig = (path: string) => {

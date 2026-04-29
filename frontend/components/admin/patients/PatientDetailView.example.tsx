@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { User } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
-import PatientDoctorAssignment from './parts/PatientDoctorAssignment';
+
 import { User as UserIcon, Mail, Phone, Calendar } from 'lucide-react';
+
+import PatientDoctorAssignment from './parts/PatientDoctorAssignment';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface PatientDetailViewProps {
     patientId: string;

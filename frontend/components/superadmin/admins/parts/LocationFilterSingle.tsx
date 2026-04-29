@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LocationResponse } from '@/types/user';
-import { MapPin, ChevronDown, Search } from 'lucide-react';
+
 import clsx from 'clsx';
+import { MapPin, ChevronDown, Search } from 'lucide-react';
+
+import { LocationResponse } from '@/types/user';
 
 interface LocationFilterSingleProps {
     locations: LocationResponse[];

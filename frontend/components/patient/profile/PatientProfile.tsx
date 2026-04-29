@@ -1,7 +1,7 @@
 'use client';
 
-import ProfileShell from '@/components/shared/profile/ProfileShell';
 import ProfileHeader from './parts/ProfileHeader';
+import ProfileShell from '@/components/shared/profile/ProfileShell';
 
 export default function PatientProfile({ openTab }: { openTab?: string }) {
     return (

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { memo } from 'react';
+
 import OperatorECGChart from './parts/OperatorECGChart';
-import StatsPanel from '@/components/shared/monitor/parts/StatsPanel';
 import AIAnalysisCard from '@/components/shared/monitor/parts/AIAnalysisCard';
+import StatsPanel from '@/components/shared/monitor/parts/StatsPanel';
 
 const MemoizedOperatorECGChart = memo(OperatorECGChart);
 const MemoizedStatsPanel = memo(StatsPanel);

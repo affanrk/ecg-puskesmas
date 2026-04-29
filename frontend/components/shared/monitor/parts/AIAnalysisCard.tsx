@@ -1,8 +1,9 @@
 'use client';
 
-import { useStore } from '@/store/useStore';
 import clsx from 'clsx';
 import { Sparkles, Brain, AlertTriangle, CheckCircle2, Activity } from 'lucide-react';
+
+import { useStore } from '@/store/useStore';
 
 export default function AIAnalysisCard() {
     const liveData = useStore((state) => state.liveData);

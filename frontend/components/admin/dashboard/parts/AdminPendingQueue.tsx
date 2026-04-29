@@ -1,9 +1,10 @@
-import React from 'react';
 import Link from 'next/link';
+
+import clsx from 'clsx';
 import { Users, CheckCircle2, Clock, Mail, CreditCard, Phone } from 'lucide-react';
+
 import { User } from '@/types/user';
 import { getActiveProfile } from '@/utils/helpers';
-import clsx from 'clsx';
 
 interface AdminPendingQueueProps {
     loading: boolean;

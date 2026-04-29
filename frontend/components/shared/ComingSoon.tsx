@@ -1,7 +1,7 @@
 'use client';
 
-import { LucideIcon, Rocket } from 'lucide-react';
 import clsx from 'clsx';
+import { LucideIcon, Rocket } from 'lucide-react';
 
 interface ComingSoonProps {
     title: string;

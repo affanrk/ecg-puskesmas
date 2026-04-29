@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+
 import { X, Search, UserPlus, CheckCircle, Loader2, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 
-import { api } from '@/services/api';
-import { useStore } from '@/store/useStore';
+import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import { medicalHistoryOptions } from '@/data';
 import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { useStore } from '@/store/useStore';
 import { WalkinPatient, WalkinPatientPayload } from '@/types/user';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
-import FlatpickrInput from '@/components/shared/FlatpickrInput';
-import { medicalHistoryOptions } from '@/data';
 
 interface PatientSelectorModalProps {
     isOpen: boolean;

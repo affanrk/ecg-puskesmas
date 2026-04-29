@@ -1,13 +1,14 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
-import { useRouter } from 'nextjs-toploader/app';
-import { useStore } from '@/store/useStore';
-import { useToast } from '@/hooks/useToast';
 
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import AdminSidebar from '@/components/layout/AdminSidebar';
+import { useRouter } from 'nextjs-toploader/app';
+
 import AdminHeader from '@/components/layout/AdminHeader';
+import AdminSidebar from '@/components/layout/AdminSidebar';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const router = useRouter();

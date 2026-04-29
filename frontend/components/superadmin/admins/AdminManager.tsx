@@ -1,20 +1,22 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { api } from '@/services/api';
-import { User, LocationResponse } from '@/types/user';
-import { useToast } from '@/hooks/useToast';
-import { Plus, ShieldCheck, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
-import { globalEventBus } from '@/services/events';
-import { EVENTS } from '@/config/constants';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
-import { useStore } from '@/store/useStore';
-import { validators } from '@/utils/validators';
-import { parseApiError } from '@/utils/helpers';
+import { useState, useEffect, useCallback } from 'react';
+
+import { ShieldCheck, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import AdminFilters from './parts/AdminFilters';
 import AdminFormModal from './parts/AdminFormModal';
 import AdminTableRow from './parts/AdminTableRow';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
+import { EVENTS } from '@/config/constants';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { globalEventBus } from '@/services/websocket/events';
+import { useStore } from '@/store/useStore';
+import { User, LocationResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
+import { validators } from '@/utils/validators';
 
 type ModalMode = 'create' | 'reassign' | null;
 
@@ -24,7 +26,11 @@ export default function AdminManager() {
     const [admins, setAdmins] = useState<User[]>([]);
     const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [loading, setLoading] = useState(true);
-    const initialized = useRef(false);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    useEffect(() => {
+        setAdminLoading(loading);
+    }, [loading, setAdminLoading]);
 
     const [modalMode, setModalMode] = useState<ModalMode>(null);
     const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
@@ -89,26 +95,28 @@ export default function AdminManager() {
             ]);
             setAdmins(Array.isArray(adminRes) ? adminRes : adminRes?.data || []);
             setLocations(Array.isArray(locRes) ? locRes : locRes?.data || []);
+            return true;
         } catch {
             toast('Failed to load admins', 'error');
+            return false;
         } finally {
             setLoading(false);
-            setAdminLoading(false);
         }
-    }, [toast, setAdminLoading]);
+    }, [toast]);
+
+    const handleRefresh = useCallback(() => {
+        setRefreshKey(prev => prev + 1);
+        toast('Admins refreshed successfully', 'success');
+    }, [toast]);
 
     useEffect(() => {
-        if (initialized.current) return;
-        initialized.current = true;
+        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+        return () => globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefresh);
+    }, [handleRefresh]);
 
+    useEffect(() => {
         loadData();
-        
-        const handleRefreshEvent = () => loadData();
-        globalEventBus.on(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        return () => {
-            globalEventBus.off(EVENTS.STATE.LIVE_DATA_UPDATED, handleRefreshEvent);
-        };
-    }, [loadData]);
+    }, [loadData, refreshKey]);
 
     const openModal = (mode: 'create' | 'reassign', admin?: User) => {
         setModalMode(mode);
@@ -284,103 +292,98 @@ export default function AdminManager() {
     };
 
     return (
-        <div className="flex flex-col h-full w-full bg-slate-50/50 p-6 lg:p-8 gap-6 overflow-hidden animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-                <AdminFilters
-                    searchTerm={searchTerm}
-                    filterStatus={filterStatus}
-                    locations={locations}
-                    selectedLocationId={selectedLocationId}
-                    onSearchChange={setSearchTerm}
-                    onStatusChange={setFilterStatus}
-                    onLocationChange={setSelectedLocationId}
-                />
-                <button
-                    onClick={() => openModal('create')}
-                    className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-bold text-sm shadow-sm transition-al cursor-pointer"
-                >
-                    <Plus size={16} /> New Admin
-                </button>
-            </div>
+        <div className="flex flex-col h-full w-full bg-white overflow-hidden animate-in fade-in duration-500">
+            <AdminFilters
+                searchTerm={searchTerm}
+                filterStatus={filterStatus}
+                locations={locations}
+                selectedLocationId={selectedLocationId}
+                onSearchChange={setSearchTerm}
+                onStatusChange={setFilterStatus}
+                onLocationChange={setSelectedLocationId}
+                onCreateAdmin={() => openModal('create')}
+            />
 
-            <div className="flex-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-                <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-left text-sm text-slate-600">
-                        <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
-                            <tr>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Admin Profile</th>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Email</th>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Status</th>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Assigned Location</th>
-                                <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-right pr-6">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-100">
-                            {loading ? (
+            <div className="flex-1 p-4 lg:px-10 lg:py-6 bg-slate-50/30 min-h-0 flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-0">
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left text-sm text-slate-600">
+                            <thead className="bg-slate-50/80 text-slate-400 sticky top-0 z-10 backdrop-blur-sm h-[48px]">
                                 <tr>
-                                    <td colSpan={5} className="h-64 align-middle">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <RefreshCcw size={40} className="text-zinc-300 animate-spin mb-4" />
-                                            <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
-                                        </div>
-                                    </td>
+                                    <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Admin Profile</th>
+                                    <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Email</th>
+                                    <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Status</th>
+                                    <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap">Assigned Location</th>
+                                    <th className="px-5 font-black text-[9px] uppercase tracking-[0.2em] border-b border-slate-100 whitespace-nowrap text-right pr-6">Actions</th>
                                 </tr>
-                            ) : filteredAdmins.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="h-64 align-middle">
-                                        <div className="flex flex-col items-center justify-center text-slate-400">
-                                            <ShieldCheck size={48} className="mb-4 opacity-20" />
-                                            <p className="font-medium text-sm">No administrators found</p>
-                                            <p className="text-xs mt-1 opacity-60">Try adjusting your filters or register a new admin.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedAdmins.map((admin) => (
-                                    <AdminTableRow
-                                        key={admin.id}
-                                        admin={admin}
-                                        locations={locations}
-                                        onReassign={() => openModal('reassign', admin)}
-                                        onActivate={() => { setAdminToActivate(admin); setShowActivate(true); }}
-                                        onDeactivate={() => { setAdminToDeactivate(admin); setShowDeactivate(true); }}
-                                        onDelete={() => { setAdminToDelete(admin); setShowDelete(true); }}
-                                    />
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {!loading && filteredAdmins.length > 0 && (
-                    <div className="px-8 py-3 border-t border-slate-200 bg-slate-50 relative z-20 flex justify-between items-center shrink-0">
-                        <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                Page <span className="text-slate-800">{page}</span> of <span className="text-slate-800">{totalPages}</span>
-                            </span>
-                            <div className="h-4 w-px bg-slate-300"></div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                <span className="text-violet-600">{filteredAdmins.length}</span> Admins
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setPage(Math.max(1, page - 1))}
-                                disabled={page === 1}
-                                className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-violet-600 hover:border-violet-200 cursor-pointer"
-                            >
-                                <ChevronLeft className="w-4 h-4" strokeWidth={3} />
-                            </button>
-                            <button
-                                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                                disabled={page === totalPages}
-                                className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-violet-600 hover:border-violet-200 cursor-pointer"
-                            >
-                                <ChevronRight className="w-4 h-4" strokeWidth={3} />
-                            </button>
-                        </div>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={5} className="h-64 align-middle">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <RefreshCcw size={40} className="text-zinc-300 animate-spin mb-4" />
+                                                <p className="text-zinc-400 font-bold uppercase tracking-widest text-xs">Syncing Data...</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : filteredAdmins.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="h-64 align-middle">
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <ShieldCheck size={48} className="mb-4 opacity-20" />
+                                                <p className="font-medium text-sm">No administrators found</p>
+                                                <p className="text-xs mt-1 opacity-60">Try adjusting your filters or register a new admin.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginatedAdmins.map((admin) => (
+                                        <AdminTableRow
+                                            key={admin.id}
+                                            admin={admin}
+                                            locations={locations}
+                                            onReassign={() => openModal('reassign', admin)}
+                                            onActivate={() => { setAdminToActivate(admin); setShowActivate(true); }}
+                                            onDeactivate={() => { setAdminToDeactivate(admin); setShowDeactivate(true); }}
+                                            onDelete={() => { setAdminToDelete(admin); setShowDelete(true); }}
+                                        />
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                )}
+
+                    {!loading && filteredAdmins.length > 0 && (
+                        <div className="px-8 py-3 border-t border-slate-200 bg-slate-50 relative z-20 flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-4">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    Page <span className="text-slate-800">{page}</span> of <span className="text-slate-800">{totalPages}</span>
+                                </span>
+                                <div className="h-4 w-px bg-slate-300"></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    <span className="text-violet-600">{filteredAdmins.length}</span> Admins
+                                </span>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setPage(Math.max(1, page - 1))}
+                                    disabled={page === 1}
+                                    className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-violet-600 hover:border-violet-200 cursor-pointer"
+                                >
+                                    <ChevronLeft className="w-4 h-4" strokeWidth={3} />
+                                </button>
+                                <button
+                                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                                    disabled={page === totalPages}
+                                    className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95 hover:text-violet-600 hover:border-violet-200 cursor-pointer"
+                                >
+                                    <ChevronRight className="w-4 h-4" strokeWidth={3} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {modalMode && (

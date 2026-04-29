@@ -1,21 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'nextjs-toploader/app';
+
+import clsx from 'clsx';
 import { ArrowRight, ArrowLeft, Loader2, User, AlertTriangle, Check } from 'lucide-react';
+import { useRouter } from 'nextjs-toploader/app';
+
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
+import FlatpickrInput from '@/components/shared/FlatpickrInput';
+import FloatingNav from '@/components/shared/FloatingNav';
+import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
+import { genderOptions, medicalHistoryOptions } from '@/data';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
 import { useStore } from '@/store/useStore';
-import { api } from '@/services/api';
 import { parseApiError } from '@/utils/helpers';
 import { validators } from '@/utils/validators';
-import { useToast } from '@/hooks/useToast';
-import clsx from 'clsx';
-import StandardInput from '@/components/shared/StandardInput';
-import FloatingNav from '@/components/shared/FloatingNav';
-import FlatpickrInput from '@/components/shared/FlatpickrInput';
-import SelectInput from '@/components/shared/SelectInput';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
-import ReviewSummaryTable from '@/components/shared/ReviewSummaryTable';
-import { genderOptions, medicalHistoryOptions } from '@/data';
 
 export default function PatientOnboardingForm() {
     const router = useRouter();

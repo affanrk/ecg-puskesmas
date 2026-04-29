@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useStore } from '@/store/useStore';
-import { useSessionManager } from '@/hooks/useSessionManager';
-import { useDeviceManager } from '@/hooks/useDeviceManager';
-import { useToast } from '@/hooks/useToast';
-import ConfirmationModal from '@/components/shared/ConfirmationModal';
 
 import { PatientECGHeader } from './PatientECGHeader';
+import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { ECGFooter } from '@/components/shared/monitor/parts/ECGFooter';
 import { ECGMonitor } from '@/components/shared/monitor/parts/ECGMonitor';
+import { useDeviceManager } from '@/hooks/useDeviceManager';
+import { useSessionManager } from '@/hooks/useSessionManager';
+import { useToast } from '@/hooks/useToast';
+import { useStore } from '@/store/useStore';
 
 export default function PatientECGChart() {
     const user = useStore(state => state.user);

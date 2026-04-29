@@ -1,6 +1,9 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
+
+import StandardInput from '@/components/shared/StandardInput';
+import SelectInput from '@/components/shared/SelectInput';
 
 interface LocationFiltersProps {
     searchTerm: string;
@@ -9,6 +12,7 @@ interface LocationFiltersProps {
     onSearchChange: (value: string) => void;
     onTypeChange: (value: string) => void;
     onStatusChange: (value: string) => void;
+    onCreateLocation: () => void;
 }
 
 export default function LocationFilters({
@@ -17,40 +21,63 @@ export default function LocationFilters({
     filterStatus,
     onSearchChange,
     onTypeChange,
-    onStatusChange
+    onStatusChange,
+    onCreateLocation
 }: LocationFiltersProps) {
     return (
-        <div className="flex items-center gap-4 flex-1">
-            <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input
-                    type="text"
-                    placeholder="Search locations..."
-                    value={searchTerm}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-                />
+        <div className="h-[64px] shrink-0 border-b border-slate-100 flex items-center px-4 lg:px-10 bg-slate-50/50">
+            <div className="flex-1 flex items-center gap-3 min-w-0">
+                <div className="flex-1 min-w-[200px] max-w-md">
+                    <StandardInput
+                        label=""
+                        type="text"
+                        placeholder="Search locations..."
+                        value={searchTerm}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        icon={<Search size={14} />}
+                        colorTheme="violet"
+                    />
+                </div>
+                
+                <div className="w-48">
+                    <SelectInput
+                        label=""
+                        value={filterType}
+                        onChange={(e) => onTypeChange(e.target.value)}
+                        options={[
+                            { value: '', label: 'All Types' },
+                            { value: 'PUSKESMAS', label: 'Puskesmas' },
+                            { value: 'CLINIC', label: 'Clinic' },
+                            { value: 'HOSPITAL', label: 'Hospital' },
+                            { value: 'LABORATORY', label: 'Laboratory' }
+                        ]}
+                        placeholder="Select Type"
+                        colorTheme="violet"
+                    />
+                </div>
+                
+                <div className="w-48">
+                    <SelectInput
+                        label=""
+                        value={filterStatus}
+                        onChange={(e) => onStatusChange(e.target.value)}
+                        options={[
+                            { value: '', label: 'All Status' },
+                            { value: 'active', label: 'Active' },
+                            { value: 'inactive', label: 'Inactive' }
+                        ]}
+                        placeholder="Select Status"
+                        colorTheme="violet"
+                    />
+                </div>
+
+                <button
+                    onClick={onCreateLocation}
+                    className="flex items-center gap-2 px-4 h-[42px] bg-slate-900 hover:bg-violet-600 text-white rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-sm active:scale-95 shrink-0 cursor-pointer"
+                >
+                    <Plus size={16} /> <span className="hidden sm:inline">New Location</span>
+                </button>
             </div>
-            <select
-                value={filterType}
-                onChange={(e) => onTypeChange(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 cursor-pointer"
-            >
-                <option value="">All Types</option>
-                <option value="PUSKESMAS">Puskesmas</option>
-                <option value="CLINIC">Clinic</option>
-                <option value="HOSPITAL">Hospital</option>
-                <option value="LABORATORY">Laboratory</option>
-            </select>
-            <select
-                value={filterStatus}
-                onChange={(e) => onStatusChange(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 cursor-pointer cursor-pointer"
-            >
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
         </div>
     );
 }

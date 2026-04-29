@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { User } from '@/types/user';
+
 import {
     ChevronLeft,
     ChevronRight,
     UserX
 } from 'lucide-react';
+
 import { UserTableRow } from './parts/UserTableRow';
+import { User } from '@/types/user';
 
 interface UserManagementTableProps {
     users: User[];

@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { globalEventBus } from '@/services/events';
+import { globalEventBus } from '@/services/websocket/events';
 import { EVENTS } from '@/config/constants';
-import { sendJson } from '@/services/socket';
+import { sendJson } from '@/services/websocket';
 import { useToast } from '@/hooks/useToast';
 
 export function useDeviceListeners() {

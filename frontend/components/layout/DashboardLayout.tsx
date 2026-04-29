@@ -1,10 +1,12 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import { useStore } from '@/store/useStore';
+
 import clsx from 'clsx';
+
+import Header from './Header';
+import Sidebar from './Sidebar';
+import { useStore } from '@/store/useStore';
 
 interface DashboardLayoutProps {
     children: ReactNode;

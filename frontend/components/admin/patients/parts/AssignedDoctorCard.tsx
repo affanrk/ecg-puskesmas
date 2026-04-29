@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { UserCheck, Stethoscope, Calendar, User as UserIcon, RefreshCcw, UserPlus, AlertCircle } from 'lucide-react';
-import { User, PatientDoctorResponse } from '@/types/user';
-import { api } from '@/services/api';
-import { useToast } from '@/hooks/useToast';
-import { parseApiError } from '@/utils/helpers';
-import DoctorSelectionModal from './DoctorSelectionModal';
+
 import clsx from 'clsx';
+import { UserCheck, Stethoscope, Calendar, User as UserIcon, RefreshCcw, UserPlus, AlertCircle } from 'lucide-react';
+
+import DoctorSelectionModal from './DoctorSelectionModal';
+import { useToast } from '@/hooks/useToast';
+import { api } from '@/services';
+import { User, PatientDoctorResponse } from '@/types/user';
+import { parseApiError } from '@/utils/helpers';
 
 interface AssignedDoctorCardProps {
     patient: User;

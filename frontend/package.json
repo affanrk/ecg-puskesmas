@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "validate:components": "ts-node scripts/validate-component-structure.ts",
+    "check": "npx tsc --noEmit && npm run lint && npm run build",
+    "check:quick": "npx tsc --noEmit && npm run lint"
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -29,9 +32,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@typescript-eslint/parser": "^8.59.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

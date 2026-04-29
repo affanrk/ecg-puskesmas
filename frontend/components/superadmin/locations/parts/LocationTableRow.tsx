@@ -1,9 +1,10 @@
 'use client';
 
-import { LocationResponse } from '@/types/user';
-import { Building } from 'lucide-react';
 import clsx from 'clsx';
+import { Building } from 'lucide-react';
+
 import Tooltip from '@/components/shared/Tooltip';
+import { LocationResponse } from '@/types/user';
 
 interface LocationTableRowProps {
     location: LocationResponse;
