@@ -98,7 +98,7 @@ export default function LocationManager() {
     const loadLocations = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await api.fetchLocations({ limit: 1000, t: Date.now() });
+            const res = await api.fetchSuperAdminLocations({ limit: 1000, t: Date.now() });
             setLocations(Array.isArray(res) ? res : res?.data || []);
         } catch {
             toast('Failed to load locations', 'error');

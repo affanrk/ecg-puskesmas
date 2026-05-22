@@ -5,7 +5,7 @@ import { User, Info, Save, BadgeCheck, Fingerprint } from 'lucide-react';
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
 import SelectInput from '@/components/shared/SelectInput';
 import StandardInput from '@/components/shared/StandardInput';
-import { genderOptions } from '@/data';
+import { genderOptions, doctorSpecialtyOptions } from '@/data';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
 
@@ -32,6 +32,11 @@ export default function SharedIdentityCard({
 }: SharedIdentityCardProps) {
     const user = useStore(state => state.user);
     const roleTitle = user?.is_doctor ? "Doctor Specialist" : user?.is_operator ? "Medical Staff Identity" : "Patient Identity";
+    const iconTheme = user?.is_doctor
+        ? "bg-rose-50 text-rose-600 border-rose-100/50"
+        : user?.is_operator
+        ? "bg-amber-50 text-amber-600 border-amber-100/50"
+        : "bg-emerald-50 text-emerald-600 border-emerald-100/50";
 
     return (
         <div className="bg-white p-5 lg:p-6 flex flex-col w-full transition-all duration-500 relative group">
@@ -40,7 +45,7 @@ export default function SharedIdentityCard({
             </div>
             <div className="flex items-center justify-between border-b border-slate-50 pb-3 mb-5 relative z-10">
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-md flex items-center justify-center shadow-sm border border-blue-100/50">
+                    <div className={`w-10 h-10 rounded-md flex items-center justify-center shadow-sm border ${iconTheme}`}>
                         <User size={18} strokeWidth={2} />
                     </div>
                     <div>
@@ -131,6 +136,21 @@ export default function SharedIdentityCard({
                             disabled={isLocked} 
                             placeholder="Surat Izin Praktik" 
                             errorMessage={errors.sip_number} 
+                        />
+                    </div>
+                )}
+                {user?.is_doctor && (
+                    <div className="space-y-1">
+                        <SelectInput
+                            label="Medical Specialty"
+                            value={medicalForm.specialty}
+                            onChange={(e) => handleMedicalChange('specialty', e.target.value)}
+                            disabled={isLocked}
+                            errorMessage={errors.specialty}
+                            options={[
+                                { value: '', label: 'Select Specialty' },
+                                ...doctorSpecialtyOptions
+                            ]}
                         />
                     </div>
                 )}

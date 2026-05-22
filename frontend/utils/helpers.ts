@@ -123,6 +123,13 @@ export function parseApiError(err: Error | AxiosError<ApiErrorResponse> | object
             const mainMsg = data.error?.message || (typeof data.detail === 'string' ? data.detail : result.message);
             result.message = mainMsg;
 
+            if (data.detail && typeof data.detail === 'object' && 'error_code' in data.detail) {
+                result.errorCode = data.detail.error_code as string;
+                if ('message' in data.detail && typeof data.detail.message === 'string') {
+                    result.message = data.detail.message;
+                }
+            }
+
             const extractFromDetails = (details: ApiErrorResponse['detail'] | (NonNullable<ApiErrorResponse['error']>['details'])) => {
                 if (!details || typeof details !== 'object') return;
 

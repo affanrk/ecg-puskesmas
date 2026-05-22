@@ -11,6 +11,8 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
     const isDark = className?.includes('bg-slate-900');
     const isAmber = !!className && (className.includes('bg-amber') || className.includes('theme-amber'));
     const isViolet = !!className && className.includes('theme-violet');
+    const isEmerald = !!className && className.includes('theme-emerald');
+    const isRose = !!className && className.includes('theme-rose');
     const isVisible = isSidebarPinned || isHovered;
 
     return (
@@ -20,7 +22,7 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
         )}>
             <div className={clsx(
                 "absolute inset-0 bg-gradient-to-r to-transparent pointer-events-none",
-                isDark ? "from-slate-900" : (isAmber ? "from-amber-50/60" : "from-teal-50/50")
+                isDark ? "from-slate-900" : (isAmber ? "from-amber-50/60" : isEmerald ? "from-emerald-50/60" : isRose ? "from-rose-50/60" : "from-teal-50/50")
             )} />
             <div className={clsx(
                 "relative w-10 h-10 rounded-md flex items-center justify-center shrink-0",
@@ -28,7 +30,11 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
                     ? (isViolet ? "bg-violet-600 ring-4 ring-slate-800 shadow-lg shadow-violet-500/20" : "bg-rose-600 ring-4 ring-slate-800 shadow-lg shadow-rose-500/20")
                     : isAmber
                         ? "bg-gradient-to-br from-amber-500 to-orange-500 ring-4 ring-amber-50 shadow-lg shadow-amber-500/20"
-                        : "bg-gradient-to-br from-teal-500 to-emerald-500 ring-4 ring-teal-50 shadow-lg shadow-teal-500/20"
+                        : isEmerald
+                            ? "bg-gradient-to-br from-emerald-500 to-green-500 ring-4 ring-emerald-50 shadow-lg shadow-emerald-500/20"
+                            : isRose
+                                ? "bg-gradient-to-br from-rose-500 to-red-500 ring-4 ring-rose-50 shadow-lg shadow-rose-500/20"
+                                : "bg-gradient-to-br from-teal-500 to-emerald-500 ring-4 ring-teal-50 shadow-lg shadow-teal-500/20"
             )}>
                 <HeartPulse className="text-white w-6 h-6" strokeWidth={2.5} />
             </div>
@@ -39,7 +45,7 @@ export function SidebarBrand({ className, isSidebarPinned, isHovered }: SidebarB
                 )}>ECG Live</span>
                 <span className={clsx(
                     "text-[10px] font-bold uppercase tracking-widest leading-none mt-1 whitespace-nowrap",
-                    isDark ? (isViolet ? "text-violet-500" : "text-rose-500") : (isAmber ? "text-amber-600" : "text-teal-600")
+                    isDark ? (isViolet ? "text-violet-500" : "text-rose-500") : (isAmber ? "text-amber-600" : isEmerald ? "text-emerald-600" : isRose ? "text-rose-600" : "text-teal-600")
                 )}>Medical Platform</span>
             </div>
         </div>

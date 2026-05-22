@@ -61,7 +61,7 @@ export default function UserManager() {
         try {
             const [usersRes, locRes] = await Promise.all([
                 api.fetchSuperAdminUsers({ limit: 1000, t: Date.now() }),
-                api.fetchLocations({ limit: 1000, t: Date.now() })
+                api.fetchSuperAdminLocations({ limit: 1000, t: Date.now() })
             ]);
             setUsers(Array.isArray(usersRes) ? usersRes : usersRes?.data || []);
             setLocations(Array.isArray(locRes) ? locRes : locRes?.data || []);

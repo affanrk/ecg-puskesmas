@@ -151,7 +151,6 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                         {isOperator && (
                             <DetailGroup title="Professional Details" icon={<Briefcase size={12} />} color="teal">
                                 <DetailRow label="STR Number" value={(profile?.str_number || "") || undefined} />
-                                <DetailRow label="Work Location / Affiliation" value={(profile?.work_location || "") || undefined} />
                                 <DetailRow label="Operator Role" value={(profile?.operator_role || "") || undefined} />
                             </DetailGroup>
                         )}
@@ -161,7 +160,6 @@ export default function UserDetailModal({ user, onClose, onApprove, onReject }: 
                                 <DetailRow label="STR Number" value={(profile?.str_number || "") || undefined} />
                                 <DetailRow label="SIP Number" value={(profile?.sip_number || "") || undefined} />
                                 <DetailRow label="Medical Specialty" value={(profile?.specialty || "") || undefined} />
-                                <DetailRow label="Work Location / Affiliation" value={(profile?.work_location || "") || undefined} />
                             </DetailGroup>
                         )}
 

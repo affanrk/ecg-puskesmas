@@ -42,6 +42,7 @@ export function PatientIdentitySection({
                     onChange={(e) => handleFieldChange('full_name', e.target.value)}
                     errorMessage={errors.full_name}
                     placeholder="Enter full name"
+                    required
                 />
                 <StandardInput
                     label="NIK (16 Digits)"
@@ -49,6 +50,7 @@ export function PatientIdentitySection({
                     onChange={(e) => handleFieldChange('nik', e.target.value.replace(/\D/g, '').slice(0, 16))}
                     errorMessage={errors.nik}
                     placeholder="16-digit ID number"
+                    required
                 />
             </div>
 
@@ -59,6 +61,7 @@ export function PatientIdentitySection({
                     onChange={(e) => handleFieldChange('pob', e.target.value)}
                     errorMessage={errors.pob}
                     placeholder="City"
+                    required
                 />
                 <FlatpickrInput
                     label="Date of Birth"
@@ -66,12 +69,18 @@ export function PatientIdentitySection({
                     onChange={(date) => handleFieldChange('dob', date)}
                     errorMessage={errors.dob}
                     placeholder="Select Date"
+                    required
                 />
                 <SelectInput
                     label="Gender"
                     value={formData.gender}
                     onChange={(e) => handleFieldChange('gender', e.target.value)}
-                    options={genderOptions}
+                    options={[
+                        { value: '', label: 'Select Gender' },
+                        ...genderOptions
+                    ]}
+                    errorMessage={errors.gender}
+                    required
                 />
             </div>
 
@@ -138,7 +147,6 @@ interface OperatorFormFieldsProps {
         address: string;
         operator_role: string;
         str_number: string;
-        work_location: string;
         activation_status?: string;
     };
     errors: Record<string, string>;
@@ -163,6 +171,7 @@ export function OperatorIdentitySection({
                     onChange={(e) => handleFieldChange('full_name', e.target.value)}
                     errorMessage={errors.full_name}
                     placeholder="Enter full name"
+                    required
                 />
                 <StandardInput
                     label="NIK (16 Digits)"
@@ -170,6 +179,7 @@ export function OperatorIdentitySection({
                     onChange={(e) => handleFieldChange('nik', e.target.value.replace(/\D/g, '').slice(0, 16))}
                     errorMessage={errors.nik}
                     placeholder="16-digit ID number"
+                    required
                 />
             </div>
 
@@ -180,6 +190,7 @@ export function OperatorIdentitySection({
                     onChange={(e) => handleFieldChange('pob', e.target.value)}
                     errorMessage={errors.pob}
                     placeholder="City"
+                    required
                 />
                 <FlatpickrInput
                     label="Date of Birth"
@@ -187,12 +198,18 @@ export function OperatorIdentitySection({
                     onChange={(date) => handleFieldChange('dob', date)}
                     errorMessage={errors.dob}
                     placeholder="Select Date"
+                    required
                 />
                 <SelectInput
                     label="Gender"
                     value={formData.gender}
                     onChange={(e) => handleFieldChange('gender', e.target.value)}
-                    options={genderOptions}
+                    options={[
+                        { value: '', label: 'Select Gender' },
+                        ...genderOptions
+                    ]}
+                    errorMessage={errors.gender}
+                    required
                 />
             </div>
 
@@ -213,7 +230,7 @@ export function OperatorIdentitySection({
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SelectInput
                     label="Professional Role"
                     value={formData.operator_role}
@@ -222,6 +239,8 @@ export function OperatorIdentitySection({
                         { value: '', label: 'Select Role' },
                         ...operatorRoleOptions
                     ]}
+                    errorMessage={errors.operator_role}
+                    required
                 />
                 <StandardInput
                     label="STR Number"
@@ -229,13 +248,7 @@ export function OperatorIdentitySection({
                     onChange={(e) => handleFieldChange('str_number', e.target.value)}
                     errorMessage={errors.str_number}
                     placeholder="Surat Tanda Registrasi"
-                />
-                <StandardInput
-                    label="Work Location"
-                    value={formData.work_location}
-                    onChange={(e) => handleFieldChange('work_location', e.target.value)}
-                    errorMessage={errors.work_location}
-                    placeholder="Clinic Name (Optional)"
+                    required
                 />
             </div>
 

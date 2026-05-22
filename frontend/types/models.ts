@@ -36,7 +36,6 @@ export interface AnalysisResult {
 export interface OperatorDashboardData {
     operator_name?: string | null;
     operator_role?: string | null;
-    work_location?: string | null;
     str_number?: string | null;
     total_recorded: number;
     arrhythmia_count: number;
@@ -118,3 +117,58 @@ export interface Toast {
     message: string;
     type: ToastType;
 }
+
+export interface AdditionalLocationRequest {
+    id: string;
+    user_id: string;
+    location_id: string;
+    requested_by: string | null;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    reason: string | null;
+    approved_by: string | null;
+    rejection_reason: string | null;
+    created_dt: string;
+    processed_dt: string | null;
+    user?: {
+        id: string;
+        username: string;
+        full_name?: string;
+        role?: string;
+    };
+    location?: {
+        id: string;
+        name: string;
+    };
+    requester?: {
+        id: string;
+        username: string;
+        full_name?: string;
+    };
+}
+
+export interface StaffResignRequest {
+    resignation_date: string;
+    reason?: string;
+}
+
+export interface StaffResignResponse {
+    user_id: string;
+    affected_locations: number;
+    sessions_invalidated: number;
+    resignation_date: string;
+}
+
+export interface ExistingStaffInfo {
+    user_id: string;
+    full_name: string;
+    role: string;
+    primary_location?: string;
+}
+
+export interface CheckDuplicateResponse {
+    nik_exists: boolean;
+    email_exists: boolean;
+    existing_staff?: ExistingStaffInfo;
+}
+
+

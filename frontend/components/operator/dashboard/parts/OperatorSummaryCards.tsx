@@ -8,7 +8,6 @@ interface OperatorSummaryCardsProps {
     dashboardData: {
         operator_name?: string | null;
         operator_role?: string | null;
-        work_location?: string | null;
         str_number?: string | null;
         total_recorded: number;
         arrhythmia_count: number;
@@ -47,7 +46,6 @@ export default function OperatorSummaryCards({ dashboardData, lastSyncTime }: Op
                         </h3>
                         <p className="text-[9px] 2xl:text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] truncate">
                             {dashboardData?.operator_role || 'Medical Staff'}
-                            {dashboardData?.work_location && ` • ${dashboardData.work_location}`}
                         </p>
                     </div>
                 </div>

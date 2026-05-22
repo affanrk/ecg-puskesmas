@@ -3,9 +3,19 @@ import { LocationCreatePayload, LocationUpdatePayload } from '@/types/user';
 import { HistoryFilters } from '@/types/models';
 
 
+export async function fetchPublicLocations() {
+    try {
+        const response = await axiosInstance.get('/public/locations');
+        return response.data;
+    } catch (error) {
+        console.error("Fetch Public Locations Error:", error);
+        throw error;
+    }
+}
+
 export async function fetchLocations(filters: HistoryFilters = {}) {
     try {
-        const response = await axiosInstance.get('/superadmin/locations', { params: filters });
+        const response = await axiosInstance.get('/admin/locations', { params: filters });
         return response.data;
     } catch (error) {
         console.error("Fetch Locations Error:", error);
@@ -93,7 +103,7 @@ export async function deactivateLocation(locationId: string) {
 
 export async function setStaffPrimaryLocation(staffId: string, locationId: string) {
     try {
-        const response = await axiosInstance.patch(`/admin/staff/${staffId}/locations/${locationId}/primary`);
+        const response = await axiosInstance.patch(`/admin/staff/${staffId}/locations/${locationId}/set-primary`);
         return response.data;
     } catch (error) {
         console.error("Set Staff Primary Location Error:", error);

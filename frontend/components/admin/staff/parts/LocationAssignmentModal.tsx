@@ -126,29 +126,28 @@ export default function LocationAssignmentModal({
     );
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl relative overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                     <div>
-                        <h3 className="text-lg font-black text-slate-800 tracking-tight">
-                            Manage Location Assignments
-                        </h3>
+                        <h2 className="text-lg font-black text-slate-800 tracking-tight">Manage Location Assignments</h2>
                         <p className="text-xs text-slate-500 mt-1">
                             Staff: <span className="font-bold text-slate-700">{staffName}</span>
                         </p>
                     </div>
                     <button 
                         onClick={onClose} 
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-2 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-400 hover:text-rose-600 border border-rose-100 hover:border-rose-200 transition-all cursor-pointer"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                <form className="p-6 space-y-6 overflow-y-auto flex-1" onSubmit={(e) => { e.preventDefault(); handleAddLocation(); }}>
                     <div className="space-y-3">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Add Location
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Add Location
                         </h4>
                         <div className="flex gap-2">
                             <select
@@ -169,9 +168,9 @@ export default function LocationAssignmentModal({
                                 ))}
                             </select>
                             <button
-                                onClick={handleAddLocation}
+                                type="submit"
                                 disabled={!selectedLocationId || processing}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
                             >
                                 {processing ? (
                                     <RefreshCcw size={16} className="animate-spin" />
@@ -185,7 +184,7 @@ export default function LocationAssignmentModal({
 
                     <div className="space-y-3">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-violet-500" /> Current Assignments
+                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Current Assignments
                         </h4>
                         
                         {loading ? (
@@ -278,19 +277,20 @@ export default function LocationAssignmentModal({
                             The primary location cannot be removed until another location is set as primary.
                         </p>
                     </div>
-                </div>
 
-                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end shrink-0">
-                    <button
-                        onClick={() => {
-                            onSuccess();
-                            onClose();
-                        }}
-                        className="px-6 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
-                    >
-                        Done
-                    </button>
-                </div>
+                    <div className="pt-4 pb-6 -bottom-6 sticky bg-white z-10 border-t border-slate-50 mt-4">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onSuccess();
+                                onClose();
+                            }}
+                            className="w-full py-4 bg-slate-900 hover:bg-blue-600 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <Plus size={16} /> Save & Close
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

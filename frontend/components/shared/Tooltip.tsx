@@ -5,7 +5,7 @@ import clsx from 'clsx';
 
 interface TooltipProps {
     children: ReactNode;
-    content: string;
+    content: ReactNode;
     position?: 'top' | 'bottom' | 'left' | 'right';
     disabled?: boolean;
 }

@@ -65,18 +65,18 @@ export default function OperatorDashboardPage() {
                                                     {isRejected ? "Update Profile" : isPending ? "View Profile Status" : "Complete Profile"}
                                                     <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                                                 </span>
-                                                <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-emerald-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
+                                                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 to-orange-400 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"></div>
                                             </Link>
                                             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 px-4 py-2 bg-slate-50 rounded-md cursor-help hover:bg-slate-100 transition-colors">
-                                                <FileCheck size={14} className="text-teal-500" />
+                                                <FileCheck size={14} className="text-amber-500" />
                                                 {isRejected ? "Revision Required" : isPending ? "Queue #Pending" : "Credential Verification Required"}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-slate-50 border-t border-slate-100 p-4 text-center md:text-left transition-colors group-hover:bg-teal-50/50">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start gap-2 group-hover:text-teal-600 transition-colors">
+                            <div className="bg-slate-50 border-t border-slate-100 p-4 text-center md:text-left transition-colors group-hover:bg-amber-50/50">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center md:justify-start gap-2 group-hover:text-amber-600 transition-colors">
                                     <Stethoscope size={14} />
                                     Operator Dashboard • {isPending ? "Verification Queue" : isRejected ? "Action Required" : "Locked for New User"}
                                 </p>

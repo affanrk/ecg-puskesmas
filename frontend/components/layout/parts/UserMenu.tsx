@@ -30,6 +30,8 @@ export function UserMenu({
     isDark = false
 }: UserMenuProps) {
     const isSuperAdmin = user?.role === 'superadmin';
+    const isOperator = user?.role === 'operator';
+    const isDoctor = user?.role === 'doctor';
 
     return (
         <div className="relative" ref={menuRef}>
@@ -43,7 +45,10 @@ export function UserMenu({
                 <div className="text-right hidden md:block">
                     <p className={clsx(
                         "text-xs font-bold leading-tight transition-colors",
-                        isDark ? (isSuperAdmin ? "text-slate-200 group-hover:text-violet-400" : "text-slate-200 group-hover:text-rose-400") : "text-slate-700 group-hover:text-teal-700"
+                        isDark ? (isSuperAdmin ? "text-slate-200 group-hover:text-violet-400" : "text-slate-200 group-hover:text-rose-400") 
+                        : isOperator ? "text-slate-700 group-hover:text-amber-700"
+                        : isDoctor ? "text-slate-700 group-hover:text-rose-700"
+                        : "text-slate-700 group-hover:text-teal-700"
                     )}>
                         {user ? (isDark ? user.username : ((getActiveProfile(user)?.full_name || "") || user.username)) : 'Loading...'}
                     </p>
@@ -56,8 +61,10 @@ export function UserMenu({
                 </div>
                 <div className={clsx(
                     "w-10 h-10 rounded-md flex items-center justify-center text-white font-bold transition-transform active:scale-95",
-                    isDark 
-                        ? (isSuperAdmin ? "bg-violet-600 shadow-lg shadow-violet-900/20 ring-2 ring-violet-500/20" : "bg-rose-600 shadow-lg shadow-rose-900/20 ring-2 ring-rose-500/20") 
+                    isDark
+                        ? (isSuperAdmin ? "bg-violet-600 shadow-lg shadow-violet-900/20 ring-2 ring-violet-500/20" : "bg-rose-600 shadow-lg shadow-rose-900/20 ring-2 ring-rose-500/20")
+                        : isOperator ? clsx("shadow-md shadow-amber-200/50 ring-2 ring-white", !isProfileComplete ? "bg-amber-400" : "bg-gradient-to-br from-amber-500 to-orange-500")
+                        : isDoctor ? clsx("shadow-md shadow-rose-200/50 ring-2 ring-white", !isProfileComplete ? "bg-amber-500" : "bg-gradient-to-br from-rose-500 to-red-500")
                         : (clsx("shadow-md shadow-slate-200 ring-2 ring-white", !isProfileComplete ? "bg-amber-500" : "bg-gradient-to-br from-teal-500 to-emerald-500"))
                 )}>
                     {user ? user.username.charAt(0).toUpperCase() : (isDark ? 'A' : <UserIcon size={18} />)}
@@ -87,11 +94,20 @@ export function UserMenu({
                             href={profileLink}
                             className={clsx(
                                 "flex items-center gap-3 px-3.5 py-2.5 text-xs font-bold rounded-md transition-colors group",
-                                isDark ? (isSuperAdmin ? "text-slate-400 hover:bg-slate-800 hover:text-violet-400" : "text-slate-400 hover:bg-slate-800 hover:text-rose-400") : "text-slate-600 hover:bg-teal-50 hover:text-teal-700"
+                            isDark ? (isSuperAdmin ? "text-slate-400 hover:bg-slate-800 hover:text-violet-400" : "text-slate-400 hover:bg-slate-800 hover:text-rose-400") 
+                                : isOperator ? "text-slate-600 hover:bg-amber-50 hover:text-amber-700"
+                                : isDoctor ? "text-slate-600 hover:bg-rose-50 hover:text-rose-700"
+                                : "text-slate-600 hover:bg-teal-50 hover:text-teal-700"
                             )}
                             onClick={() => setIsUserMenuOpen(false)}
                         >
-                            <Settings size={16} className={clsx("transition-colors", isDark ? "" : "text-slate-400 group-hover:text-teal-500")} />
+                            <Settings size={16} className={clsx(
+                                "transition-colors",
+                                isDark ? "" 
+                                : isOperator ? "text-slate-400 group-hover:text-amber-500"
+                                : isDoctor ? "text-slate-400 group-hover:text-rose-500"
+                                : "text-slate-400 group-hover:text-teal-500"
+                            )} />
                             Account Settings
                             {!isDark && !isProfileComplete && <span className="w-2 h-2 bg-amber-500 rounded-full ml-auto shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span>}
                         </Link>

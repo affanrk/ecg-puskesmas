@@ -21,8 +21,6 @@ export default function UserManagementFilters({
         { value: '', label: 'All Access' },
         { value: 'user', label: 'User (Standard Account)' },
         { value: 'patient', label: 'Patient' },
-        { value: 'operator', label: 'Operator (Nurse / General Doctor)' },
-        { value: 'doctor', label: 'Specialist (Doctor Specialist)' }
     ];
 
     return (

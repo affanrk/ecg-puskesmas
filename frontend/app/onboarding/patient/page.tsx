@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import clsx from 'clsx';
 import { ArrowRight, ArrowLeft, Loader2, User, AlertTriangle, Check } from 'lucide-react';
@@ -38,8 +38,31 @@ export default function PatientOnboardingForm() {
         contact_number: '',
         address: '',
         medical_history: '',
+        location_id: '',
         source: 'WEB'
     });
+    const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
+    const [loadingLocations, setLoadingLocations] = useState(true);
+    const isFetchingLocations = useRef(false);
+
+    const loadLocations = useCallback(async () => {
+        if (!user?.id || isFetchingLocations.current) return;
+        isFetchingLocations.current = true;
+        
+        try {
+            const locationData = await api.fetchPublicLocations();
+            setLocations(Array.isArray(locationData) ? locationData : locationData?.data || []);
+        } catch (error) {
+            console.error('Failed to fetch locations:', error);
+        } finally {
+            setLoadingLocations(false);
+            isFetchingLocations.current = false;
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        loadLocations();
+    }, [loadLocations]);
 
     if (!user) return null;
 
@@ -53,6 +76,7 @@ export default function PatientOnboardingForm() {
         if (field === 'dob') error = validators.dob(value);
         if (field === 'gender') error = validators.required(value);
         if (field === 'contact_number') error = validators.phone(value);
+        if (field === 'location_id') error = validators.required(value);
 
         setErrors(prev => ({ ...prev, [field]: error }));
     };
@@ -73,6 +97,7 @@ export default function PatientOnboardingForm() {
         if (dobErr) newErrors.dob = dobErr;
 
         if (validators.required(formData.gender)) newErrors.gender = 'Required';
+        if (validators.required(formData.location_id)) newErrors.location_id = 'Required';
 
         const phoneErr = validators.phone(formData.contact_number);
         if (phoneErr) newErrors.contact_number = phoneErr;
@@ -125,7 +150,7 @@ export default function PatientOnboardingForm() {
         <div className="h-screen bg-slate-50 flex flex-col relative overflow-hidden font-sans">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent to-brand-900/5 pointer-events-none"></div>
             <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-400/10 rounded-full blur-3xl animate-pulse-slow pointer-events-none"></div>
-            <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-rose-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
             <FloatingNav
                 backAction={{
@@ -145,8 +170,8 @@ export default function PatientOnboardingForm() {
                 </div>
 
                 <div className="bg-white w-full max-w-3xl rounded-2xl shadow-lg shadow-slate-200/40 border border-slate-100 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-500 delay-150 shrink-0">
-                    <div className="px-6 md:px-8 py-5 border-b border-slate-100 flex items-center gap-4 bg-rose-50/30 shrink-0">
-                        <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center shadow-md shadow-rose-200 shrink-0">
+                    <div className="px-6 md:px-8 py-5 border-b border-slate-100 flex items-center gap-4 bg-emerald-50/30 shrink-0">
+                        <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-md shadow-emerald-200 shrink-0">
                             <User className="w-6 h-6 text-white" />
                         </div>
                         <div>
@@ -165,7 +190,7 @@ export default function PatientOnboardingForm() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+                    <form onSubmit={handleSubmit} noValidate className="p-6 md:p-8 space-y-6">
                         <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-blue-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
                             <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-blue-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-focus-within/section:animate-pulse" /> Essential Identity
@@ -183,17 +208,36 @@ export default function PatientOnboardingForm() {
 
                         <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-emerald-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
                             <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-emerald-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Contact & Medical Context
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Medical Information & Facility
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <SelectInput label="Medical History" value={formData.medical_history} onChange={(e) => handleFieldChange('medical_history', e.target.value)} errorMessage={errors.medical_history} options={[{ value: '', label: 'Select Condition (Optional)' }, ...medicalHistoryOptions]} />
+                                <SelectInput
+                                    required
+                                    label="Healthcare Facility"
+                                    value={formData.location_id}
+                                    onChange={(e) => handleFieldChange('location_id', e.target.value)}
+                                    errorMessage={errors.location_id}
+                                    options={[
+                                        { value: '', label: loadingLocations ? 'Loading facilities...' : 'Select facility' },
+                                        ...locations.map(loc => ({ value: loc.id, label: loc.name }))
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-purple-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
+                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-purple-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 group-focus-within/section:animate-pulse" /> Contact Information
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <StandardInput label="Contact Number" value={formData.contact_number} onChange={(e) => handleFieldChange('contact_number', e.target.value)} errorMessage={errors.contact_number} placeholder="+62... (Optional)" />
                                 <StandardInput label="Residential Address" value={formData.address} onChange={(e) => handleFieldChange('address', e.target.value)} errorMessage={errors.address} placeholder="Street, City, Province (Optional)" />
                             </div>
-                            <SelectInput label="Medical History" value={formData.medical_history} onChange={(e) => handleFieldChange('medical_history', e.target.value)} errorMessage={errors.medical_history} options={[{ value: '', label: 'Select Condition (Optional)' }, ...medicalHistoryOptions]} />
                         </div>
 
                         <div className="pt-5 mt-5 border-t border-slate-100 flex justify-end shrink-0 pb-2">
-                            <button type="submit" disabled={loading || success} className={clsx("px-6 md:px-8 py-3 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer", success ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 opacity-100" : "bg-rose-500 hover:bg-rose-600 shadow-rose-500/30", loading && !success && "opacity-70")}>
+                            <button type="submit" disabled={loading || success} className={clsx("px-6 md:px-8 py-3 text-white rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 disabled:cursor-not-allowed disabled:hover:translate-y-0 cursor-pointer", success ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 opacity-100" : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30", loading && !success && "opacity-70")}>
                                 {loading && !success ? <><Loader2 className="w-5 h-5 animate-spin" /> Submitting...</> : success ? <><Check size={18} /> Profile Created!</> : <>Complete Registration <ArrowRight size={18} /></>}
                             </button>
                         </div>
@@ -219,7 +263,8 @@ export default function PatientOnboardingForm() {
                             { field: 'Gender', value: formData.gender === 'L' ? 'Male' : 'Female' },
                             { field: 'Contact', value: formData.contact_number || '-' },
                             { field: 'Address', value: formData.address || '-' },
-                            { field: 'Med. History', value: formData.medical_history || '-' }
+                            { field: 'Med. History', value: formData.medical_history || '-' },
+                            { field: 'Facility', value: formData.location_id ? locations.find(loc => loc.id === formData.location_id)?.name || formData.location_id : '-' }
                         ]} />
                     </div>
                 }

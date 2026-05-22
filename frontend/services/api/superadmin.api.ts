@@ -32,3 +32,13 @@ export async function fetchSuperAdminUsers(filters: HistoryFilters = {}) {
     }
 }
 
+export async function fetchSuperAdminLocations(filters: HistoryFilters = {}) {
+    try {
+        const response = await axiosInstance.get('/superadmin/locations', { params: filters });
+        return response.data;
+    } catch (error) {
+        console.error("Fetch SuperAdmin Locations Error:", error);
+        throw error;
+    }
+}
+

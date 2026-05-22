@@ -18,13 +18,14 @@ import { useToast } from '@/hooks/useToast';
 import { api } from '@/services';
 import { globalEventBus } from '@/services/websocket/events';
 import { useStore } from '@/store/useStore';
-import { User, UserFormPayload, WalkinPatient, WalkinPatientPayload, ConvertWalkinPayload } from '@/types/user';
+import { User, UserFormPayload, WalkinPatient, WalkinPatientPayload, ConvertWalkinPayload, LocationResponse } from '@/types/user';
 import { parseApiError } from '@/utils/helpers';
 
 export default function UserManagementPage() {
     const showToast = useToast((state) => state.show);
     const { setAdminLoading } = useStore();
     const [users, setUsers] = useState<User[]>([]);
+    const [locations, setLocations] = useState<LocationResponse[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -44,9 +45,10 @@ export default function UserManagementPage() {
     const fetchUsers = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [usersData, walkinsData] = await Promise.all([
-                api.fetchUsers({ search, role: roleFilter || undefined, limit: 100 }),
-                api.fetchAdminPatients({ search, limit: 100 })
+            const [usersData, walkinsData, locRes] = await Promise.all([
+                api.fetchUsers({ search, role: roleFilter || undefined, limit: 100, exclude_staff: true }),
+                api.fetchAdminPatients({ search, limit: 100 }),
+                api.fetchLocations({ limit: 1000, t: Date.now() })
             ]);
 
             let combined: User[] = [...usersData];
@@ -80,6 +82,7 @@ export default function UserManagementPage() {
             }
 
             setUsers(combined);
+            setLocations(Array.isArray(locRes) ? locRes : locRes?.data || []);
         } catch (err) {
             const { message } = parseApiError(err as Error);
             console.error(message);
@@ -97,8 +100,8 @@ export default function UserManagementPage() {
             showToast("User created successfully", "success");
             return { success: true };
         } catch (err) {
-            const { message, fieldErrors } = parseApiError(err as Error);
-            return { success: false, message, fieldErrors };
+            const { message, fieldErrors, errorCode } = parseApiError(err as Error);
+            return { success: false, message, fieldErrors, errorCode };
         }
     }, [showToast, fetchUsers]);
 
@@ -263,6 +266,7 @@ export default function UserManagementPage() {
                 <CreateUserModal
                     onClose={() => setIsCreatingUser(false)}
                     onSave={handleCreate}
+                    adminLocation={locations.find(loc => loc.is_active) || null}
                 />
             )}
 

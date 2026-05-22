@@ -10,10 +10,11 @@ export interface ProfileData {
     contact_number?: string;
     medical_history?: string;
     str_number?: string;
+    str_expiry_date?: string;
     sip_number?: string;
+    sip_expiry_date?: string;
     specialty?: string;
     operator_role?: string;
-    work_location?: string;
     location_id?: string;
     status?: string;
 }
@@ -45,6 +46,7 @@ export interface User {
     doctor_profile?: ProfileData;
     admin_profile?: AdminProfileData;
     location_id?: string;
+    location_assignments?: StaffLocationResponse[];
     created_dt?: string | Date;
     changed_dt?: string | Date;
 }
@@ -82,11 +84,51 @@ export interface UserFormPayload {
     contact_number?: string;
     medical_history?: string;
     str_number?: string;
+    str_expiry_date?: string;
     sip_number?: string;
+    sip_expiry_date?: string;
     specialty?: string;
     operator_role?: string;
-    work_location?: string;
     source?: string;
+}
+
+export interface StaffFormData {
+    username: string;
+    email: string;
+    password: string;
+    full_name: string;
+    nik: string;
+    pob: string;
+    dob: string;
+    gender: string;
+    address: string;
+    contact_number: string;
+    role: string;
+    specialty: string;
+    str_number: string;
+    str_expiry_date: string;
+    sip_number: string;
+    sip_expiry_date: string;
+    operator_role: string;
+    activation_status: string;
+}
+
+export interface StaffEditFormData {
+    full_name: string;
+    nik: string;
+    pob: string;
+    dob: string;
+    gender: string;
+    address: string;
+    contact_number: string;
+    role: string;
+    specialty: string;
+    str_number: string;
+    str_expiry_date: string;
+    sip_number: string;
+    sip_expiry_date: string;
+    operator_role: string;
+    activation_status: string;
 }
 
 export interface AdminUserPayload {
@@ -119,10 +161,11 @@ export interface ProfilePayload {
     contact_number?: string | null;
     medical_history?: string | null;
     str_number?: string | null;
+    str_expiry_date?: string | null;
     sip_number?: string | null;
+    sip_expiry_date?: string | null;
     specialty?: string | null;
     operator_role?: string | null;
-    work_location?: string | null;
     location_id?: string | null;
     source?: string | null;
 }
@@ -130,6 +173,7 @@ export interface ProfilePayload {
 export interface WalkinPatient {
     id: string;
     user_id?: string | null;
+    location_id?: string | null;
     full_name: string;
     nik?: string | null;
     pob: string;
@@ -139,6 +183,8 @@ export interface WalkinPatient {
     contact_number?: string | null;
     medical_history?: string | null;
     status: string;
+    locked_by?: string | null;
+    locked_at?: string | Date | null;
     created_by?: string | null;
     created_dt?: string | null;
     changed_dt?: string | null;
@@ -173,7 +219,6 @@ export interface ProfileFormPayload {
     str_number: string;
     sip_number: string;
     specialty: string;
-    work_location: string;
 }
 
 export interface SecurityFormPayload {

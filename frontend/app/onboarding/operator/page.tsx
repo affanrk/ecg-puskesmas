@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import clsx from 'clsx';
 import { ArrowRight, ArrowLeft, Loader2, Stethoscope, AlertTriangle, Check } from 'lucide-react';
@@ -38,10 +38,33 @@ export default function OperatorOnboardingForm() {
         contact_number: '',
         address: '',
         str_number: '',
+        str_expiry_date: '',
         operator_role: '',
-        work_location: '',
+        location_id: '',
         source: 'WEB'
     });
+    const [locations, setLocations] = useState<Array<{ id: string; name: string }>>([]);
+    const [loadingLocations, setLoadingLocations] = useState(true);
+    const isFetchingLocations = useRef(false);
+
+    const loadLocations = useCallback(async () => {
+        if (!user?.id || isFetchingLocations.current) return;
+        isFetchingLocations.current = true;
+        
+        try {
+            const locationData = await api.fetchPublicLocations();
+            setLocations(Array.isArray(locationData) ? locationData : locationData?.data || []);
+        } catch (error) {
+            console.error('Failed to fetch locations:', error);
+        } finally {
+            setLoadingLocations(false);
+            isFetchingLocations.current = false;
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        loadLocations();
+    }, [loadLocations]);
 
     if (!user) return null;
 
@@ -57,6 +80,7 @@ export default function OperatorOnboardingForm() {
         if (field === 'str_number') error = validators.required(value);
         if (field === 'operator_role') error = validators.required(value);
         if (field === 'contact_number') error = validators.phone(value);
+        if (field === 'location_id') error = validators.required(value);
 
         setErrors(prev => ({ ...prev, [field]: error }));
     };
@@ -79,6 +103,7 @@ export default function OperatorOnboardingForm() {
         if (validators.required(formData.gender)) newErrors.gender = 'Required';
         if (validators.required(formData.str_number)) newErrors.str_number = 'Required';
         if (validators.required(formData.operator_role)) newErrors.operator_role = 'Required';
+        if (validators.required(formData.location_id)) newErrors.location_id = 'Required';
 
         const phoneErr = validators.phone(formData.contact_number);
         if (phoneErr) newErrors.contact_number = phoneErr;
@@ -99,7 +124,7 @@ export default function OperatorOnboardingForm() {
                 ...formData,
                 contact_number: formData.contact_number || null,
                 address: formData.address || null,
-                work_location: formData.work_location || null
+                str_expiry_date: formData.str_expiry_date || null
             };
             await api.createOperatorProfile(payload);
             const token = localStorage.getItem('ecg_token');
@@ -171,7 +196,7 @@ export default function OperatorOnboardingForm() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
+                    <form onSubmit={handleSubmit} noValidate className="p-6 md:p-8 space-y-6">
                         <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-blue-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
                             <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-blue-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 group-focus-within/section:animate-pulse" /> Essential Identity
@@ -189,13 +214,13 @@ export default function OperatorOnboardingForm() {
 
                         <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-emerald-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
                             <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-emerald-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Contact & Professional Context
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 group-focus-within/section:animate-pulse" /> Professional Credentials & Practice
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-                                <StandardInput label="Contact Number" value={formData.contact_number} onChange={(e) => handleFieldChange('contact_number', e.target.value)} errorMessage={errors.contact_number} placeholder="+62... (Optional)" />
-                                <StandardInput label="Residential Address" value={formData.address} onChange={(e) => handleFieldChange('address', e.target.value)} errorMessage={errors.address} placeholder="Street, City, Province (Optional)" />
+                                <StandardInput required label="STR Number" value={formData.str_number} onChange={(e) => handleFieldChange('str_number', e.target.value)} errorMessage={errors.str_number} placeholder="Surat Tanda Registrasi" />
+                                <FlatpickrInput label="STR Expiry Date" value={formData.str_expiry_date} onChange={(date) => handleFieldChange('str_expiry_date', date)} errorMessage={errors.str_expiry_date} placeholder="Select Date (Optional)" />
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
                                 <SelectInput
                                     required
                                     label="Professional Role"
@@ -207,8 +232,27 @@ export default function OperatorOnboardingForm() {
                                         ...operatorRoleOptions
                                     ]}
                                 />
-                                <StandardInput required label="STR Number" value={formData.str_number} onChange={(e) => handleFieldChange('str_number', e.target.value)} errorMessage={errors.str_number} placeholder="Surat Tanda Registrasi" />
-                                <StandardInput label="Work Location" value={formData.work_location} onChange={(e) => handleFieldChange('work_location', e.target.value)} errorMessage={errors.work_location} placeholder="Clinic Name" />
+                                <SelectInput
+                                    required
+                                    label="Healthcare Facility"
+                                    value={formData.location_id}
+                                    onChange={(e) => handleFieldChange('location_id', e.target.value)}
+                                    errorMessage={errors.location_id}
+                                    options={[
+                                        { value: '', label: loadingLocations ? 'Loading facilities...' : 'Select facility' },
+                                        ...locations.map(loc => ({ value: loc.id, label: loc.name }))
+                                    ]}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100/60 space-y-4 focus-within:border-purple-300 focus-within:shadow-md focus-within:bg-white transition-all duration-300 group/section">
+                            <h3 className="text-[10px] md:text-xs font-black text-slate-400 group-focus-within/section:text-purple-600 uppercase tracking-widest flex items-center gap-2 mb-2 transition-colors duration-300">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 group-focus-within/section:animate-pulse" /> Contact Information
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                                <StandardInput label="Contact Number" value={formData.contact_number} onChange={(e) => handleFieldChange('contact_number', e.target.value)} errorMessage={errors.contact_number} placeholder="+62... (Optional)" />
+                                <StandardInput label="Residential Address" value={formData.address} onChange={(e) => handleFieldChange('address', e.target.value)} errorMessage={errors.address} placeholder="Street, City, Province (Optional)" />
                             </div>
                         </div>
 
@@ -238,8 +282,7 @@ export default function OperatorOnboardingForm() {
                             { field: 'Date of Birth', value: formData.dob },
                             { field: 'Gender', value: formData.gender === 'L' ? 'Male' : 'Female' },
                             { field: 'Role', value: formData.operator_role },
-                            { field: 'STR Number', value: formData.str_number },
-                            { field: 'Work Location', value: formData.work_location || '-' }
+                            { field: 'STR Number', value: formData.str_number }
                         ]} />
                     </div>
                 }

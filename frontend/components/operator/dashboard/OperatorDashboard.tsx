@@ -28,7 +28,6 @@ export default function OperatorDashboard() {
                 setDashboardData({
                     operator_name: data.operator_name ?? null,
                     operator_role: data.operator_role ?? null,
-                    work_location: data.work_location ?? null,
                     str_number: data.str_number ?? null,
                     total_recorded: data.total_recorded ?? 0,
                     arrhythmia_count: data.arrhythmia_count ?? 0,

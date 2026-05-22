@@ -5,7 +5,7 @@ import { HistoryFilters } from '@/types/models';
 
 export async function fetchAdminPatients(filters: HistoryFilters = {}) {
     try {
-        const response = await axiosInstance.get('/admin/walkin-patients', { params: filters });
+        const response = await axiosInstance.get('/admin/patients/walkin', { params: filters });
         return response.data;
     } catch (error) {
         console.error("Fetch Admin Patients Error:", error);
@@ -55,7 +55,7 @@ export async function createPatientProfile(profileData: ProfilePayload) {
 
 export async function updateAdminWalkinPatient(patientId: string, data: WalkinPatientPayload) {
     try {
-        const response = await axiosInstance.put(`/admin/walkin-patients/${patientId}`, data);
+        const response = await axiosInstance.put(`/admin/patients/walkin/${patientId}`, data);
         return response.data;
     } catch (error) {
         console.error("Update Walk-in Patient Error:", error);
@@ -75,7 +75,7 @@ export async function updatePatientProfile(profileData: ProfilePayload) {
 
 export async function deleteAdminWalkinPatient(patientId: string) {
     try {
-        await axiosInstance.delete(`/admin/walkin-patients/${patientId}`);
+        await axiosInstance.delete(`/admin/patients/walkin/${patientId}`);
     } catch (error) {
         console.error("Delete Walk-in Patient Error:", error);
         throw error;
@@ -103,7 +103,7 @@ export async function assignPatientDoctor(patientId: string, data: { doctor_id: 
 
 export async function convertAdminWalkinPatient(patientId: string, data: ConvertWalkinPayload) {
     try {
-        const response = await axiosInstance.post(`/admin/walkin-patients/${patientId}/register`, data);
+        const response = await axiosInstance.post(`/admin/patients/walkin/${patientId}/registration`, data);
         return response.data;
     } catch (error) {
         console.error("Convert Walk-in Patient Error:", error);
@@ -111,3 +111,22 @@ export async function convertAdminWalkinPatient(patientId: string, data: Convert
     }
 }
 
+export async function lockPatient(patientId: string) {
+    try {
+        const response = await axiosInstance.post(`/operator/patients/${patientId}/lock`);
+        return response.data;
+    } catch (error) {
+        console.error("Lock Patient Error:", error);
+        throw error;
+    }
+}
+
+export async function unlockPatient(patientId: string) {
+    try {
+        const response = await axiosInstance.delete(`/operator/patients/${patientId}/lock`);
+        return response.data;
+    } catch (error) {
+        console.error("Unlock Patient Error:", error);
+        throw error;
+    }
+}

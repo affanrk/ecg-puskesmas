@@ -18,6 +18,8 @@ export function SidebarFooter({
 }: SidebarFooterProps) {
     const isDark = className?.includes('bg-slate-900');
     const isAmber = !!className && (className.includes('bg-amber') || className.includes('theme-amber'));
+    const isEmerald = !!className && className.includes('theme-emerald');
+    const isRose = !!className && className.includes('theme-rose');
     const isVisible = isSidebarPinned || isHovered;
 
     return (
@@ -50,7 +52,7 @@ export function SidebarFooter({
                         ? (isSidebarPinned ? "text-slate-500 hover:text-slate-300 hover:bg-slate-800 border-transparent" : "text-rose-400 bg-rose-500/5 border-rose-500/10")
                         : (isSidebarPinned
                             ? "text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent"
-                            : (isAmber ? "text-amber-600 bg-amber-50 border-amber-100" : "text-teal-600 bg-teal-50 border-teal-100"))
+                            : (isAmber ? "text-amber-600 bg-amber-50 border-amber-100" : isEmerald ? "text-emerald-600 bg-emerald-50 border-emerald-100" : isRose ? "text-rose-600 bg-rose-50 border-rose-100" : "text-teal-600 bg-teal-50 border-teal-100"))
                 )}
                 title={isSidebarPinned ? "Unpin Sidebar (Auto-hide)" : "Pin Sidebar"}
             >

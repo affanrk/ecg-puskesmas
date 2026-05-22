@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-import { X, Search, UserPlus, CheckCircle, Loader2, AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { X, Search, UserPlus, CheckCircle, Loader2, ArrowLeft, RefreshCw, Lock, MapPin } from 'lucide-react';
 
 import FlatpickrInput from '@/components/shared/FlatpickrInput';
-import { medicalHistoryOptions } from '@/data';
+import SelectInput from '@/components/shared/SelectInput';
+import StandardInput from '@/components/shared/StandardInput';
+import { genderOptions, medicalHistoryOptions } from '@/data';
 import { useToast } from '@/hooks/useToast';
 import { api } from '@/services';
 import { useStore } from '@/store/useStore';
@@ -18,24 +20,10 @@ interface PatientSelectorModalProps {
     onClose: () => void;
 }
 
-interface FieldProps {
-    label: string;
-    required?: boolean;
-    error?: string;
-    children: React.ReactNode;
-    className?: string;
-}
-
 const EMPTY_FORM: WalkinPatientPayload = {
     full_name: '', nik: '', pob: '', dob: '', gender: '',
     address: '', contact_number: '', medical_history: ''
 };
-
-const inputCls = (err?: string) =>
-    `w-full px-4 py-3 rounded-xl border-2 text-xs font-bold transition-all duration-300 outline-none ${err
-        ? 'border-rose-100 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/5 bg-rose-50/20 text-rose-900 placeholder:text-rose-300'
-        : 'border-slate-100 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 bg-slate-50/50 focus:bg-white text-slate-800 placeholder:text-slate-400'
-    }`;
 
 type FormErrors = Record<string, string>;
 
@@ -61,25 +49,9 @@ function validateAll(form: WalkinPatientPayload): FormErrors {
     return errs;
 }
 
-function Field({ label, required, error, children, className = '' }: FieldProps) {
-    return (
-        <div className={`relative group w-full space-y-1.5 ${className}`}>
-            <label className="text-[10px] font-black uppercase tracking-[0.15em] ml-1 text-slate-400 block">
-                {label} {required && <span className="text-rose-500 ml-0.5">*</span>}
-            </label>
-            {children}
-            {error && (
-                <div className="flex items-center gap-1.5 mt-1 ml-1 text-rose-500 animate-in fade-in slide-in-from-top-1 duration-200">
-                    <AlertCircle size={12} strokeWidth={3} />
-                    <span className="text-[10px] font-black uppercase tracking-wider">{error}</span>
-                </div>
-            )}
-        </div>
-    );
-}
-
 export default function PatientSelectorModal({ isOpen, onClose }: PatientSelectorModalProps) {
     const { operatorPatient, setOperatorPatient } = useStore();
+    const user = useStore(state => state.user);
     const { show: toast } = useToast();
 
     const [view, setView] = useState<'list' | 'create'>('list');
@@ -93,6 +65,34 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState<FormErrors>({});
     const [touched, setTouched] = useState<Record<string, boolean>>({});
+    const [operatorLocation, setOperatorLocation] = useState<string>('');
+
+    useEffect(() => {
+        const fetchOperatorLocation = async () => {
+            try {
+                let locationId = user?.operator_profile?.location_id;
+                
+                if (!locationId && user?.location_assignments && user.location_assignments.length > 0) {
+                    const primaryLocation = user.location_assignments.find(loc => loc.is_primary);
+                    locationId = primaryLocation?.location_id || user.location_assignments[0].location_id;
+                }
+                
+                if (locationId) {
+                    const locations = await api.fetchPublicLocations();
+                    const locationsData = Array.isArray(locations) ? locations : locations?.data || [];
+                    const location = locationsData.find((loc: { id: string; name: string }) => loc.id === locationId);
+                    if (location) {
+                        setOperatorLocation(location.name);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch operator location", error);
+            }
+        };
+        if (user && isOpen) {
+            fetchOperatorLocation();
+        }
+    }, [user, isOpen]);
 
     useEffect(() => {
         if (view === 'create') {
@@ -138,34 +138,25 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
         }
     }, [isOpen, view, debouncedSearch, loadPatients]);
 
-    const handleSelectPatient = (patient: WalkinPatient) => {
-        setOperatorPatient(patient);
-        toast(`Patient ${patient.full_name} selected for monitoring`, 'success');
-        onClose();
-    };
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-
-        if (name === 'nik') {
-            const digits = value.replace(/\D/g, '').slice(0, 16);
-            setFormData(prev => ({ ...prev, nik: digits }));
-            if (touched[name]) {
-                setErrors(prev => ({ ...prev, [name]: validateField(name, digits) }));
-            }
+    const handleSelectPatient = async (patient: WalkinPatient) => {
+        if (patient.locked_by && patient.locked_by !== user?.id) {
+            toast(`Patient is currently being monitored by another operator`, 'error');
             return;
         }
 
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (touched[name]) {
-            setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
+        try {
+            const lockResult = await api.lockPatient(patient.id);
+            if (lockResult.success) {
+                setOperatorPatient(patient);
+                toast(`Patient ${patient.full_name} selected for monitoring`, 'success');
+                onClose();
+            } else {
+                toast(lockResult.message || 'Failed to lock patient', 'error');
+            }
+        } catch (error) {
+            const err = error as Error;
+            toast(err.message || 'Failed to lock patient', 'error');
         }
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setTouched(prev => ({ ...prev, [name]: true }));
-        setErrors(prev => ({ ...prev, [name]: validateField(name, value) }));
     };
 
     const onSubmit = async (e: React.FormEvent) => {
@@ -230,8 +221,16 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
                         {operatorPatient && view === 'list' && (
                             <button
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
+                                    if (operatorPatient?.id) {
+                                        try {
+                                            await api.unlockPatient(operatorPatient.id);
+                                        } catch (err) {
+                                            console.error('Failed to unlock patient:', err);
+                                        }
+                                    }
                                     setOperatorPatient(null);
+                                    await loadPatients(debouncedSearch);
                                 }}
                                 className="cursor-pointer flex items-center justify-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all shadow-sm active:scale-95 text-[10px] uppercase font-black tracking-widest shrink-0"
                                 title="Clear Selection"
@@ -297,36 +296,60 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
                                     </div>
                                 ) : patients.length > 0 ? (
                                     <ul className="divide-y divide-slate-50 overflow-y-auto max-h-[385px]">
-                                        {patients.map(p => (
-                                            <li
-                                                key={p.id}
-                                                onClick={() => handleSelectPatient(p)}
-                                                className={`px-5 py-4 cursor-pointer flex items-center justify-between gap-4 transition-all duration-300 group border-l-4 ${operatorPatient?.id === p.id ? 'bg-indigo-50/50 border-indigo-500' : 'bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-300'}`}
-                                            >
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-sm font-black text-slate-800 group-hover:text-indigo-700 transition-colors">{p.full_name}</span>
-                                                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                        <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-500">{p.nik ? `NIK: ${p.nik}` : 'WALK-IN'}</span>
-                                                        <span>•</span>
-                                                        <span>{p.gender === 'L' ? 'MALE' : 'FEMALE'}</span>
-                                                        <span>•</span>
-                                                        <span>{p.dob}</span>
-                                                    </div>
-                                                </div>
-                                                {operatorPatient?.id === p.id ? (
-                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 border border-indigo-200 rounded-lg shrink-0 shadow-sm">
-                                                        <CheckCircle size={14} className="text-indigo-600" />
-                                                        <span className="text-[10px] font-black tracking-widest uppercase text-indigo-700">Selected</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shrink-0 shadow-sm">
-                                                            <span className="text-[10px] font-black tracking-widest uppercase text-slate-600">Select</span>
+                                        {patients.map(p => {
+                                            const isLocked = p.locked_by && p.locked_by !== user?.id;
+                                            const isLockedByMe = p.locked_by === user?.id;
+                                            return (
+                                                <li
+                                                    key={p.id}
+                                                    onClick={() => !isLocked && handleSelectPatient(p)}
+                                                    className={`px-5 py-4 flex items-center justify-between gap-4 transition-all duration-300 group border-l-4 ${
+                                                        isLocked 
+                                                            ? 'bg-slate-50/50 border-slate-300 cursor-not-allowed opacity-60' 
+                                                            : operatorPatient?.id === p.id || isLockedByMe
+                                                            ? 'bg-indigo-50/50 border-indigo-500 cursor-pointer' 
+                                                            : 'bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-300 cursor-pointer'
+                                                    }`}
+                                                >
+                                                    <div className="flex flex-col gap-1 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-black text-slate-800 group-hover:text-indigo-700 transition-colors">{p.full_name}</span>
+                                                            {isLocked && (
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 bg-rose-100 border border-rose-200 rounded-md text-[9px] font-black uppercase tracking-widest text-rose-600">
+                                                                    <Lock size={10} />
+                                                                    Locked
+                                                                </span>
+                                                            )}
+                                                            {isLockedByMe && (
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 border border-emerald-200 rounded-md text-[9px] font-black uppercase tracking-widest text-emerald-600">
+                                                                    <CheckCircle size={10} />
+                                                                    Your Lock
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                            <span className="bg-slate-100 px-2 py-0.5 rounded-md text-slate-500">{p.nik ? `NIK: ${p.nik}` : 'WALK-IN'}</span>
+                                                            <span>•</span>
+                                                            <span>{p.gender === 'L' ? 'MALE' : 'FEMALE'}</span>
+                                                            <span>•</span>
+                                                            <span>{p.dob}</span>
                                                         </div>
                                                     </div>
-                                                )}
-                                            </li>
-                                        ))}
+                                                    {!isLocked && (operatorPatient?.id === p.id || isLockedByMe) ? (
+                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100 border border-indigo-200 rounded-lg shrink-0 shadow-sm">
+                                                            <CheckCircle size={14} className="text-indigo-600" />
+                                                            <span className="text-[10px] font-black tracking-widest uppercase text-indigo-700">Selected</span>
+                                                        </div>
+                                                    ) : !isLocked ? (
+                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shrink-0 shadow-sm">
+                                                                <span className="text-[10px] font-black tracking-widest uppercase text-slate-600">Select</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : null}
+                                                </li>
+                                            );
+                                        })}
                                     </ul>
                                 ) : (
                                     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95 duration-300">
@@ -341,114 +364,182 @@ export default function PatientSelectorModal({ isOpen, onClose }: PatientSelecto
                         </div>
                     ) : (
                         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+                            {operatorLocation && (
+                                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100/50 border-2 border-indigo-200 rounded-xl p-4 shadow-sm">
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center shrink-0 shadow-md">
+                                            <MapPin size={20} className="text-white" strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="text-xs font-black text-indigo-900 uppercase tracking-wider mb-1">
+                                                Location Assignment
+                                            </h4>
+                                            <p className="text-xs text-indigo-700 font-medium leading-relaxed">
+                                                Patient will be assigned to <span className="font-black text-indigo-900">{operatorLocation}</span>
+                                            </p>
+                                            <p className="text-[10px] text-indigo-600 mt-1.5 font-medium">
+                                                This patient will be registered at your current location automatically.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                                <Field label="Full Name" required error={errors.full_name} className="md:col-span-2">
-                                    <input
-                                        name="full_name"
+                                <div className="md:col-span-2">
+                                    <StandardInput
+                                        label="Full Name"
                                         value={formData.full_name}
-                                        onChange={handleInputChange}
-                                        onBlur={handleBlur}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setFormData(prev => ({ ...prev, full_name: value }));
+                                            if (touched.full_name) {
+                                                setErrors(prev => ({ ...prev, full_name: validateField('full_name', value) }));
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            setTouched(prev => ({ ...prev, full_name: true }));
+                                            setErrors(prev => ({ ...prev, full_name: validateField('full_name', formData.full_name) }));
+                                        }}
                                         placeholder="e.g. Budi Santoso"
-                                        className={inputCls(errors.full_name)}
+                                        required
+                                        errorMessage={errors.full_name}
+                                        colorTheme="brand"
                                     />
-                                </Field>
+                                </div>
 
-                                <Field label="NIK (16 digits)" required error={errors.nik}>
-                                    <div className="relative">
-                                        <input
-                                            name="nik"
-                                            value={formData.nik || ''}
-                                            onChange={handleInputChange}
-                                            onBlur={handleBlur}
-                                            placeholder="3171234567890123"
-                                            maxLength={16}
-                                            inputMode="numeric"
-                                            className={inputCls(errors.nik) + ' pr-12'}
-                                        />
-                                        <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold tabular-nums transition-colors ${(formData.nik?.length ?? 0) === 16 ? 'text-emerald-500' : 'text-slate-400'
-                                            }`}>
-                                            {formData.nik?.length ?? 0}/16
-                                        </span>
-                                    </div>
-                                </Field>
+                                <StandardInput
+                                    label="NIK (16 digits)"
+                                    value={formData.nik || ''}
+                                    onChange={(e) => {
+                                        const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+                                        setFormData(prev => ({ ...prev, nik: digits }));
+                                        if (touched.nik) {
+                                            setErrors(prev => ({ ...prev, nik: validateField('nik', digits) }));
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTouched(prev => ({ ...prev, nik: true }));
+                                        setErrors(prev => ({ ...prev, nik: validateField('nik', formData.nik || '') }));
+                                    }}
+                                    placeholder="3171234567890123"
+                                    maxLength={16}
+                                    type="text"
+                                    required
+                                    errorMessage={errors.nik}
+                                    colorTheme="brand"
+                                />
 
-                                <Field label="Gender" required error={errors.gender}>
-                                    <select
-                                        name="gender"
-                                        value={formData.gender}
-                                        onChange={handleInputChange}
-                                        onBlur={handleBlur}
-                                        className={inputCls(errors.gender)}
-                                    >
-                                        <option value="">Select Gender</option>
-                                        <option value="L">Male</option>
-                                        <option value="P">Female</option>
-                                    </select>
-                                </Field>
+                                <SelectInput
+                                    label="Gender"
+                                    value={formData.gender}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData(prev => ({ ...prev, gender: value }));
+                                        if (touched.gender) {
+                                            setErrors(prev => ({ ...prev, gender: validateField('gender', value) }));
+                                        }
+                                    }}
+                                    options={[
+                                        { value: '', label: 'Select Gender' },
+                                        ...genderOptions.map(opt => ({ value: opt.value, label: opt.label }))
+                                    ]}
+                                    required
+                                    errorMessage={errors.gender}
+                                    searchable={true}
+                                    colorTheme="brand"
+                                />
 
-                                <Field label="Place of Birth" required error={errors.pob}>
-                                    <input
-                                        name="pob"
-                                        value={formData.pob}
-                                        onChange={handleInputChange}
-                                        onBlur={handleBlur}
-                                        placeholder="e.g. Jakarta"
-                                        className={inputCls(errors.pob)}
-                                    />
-                                </Field>
+                                <StandardInput
+                                    label="Place of Birth"
+                                    value={formData.pob}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData(prev => ({ ...prev, pob: value }));
+                                        if (touched.pob) {
+                                            setErrors(prev => ({ ...prev, pob: validateField('pob', value) }));
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTouched(prev => ({ ...prev, pob: true }));
+                                        setErrors(prev => ({ ...prev, pob: validateField('pob', formData.pob) }));
+                                    }}
+                                    placeholder="e.g. Jakarta"
+                                    required
+                                    errorMessage={errors.pob}
+                                    colorTheme="brand"
+                                />
 
-                                <Field label="Date of Birth" required>
-                                    <FlatpickrInput
-                                        value={formData.dob}
-                                        onChange={(date) => {
-                                            setFormData(prev => ({ ...prev, dob: date }));
-                                            setTouched(prev => ({ ...prev, dob: true }));
-                                            if (touched.dob) setErrors(prev => ({ ...prev, dob: validateField('dob', date) }));
-                                        }}
-                                        onBlur={(date) => {
-                                            setTouched(prev => ({ ...prev, dob: true }));
-                                            setErrors(prev => ({ ...prev, dob: validateField('dob', date) }));
-                                        }}
-                                        errorMessage={errors.dob}
-                                    />
-                                </Field>
+                                <FlatpickrInput
+                                    label="Date of Birth"
+                                    value={formData.dob}
+                                    onChange={(date) => {
+                                        setFormData(prev => ({ ...prev, dob: date }));
+                                        setTouched(prev => ({ ...prev, dob: true }));
+                                        if (touched.dob) setErrors(prev => ({ ...prev, dob: validateField('dob', date) }));
+                                    }}
+                                    onBlur={(date) => {
+                                        setTouched(prev => ({ ...prev, dob: true }));
+                                        setErrors(prev => ({ ...prev, dob: validateField('dob', date) }));
+                                    }}
+                                    errorMessage={errors.dob}
+                                    required
+                                />
 
-                                <Field label="Contact Number" error={errors.contact_number}>
-                                    <input
-                                        name="contact_number"
-                                        value={formData.contact_number || ''}
-                                        onChange={handleInputChange}
-                                        onBlur={handleBlur}
-                                        placeholder="e.g. 081234567890"
-                                        className={inputCls(errors.contact_number)}
-                                    />
-                                </Field>
+                                <StandardInput
+                                    label="Contact Number"
+                                    value={formData.contact_number || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData(prev => ({ ...prev, contact_number: value }));
+                                        if (touched.contact_number) {
+                                            setErrors(prev => ({ ...prev, contact_number: validateField('contact_number', value) }));
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        setTouched(prev => ({ ...prev, contact_number: true }));
+                                        setErrors(prev => ({ ...prev, contact_number: validateField('contact_number', formData.contact_number || '') }));
+                                    }}
+                                    placeholder="e.g. 081234567890"
+                                    errorMessage={errors.contact_number}
+                                    colorTheme="brand"
+                                />
 
-                                <Field label="Address" className="md:col-span-2">
-                                    <input
-                                        name="address"
+                                <div className="md:col-span-2">
+                                    <StandardInput
+                                        label="Address"
                                         value={formData.address || ''}
-                                        onChange={handleInputChange}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setFormData(prev => ({ ...prev, address: value }));
+                                        }}
                                         placeholder="Residential address (optional)"
-                                        className={inputCls()}
+                                        colorTheme="brand"
                                     />
-                                </Field>
+                                </div>
 
-                                <Field label="Medical History" className="md:col-span-2" error={errors.medical_history}>
-                                    <select
-                                        name="medical_history"
+                                <div className="md:col-span-2">
+                                    <SelectInput
+                                        label="Medical History"
                                         value={formData.medical_history || ''}
-                                        onChange={handleInputChange}
-                                        onBlur={handleBlur}
-                                        className={inputCls(errors.medical_history)}
-                                    >
-                                        <option value="">Select Condition (Optional)</option>
-                                        {medicalHistoryOptions.map(opt => (
-                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                        ))}
-                                    </select>
-                                </Field>
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setFormData(prev => ({ ...prev, medical_history: value }));
+                                            if (touched.medical_history) {
+                                                setErrors(prev => ({ ...prev, medical_history: validateField('medical_history', value) }));
+                                            }
+                                        }}
+                                        options={[
+                                            { value: '', label: 'Select Condition (Optional)' },
+                                            ...medicalHistoryOptions.map(opt => ({ value: opt.value, label: opt.label }))
+                                        ]}
+                                        required={false}
+                                        errorMessage={errors.medical_history}
+                                        searchable={true}
+                                        colorTheme="brand"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

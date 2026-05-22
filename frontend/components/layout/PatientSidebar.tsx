@@ -12,6 +12,7 @@ import {
 
 import { SidebarItem } from './parts/SidebarItem';
 import { SidebarSection } from './parts/SidebarSection';
+import { CollapsibleSidebarSection } from './parts/CollapsibleSidebarSection';
 import SidebarContainer from './SidebarContainer';
 import { useStore } from '@/store/useStore';
 import { getActiveProfile } from '@/utils/helpers';
@@ -30,7 +31,7 @@ export default function PatientSidebar() {
 
     return (
         <SidebarContainer>
-            <SidebarSection title="Main Menu" isSidebarPinned={isSidebarPinned}>
+            <SidebarSection title="Overview" isSidebarPinned={isSidebarPinned}>
                 <SidebarItem
                     name="Dashboard"
                     href="/patient/dashboard"
@@ -38,6 +39,14 @@ export default function PatientSidebar() {
                     pathname={pathname}
                     isSidebarPinned={isSidebarPinned}
                 />
+            </SidebarSection>
+
+            <CollapsibleSidebarSection
+                title="Health Services"
+                isSidebarPinned={isSidebarPinned}
+                defaultExpanded={true}
+                storageKey="patient-sidebar-services"
+            >
                 <SidebarItem
                     name="Classifier"
                     href="/patient/classifier"
@@ -65,9 +74,9 @@ export default function PatientSidebar() {
                     allowed={isAccessAllowed}
                     lockReason={lockReason}
                 />
-            </SidebarSection>
+            </CollapsibleSidebarSection>
 
-            <SidebarSection title="Settings" isSidebarPinned={isSidebarPinned} showDivider={false}>
+            <SidebarSection title="Account" isSidebarPinned={isSidebarPinned} showDivider={false}>
                 <SidebarItem
                     name="Profile & Settings"
                     href="/patient/profile"

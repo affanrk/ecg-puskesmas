@@ -91,7 +91,7 @@ export default function AdminManager() {
         try {
             const [adminRes, locRes] = await Promise.all([
                 api.fetchAdmins({ limit: 1000, t: Date.now() }),
-                api.fetchLocations({ limit: 1000, t: Date.now() })
+                api.fetchSuperAdminLocations({ limit: 1000, t: Date.now() })
             ]);
             setAdmins(Array.isArray(adminRes) ? adminRes : adminRes?.data || []);
             setLocations(Array.isArray(locRes) ? locRes : locRes?.data || []);

@@ -44,7 +44,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
         activation_status: user.is_activated === 1 ? 'APPROVE' : 'REJECT',
         full_name: (getActiveProfile(user)?.full_name || "") || '', nik: (getActiveProfile(user)?.nik || "") || '', pob: (getActiveProfile(user)?.pob || "") || '', dob: (getActiveProfile(user)?.dob || "") || '',
         gender: (getActiveProfile(user)?.gender || "") || 'L', contact_number: (getActiveProfile(user)?.contact_number || "") || '', address: (getActiveProfile(user)?.address || "") || '', medical_history: (getActiveProfile(user)?.medical_history || "") || '',
-        operator_role: (getActiveProfile(user)?.operator_role || "") || '', str_number: (getActiveProfile(user)?.str_number || "") || '', work_location: (getActiveProfile(user)?.work_location || "") || ''
+        operator_role: (getActiveProfile(user)?.operator_role || "") || '', str_number: (getActiveProfile(user)?.str_number || "") || ''
     });
 
     const getChangedFields = useCallback(() => {
@@ -98,8 +98,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 'contact_number': { label: 'Contact', value: (getActiveProfile(user)?.contact_number || "") },
                 'address': { label: 'Address', value: (getActiveProfile(user)?.address || "") },
                 'operator_role': { label: 'Professional Role', value: (getActiveProfile(user)?.operator_role || "") },
-                'str_number': { label: 'STR Number', value: (getActiveProfile(user)?.str_number || "") },
-                'work_location': { label: 'Work Location', value: (getActiveProfile(user)?.work_location || "") }
+                'str_number': { label: 'STR Number', value: (getActiveProfile(user)?.str_number || "") }
             });
             Object.assign(currentMap, {
                 'activation_status': { label: 'Verification Status', value: formData.activation_status === 'APPROVE' ? 'FULL-ACCESS' : 'RESTRICTED' },
@@ -111,8 +110,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 'contact_number': { label: 'Contact', value: formData.contact_number },
                 'address': { label: 'Address', value: formData.address },
                 'operator_role': { label: 'Professional Role', value: formData.operator_role },
-                'str_number': { label: 'STR Number', value: formData.str_number },
-                'work_location': { label: 'Work Location', value: formData.work_location }
+                'str_number': { label: 'STR Number', value: formData.str_number }
             });
         }
 
@@ -195,7 +193,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                 full_name: formData.full_name, nik: formData.nik, pob: formData.pob, dob: formData.dob,
                 gender: formData.gender, address: formData.address || undefined,
                 contact_number: formData.contact_number || undefined,
-                operator_role: formData.operator_role, str_number: formData.str_number, work_location: formData.work_location || undefined
+                operator_role: formData.operator_role, str_number: formData.str_number
             })
         };
 
@@ -280,7 +278,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-8 overflow-y-auto custom-scrollbar" noValidate>
                     <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Account Credentials</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Account Credentials</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <StandardInput label="Username" value={formData.username} onChange={e => handleFieldChange('username', e.target.value)} errorMessage={errors.username} placeholder="Username" />
                             <StandardInput label="Email Address" value={formData.email} onChange={e => handleFieldChange('email', e.target.value)} errorMessage={errors.email} placeholder="Email" />
@@ -331,7 +329,7 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
                         <div className="space-y-4 pt-2 border-t border-slate-100">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operator Identity</h3>
                                     {user.status && (
                                         <span className={clsx(

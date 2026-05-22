@@ -13,7 +13,8 @@ import {
     UserCircle,
     RefreshCcw,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    MapPin
 } from 'lucide-react';
 
 import { UserMenu } from './parts/UserMenu';
@@ -24,6 +25,7 @@ import { useToast } from '@/hooks/useToast';
 import { api } from '@/services';
 import { globalEventBus } from '@/services/websocket/events';
 import { useStore } from '@/store/useStore';
+import { LocationResponse } from '@/types/user';
 
 export default function AdminHeader() {
     const pathname = usePathname();
@@ -37,12 +39,16 @@ export default function AdminHeader() {
     const setHealthData = useStore(state => state.setHealthData);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [adminLocation, setAdminLocation] = useState<LocationResponse | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const { show: toast } = useToast();
 
     const isApprovalsPage = pathname === '/admin/approvals';
     const isHealthPage = pathname === '/admin/health';
     const isUsersPage = pathname === '/admin/users';
+    const isCredentialsPage = pathname === '/admin/credentials';
+    const isLocationRequestsPage = pathname === '/admin/location-requests';
+    const isStaffPage = pathname === '/admin/staff';
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const handleLogout = async () => {
@@ -58,6 +64,22 @@ export default function AdminHeader() {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const fetchAdminLocation = async () => {
+            try {
+                const locations = await api.fetchLocations({ limit: 1000 });
+                const locationsData = Array.isArray(locations) ? locations : locations?.data || [];
+                const activeLocation = locationsData.find((loc: LocationResponse) => loc.is_active);
+                if (activeLocation) {
+                    setAdminLocation(activeLocation);
+                }
+            } catch (error) {
+                console.error("Failed to fetch admin location", error);
+            }
+        };
+        fetchAdminLocation();
     }, []);
 
     const handleRefresh = () => {
@@ -84,6 +106,9 @@ export default function AdminHeader() {
         if (path.includes('/admin/dashboard')) return { title: 'Dashboard Overview', icon: LayoutDashboard };
         if (path.includes('/admin/approvals')) return { title: 'User Approvals', icon: ShieldCheck };
         if (path.includes('/admin/users')) return { title: 'User Management', icon: Users };
+        if (path.includes('/admin/credentials')) return { title: 'Credential Tracking', icon: ShieldCheck };
+        if (path.includes('/admin/location-requests')) return { title: 'Location Requests', icon: CheckCircle2 };
+        if (path.includes('/admin/staff')) return { title: 'Staff Management', icon: Users };
         if (path.includes('/admin/health')) return { title: 'System Health', icon: Activity };
         if (path.includes('/admin/profile')) return { title: 'Profile & Settings', icon: UserCircle };
         return { title: 'System Administration', icon: ShieldCheck };
@@ -195,7 +220,72 @@ export default function AdminHeader() {
                     </div>
                 )}
 
+                {isCredentialsPage && (
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={adminLoading}
+                            className={clsx(
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
+                                adminLoading && "opacity-50 cursor-wait"
+                            )}
+                            title="Refresh Credentials"
+                        >
+                            <RefreshCcw size={12} className={clsx(adminLoading && "animate-spin")} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
+                        </button>
+                    </div>
+                )}
+
+                {isLocationRequestsPage && (
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={adminLoading}
+                            className={clsx(
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
+                                adminLoading && "opacity-50 cursor-wait"
+                            )}
+                            title="Refresh Location Requests"
+                        >
+                            <RefreshCcw size={12} className={clsx(adminLoading && "animate-spin")} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
+                        </button>
+                    </div>
+                )}
+
+                {isStaffPage && (
+                    <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 animate-in fade-in duration-500">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={adminLoading}
+                            className={clsx(
+                                "h-8 px-3 flex items-center justify-center gap-2 rounded-full bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-rose-400 hover:bg-slate-700 transition-all active:scale-90 shadow-sm cursor-pointer",
+                                adminLoading && "opacity-50 cursor-wait"
+                            )}
+                            title="Refresh Staff List"
+                        >
+                            <RefreshCcw size={12} className={clsx(adminLoading && "animate-spin")} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Refresh</span>
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex items-center gap-5">
+                    {adminLocation && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shadow-sm">
+                            <MapPin size={14} className="shrink-0 text-blue-400" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-wider leading-none">
+                                    {adminLocation.name}
+                                </span>
+                                <span className="text-[8px] font-medium text-blue-400/70 uppercase tracking-widest leading-none mt-0.5">
+                                    Active Location
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="w-px h-8 bg-slate-800 hidden md:block" />
                     <UserMenu 
                         user={user}

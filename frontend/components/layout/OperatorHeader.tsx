@@ -4,11 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 
 import { usePathname } from 'next/navigation';
 
+import { MapPin } from 'lucide-react';
+
 import { RecordingIndicator } from './parts/RecordingIndicator';
 import { UserMenu } from './parts/UserMenu';
 import ConfirmationModal from '@/components/shared/ConfirmationModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useStore } from '@/store/useStore';
+import { api } from '@/services';
+import { LocationResponse } from '@/types/user';
 
 export default function OperatorHeader() {
     const pathname = usePathname();
@@ -17,6 +21,7 @@ export default function OperatorHeader() {
     const { logout } = useAuth();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [operatorLocation, setOperatorLocation] = useState<LocationResponse | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const isProfileComplete = !!user?.is_operator;
 
@@ -29,6 +34,33 @@ export default function OperatorHeader() {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const fetchOperatorLocation = async () => {
+            try {
+                let locationId = user?.operator_profile?.location_id;
+                
+                if (!locationId && user?.location_assignments && user.location_assignments.length > 0) {
+                    const primaryLocation = user.location_assignments.find(loc => loc.is_primary);
+                    locationId = primaryLocation?.location_id || user.location_assignments[0].location_id;
+                }
+                
+                if (locationId) {
+                    const locations = await api.fetchPublicLocations();
+                    const locationsData = Array.isArray(locations) ? locations : locations?.data || [];
+                    const location = locationsData.find((loc: LocationResponse) => loc.id === locationId);
+                    if (location) {
+                        setOperatorLocation(location);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch operator location", error);
+            }
+        };
+        if (user) {
+            fetchOperatorLocation();
+        }
+    }, [user]);
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -53,13 +85,27 @@ export default function OperatorHeader() {
                         <h2 className="text-xl font-black text-slate-800 tracking-tight hidden md:block">
                             {getPageTitle(pathname)}
                         </h2>
-                        <span className="hidden md:flex items-center justify-center px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded text-[9px] font-black uppercase tracking-widest shadow-sm">
+                        <span className="hidden md:flex items-center justify-center px-2 py-0.5 bg-amber-50 border border-amber-100 text-amber-700 rounded text-[9px] font-black uppercase tracking-widest shadow-sm">
                             Operator
                         </span>
                     </div>
                 </div>
                 <div className="flex items-center gap-5">
                     {isRecording && <RecordingIndicator />}
+
+                    {operatorLocation && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-amber-700 shadow-sm">
+                            <MapPin size={14} className="shrink-0 text-amber-600" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-wider leading-none">
+                                    {operatorLocation.name}
+                                </span>
+                                <span className="text-[8px] font-medium text-amber-600/70 uppercase tracking-widest leading-none mt-0.5">
+                                    Your Location
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="w-px h-8 bg-slate-200 hidden md:block" />
                     <UserMenu 

@@ -72,6 +72,10 @@ export function SidebarItem({
             activeColors = "bg-violet-50 text-violet-700 shadow-sm ring-1 ring-violet-100";
             activeBar = "bg-violet-500";
             iconActiveColor = "text-violet-600";
+        } else if (theme === 'rose') {
+            activeColors = "bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-100";
+            activeBar = "bg-rose-500";
+            iconActiveColor = "text-rose-600";
         } else {
             activeColors = "bg-teal-50 text-teal-700 shadow-sm ring-1 ring-teal-100";
             activeBar = "bg-teal-500";
@@ -81,17 +85,20 @@ export function SidebarItem({
 
     const isAmber = !isDark && theme === 'amber';
     const isViolet = !isDark && theme === 'violet';
+    const isRose = !isDark && theme === 'rose';
     const hoverColors = isDark
         ? "hover:bg-slate-800 hover:text-white"
         : (isAmber
             ? "hover:bg-amber-50 hover:text-amber-900"
-            : isViolet ? "hover:bg-violet-50 hover:text-violet-900" : "hover:bg-slate-50 hover:text-slate-900");
+            : isViolet ? "hover:bg-violet-50 hover:text-violet-900"
+            : isRose ? "hover:bg-rose-50 hover:text-rose-900"
+            : "hover:bg-slate-50 hover:text-slate-900");
     const inactiveBase = isDark
         ? "text-slate-500"
         : (isAmber
             ? "text-slate-600"
-            : isViolet ? "text-slate-600" : "text-slate-500");
-    const iconBaseColor = isDark ? "text-slate-500" : (isAmber ? "text-amber-500" : isViolet ? "text-violet-500" : "text-slate-400");
+            : isViolet ? "text-slate-600" : isRose ? "text-slate-600" : "text-slate-500");
+    const iconBaseColor = isDark ? "text-slate-500" : (isAmber ? "text-amber-500" : isViolet ? "text-violet-500" : isRose ? "text-rose-500" : "text-slate-400");
 
     return (
         <Link

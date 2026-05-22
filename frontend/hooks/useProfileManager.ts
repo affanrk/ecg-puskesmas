@@ -27,8 +27,7 @@ export function useProfileManager() {
         medical_history: '',
         str_number: '',
         sip_number: '',
-        specialty: '',
-        work_location: ''
+        specialty: ''
     });
     const [securityForm, setSecurityForm] = useState<SecurityFormFields>({
         new_username: '',
@@ -72,8 +71,7 @@ export function useProfileManager() {
                 medical_history: (getActiveProfile(user)?.medical_history || "") || '',
                 str_number: (getActiveProfile(user)?.str_number || "") || '',
                 sip_number: (getActiveProfile(user)?.sip_number || "") || '',
-                specialty: (getActiveProfile(user)?.specialty || "") || '',
-                work_location: (getActiveProfile(user)?.work_location || "") || ''
+                specialty: (getActiveProfile(user)?.specialty || "") || ''
             });
             setSecurityForm((p: SecurityFormFields) => ({ ...p, new_username: user.username, current_password: '', new_password: '', confirm_password: '' }));
             setRejectionReason(user.rejection_reason || null);
@@ -212,7 +210,6 @@ export function useProfileManager() {
                     address: medicalForm.address || null,
                     contact_number: medicalForm.contact_number || null,
                     str_number: medicalForm.str_number || null,
-                    work_location: medicalForm.work_location || null,
                     source: 'WEB'
                 };
                 res = await api.updateOperatorProfile(payload);
@@ -228,7 +225,6 @@ export function useProfileManager() {
                     str_number: medicalForm.str_number || null,
                     sip_number: medicalForm.sip_number || null,
                     specialty: medicalForm.specialty || null,
-                    work_location: medicalForm.work_location || null,
                     source: 'WEB'
                 };
                 res = await api.updateDoctorProfile(payload);
@@ -325,14 +321,12 @@ export function useProfileManager() {
                         { field: 'Address', value: medicalForm.address || '-' },
                         ...(user?.is_patient ? [{ field: 'Medical History', value: medicalForm.medical_history || '-' }] : []),
                         ...(user?.is_operator ? [
-                            { field: 'STR Number', value: medicalForm.str_number || '-' },
-                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                            { field: 'STR Number', value: medicalForm.str_number || '-' }
                         ] : []),
                         ...(user?.is_doctor ? [
                             { field: 'STR Number', value: medicalForm.str_number || '-' },
                             { field: 'SIP Number', value: medicalForm.sip_number || '-' },
-                            { field: 'Specialty', value: medicalForm.specialty || '-' },
-                            { field: 'Work Location', value: medicalForm.work_location || '-' }
+                            { field: 'Specialty', value: medicalForm.specialty || '-' }
                         ] : [])
                     ]
                 })

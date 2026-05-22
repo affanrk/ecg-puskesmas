@@ -5,7 +5,7 @@ import { Edit2, CheckCircle2, HeartPulse, Stethoscope } from 'lucide-react';
 
 import SelectInput from '@/components/shared/SelectInput';
 import StandardInput from '@/components/shared/StandardInput';
-import { medicalHistoryOptions, doctorSpecialtyOptions } from '@/data';
+import { medicalHistoryOptions } from '@/data';
 import { useStore } from '@/store/useStore';
 import { MedicalFormFields } from '@/types/user';
 
@@ -72,34 +72,6 @@ export default function SharedContactCard({
                                 { value: '', label: 'Select Condition (Optional)' },
                                 ...medicalHistoryOptions
                             ]}
-                        />
-                    </div>
-                )}
-
-                {user?.is_doctor && (
-                    <div className="space-y-2">
-                        <SelectInput
-                            label="Medical Specialty"
-                            value={medicalForm.specialty}
-                            onChange={(e) => handleMedicalChange('specialty', e.target.value)}
-                            disabled={!canEditMedical}
-                            errorMessage={errors.specialty}
-                            options={[
-                                { value: '', label: 'Select Specialty' },
-                                ...doctorSpecialtyOptions
-                            ]}
-                        />
-                    </div>
-                )}
-
-                {(user?.is_operator || user?.is_doctor) && (
-                    <div className="space-y-2">
-                        <StandardInput
-                            label="Work Location / Affiliation"
-                            value={medicalForm.work_location}
-                            onChange={(e) => handleMedicalChange('work_location', e.target.value)}
-                            disabled={!canEditMedical}
-                            placeholder="Hospital or Clinic name"
                         />
                     </div>
                 )}

@@ -11,6 +11,7 @@ import {
 
 import { SidebarItem } from './parts/SidebarItem';
 import { SidebarSection } from './parts/SidebarSection';
+import { CollapsibleSidebarSection } from './parts/CollapsibleSidebarSection';
 import SidebarContainer from './SidebarContainer';
 import { useStore } from '@/store/useStore';
 
@@ -20,9 +21,9 @@ export default function SuperAdminSidebar() {
 
     return (
         <SidebarContainer className="bg-slate-900 border-slate-800 theme-violet">
-            <SidebarSection title="Global Control" isSidebarPinned={isSidebarPinned}>
+            <SidebarSection title="Overview" isSidebarPinned={isSidebarPinned}>
                 <SidebarItem
-                    name="Global Dashboard"
+                    name="Dashboard"
                     href="/superadmin/dashboard"
                     icon={LayoutDashboard}
                     pathname={pathname}
@@ -30,8 +31,17 @@ export default function SuperAdminSidebar() {
                     isDark={true}
                     variant="violet"
                 />
+            </SidebarSection>
+
+            <CollapsibleSidebarSection
+                title="System Management"
+                isSidebarPinned={isSidebarPinned}
+                defaultExpanded={true}
+                storageKey="superadmin-sidebar-system"
+                showDivider={false}
+            >
                 <SidebarItem
-                    name="Locations"
+                    name="Location Management"
                     href="/superadmin/locations"
                     icon={MapPin}
                     pathname={pathname}
@@ -40,7 +50,7 @@ export default function SuperAdminSidebar() {
                     variant="violet"
                 />
                 <SidebarItem
-                    name="Admin Users"
+                    name="Admin Management"
                     href="/superadmin/admins"
                     icon={ShieldCheck}
                     pathname={pathname}
@@ -49,7 +59,7 @@ export default function SuperAdminSidebar() {
                     variant="violet"
                 />
                 <SidebarItem
-                    name="All Users"
+                    name="Global User"
                     href="/superadmin/users"
                     icon={Users}
                     pathname={pathname}
@@ -57,7 +67,7 @@ export default function SuperAdminSidebar() {
                     isDark={true}
                     variant="violet"
                 />
-            </SidebarSection>
+            </CollapsibleSidebarSection>
         </SidebarContainer>
     );
 }

@@ -23,7 +23,9 @@ import {
     deleteAdminWalkinPatient,
     removePatientDoctor,
     assignPatientDoctor,
-    convertAdminWalkinPatient
+    convertAdminWalkinPatient,
+    lockPatient,
+    unlockPatient
 } from './api/patient.api';
 
 import {
@@ -38,6 +40,7 @@ import {
 } from './api/operator.api';
 
 import {
+    fetchPublicLocations,
     fetchLocations,
     fetchStaffLocations,
     createLocation,
@@ -60,13 +63,21 @@ import {
     deleteAdmin,
     activateAdmin,
     deactivateAdmin,
-    reassignAdminLocation
+    reassignAdminLocation,
+    fetchPendingAdditionalLocationRequests,
+    approveAdditionalLocationRequest,
+    rejectAdditionalLocationRequest,
+    resignStaff,
+    checkStaffDuplicate,
+    getExpiringCredentials,
+    sendCredentialNotifications
 } from './api/admin.api';
 
 import {
     fetchSuperAdminDashboard,
     fetchSuperAdminLocationDashboard,
-    fetchSuperAdminUsers
+    fetchSuperAdminUsers,
+    fetchSuperAdminLocations
 } from './api/superadmin.api';
 
 import {
@@ -105,11 +116,14 @@ export {
     removePatientDoctor,
     assignPatientDoctor,
     convertAdminWalkinPatient,
+    lockPatient,
+    unlockPatient,
     createDoctorProfile,
     updateDoctorProfile,
     fetchOperatorDashboard,
     createOperatorProfile,
     updateOperatorProfile,
+    fetchPublicLocations,
     fetchLocations,
     fetchStaffLocations,
     createLocation,
@@ -130,9 +144,17 @@ export {
     activateAdmin,
     deactivateAdmin,
     reassignAdminLocation,
+    fetchPendingAdditionalLocationRequests,
+    approveAdditionalLocationRequest,
+    rejectAdditionalLocationRequest,
+    resignStaff,
+    checkStaffDuplicate,
+    getExpiringCredentials,
+    sendCredentialNotifications,
     fetchSuperAdminDashboard,
     fetchSuperAdminLocationDashboard,
     fetchSuperAdminUsers,
+    fetchSuperAdminLocations,
     fetchCalendar,
     fetchHistory,
     fetchRecentHistory,
@@ -162,11 +184,14 @@ export const api = {
     removePatientDoctor,
     assignPatientDoctor,
     convertAdminWalkinPatient,
+    lockPatient,
+    unlockPatient,
     createDoctorProfile,
     updateDoctorProfile,
     fetchOperatorDashboard,
     createOperatorProfile,
     updateOperatorProfile,
+    fetchPublicLocations,
     fetchLocations,
     fetchStaffLocations,
     createLocation,
@@ -187,9 +212,17 @@ export const api = {
     activateAdmin,
     deactivateAdmin,
     reassignAdminLocation,
+    fetchPendingAdditionalLocationRequests,
+    approveAdditionalLocationRequest,
+    rejectAdditionalLocationRequest,
+    resignStaff,
+    checkStaffDuplicate,
+    getExpiringCredentials,
+    sendCredentialNotifications,
     fetchSuperAdminDashboard,
     fetchSuperAdminLocationDashboard,
     fetchSuperAdminUsers,
+    fetchSuperAdminLocations,
     fetchCalendar,
     fetchHistory,
     fetchRecentHistory,
