@@ -22,7 +22,7 @@ All API responses follow a standardized `GenericResponse` structure:
 
 ---
 
-## 1. Authentication & Profile (`/auth`)
+## 1. Authentication & Profile (`/auth`, `/patient`, `/operator`, `/doctor`)
 
 ### 1.1 Register
 Registers a new basic user account.
@@ -35,9 +35,11 @@ Registers a new basic user account.
       "username": "johndoe",
       "password": "SecretPassword123!",
       "role": "user",
-      "source": "WEB"
+      "source": "WEB",
+      "location_id": "LOC20240101000001" 
     }
     ```
+    *(Note: `location_id` is optional during self-registration but required for operators/doctors)*
 *   **Response (`GenericResponse[UserResponse]`):**
     ```json
     {
@@ -172,7 +174,7 @@ Converts a basic user into a Patient and submits their clinical profile.
       "operator_role": "Perawat",
       "address": "Jl. Mawar",
       "contact_number": "081298765432",
-      "work_location": "Puskesmas A",
+      "location_id": "LOC...",
       "source": "WEB"
     }
     ```
@@ -201,7 +203,7 @@ Converts a basic user into a Patient and submits their clinical profile.
       "specialty": "Kardiologi",
       "address": "Jl. Melati",
       "contact_number": "081311223344",
-      "work_location": "RSUD B",
+      "location_id": "LOC...",
       "source": "WEB"
     }
     ```
@@ -249,19 +251,274 @@ Converts a basic user into a Patient and submits their clinical profile.
       "message": "Password updated successfully"
     }
     ```
-
 *   **Behavior:** On success the server clears the `must_reset_password` flag for the user (if set), allowing normal access.
 
 ---
 
-## 2. SuperAdmin Control (`/superadmin`)
+## 2. Role Dashboards (`/patient`, `/operator`, `/doctor`)
 
-**IMPORTANT**: SuperAdmin has READ-ONLY access to operational data (users, staff, patients). SuperAdmin can only manage system-level resources (locations, admins).
+### 2.1 Get Patient Dashboard
+*   **Method:** `GET`
+*   **Endpoint:** `/patient/dashboard`
+*   **Response (`GenericResponse[PatientDashboardResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Patient dashboard data retrieved successfully",
+      "data": {
+        "patient_name": "John Doe",
+        "total_recordings": 5,
+        "recent_records": [...],
+        "stats": { ... }
+      }
+    }
+    ```
 
-### 2.1 Get All Locations
+### 2.2 Get Operator Dashboard
+*   **Method:** `GET`
+*   **Endpoint:** `/operator/dashboard`
+*   **Response (`GenericResponse[OperatorDashboardResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Operator dashboard data retrieved successfully",
+      "data": {
+        "operator_name": "Nurse Jane",
+        "operator_role": "Perawat",
+        "work_location": "Puskesmas A",
+        "str_number": "1234567890",
+        "total_recorded": 150,
+        "arrhythmia_count": 12,
+        "last_sync": "2024-01-01T12:00:00Z",
+        "recent_sessions": [...],
+        "notifications": [...],
+        "classification_counts": [...]
+      }
+    }
+    ```
+
+### 2.3 Get Doctor Dashboard
+*   **Method:** `GET`
+*   **Endpoint:** `/doctor/dashboard`
+*   **Response (`GenericResponse[DoctorDashboardResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Doctor dashboard data retrieved successfully",
+      "data": {
+        "doctor_name": "Dr. Smith",
+        "specialty": "Kardiologi",
+        "work_location": "Puskesmas A",
+        "sip_number": "SIP/123",
+        "total_consultations": 45,
+        "recent_sessions": [...],
+        "notifications": [...],
+        "classification_counts": [...]
+      }
+    }
+    ```
+
+---
+
+## 3. Operator Controls (`/operator`)
+
+### 3.1 Create Walk-in Patient
+Creates a walk-in patient profile managed by the operator.
+*   **Method:** `POST`
+*   **Endpoint:** `/operator/patients`
+*   **Request Body (`WalkinPatientCreate`):**
+    ```json
+    {
+      "full_name": "Walk-in John",
+      "nik": "3201234567890005",
+      "pob": "Jakarta",
+      "dob": "1990-01-01",
+      "gender": "L",
+      "address": "Jl. Karet",
+      "contact_number": "081233334444",
+      "medical_history": "None"
+    }
+    ```
+*   **Response:** `GenericResponse[WalkinPatientResponse]`
+
+### 3.2 List All Patients
+Lists all patients (walk-in and registered) visible to the operator (based on location).
+*   **Method:** `GET`
+*   **Endpoint:** `/operator/patients`
+*   **Query Params:** `skip`, `limit`, `search`, `status`
+*   **Response:** `GenericResponse[PaginatedData[WalkinPatientResponse]]`
+
+### 3.3 Lock Patient for Monitoring
+Locks a walk-in patient exclusively to this operator for recording.
+*   **Method:** `POST`
+*   **Endpoint:** `/operator/patients/{patient_id}/lock`
+*   **Response:** `GenericResponse[dict]`
+
+### 3.4 Unlock Patient
+Releases a locked patient.
+*   **Method:** `DELETE`
+*   **Endpoint:** `/operator/patients/{patient_id}/lock`
+*   **Response:** `GenericResponse[dict]`
+
+---
+
+## 4. Admin Control (`/admin`)
+
+### 4.1 Get Admin Dashboard
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/dashboard`
+*   **Response (`GenericResponse[AdminDashboardResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "Admin dashboard retrieved successfully",
+      "data": {
+        "total_users": 120,
+        "pending_approvals": 5,
+        "total_patients": 80,
+        "total_operators": 10,
+        "total_doctors": 5,
+        "recent_pending": [...],
+        "recent_logs": [...]
+      }
+    }
+    ```
+
+### 4.2 Get Admin Locations
+Returns the locations the current admin is assigned to manage.
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/locations`
+*   **Response:** `GenericResponse[List[LocationResponse]]`
+
+### 4.3 Get Pending Approvals
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/approvals/users/pending`
+*   **Query Params:** `skip`, `limit`, `search`, `start_date`, `end_date`, `is_patient`, `is_operator`, `is_doctor`
+*   **Response:** `GenericResponse[List[UserResponse]]`
+
+### 4.4 Get Approval Logs
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/approvals/users/history`
+*   **Response:** `GenericResponse[List[ApprovalLogResponse]]`
+
+### 4.5 Update User Status
+*   **Method:** `PUT`
+*   **Endpoint:** `/admin/users/{user_id}/account-status`
+*   **Request Body:** `{ "action": "APPROVE", "reason": "..." }`
+*   **Response (`GenericResponse[UserResponse]`):**
+    ```json
+    {
+      "status": "success",
+      "message": "User status updated to APPROVE successfully",
+      "data": { "id": "USR...", "status": "APPROVED", ... }
+    }
+    ```
+
+### 4.6 Create User (Admin Bypass)
+*   **Method:** `POST`
+*   **Endpoint:** `/admin/users`
+*   **Request Body (`UserAdminCreate`):** Similar to UserCreate but includes profile and status fields.
+*   **Response:** `GenericResponse[UserResponse]`
+
+### 4.7 Get All Users
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/users`
+*   **Query Params:** `skip`, `limit`, `search`, `role`, `include_resigned`, `exclude_staff`
+*   **Response:** `GenericResponse[List[UserResponse]]`
+
+### 4.8 Update User
+*   **Method:** `PUT`
+*   **Endpoint:** `/admin/users/{user_id}`
+*   **Response:** `GenericResponse[UserResponse]`
+
+### 4.9 Delete User
+*   **Method:** `DELETE`
+*   **Endpoint:** `/admin/users/{user_id}`
+*   **Note:** Users must be in `QUEUE` or `REJECTED` status to be permanently deleted.
+*   **Response (`MessageResponse`):**
+    ```json
+    {
+      "status": "success",
+      "message": "User deleted successfully"
+    }
+    ```
+
+### 4.10 Get Walk-in Patients
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/patients/walkin`
+*   **Query Params:** `skip`, `limit`, `search`, `status`
+*   **Response:** `GenericResponse[PaginatedData[WalkinPatientResponse]]`
+
+### 4.11 Update Walk-in Patient
+*   **Method:** `PUT`
+*   **Endpoint:** `/admin/patients/walkin/{patient_id}`
+*   **Request Body:** `WalkinPatientUpdate`
+*   **Response:** `GenericResponse[WalkinPatientResponse]`
+
+### 4.12 Delete Walk-in Patient
+*   **Method:** `DELETE`
+*   **Endpoint:** `/admin/patients/walkin/{patient_id}`
+*   **Response:** `MessageResponse`
+
+### 4.13 Convert Walk-in Patient to User
+*   **Method:** `POST`
+*   **Endpoint:** `/admin/patients/walkin/{patient_id}/registration`
+*   **Request Body (`ConvertWalkinRequest`):** `{ "username": "walkin_user", "email": "walkin@example.com", "password": "..." }`
+*   **Response:** `GenericResponse[UserResponse]`
+
+### 4.14 Staff Location Management
+*   `GET /admin/staff/{staff_id}/locations` — Get staff locations.
+*   `POST /admin/staff/{staff_id}/locations` — Assign staff to location.
+*   `DELETE /admin/staff/{staff_id}/locations/{location_id}` — Remove staff from location.
+*   `PATCH /admin/staff/{staff_id}/locations/{location_id}/primary` — Set primary location.
+
+### 4.15 Add Existing Staff
+Adds staff from another location to this admin's location. Creates an approval request if cross-location.
+*   **Method:** `POST`
+*   **Endpoint:** `/admin/staff/add-existing`
+*   **Query Params:** `user_id`, `reason`
+*   **Response:** `GenericResponse[AddExistingStaffResponse]`
+
+### 4.16 Process Staff Resignation
+*   **Method:** `POST`
+*   **Endpoint:** `/admin/staff/{staff_id}/resignation`
+*   **Request Body:** `{ "resignation_date": "2024-12-31", "reason": "..." }`
+*   **Response:** `GenericResponse[StaffResignResponse]`
+
+### 4.17 Validate Staff Credentials
+Checks for duplicate NIK or email.
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/staff/validate-credentials`
+*   **Query Params:** `nik`, `email`
+*   **Response:** `GenericResponse[CheckDuplicateResponse]`
+
+### 4.18 Get Expiring Credentials
+*   **Method:** `GET`
+*   **Endpoint:** `/admin/staff/credentials/expiring`
+*   **Query Params:** `days`, `credential_type`
+*   **Response:** `GenericResponse[List[ExpiringCredentialInfo]]`
+
+### 4.19 Send Credential Notifications
+*   **Method:** `POST`
+*   **Endpoint:** `/admin/staff/credentials/notifications`
+*   **Request Body:** `{ "user_ids": ["..."], "credential_type": "STR" }`
+*   **Response:** `GenericResponse[CredentialNotificationResponse]`
+
+### 4.20 Assign/Remove Doctor to Patient
+*   `GET /admin/patients/{patient_id}/doctors`
+*   `POST /admin/patients/{patient_id}/doctors`
+*   `DELETE /admin/patients/{patient_id}/doctors/{doctor_id}`
+
+---
+
+## 5. SuperAdmin Control (`/superadmin`)
+
+**IMPORTANT**: SuperAdmin has READ-ONLY access to operational data (users, staff, patients). SuperAdmin can only manage system-level resources (locations, admins) and specific global actions.
+
+### 5.1 Get All Locations
 *   **Method:** `GET`
 *   **Endpoint:** `/superadmin/locations`
-*   **Query Params:** `skip`, `limit`, `search`, `is_active`
+*   **Query Params:** `skip`, `limit`, `search`, `is_active`, `location_type`
 *   **Response (`GenericResponse[List[LocationResponse]]`):**
     ```json
     {
@@ -271,7 +528,7 @@ Converts a basic user into a Patient and submits their clinical profile.
     }
     ```
 
-### 2.2 Create Location
+### 5.2 Create Location
 *   **Method:** `POST`
 *   **Endpoint:** `/superadmin/locations`
 *   **Request Body (`LocationCreate`):**
@@ -284,318 +541,64 @@ Converts a basic user into a Patient and submits their clinical profile.
     ```
 *   **Response:** `GenericResponse[LocationResponse]`
 
-### 2.3 Update Location
+### 5.3 Update Location
 *   **Method:** `PUT`
 *   **Endpoint:** `/superadmin/locations/{location_id}`
 *   **Request Body:** Same as Create Location (Optional fields)
 *   **Response:** `GenericResponse[LocationResponse]`
 
-### 2.4 Activate Location
-*   **Method:** `PATCH`
-*   **Endpoint:** `/superadmin/locations/{location_id}/activate`
-*   **Response:** `GenericResponse[LocationResponse]`
+### 5.4 Activate/Deactivate Location
+*   `PATCH /superadmin/locations/{location_id}/activate`
+*   `PATCH /superadmin/locations/{location_id}/deactivate`
 
-### 2.5 Deactivate Location
-*   **Method:** `PATCH`
-*   **Endpoint:** `/superadmin/locations/{location_id}/deactivate`
-*   **Response:** `GenericResponse[LocationResponse]`
-
-### 2.6 Delete Location
+### 5.5 Delete Location
 *   **Method:** `DELETE`
 *   **Endpoint:** `/superadmin/locations/{location_id}`
-*   **Response (`MessageResponse`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Location deleted successfully"
-    }
-    ```
+*   **Note:** Location must be deactivated before deletion.
+*   **Response:** `MessageResponse`
 
-### 2.7 Get Location Dashboard
+### 5.6 Get Location Dashboard
 *   **Method:** `GET`
 *   **Endpoint:** `/superadmin/locations/{location_id}/dashboard`
-*   **Response (`GenericResponse[LocationDashboardResponse]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Location dashboard retrieved successfully",
-      "data": { "total_users": 50, "total_patients": 30, ... }
-    }
-    ```
+*   **Response:** `GenericResponse[dict]`
 
-### 2.8 Get All Admins
-*   **Method:** `GET`
-*   **Endpoint:** `/superadmin/admins`
-*   **Query Params:** `skip`, `limit`, `search`, `location_id`, `is_active`
-*   **Response (`GenericResponse[List[UserResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Admins retrieved successfully",
-      "data": [ { "id": "USR...", "role": "admin", ... } ]
-    }
-    ```
+### 5.7 Admins Management
+*   `GET /superadmin/admins`
+*   `POST /superadmin/admins`
+*   `PUT /superadmin/admins/{admin_id}/location`
+*   `PATCH /superadmin/admins/{admin_id}/activate`
+*   `PATCH /superadmin/admins/{admin_id}/deactivate`
+*   `DELETE /superadmin/admins/{admin_id}` (Must be deactivated first)
 
-### 2.9 Create Admin
-*   **Method:** `POST`
-*   **Endpoint:** `/superadmin/admins`
-*   **Request Body (`AdminCreate`):**
-    ```json
-    {
-      "username": "admin_puskesmas_a",
-      "email": "admin@puskesmasa.com",
-      "password": "SecurePassword123!",
-      "location_id": "LOC20240101000001",
-      "full_name": "Admin Puskesmas A"
-    }
-    ```
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 2.10 Reassign Admin Location
-*   **Method:** `PUT`
-*   **Endpoint:** `/superadmin/admins/{admin_id}/location`
-*   **Query Params:** `location_id`
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 2.11 Activate Admin
-*   **Method:** `PATCH`
-*   **Endpoint:** `/superadmin/admins/{admin_id}/activate`
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 2.12 Deactivate Admin
-*   **Method:** `PATCH`
-*   **Endpoint:** `/superadmin/admins/{admin_id}/deactivate`
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 2.13 Delete Admin
-*   **Method:** `DELETE`
-*   **Endpoint:** `/superadmin/admins/{admin_id}`
-*   **Response (`MessageResponse`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Admin deleted successfully"
-    }
-    ```
-
-### 2.14 Get All Users (READ-ONLY)
+### 5.8 Get All Users (READ-ONLY)
 *   **Method:** `GET`
 *   **Endpoint:** `/superadmin/users`
-*   **Query Params:** `skip`, `limit`, `search`, `role`, `location_id`, `is_active`
-*   **Response (`GenericResponse[List[UserResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Users retrieved successfully",
-      "data": [ { "id": "USR...", "role": "patient", ... } ]
-    }
-    ```
-*   **Note:** SuperAdmin can only VIEW users. To modify users (activate/deactivate/delete), contact the location Admin.
-
-### 2.15 Get SuperAdmin Dashboard
-*   **Method:** `GET`
-*   **Endpoint:** `/superadmin/dashboard`
-*   **Response (`GenericResponse[SuperAdminDashboardResponse]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "SuperAdmin dashboard retrieved successfully",
-      "data": { "total_locations": 5, "total_admins": 10, ... }
-    }
-    ```
-
-### Removed Endpoints (Phase 6 Cleanup)
-
-The following endpoints were removed to enforce SuperAdmin READ-ONLY principle for operational data:
-
-**User Management (Removed)**:
-- ~~PATCH `/superadmin/users/{user_id}/activate`~~ - Use Admin role instead
-- ~~PATCH `/superadmin/users/{user_id}/deactivate`~~ - Use Admin role instead
-- ~~DELETE `/superadmin/users/{user_id}`~~ - Use Admin role instead
-
-**Staff Multi-Location (Removed - Admin-only feature)**:
-- ~~POST `/superadmin/staff/{user_id}/locations`~~
-- ~~GET `/superadmin/staff/{user_id}/locations`~~
-- ~~DELETE `/superadmin/staff/{user_id}/locations/{loc_id}`~~
-- ~~PATCH `/superadmin/staff/{user_id}/locations/{loc_id}/primary`~~
-
-**Patient-Doctor Assignment (Removed - Admin-only feature)**:
-- ~~POST `/superadmin/patients/{patient_id}/doctors`~~
-
-**Location Detail (Removed - Unused)**:
-- ~~GET `/superadmin/locations/{location_id}`~~ - Use location list or dashboard instead
-
----
-
-## 3. Admin Control (`/admin`)
-
-### 3.1 Get Pending Approvals
-*   **Method:** `GET`
-*   **Endpoint:** `/admin/pending-approvals`
-*   **Query Params:** `skip`, `limit`, `search`, `start_date`, `end_date`, `is_patient`, `is_operator`, `is_doctor`
-*   **Response (`GenericResponse[List[UserResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Pending approvals retrieved successfully",
-      "data": [ { ... }, { ... } ]
-    }
-    ```
-
-### 3.2 Get Approval Logs
-*   **Method:** `GET`
-*   **Endpoint:** `/admin/approval-logs`
-*   **Response (`GenericResponse[List[ApprovalLogResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Approval logs retrieved successfully",
-      "data": [ { "id": "APP...", "status": "APPROVED", ... } ]
-    }
-    ```
-
-### 3.3 Update User Status
-*   **Method:** `POST`
-*   **Endpoint:** `/admin/update-status/{user_id}`
-*   **Request Body:** `{ "action": "APPROVE", "reason": "..." }`
-*   **Response (`GenericResponse[UserResponse]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "User status updated to APPROVE successfully",
-      "data": { "id": "USR...", "status": "APPROVED", ... }
-    }
-    ```
-
-### 3.4 Create User (Admin Bypass)
-*   **Method:** `POST`
-*   **Endpoint:** `/admin/users`
-*   **Request Body (`UserAdminCreate`):** Similar to UserCreate but includes profile and status fields.
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 3.5 Get All Users
-*   **Method:** `GET`
-*   **Endpoint:** `/admin/users`
 *   **Query Params:** `skip`, `limit`, `search`, `role`
 *   **Response:** `GenericResponse[List[UserResponse]]`
 
-### 3.6 Update User
-*   **Method:** `PUT`
-*   **Endpoint:** `/admin/users/{user_id}`
-*   **Response:** `GenericResponse[UserResponse]`
-
-### 3.7 Delete User
-*   **Method:** `DELETE`
-*   **Endpoint:** `/admin/users/{user_id}`
-*   **Response (`MessageResponse`):**
-    ```json
-    {
-      "status": "success",
-      "message": "User deleted successfully"
-    }
-    ```
-
-### 3.8 Get Staff Locations
+### 5.9 Get SuperAdmin Dashboard
 *   **Method:** `GET`
-*   **Endpoint:** `/admin/staff/{staff_id}/locations`
-*   **Response (`GenericResponse[List[StaffLocationResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Staff locations retrieved successfully",
-      "data": [
-        {
-          "id": "UL...",
-          "user_id": "USR...",
-          "location_id": "LOC...",
-          "is_primary": true,
-          "location": { "id": "LOC...", "name": "Puskesmas A" }
-        }
-      ]
-    }
-    ```
+*   **Endpoint:** `/superadmin/dashboard`
+*   **Response:** `GenericResponse[dict]`
 
-### 3.9 Assign Staff to Location
+### 5.10 Anonymize Staff
+Anonymize a staff member's profile for GDPR compliance.
 *   **Method:** `POST`
-*   **Endpoint:** `/admin/staff/{staff_id}/locations`
-*   **Request Body (`StaffLocationAssign`):**
-    ```json
-    {
-      "location_id": "LOC20240101000001",
-      "is_primary": false
-    }
-    ```
-*   **Response:** `GenericResponse[StaffLocationResponse]`
+*   **Endpoint:** `/superadmin/staff/{user_id}/anonymize`
+*   **Request Body:** `{ "legal_basis": "USER_REQUEST", "reason": "..." }`
+*   **Response:** `GenericResponse[StaffAnonymizeResponse]`
 
-### 3.10 Remove Staff from Location
-*   **Method:** `DELETE`
-*   **Endpoint:** `/admin/staff/{staff_id}/locations/{location_id}`
-*   **Response (`MessageResponse`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Staff removed from location successfully"
-    }
-    ```
-*   **Validation**: Cannot remove last location or primary location without setting new primary
-
-### 3.11 Set Staff Primary Location
-*   **Method:** `PATCH`
-*   **Endpoint:** `/admin/staff/{staff_id}/locations/{location_id}/primary`
-*   **Response:** `GenericResponse[StaffLocationResponse]`
-
-### 3.12 Get Patient's Assigned Doctors
-*   **Method:** `GET`
-*   **Endpoint:** `/admin/patients/{patient_id}/doctors`
-*   **Response (`GenericResponse[List[PatientDoctorResponse]]`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Patient doctors retrieved successfully",
-      "data": [
-        {
-          "id": "PD...",
-          "patient_id": "USR...",
-          "doctor_id": "USR...",
-          "assigned_by": "USR...",
-          "assigned_dt": "2024-01-01T12:00:00Z",
-          "is_active": true,
-          "doctor": { "id": "USR...", "full_name": "Dr. Smith" }
-        }
-      ]
-    }
-    ```
-
-### 3.13 Assign Doctor to Patient
-*   **Method:** `POST`
-*   **Endpoint:** `/admin/patients/{patient_id}/doctors`
-*   **Request Body (`PatientDoctorAssign`):**
-    ```json
-    {
-      "doctor_id": "USR20240101000005",
-      "location_id": "LOC20240101000001"
-    }
-    ```
-*   **Response:** `GenericResponse[PatientDoctorResponse]`
-*   **Behavior**: Deactivates old assignment (is_active = false) and creates new assignment (is_active = true)
-
-### 3.14 Remove Doctor from Patient
-*   **Method:** `DELETE`
-*   **Endpoint:** `/admin/patients/{patient_id}/doctors/{doctor_id}`
-*   **Response (`MessageResponse`):**
-    ```json
-    {
-      "status": "success",
-      "message": "Doctor removed from patient successfully"
-    }
-    ```
-*   **Behavior**: Soft delete (sets is_active = false) to preserve audit trail
+### 5.11 Transfer Requests
+Manage staff transfer requests between locations.
+*   `GET /superadmin/approvals/transfers`
+*   `POST /superadmin/approvals/transfers/{request_id}/approve`
+*   `POST /superadmin/approvals/transfers/{request_id}/reject`
 
 ---
 
-## 4. History & Data (`/history`)
+## 6. History & Data (`/history`)
 
-### 4.1 Get Calendar View
+### 6.1 Get Calendar View
 *   **Method:** `GET`
 *   **Endpoint:** `/history/calendar`
 *   **Query Params:** `user_id`, `year`, `month`, `day`, `hour`, `minute`
@@ -611,7 +614,7 @@ The following endpoints were removed to enforce SuperAdmin READ-ONLY principle f
     }
     ```
 
-### 4.2 Get History Stats
+### 6.2 Get History Stats
 *   **Method:** `GET`
 *   **Endpoint:** `/history/stats`
 *   **Response (`GenericResponse[ClassificationStatsResponse]`):**
@@ -623,7 +626,7 @@ The following endpoints were removed to enforce SuperAdmin READ-ONLY principle f
     }
     ```
 
-### 4.3 Search Recording History
+### 6.3 Search Recording History
 *   **Method:** `GET`
 *   **Endpoint:** `/history`
 *   **Query Params:** `device_id`, `user_id`, `search`, `classification`, `start_date`, `end_date`, `limit`
@@ -636,37 +639,62 @@ The following endpoints were removed to enforce SuperAdmin READ-ONLY principle f
     }
     ```
 
-### 4.4 Get Recent History
+### 6.4 Get Recent History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/recent`
 *   **Response:** `GenericResponse[List[SessionResponse]]`
 
-### 4.5 Get Recording Detail
+### 6.5 Get Recording Detail
 *   **Method:** `GET`
 *   **Endpoint:** `/history/{recording_id}`
 *   **Response:** `GenericResponse[SessionResponse]`
 
-### 4.6 Get Device History
+### 6.6 Get Device History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/device/{device_id}`
 *   **Response:** `GenericResponse[List[SessionResponse]]`
 
-### 4.7 Get User History
+### 6.7 Get User History
 *   **Method:** `GET`
 *   **Endpoint:** `/history/user/{user_id}`
 *   **Response:** `GenericResponse[List[SessionResponse]]`
 
 ---
 
-## 4. Export (`/export`)
+## 7. Export (`/export`)
 
 Export endpoints return a direct file stream (`StreamingResponse`) and do **not** use the `GenericResponse` wrapper.
 
+### 7.1 Export Raw ECG Data (CSV)
+*   **Method:** `GET`
+*   **Endpoint:** `/export/raw/{recording_id}`
+*   **Response:** CSV file download.
+
+### 7.2 Export Analysis Features (CSV)
+*   **Method:** `GET`
+*   **Endpoint:** `/export/features/{recording_id}`
+*   **Response:** CSV file download.
+
+### 7.3 Export ECG Chart (PNG)
+*   **Method:** `GET`
+*   **Endpoint:** `/export/plot/{recording_id}`
+*   **Response:** PNG image download.
+
+### 7.4 Complete Package (ZIP) - Reserved
+*   **Method:** `GET`
+*   **Endpoint:** `/export/complete/{recording_id}`
+*   **Note:** Returns HTTP 501 (Not Implemented)
+
+### 7.5 Batch Export - Reserved
+*   **Method:** `GET`
+*   **Endpoint:** `/export/batch`
+*   **Note:** Returns HTTP 501 (Not Implemented)
+
 ---
 
-## 5. Health & Monitoring (`/health`)
+## 8. Health & Monitoring (`/health`)
 
-### 5.1 Basic Health Check
+### 8.1 Basic Health Check
 *   **Method:** `GET`
 *   **Endpoint:** `/health`
 *   **Response (`GenericResponse[HealthCheckResponse]`):**
@@ -678,7 +706,7 @@ Export endpoints return a direct file stream (`StreamingResponse`) and do **not*
     }
     ```
 
-### 5.2 Detailed Health Check (Admin)
+### 8.2 Detailed Health Check (Admin)
 *   **Method:** `GET`
 *   **Endpoint:** `/health/detailed`
 *   **Response (`GenericResponse[DetailedHealthCheckResponse]`):**
@@ -695,7 +723,7 @@ Export endpoints return a direct file stream (`StreamingResponse`) and do **not*
     }
     ```
 
-### 5.3 Device Monitoring
+### 8.3 Device Monitoring
 *   **Method:** `GET`
 *   **Endpoint:** `/health/monitoring/devices`
 *   **Response (`GenericResponse[DeviceMonitoringResponse]`):**
@@ -710,7 +738,7 @@ Export endpoints return a direct file stream (`StreamingResponse`) and do **not*
     }
     ```
 
-### 5.4 Performance Monitoring (Admin)
+### 8.4 Performance Monitoring (Admin)
 *   **Method:** `GET`
 *   **Endpoint:** `/health/monitoring/performance`
 *   **Response (`GenericResponse[PerformanceMonitoringResponse]`):**

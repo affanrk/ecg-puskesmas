@@ -58,6 +58,10 @@ Using `TB_M_` (Master), `TB_R_` (Transaction), and `TB_T_` (Temporary/Queue) con
 ```mermaid
 erDiagram
     %% Master Tables
+    TB_M_LOCATION ||--|{ TB_R_USER_LOCATION : location_assignments
+    TB_M_LOCATION ||--|{ TB_M_ADMIN : admin_assignments
+    TB_M_LOCATION ||--|{ TB_M_PATIENT : patient_registration
+    
     TB_M_USER ||--o| TB_M_PATIENT : has_profile
     TB_M_USER ||--o| TB_M_OPERATOR : has_profile
     TB_M_USER ||--o| TB_M_DOCTOR : has_profile
@@ -66,9 +70,20 @@ erDiagram
     %% User -> Transactions
     TB_M_USER ||--|{ TB_R_ECG_SESSION : records_own_data
     TB_M_USER ||--|{ TB_R_LOG_APPROVAL : has_approval_history
+    TB_M_USER ||--|{ TB_R_USER_LOCATION : assigned_to_locations
+    TB_M_USER ||--|{ TB_R_SESSION_REGISTRY : login_sessions
+    TB_M_USER ||--|{ TB_R_AUDIT_LOG : security_events
+    
+    %% Clinical Relations
+    TB_M_PATIENT ||--|{ TB_R_PATIENT_DOCTOR : assigned_doctors
+    TB_M_DOCTOR ||--|{ TB_R_PATIENT_DOCTOR : assigned_patients
+    TB_M_PATIENT ||--|{ TB_R_ECG_SESSION : patient_sessions
+    
+    %% Transfer & Requests
+    TB_M_USER ||--|{ TB_R_TRANSFER_REQUEST : transfer_requests
+    TB_M_USER ||--|{ TB_R_ADDITIONAL_LOCATION_REQUEST : additional_location_requests
     
     %% Session relations
-    TB_M_PATIENT ||--|{ TB_R_ECG_SESSION : patient_sessions
     TB_R_ECG_SESSION ||--|{ TB_R_ECG_SESSION_PARAMETER : parameters
     TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_5LEADS_WEB : has_data_5l_web
     TB_R_ECG_SESSION ||--|{ TB_R_ECG_RAW_5LEADS_MOBILE : has_data_5l_mobile
@@ -79,7 +94,12 @@ erDiagram
 ---
 
 ### Notes
+- `tb_m_location.is_active` tracks location lifecycle (Boolean for activate/deactivate).
+- `tb_r_user_location.is_primary` distinguishes primary vs. secondary locations for staff assigned to multiple clinics.
+- `tb_r_patient_doctor.is_active` acts as a soft-delete flag to maintain historical assignment audit trails.
+- `tb_m_user.full_name` is now populated directly on the central user table, acting as a fallback when profile data isn't loaded.
 - `tb_m_patient.user_id` is nullable to support operator-created walk-in patients (a patient may not have a linked `tb_m_user`).
+- `tb_m_patient.operator_id` and `tb_m_patient.location_id` are populated for walk-in patients to restrict visibility to the originating operator/clinic.
 - `tb_r_ecg_session.user_id` and `tb_r_ecg_session.patient_id` are nullable — a session can reference either a registered user or a walk-in patient.
 - `tb_r_ecg_session_parameter` enforces a unique constraint on `(recording_id, lead_name)`.
 - `tb_m_user.must_reset_password` (0/1) exists to force password change on first login or after operator-created conversion.
@@ -91,12 +111,26 @@ erDiagram
 ### 3.1. Master Tables (`TB_M_`)
 
 ```sql
+-- Locations (Puskesmas / Clinics)
+CREATE TABLE tb_m_location (
+    id              VARCHAR(30) PRIMARY KEY,
+    name            VARCHAR(100) NOT NULL,
+    address         VARCHAR(255),
+    contact_number  VARCHAR(20),
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP WITH TIME ZONE
+);
+
 -- Users (Central Identity & Authentication)
 CREATE TABLE tb_m_user (
     id              VARCHAR(30) PRIMARY KEY,
     username        VARCHAR(50) UNIQUE NOT NULL,
     email           VARCHAR(100) UNIQUE NOT NULL,
     hashed_password VARCHAR(255) NOT NULL,
+    full_name       VARCHAR(100),
     role            VARCHAR(20) DEFAULT 'user',
     is_active       INTEGER DEFAULT 1,
     is_activated    INTEGER DEFAULT 0,
@@ -104,9 +138,29 @@ CREATE TABLE tb_m_user (
     is_operator     BOOLEAN DEFAULT FALSE,
     is_doctor       BOOLEAN DEFAULT FALSE,
     must_reset_password INTEGER DEFAULT 0,
+    location_id     VARCHAR(30) REFERENCES tb_m_location(id),
     last_login_dt   TIMESTAMP WITH TIME ZONE,
     last_login_source VARCHAR(50),
     current_session_id VARCHAR(100),
+    created_by      VARCHAR(50) DEFAULT 'SYSTEM',
+    created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    changed_by      VARCHAR(50),
+    changed_dt      TIMESTAMP WITH TIME ZONE
+);
+
+-- Admins (Location Administrators)
+CREATE TABLE tb_m_admin (
+    id              VARCHAR(30) PRIMARY KEY,
+    user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id     VARCHAR(30) NOT NULL REFERENCES tb_m_location(id),
+    full_name       VARCHAR(100) NOT NULL,
+    nik             VARCHAR(20) UNIQUE,
+    pob             VARCHAR(100),
+    dob             DATE,
+    gender          VARCHAR(10),
+    address         VARCHAR(255),
+    contact_number  VARCHAR(20),
+    status          VARCHAR(20) DEFAULT 'APPROVED',
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
     changed_by      VARCHAR(50),
@@ -117,6 +171,8 @@ CREATE TABLE tb_m_user (
 CREATE TABLE tb_m_patient (
     id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    operator_id     VARCHAR(30) REFERENCES tb_m_user(id),
+    location_id     VARCHAR(30) REFERENCES tb_m_location(id),
     full_name       VARCHAR(100) NOT NULL,
     nik             VARCHAR(20) UNIQUE,
     pob             VARCHAR(100) NOT NULL,
@@ -126,6 +182,9 @@ CREATE TABLE tb_m_patient (
     contact_number  VARCHAR(20),
     medical_history TEXT,
     status          VARCHAR(20) DEFAULT 'QUEUE',
+    is_locked       BOOLEAN DEFAULT FALSE,
+    locked_by       VARCHAR(30) REFERENCES tb_m_user(id),
+    locked_at       TIMESTAMP WITH TIME ZONE,
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
     changed_by      VARCHAR(50),
@@ -136,6 +195,7 @@ CREATE TABLE tb_m_patient (
 CREATE TABLE tb_m_operator (
     id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id     VARCHAR(30) REFERENCES tb_m_location(id),
     full_name       VARCHAR(100) NOT NULL,
     nik             VARCHAR(20) UNIQUE,
     pob             VARCHAR(100) NOT NULL,
@@ -145,7 +205,6 @@ CREATE TABLE tb_m_operator (
     contact_number  VARCHAR(20),
     str_number      VARCHAR(50) NOT NULL,
     operator_role   VARCHAR(50) NOT NULL,
-    work_location   VARCHAR(100),
     status          VARCHAR(20) DEFAULT 'QUEUE',
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -157,6 +216,7 @@ CREATE TABLE tb_m_operator (
 CREATE TABLE tb_m_doctor (
     id              VARCHAR(30) PRIMARY KEY,
     user_id         VARCHAR(30) UNIQUE NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id     VARCHAR(30) REFERENCES tb_m_location(id),
     full_name       VARCHAR(100) NOT NULL,
     nik             VARCHAR(20) UNIQUE,
     pob             VARCHAR(100) NOT NULL,
@@ -167,7 +227,6 @@ CREATE TABLE tb_m_doctor (
     str_number      VARCHAR(50) NOT NULL,
     sip_number      VARCHAR(50) NOT NULL,
     specialty       VARCHAR(100) NOT NULL,
-    work_location   VARCHAR(100),
     status          VARCHAR(20) DEFAULT 'QUEUE',
     created_by      VARCHAR(50) DEFAULT 'SYSTEM',
     created_dt      TIMESTAMP WITH TIME ZONE DEFAULT now(),
@@ -179,6 +238,90 @@ CREATE TABLE tb_m_doctor (
 ### 3.2. Transaction Tables (`TB_R_`)
 
 ```sql
+-- Staff Location Assignments
+CREATE TABLE tb_r_user_location (
+    id VARCHAR(30) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id VARCHAR(30) NOT NULL REFERENCES tb_m_location(id) ON DELETE CASCADE,
+    is_primary BOOLEAN DEFAULT FALSE,
+    assigned_by VARCHAR(30) REFERENCES tb_m_user(id),
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL,
+    UNIQUE(user_id, location_id)
+);
+
+-- Patient-Doctor Assignments
+CREATE TABLE tb_r_patient_doctor (
+    id VARCHAR(30) PRIMARY KEY,
+    patient_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    doctor_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id VARCHAR(30) NOT NULL REFERENCES tb_m_location(id),
+    is_active BOOLEAN DEFAULT TRUE,
+    assigned_by VARCHAR(30) REFERENCES tb_m_user(id),
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL
+);
+
+-- Transfer Requests
+CREATE TABLE tb_r_transfer_request (
+    id VARCHAR(30) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    source_location_id VARCHAR(30) NOT NULL REFERENCES tb_m_location(id),
+    destination_location_id VARCHAR(30) NOT NULL REFERENCES tb_m_location(id),
+    requested_by VARCHAR(30) REFERENCES tb_m_user(id),
+    status VARCHAR(20) DEFAULT 'PENDING',
+    reason TEXT,
+    rejection_reason TEXT,
+    processed_by VARCHAR(30) REFERENCES tb_m_user(id),
+    processed_dt TIMESTAMP WITH TIME ZONE,
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL
+);
+
+-- Additional Location Requests
+CREATE TABLE tb_r_additional_location_request (
+    id VARCHAR(30) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    location_id VARCHAR(30) NOT NULL REFERENCES tb_m_location(id),
+    requested_by VARCHAR(30) REFERENCES tb_m_user(id),
+    status VARCHAR(20) DEFAULT 'PENDING',
+    reason TEXT,
+    rejection_reason TEXT,
+    processed_by VARCHAR(30) REFERENCES tb_m_user(id),
+    processed_dt TIMESTAMP WITH TIME ZONE,
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL
+);
+
+-- Session Registry (JWT Tracking)
+CREATE TABLE tb_r_session_registry (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(30) NOT NULL REFERENCES tb_m_user(id) ON DELETE CASCADE,
+    session_id VARCHAR(100) UNIQUE NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    is_valid BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL
+);
+
+-- Audit Log
+CREATE TABLE tb_r_audit_log (
+    id VARCHAR(36) PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,
+    user_id VARCHAR(30) REFERENCES tb_m_user(id),
+    actor_id VARCHAR(30),
+    actor_role VARCHAR(50),
+    location_id VARCHAR(30) REFERENCES tb_m_location(id),
+    details JSONB,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    severity VARCHAR(20) DEFAULT 'INFO',
+    created_dt TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+    created_by VARCHAR(50) DEFAULT 'SYSTEM' NOT NULL
+);
+
 -- Profile Approval Logs
 CREATE TABLE tb_r_log_approval (
     id VARCHAR(30) PRIMARY KEY,

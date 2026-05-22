@@ -269,7 +269,7 @@ This document describes the real-time communication protocol for the ECG Platfor
 
 ---
 
-### Storage mapping & indexing
+### 5.5 Raw Data Storage Mapping
 
 Live recordings and flushed buffer chunks are written to the same raw-data tables used by the MQTT pipeline. Mapping:
 
@@ -289,7 +289,7 @@ CREATE INDEX idx_raw_12leads_mobile_recording_dt ON tb_r_ecg_raw_12leads_mobile 
 
 ---
 
-## 5. Security & Session Management
+## 6. Security & Session Management
 
 ### 5.1 Single Session Enforcement (SSE)
 The system uses the `sid` (Session ID) claim in the JWT to identify unique logins.
@@ -308,7 +308,7 @@ General error format. Used for application errors, unauthorized actions, or sess
 
 ---
 
-## 6. Enumerations & Constants
+## 7. Enumerations & Constants
 
 ### ECG Classifications (`live_result`)
 *   `Normal`

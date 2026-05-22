@@ -74,7 +74,7 @@ flowchart LR
     ChooseRole --> ProfileForm["Fill details in /onboarding/{role}"]
     ProfileForm --> Submit[Submit Profile Data]
     
-    Submit --> API_Profile["API: POST /api/v1/auth/profile/{role}"]
+    Submit --> API_Profile["API: POST /api/v1/{role}/profile"]
     API_Profile --> UpdateDB[(Database: Update TbMUser & Create Profile)]
     UpdateDB --> SetQueue[Set Initial Status: QUEUE]
     SetQueue --> PendingUI[Redirect to Dashboard:\nShow 'Awaiting Approval' State]
@@ -88,13 +88,13 @@ flowchart LR
 ```mermaid
 flowchart LR
     AdminLogin([Admin Logs In]) --> AdminDash[Admin Dashboard /admin/dashboard]
-    AdminDash --> PendingList[API: GET /api/v1/admin/pending-approvals]
+    AdminDash --> PendingList[API: GET /api/v1/admin/approvals/users/pending]
     
     PendingList --> Review[Review User & Profile Details]
     Review --> Action{Approve or Reject?}
     
-    Action -- Approve --> API_Approve["API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'APPROVE'}"]
-    Action -- Reject --> API_Reject["API: POST /api/v1/admin/update-status/{id}\nPayload: {action: 'REJECT'}"]
+    Action -- Approve --> API_Approve["API: PUT /api/v1/admin/users/{id}/account-status\nPayload: {action: 'APPROVE'}"]
+    Action -- Reject --> API_Reject["API: PUT /api/v1/admin/users/{id}/account-status\nPayload: {action: 'REJECT'}"]
     
     API_Approve --> DB_Approve[(Update: is_activated=1,\nstatus=APPROVED)]
     API_Reject --> DB_Reject[(Update: is_activated=0,\nstatus=REJECTED)]
@@ -398,4 +398,50 @@ Notes:
 - If the convert API call omits a password, the backend sets `must_reset_password=1` so that the user is forced to pick a password on first login.
 - Admin update endpoints persist explicit `null` values. If a client intends to clear a field, it should send an explicit `null` value in the PATCH/PUT payload.
 
+---
+
+## 11. Operator Walk-in Patient Flow
+*Flow: Operator creates a walk-in patient without an account, locks them for recording, and then unlocks.*
+
+```mermaid
+flowchart LR
+    OpDashboard([Operator Dashboard]) --> CreateWalkIn[Create Walk-in Patient]
+    CreateWalkIn --> API_Create["API: POST /api/v1/operator/patients"]
+    API_Create --> SaveDB[(Save TbMPatient\nno user_id)]
+    SaveDB --> ListPatients[List Walk-in/Registered Patients]
+    
+    ListPatients --> SelectPatient[Select Patient for Recording]
+    SelectPatient --> LockPatient["API: POST /operator/patients/{id}/lock"]
+    LockPatient --> LiveWatch[Watch Live Stream & BPM]
+    LiveWatch --> RecStart[Start Recording Session]
+    
+    RecStart --> RecEnd[Stop Recording]
+    RecEnd --> UnlockPatient["API: DELETE /operator/patients/{id}/lock"]
+    UnlockPatient --> Finish([Session Complete])
+```
+
+---
+
+## 12. Staff Transfer & Additional Location Flow
+*Flow: Admin requests to add existing staff to their clinic, triggering SuperAdmin approval if cross-location.*
+
+```mermaid
+flowchart LR
+    Admin([Admin]) --> AddStaff["Add Existing Staff (NIK/Email)"]
+    AddStaff --> API_Add["API: POST /api/v1/admin/staff/add-existing"]
+    
+    API_Add --> CheckDest{Already at Location?}
+    CheckDest -- Yes --> Error([Return 400 Error])
+    CheckDest -- No --> CheckAdmin{Admin owns destination?}
+    
+    CheckAdmin -- Yes --> AddDirect[(Create UserLocation assignment)]
+    CheckAdmin -- No --> CreateReq[(Create AdditionalLocationRequest)]
+    
+    CreateReq --> SA_Approve[SuperAdmin Reviews Transfer]
+    SA_Approve --> SA_Action{Approve or Reject?}
+    SA_Action -- Approve --> API_SA_App["API: POST /superadmin/approvals/transfers/{id}/approve"]
+    SA_Action -- Reject --> API_SA_Rej["API: POST /superadmin/approvals/transfers/{id}/reject"]
+    
+    API_SA_App --> Finalize[(Create UserLocation assignment)]
+    API_SA_Rej --> CloseReq[(Update Request Status=REJECTED)]
 ```

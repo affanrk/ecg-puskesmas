@@ -7,7 +7,7 @@ A professional-grade medical ECG telemetry platform providing real-time cardiac 
 ## Key Features
 
 ### 1. Real-time Clinical Monitoring
-- **5-Lead Visualization**: Optimized charting for Lead I, II, III, aVF, and V1.
+- **12-Lead & 5-Lead Support**: Comprehensive 12-lead ECG capabilities alongside standard 5-lead optimized charting.
 - **Live BPM Detection**: Real-time heart rate calculation performed in the backend from raw samples.
 - **Network Resilience**: Integrated **Jitter Buffer** (up to 20 packets) to handle out-of-order MQTT delivery and minor latency spikes.
 - **Performance Telemetry**: Real-time visualization of Latency, Jitter, and Packet Loss % per device.
@@ -19,9 +19,11 @@ A professional-grade medical ECG telemetry platform providing real-time cardiac 
 
 ### 3. Medical Identity & Governance
 - **Role-Based Workflows**: Dedicated dashboards and permissions for **Patients**, **Medical Staff (Operators)**, and **Heart Specialists (Doctors)**.
+- **Walk-in Patient Management**: Dedicated workflow for operators to serve unregistered walk-in patients.
+- **Multi-Location Staff**: Ability for medical staff to be assigned to and operate across multiple clinics.
+- **Session Registry**: Full JWT tracking (Last Login Wins) and audit logs for all security events.
 - **Onboarding Flow**: Multi-step identity verification process before accessing clinical data.
 - **Admin Approval Queue**: Centralized manual verification system for clinical profiles.
-- **SSE (Last Login Wins)**: Enforced Single Session per user via WebSocket session tracking for data integrity.
 
 ### 4. Advanced History & Reporting
 - **Calendar Heatmaps**: Interactive data discovery through hierarchical calendar views (Year -> Day).
@@ -33,6 +35,7 @@ A professional-grade medical ECG telemetry platform providing real-time cardiac 
 ## Technical Stack
 
 - **Backend**: FastAPI (Python 3.12+)
+  - **Security**: `argon2` for secure password hashing.
   - **MQTT Service**: `aiomqtt` client with high-performance jitter buffer.
   - **Signal Processing**: NumPy & SciPy for Butterworth filtering and HR detection.
   - **ML Engine**: TensorFlow/Keras for ECG classification.
@@ -89,13 +92,17 @@ ecg-puskesmas/
 ├── backend/            # FastAPI Application
 │   ├── api/            # Endpoints (v1)
 │   ├── core/           # Security & DB Setup
+│   ├── jobs/           # Background scheduled tasks
+│   ├── ml_models/      # Keras model files
 │   ├── models/         # SQLAlchemy Schemas
 │   ├── repositories/   # Data Access Layer
 │   ├── services/       # MQTT, WS, ML & Storage logic
-│   └── utils/          # Constants & Helpers
+│   └── utils/          # Constants
 └── frontend/           # Next.js Application
     ├── app/            # App Router (Pages)
     ├── components/     # UI Components (Charts, Admin, User)
+    ├── config/         # Frontend configuration
+    ├── data/           # Static data assets
     ├── hooks/          # Custom Hooks (Auth, WebSocket)
     └── services/       # API & Socket Clients
 ```

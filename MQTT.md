@@ -67,7 +67,9 @@ For 12-lead devices, the payload includes all 12 chest and limb leads.
 | `r4`..`r6` | - | Raw aVR, aVL, aVF | Integer |
 | `r7`..`r12` | - | Raw V1, V2, V3, V4, V5, V6 | Integer |
 | `c1`..`c3` | Cal I, II, V1 | Cal I, II, III | mV |
-| `c4`..`c6` | Cal III, aVF | Cal aVR, aVL, aVF | mV |
+| `c4` | Cal III | Cal aVR | mV |
+| `c5` | Cal aVF | Cal aVL | mV |
+| `c6` | - | Cal aVF | mV |
 | `c7`..`c12` | - | Cal V1, V2, V3, V4, V5, V6 | mV |
 
 ---
