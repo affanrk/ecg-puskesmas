@@ -91,6 +91,17 @@ def create_patient_profile(
         patient_repo.create_patient(
             profile_in, str(current_user.id), source=str(profile_in.source)
         )
+
+        if profile_in.location_id:
+            if not current_user.location_id:
+                user_repo.update(
+                    str(current_user.id), {"location_id": profile_in.location_id}
+                )
+            pat_prof = patient_repo.find_by_user_id(str(current_user.id))
+            if pat_prof and not pat_prof.location_id:
+                setattr(pat_prof, "location_id", profile_in.location_id)
+                patient_repo.db.commit()
+
         updated_user = user_repo.find_by_id(str(current_user.id))
         return GenericResponse(
             status=ApiStatus.SUCCESS,

@@ -1,6 +1,6 @@
 import traceback
 from typing import Optional, List, Any
-from sqlalchemy import or_, update, desc, asc
+from sqlalchemy import or_, and_, update, desc, asc
 from sqlalchemy.orm import Session, joinedload, contains_eager
 from sqlalchemy.sql import func
 from sqlalchemy.exc import IntegrityError, DataError
@@ -130,7 +130,6 @@ class UserRepository(BaseRepository[TbMUser]):
             )
             self.db.add(db_user)
             self.db.commit()
-            self.db.refresh(db_user)
             logger.debug("[UserRepository] Successfully completed create_from_dict.")
             return db_user
         except AppException as e:
@@ -180,7 +179,6 @@ class UserRepository(BaseRepository[TbMUser]):
             )
             self.db.add(db_user)
             self.db.commit()
-            self.db.refresh(db_user)
             logger.debug("[UserRepository] Successfully completed create_user.")
             return db_user
         except AppException as e:
@@ -241,7 +239,6 @@ class UserRepository(BaseRepository[TbMUser]):
             setattr(db_user, "username", new_username)
             setattr(db_user, "changed_by", "USER")
             self.db.commit()
-            self.db.refresh(db_user)
             logger.debug("[UserRepository] Successfully completed update_username.")
             return db_user
         except AppException as e:
@@ -271,7 +268,6 @@ class UserRepository(BaseRepository[TbMUser]):
                 setattr(db_user, "must_reset_password", 0)
 
             self.db.commit()
-            self.db.refresh(db_user)
             logger.debug("[UserRepository] Successfully completed update_password.")
             return db_user
         except AppException as e:
@@ -355,7 +351,6 @@ class UserRepository(BaseRepository[TbMUser]):
             self.db.add(log)
 
             self.db.commit()
-            self.db.refresh(db_user)
             logger.debug(
                 "[UserRepository] Successfully completed update_activation_status."
             )
@@ -380,7 +375,6 @@ class UserRepository(BaseRepository[TbMUser]):
             setattr(user, "is_active", 1)
             setattr(user, "changed_by", changed_by)
             self.db.commit()
-            self.db.refresh(user)
             logger.debug("[UserRepository] Successfully completed activate_user.")
             return user
         except AppException as e:
@@ -401,7 +395,6 @@ class UserRepository(BaseRepository[TbMUser]):
             setattr(user, "is_active", 0)
             setattr(user, "changed_by", changed_by)
             self.db.commit()
-            self.db.refresh(user)
             logger.debug("[UserRepository] Successfully completed deactivate_user.")
             return user
         except AppException as e:
@@ -421,17 +414,21 @@ class UserRepository(BaseRepository[TbMUser]):
         role: Optional[str] = None,
         exclude_admins: bool = True,
         location_id: Optional[str] = None,
+        include_resigned: bool = False,
     ) -> List[TbMUser]:
         logger.debug("[UserRepository] Starting list_all...")
         try:
             query = (
                 self.db.query(TbMUser)
                 .outerjoin(TbMPatient, TbMUser.id == TbMPatient.user_id)
+                .outerjoin(TbMOperator, TbMUser.id == TbMOperator.user_id)
+                .outerjoin(TbMDoctor, TbMUser.id == TbMDoctor.user_id)
                 .options(
                     contains_eager(TbMUser.patient_profile),
+                    contains_eager(TbMUser.operator_profile),
+                    contains_eager(TbMUser.doctor_profile),
                     joinedload(TbMUser.admin_profile),
-                    joinedload(TbMUser.operator_profile),
-                    joinedload(TbMUser.doctor_profile),
+                    joinedload(TbMUser.location_assignments),
                 )
             )
 
@@ -442,6 +439,15 @@ class UserRepository(BaseRepository[TbMUser]):
 
             if location_id:
                 query = query.filter(TbMUser.location_id == location_id)
+
+            if not include_resigned:
+                query = query.filter(
+                    or_(
+                        TbMOperator.status != "RESIGNED",
+                        TbMDoctor.status != "RESIGNED",
+                        and_(TbMOperator.status.is_(None), TbMDoctor.status.is_(None)),
+                    )
+                )
 
             if role:
                 if role == "patient":
@@ -469,6 +475,10 @@ class UserRepository(BaseRepository[TbMUser]):
                         TbMUser.id.ilike(search_filter),
                         TbMPatient.full_name.ilike(search_filter),
                         TbMPatient.nik.ilike(search_filter),
+                        TbMOperator.full_name.ilike(search_filter),
+                        TbMOperator.nik.ilike(search_filter),
+                        TbMDoctor.full_name.ilike(search_filter),
+                        TbMDoctor.nik.ilike(search_filter),
                     )
                 )
 

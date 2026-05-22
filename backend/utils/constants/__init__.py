@@ -49,6 +49,7 @@ from .definitions import (
     LOG_DATE_FORMAT,
     LOG_LEVEL,
 )
+from .error_codes import ErrorCodes
 
 __all__ = [
     "SAMPLING_RATE",
@@ -100,4 +101,5 @@ __all__ = [
     "LOG_FORMAT",
     "LOG_DATE_FORMAT",
     "LOG_LEVEL",
+    "ErrorCodes",
 ]

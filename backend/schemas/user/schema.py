@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from pydantic import (
     BaseModel,
@@ -24,6 +24,7 @@ from utils.helpers.validation import (
 from ..patient.schema import PatientCreate, PatientUpdate, PatientResponse
 from ..operator.schema import OperatorCreate, OperatorUpdate, OperatorResponse
 from ..doctor.schema import DoctorCreate, DoctorUpdate, DoctorResponse
+from ..user_location.schema import StaffLocationResponse
 
 
 class UserBase(BaseModel):
@@ -78,9 +79,9 @@ class UserCreate(UserBase):
 class UserAdminCreate(UserBase):
     password: Optional[str] = Field(
         default=None,
-        description="User's password (defaults to 'admin1234' if not provided)",
+        description="User's password (defaults to 'user1234' if not provided)",
     )
-    role: Optional[str] = Field(default="user", description="User's role")
+    role: str = Field(..., description="User's role")
     location_id: Optional[str] = Field(
         default=None,
         description="Location ID of the Puskesmas/Hospital user registers under",
@@ -140,7 +141,7 @@ class UserAdminCreate(UserBase):
                 "address": "Jl. Merdeka No. 123 (Optional)",
                 "contact_number": "081234567890 (Optional)",
                 "location_id": "LOC20260420000001 (Optional)",
-                "role": "user (Optional)",
+                "role": "user (Required)",
                 "source": "ADMIN (Optional)",
                 "account_status": "ACTIVE (Optional)",
                 "activation_status": "APPROVE (Optional)",
@@ -154,7 +155,7 @@ class UserSuperAdminCreate(UserBase):
         default=None,
         description="User's password (defaults to 'admin1234' if not provided)",
     )
-    role: Optional[str] = Field(default="admin", description="User's role")
+    role: str = Field(default="admin", description="Admin's role")
     location_id: Optional[str] = Field(
         default=None,
         description="Location ID of the Puskesmas/Hospital user registers under",
@@ -212,7 +213,7 @@ class UserSuperAdminCreate(UserBase):
                 "address": "Jl. Merdeka No. 123 (Optional)",
                 "contact_number": "081234567890 (Optional)",
                 "location_id": "LOC20260420000001 (Required)",
-                "role": "admin (Optional)",
+                "role": "admin (Required)",
                 "source": "SUPERADMIN (Optional)",
                 "account_status": "ACTIVE (Optional)",
                 "activation_status": "APPROVE (Optional)",
@@ -332,6 +333,9 @@ class UserResponse(UserBase):
         default=None, description="Associated admin profile"
     )
     location_id: Optional[str] = Field(default=None, description="Primary location ID")
+    location_assignments: Optional[List[StaffLocationResponse]] = Field(
+        default=None, description="All assigned locations for staff members"
+    )
 
     model_config = ConfigDict(
         populate_by_name=True,

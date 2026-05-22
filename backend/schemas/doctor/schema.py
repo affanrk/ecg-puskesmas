@@ -22,14 +22,17 @@ class DoctorBase(BaseModel):
     str_number: str = Field(
         ..., description="Medical Registration Certificate (STR) number"
     )
+    str_expiry_date: Optional[date] = Field(
+        default=None, description="STR expiration date"
+    )
     sip_number: str = Field(..., description="Medical Practice License (SIP) number")
+    sip_expiry_date: Optional[date] = Field(
+        default=None, description="SIP expiration date"
+    )
     specialty: str = Field(..., description="Doctor's medical specialty")
     address: Optional[str] = Field(default=None, description="Residential address")
     contact_number: Optional[str] = Field(
         default=None, description="Contact phone number"
-    )
-    work_location: Optional[str] = Field(
-        default=None, description="Primary work location or hospital"
     )
 
     model_config = ConfigDict(
@@ -43,11 +46,12 @@ class DoctorBase(BaseModel):
                 "dob": "1980-05-15 (Required)",
                 "gender": "Female (Required)",
                 "str_number": "1234567890123456 (Required)",
+                "str_expiry_date": "2027-12-31 (Optional)",
                 "sip_number": "0987654321098765 (Required)",
+                "sip_expiry_date": "2027-12-31 (Optional)",
                 "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah (Required)",
                 "address": "Jl. Kesehatan No. 123 (Optional)",
                 "contact_number": "081234567890 (Optional)",
-                "work_location": "RSUD Jakarta (Optional)",
             }
         },
     )
@@ -70,6 +74,7 @@ class DoctorCreate(DoctorBase):
     source: Optional[str] = Field(
         default="WEB", description="Source of the registration request"
     )
+    location_id: str = Field(..., description="Location ID of the Puskesmas/Hospital")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -84,11 +89,13 @@ class DoctorCreate(DoctorBase):
                 "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah (Required)",
                 "address": "Jl. Kesehatan No. 123 (Optional)",
                 "contact_number": "081234567890 (Optional)",
-                "work_location": "RSUD Jakarta (Optional)",
+                "location_id": "LOC20260420000001 (Required)",
                 "source": "WEB (Optional)",
             }
         }
     )
+
+    _validate_location_id = field_validator("location_id")(validate_required_string)
 
 
 class DoctorUpdate(BaseModel):
@@ -104,11 +111,14 @@ class DoctorUpdate(BaseModel):
     str_number: str = Field(
         ..., description="Medical Registration Certificate (STR) number"
     )
-    sip_number: str = Field(..., description="Medical Practice License (SIP) number")
-    specialty: str = Field(..., description="Doctor's medical specialty")
-    work_location: Optional[str] = Field(
-        default=None, description="Primary work location or hospital"
+    str_expiry_date: Optional[date] = Field(
+        default=None, description="STR expiration date"
     )
+    sip_number: str = Field(..., description="Medical Practice License (SIP) number")
+    sip_expiry_date: Optional[date] = Field(
+        default=None, description="SIP expiration date"
+    )
+    specialty: str = Field(..., description="Doctor's medical specialty")
     source: Optional[str] = Field(
         default="WEB", description="Source of the update request"
     )
@@ -129,7 +139,6 @@ class DoctorUpdate(BaseModel):
                 "specialty": "Sp.JP (Required)",
                 "address": "Jl. Baru No. 456 (Optional)",
                 "contact_number": "081987654321 (Optional)",
-                "work_location": "RSUD Jakarta (Optional)",
                 "source": "WEB (Optional)",
             },
         },
@@ -151,8 +160,11 @@ class DoctorUpdate(BaseModel):
 class DoctorResponse(DoctorBase):
     id: str = Field(..., description="Unique identifier for the doctor profile")
     user_id: str = Field(..., description="Associated user account identifier")
+    location_id: Optional[str] = Field(default=None, description="Assigned location ID")
+    status: Optional[str] = Field(default=None, description="Approval status")
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "doc_12345",
@@ -167,7 +179,8 @@ class DoctorResponse(DoctorBase):
                 "specialty": "Sp.JP - Spesialis Jantung dan Pembuluh Darah",
                 "address": "Jl. Kesehatan No. 123",
                 "contact_number": "081234567890",
-                "work_location": "RSUD Jakarta",
+                "location_id": "LOC20260420000001",
+                "status": "APPROVED",
             }
         }
     )

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, ForeignKey
+from sqlalchemy import Column, String, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
 from typing import TYPE_CHECKING, Optional
@@ -50,11 +50,14 @@ class TbMOperator(Base, AuditMixin):
     str_number = Column(
         String(50), nullable=False, comment="Surat Tanda Registrasi (STR) Number"
     )
+    str_expiry_date = Column(
+        Date,
+        nullable=True,
+        index=True,
+        comment="STR expiration date",
+    )
     operator_role = Column(
         String(50), nullable=False, comment="Role: Nurse or General Practitioner"
-    )
-    work_location = Column(
-        String(100), nullable=True, comment="Clinic or Puskesmas branch name"
     )
 
     status = Column(
@@ -63,6 +66,19 @@ class TbMOperator(Base, AuditMixin):
         index=True,
         nullable=False,
         comment="Operator status (QUEUE, APPROVED, REJECTED)",
+    )
+
+    resignation_date = Column(
+        Date,
+        nullable=True,
+        index=True,
+        comment="Date when the operator resigned",
+    )
+
+    anonymized_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when the operator data was anonymized for GDPR compliance",
     )
 
     user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="operator_profile")

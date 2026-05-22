@@ -1,5 +1,7 @@
 import traceback
+from datetime import datetime, timedelta
 from typing import Optional, List
+import pytz
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
@@ -7,6 +9,7 @@ from models import TbMPatient, TbMUser, TbRLogApproval, TbREcgSession, TbRPerfor
 from models.session import TbREcgSessionParameter
 
 from schemas.patient import PatientUpdate, PatientCreate
+from core.config import settings
 from core.exceptions import DatabaseException, DuplicateNIKException, AppException
 from repositories.base import BaseRepository
 from utils.helpers.id_generator import generate_custom_id
@@ -107,6 +110,7 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 address=patient_in.address,
                 contact_number=patient_in.contact_number,
                 medical_history=patient_in.medical_history,
+                location_id=getattr(patient_in, "location_id", None),
                 status=initial_status,
                 created_by=source,
             )
@@ -131,10 +135,10 @@ class PatientRepository(BaseRepository[TbMPatient]):
                 setattr(db_user, "is_patient", True)
                 setattr(db_user, "is_operator", False)
                 setattr(db_user, "is_doctor", False)
+                setattr(db_user, "role", "patient")
                 setattr(db_user, "changed_by", source)
 
             self.db.commit()
-            self.db.refresh(patient)
             logger.info(
                 f"[Patient] Created patient profile {patient_id} for User {user_id}"
             )
@@ -185,7 +189,6 @@ class PatientRepository(BaseRepository[TbMPatient]):
             )
             self.db.add(patient)
             self.db.commit()
-            self.db.refresh(patient)
             logger.info(
                 f"[Patient] Walk-in patient {patient_id} created by operator {operator_id}"
             )
@@ -389,7 +392,6 @@ class PatientRepository(BaseRepository[TbMPatient]):
 
             setattr(patient, "changed_by", admin_id)
             self.db.commit()
-            self.db.refresh(patient)
             logger.debug(
                 "[PatientRepository] Successfully completed update_walkin_patient."
             )
@@ -401,6 +403,87 @@ class PatientRepository(BaseRepository[TbMPatient]):
             self.db.rollback()
             logger.error(
                 f"[PatientRepository] Unexpected error in update_walkin_patient: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def lock_walkin_patient(
+        self, patient_id: str, operator_id: str, lock_timeout_minutes: int = 30
+    ) -> dict:
+        logger.debug("[PatientRepository] Starting lock_walkin_patient...")
+        try:
+            jakarta_tz = pytz.timezone(settings.TIMEZONE)
+            now = datetime.now(jakarta_tz)
+
+            patient = self.find_walkin_by_id(patient_id)
+            if not patient:
+                return {"success": False, "message": "Patient not found"}
+
+            if patient.locked_by and patient.locked_by != operator_id:
+                if patient.locked_at:
+                    lock_age = now - patient.locked_at.replace(tzinfo=jakarta_tz)
+                    if lock_age < timedelta(minutes=lock_timeout_minutes):
+                        return {
+                            "success": False,
+                            "message": "Patient is currently locked by another operator",
+                            "locked_by": patient.locked_by,
+                        }
+
+            setattr(patient, "locked_by", operator_id)
+            setattr(patient, "locked_at", now)
+            self.db.commit()
+
+            logger.info(
+                f"[Patient] Patient {patient_id} locked by operator {operator_id}"
+            )
+            logger.debug(
+                "[PatientRepository] Successfully completed lock_walkin_patient."
+            )
+            return {"success": True, "message": "Patient locked successfully"}
+
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[PatientRepository] Unexpected error in lock_walkin_patient: {e}"
+            )
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def unlock_walkin_patient(self, patient_id: str, operator_id: str) -> dict:
+        logger.debug("[PatientRepository] Starting unlock_walkin_patient...")
+        try:
+            patient = self.find_walkin_by_id(patient_id)
+            if not patient:
+                return {"success": False, "message": "Patient not found"}
+
+            if patient.locked_by != operator_id:
+                return {
+                    "success": False,
+                    "message": "Patient is not locked by this operator",
+                }
+
+            setattr(patient, "locked_by", None)
+            setattr(patient, "locked_at", None)
+            self.db.commit()
+
+            logger.info(
+                f"[Patient] Patient {patient_id} unlocked by operator {operator_id}"
+            )
+            logger.debug(
+                "[PatientRepository] Successfully completed unlock_walkin_patient."
+            )
+            return {"success": True, "message": "Patient unlocked successfully"}
+
+        except AppException as e:
+            self.db.rollback()
+            raise e
+        except Exception as e:
+            self.db.rollback()
+            logger.error(
+                f"[PatientRepository] Unexpected error in unlock_walkin_patient: {e}"
             )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
@@ -450,6 +533,34 @@ class PatientRepository(BaseRepository[TbMPatient]):
             raise e
         except Exception as e:
             logger.error(f"[PatientRepository] Unexpected error in list_all: {e}")
+            traceback.print_exc()
+            raise DatabaseException("Database operation failed")
+
+    def list_locked_walkin_patients_by_operator(
+        self, operator_id: str
+    ) -> List[TbMPatient]:
+        logger.debug(
+            "[PatientRepository] Starting list_locked_walkin_patients_by_operator..."
+        )
+        try:
+            results = (
+                self.db.query(TbMPatient)
+                .filter(
+                    TbMPatient.locked_by == operator_id,
+                    TbMPatient.user_id.is_(None),
+                )
+                .all()
+            )
+            logger.debug(
+                "[PatientRepository] Successfully completed list_locked_walkin_patients_by_operator."
+            )
+            return results
+        except AppException as e:
+            raise e
+        except Exception as e:
+            logger.error(
+                f"[PatientRepository] Unexpected error in list_locked_walkin_patients_by_operator: {e}"
+            )
             traceback.print_exc()
             raise DatabaseException("Database operation failed")
 
@@ -540,7 +651,6 @@ class PatientRepository(BaseRepository[TbMPatient]):
             )
             self.db.add(log)
             self.db.commit()
-            self.db.refresh(patient)
             logger.info(
                 f"[Patient] Walk-in patient {patient_id} converted to registered user {user_id}"
             )

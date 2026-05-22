@@ -8,9 +8,11 @@ from core.dependencies import (
     get_doctor_repository,
     get_doctor_user,
     get_unassigned_user,
+    get_user_location_repository,
 )
 from repositories.user import UserRepository
 from repositories.doctor import DoctorRepository
+from repositories.user_location import UserLocationRepository
 from core.exceptions.definitions import AppException
 from schemas.doctor import DoctorUpdate, DoctorCreate
 from schemas.common import GenericResponse, ApiStatus
@@ -57,6 +59,7 @@ def create_doctor_profile(
     current_user: TbMUser = Depends(get_unassigned_user),
     user_repo: UserRepository = Depends(get_user_repository),
     doctor_repo: DoctorRepository = Depends(get_doctor_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
 ):
     try:
         if doctor_repo.find_by_user_id(str(current_user.id)):
@@ -65,6 +68,26 @@ def create_doctor_profile(
         doctor_repo.create_doctor(
             profile_in, str(current_user.id), source=str(profile_in.source)
         )
+
+        if profile_in.location_id:
+            if not current_user.location_id:
+                user_repo.update(
+                    str(current_user.id), {"location_id": profile_in.location_id}
+                )
+            doc_prof = doctor_repo.find_by_user_id(str(current_user.id))
+            if doc_prof and not doc_prof.location_id:
+                setattr(doc_prof, "location_id", profile_in.location_id)
+                doctor_repo.db.commit()
+            try:
+                user_location_repo.create_user_location(
+                    user_id=str(current_user.id),
+                    location_id=profile_in.location_id,
+                    assigned_by_id=str(current_user.id),
+                    is_primary=True,
+                )
+            except Exception:
+                pass
+
         updated_user = user_repo.find_by_id(str(current_user.id))
         return GenericResponse(
             status=ApiStatus.SUCCESS,

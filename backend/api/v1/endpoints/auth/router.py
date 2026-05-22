@@ -1,14 +1,17 @@
 import uuid
 import traceback
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+import hashlib
+from datetime import timedelta, datetime
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from core import settings, verify_password, create_access_token
 from core.dependencies import (
     get_current_user,
     get_user_repository,
+    get_session_registry_repository,
 )
 from repositories.user import UserRepository
+from repositories.session_registry import SessionRegistryRepository
 from services.device import device_state_manager
 from core.exceptions.definitions import AppException
 from schemas.auth import Token, UserLogin
@@ -38,7 +41,14 @@ def register(
 
         user_in.role = "user"
         user = user_repo.create_user(user_in)
-        logger.info(f"[Auth] New user registered: {user.username} ({user.email})")
+        logger.info(
+            f"[Auth] New user registered: {user.username} ({user.email})"
+            + (
+                f" at location {user_in.location_id}"
+                if user_in.location_id
+                else " without location"
+            )
+        )
         return GenericResponse(
             status=ApiStatus.SUCCESS, data=user, message="User registered successfully"
         )
@@ -52,7 +62,12 @@ def register(
 
 @router.post("/login", response_model=GenericResponse[Token])
 async def login(
-    login_data: UserLogin, user_repo: UserRepository = Depends(get_user_repository)
+    request: Request,
+    login_data: UserLogin,
+    user_repo: UserRepository = Depends(get_user_repository),
+    session_registry_repo: SessionRegistryRepository = Depends(
+        get_session_registry_repository
+    ),
 ):
     try:
         user = user_repo.find_by_identifier(identifier=login_data.username_or_email)
@@ -87,6 +102,20 @@ async def login(
         access_token = create_access_token(
             data={"sub": user.email, "role": user.role, "sid": session_id},
             expires_delta=access_token_expires,
+        )
+
+        token_hash = hashlib.sha256(access_token.encode()).hexdigest()
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "unknown")
+        expires_dt = datetime.now() + access_token_expires
+
+        session_registry_repo.create_session(
+            user_id=str(user.id),
+            session_id=session_id,
+            token_hash=token_hash,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            expires_dt=expires_dt,
         )
 
         logger.info(

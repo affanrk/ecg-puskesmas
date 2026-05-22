@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, ForeignKey
+from sqlalchemy import Column, String, Date, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
 from typing import TYPE_CHECKING, Optional
@@ -50,13 +50,22 @@ class TbMDoctor(Base, AuditMixin):
     str_number = Column(
         String(50), nullable=False, comment="Surat Tanda Registrasi (STR) Number"
     )
+    str_expiry_date = Column(
+        Date,
+        nullable=True,
+        index=True,
+        comment="STR expiration date",
+    )
     sip_number = Column(
         String(50), nullable=False, comment="Surat Izin Praktik (SIP) Number"
     )
-    specialty = Column(String(100), nullable=False, comment="Medical Specialty")
-    work_location = Column(
-        String(100), nullable=True, comment="Hospital or main practice location"
+    sip_expiry_date = Column(
+        Date,
+        nullable=True,
+        index=True,
+        comment="SIP expiration date",
     )
+    specialty = Column(String(100), nullable=False, comment="Medical Specialty")
 
     status = Column(
         String(20),
@@ -64,6 +73,19 @@ class TbMDoctor(Base, AuditMixin):
         index=True,
         nullable=False,
         comment="Doctor status (QUEUE, APPROVED, REJECTED)",
+    )
+
+    resignation_date = Column(
+        Date,
+        nullable=True,
+        index=True,
+        comment="Date when the doctor resigned",
+    )
+
+    anonymized_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when the doctor data was anonymized for GDPR compliance",
     )
 
     user: Mapped["TbMUser"] = relationship("TbMUser", back_populates="doctor_profile")

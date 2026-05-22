@@ -5,6 +5,7 @@ from .operator import OperatorRepository
 from .doctor import DoctorRepository
 from .user import UserRepository
 from .session import SessionRepository
+from .session_registry import SessionRegistryRepository
 from .raw_data import (
     RawData5LeadsRepository,
     RawData12LeadsRepository,
@@ -13,6 +14,10 @@ from .raw_data import (
 )
 from .performance import PerformanceRepository
 from .approval import ApprovalRepository
+from .location import LocationRepository
+from .user_location import UserLocationRepository
+from .patient_doctor import PatientDoctorRepository
+from .audit import AuditRepository
 
 __all__ = [
     "BaseRepository",
@@ -22,10 +27,15 @@ __all__ = [
     "DoctorRepository",
     "UserRepository",
     "SessionRepository",
+    "SessionRegistryRepository",
     "RawData5LeadsRepository",
     "RawData12LeadsRepository",
     "RawData5LeadsMobileRepository",
     "RawData12LeadsMobileRepository",
     "PerformanceRepository",
     "ApprovalRepository",
+    "LocationRepository",
+    "UserLocationRepository",
+    "PatientDoctorRepository",
+    "AuditRepository",
 ]

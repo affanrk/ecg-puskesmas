@@ -13,6 +13,10 @@ if TYPE_CHECKING:
     from ..location.model import TbMLocation
     from ..user_location.model import TbRUserLocation
     from ..patient_doctor.model import TbRPatientDoctor
+    from ..session_registry.model import TbRSessionRegistry
+    from ..audit.model import TbRAuditLog
+    from ..transfer_request.model import TbRTransferRequest
+    from ..additional_location_request.model import TbRAdditionalLocationRequest
 
 
 class TbMUser(Base, AuditMixin):
@@ -163,6 +167,40 @@ class TbMUser(Base, AuditMixin):
         foreign_keys="TbRPatientDoctor.doctor_id",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+
+    session_registry: Mapped[List["TbRSessionRegistry"]] = relationship(
+        "TbRSessionRegistry",
+        back_populates="user",
+        foreign_keys="TbRSessionRegistry.user_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    audit_logs: Mapped[List["TbRAuditLog"]] = relationship(
+        "TbRAuditLog",
+        back_populates="actor",
+        foreign_keys="TbRAuditLog.actor_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    transfer_requests: Mapped[List["TbRTransferRequest"]] = relationship(
+        "TbRTransferRequest",
+        back_populates="user",
+        foreign_keys="TbRTransferRequest.user_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    additional_location_requests: Mapped[List["TbRAdditionalLocationRequest"]] = (
+        relationship(
+            "TbRAdditionalLocationRequest",
+            back_populates="user",
+            foreign_keys="TbRAdditionalLocationRequest.user_id",
+            cascade="all, delete-orphan",
+            passive_deletes=True,
+        )
     )
 
     @property

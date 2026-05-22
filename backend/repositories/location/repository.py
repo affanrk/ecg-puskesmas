@@ -73,7 +73,6 @@ class LocationRepository(BaseRepository[TbMLocation]):
             )
             self.db.add(location)
             self.db.commit()
-            self.db.refresh(location)
             logger.debug("[LocationRepository] Successfully completed create.")
             return location
         except AppException as e:
@@ -106,7 +105,6 @@ class LocationRepository(BaseRepository[TbMLocation]):
                     setattr(location, field, value)
             setattr(location, "changed_by", changed_by)
             self.db.commit()
-            self.db.refresh(location)
             logger.debug("[LocationRepository] Successfully completed update_location.")
             return location
         except AppException as e:
@@ -131,7 +129,6 @@ class LocationRepository(BaseRepository[TbMLocation]):
             setattr(location, "is_active", True)
             setattr(location, "changed_by", changed_by)
             self.db.commit()
-            self.db.refresh(location)
             logger.debug(
                 "[LocationRepository] Successfully completed activate_location."
             )
@@ -157,7 +154,6 @@ class LocationRepository(BaseRepository[TbMLocation]):
             setattr(location, "is_active", False)
             setattr(location, "changed_by", changed_by)
             self.db.commit()
-            self.db.refresh(location)
             logger.debug(
                 "[LocationRepository] Successfully completed deactivate_location."
             )
@@ -209,7 +205,7 @@ class LocationRepository(BaseRepository[TbMLocation]):
         try:
             return (
                 self.db.query(TbMLocation)
-                .filter(TbMLocation.is_active == 1)
+                .filter(TbMLocation.is_active)
                 .order_by(TbMLocation.name)
                 .all()
             )

@@ -3,7 +3,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session, contains_eager
 from sqlalchemy import or_
 from datetime import datetime
-import pytz
+import pytz  # type: ignore
 
 from models import TbRLogApproval, TbMPatient, TbMUser
 from repositories.base import BaseRepository
@@ -35,7 +35,6 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
             )
             self.db.add(log)
             self.db.commit()
-            self.db.refresh(log)
             logger.info(
                 f"[Approval] Created approval log for user {user_id} with status {status}"
             )
@@ -83,12 +82,16 @@ class ApprovalRepository(BaseRepository[TbRLogApproval]):
 
             if start_date:
                 jakarta_tz = pytz.timezone(settings.TIMEZONE)
-                start_dt = jakarta_tz.localize(datetime.strptime(start_date, '%Y-%m-%d'))
+                start_dt = jakarta_tz.localize(
+                    datetime.strptime(start_date, "%Y-%m-%d")
+                )
                 start_dt_utc = start_dt.astimezone(pytz.UTC)
                 query = query.filter(TbRLogApproval.created_dt >= start_dt_utc)
             if end_date:
                 jakarta_tz = pytz.timezone(settings.TIMEZONE)
-                end_dt = jakarta_tz.localize(datetime.strptime(f"{end_date} 23:59:59", '%Y-%m-%d %H:%M:%S'))
+                end_dt = jakarta_tz.localize(
+                    datetime.strptime(f"{end_date} 23:59:59", "%Y-%m-%d %H:%M:%S")
+                )
                 end_dt_utc = end_dt.astimezone(pytz.UTC)
                 query = query.filter(TbRLogApproval.created_dt <= end_dt_utc)
 

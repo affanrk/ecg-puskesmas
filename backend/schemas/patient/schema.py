@@ -62,6 +62,7 @@ class PatientCreate(PatientBase):
     source: Optional[str] = Field(
         default="WEB", description="Source of the registration request"
     )
+    location_id: str = Field(..., description="Location ID of the Puskesmas/Hospital")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -74,10 +75,13 @@ class PatientCreate(PatientBase):
                 "address": "Jl. Sudirman No. 5 (Optional)",
                 "contact_number": "081999888777 (Optional)",
                 "medical_history": "Hipertensi (Optional)",
+                "location_id": "LOC20260420000001 (Required)",
                 "source": "WEB (Optional)",
             }
         }
     )
+
+    _validate_location_id = field_validator("location_id")(validate_required_string)
 
 
 class WalkinPatientCreate(BaseModel):
@@ -225,6 +229,7 @@ class WalkinPatientResponse(BaseModel):
 
     id: str
     user_id: Optional[str] = None
+    location_id: Optional[str] = None
     full_name: str
     nik: Optional[str] = None
     pob: str
@@ -234,6 +239,8 @@ class WalkinPatientResponse(BaseModel):
     contact_number: Optional[str] = None
     medical_history: Optional[str] = None
     status: str
+    locked_by: Optional[str] = None
+    locked_at: Optional[datetime] = None
     created_by: Optional[str] = None
     created_dt: Optional[datetime] = None
     changed_dt: Optional[datetime] = None

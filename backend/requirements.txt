@@ -37,3 +37,6 @@ matplotlib
 pydantic
 pydantic_settings
 email-validator
+
+# Type Stubs
+types-pytz

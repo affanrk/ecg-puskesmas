@@ -18,6 +18,10 @@ from .approval import TbRLogApproval
 from .user_location import TbRUserLocation
 from .patient_doctor import TbRPatientDoctor
 from .sequence import TbMSequence
+from .session_registry import TbRSessionRegistry
+from .audit import TbRAuditLog
+from .additional_location_request import TbRAdditionalLocationRequest
+from .transfer_request import TbRTransferRequest
 
 __all__ = [
     "Base",
@@ -38,4 +42,8 @@ __all__ = [
     "TbRUserLocation",
     "TbRPatientDoctor",
     "TbMSequence",
+    "TbRSessionRegistry",
+    "TbRAuditLog",
+    "TbRAdditionalLocationRequest",
+    "TbRTransferRequest",
 ]

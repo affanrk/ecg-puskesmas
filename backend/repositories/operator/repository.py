@@ -68,7 +68,7 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 contact_number=operator_in.contact_number,
                 str_number=operator_in.str_number,
                 operator_role=operator_in.operator_role,
-                work_location=operator_in.work_location,
+                location_id=getattr(operator_in, "location_id", None),
                 status=initial_status,
                 created_by=source,
             )
@@ -93,10 +93,10 @@ class OperatorRepository(BaseRepository[TbMOperator]):
                 setattr(db_user, "is_patient", False)
                 setattr(db_user, "is_operator", True)
                 setattr(db_user, "is_doctor", False)
+                setattr(db_user, "role", "operator")
                 setattr(db_user, "changed_by", source)
 
             self.db.commit()
-            self.db.refresh(operator)
             logger.info(
                 f"[Operator] Created operator profile {operator_id} for User {user_id}"
             )

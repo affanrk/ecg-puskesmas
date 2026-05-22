@@ -10,6 +10,9 @@ from .analysis import (
 )
 from .mqtt import mqtt_service, mqtt_data_handler
 from .export import plot_generator
+from .audit_logging import AuditLoggingService
+from .anonymization import AnonymizationService
+from .location_assignment import LocationAssignmentService
 
 __all__ = [
     "feature_extractor_5leads",
@@ -25,4 +28,7 @@ __all__ = [
     "mqtt_data_handler",
     "recording_storage_service",
     "plot_generator",
+    "AuditLoggingService",
+    "AnonymizationService",
+    "LocationAssignmentService",
 ]

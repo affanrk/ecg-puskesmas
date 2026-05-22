@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, Text, ForeignKey
+from sqlalchemy import Column, String, Date, Text, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, Mapped
 from ..base import Base, AuditMixin
 from typing import TYPE_CHECKING, Optional, List
@@ -57,6 +57,17 @@ class TbMPatient(Base, AuditMixin):
         index=True,
         nullable=False,
         comment="Patient status (QUEUE, APPROVED, REJECTED, WALKIN)",
+    )
+    locked_by = Column(
+        String(30),
+        nullable=True,
+        index=True,
+        comment="Operator ID who has locked this patient for monitoring",
+    )
+    locked_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when patient was locked",
     )
 
     user: Mapped[Optional["TbMUser"]] = relationship(

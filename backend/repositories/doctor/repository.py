@@ -72,7 +72,6 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
                 str_number=doctor_in.str_number,
                 sip_number=doctor_in.sip_number,
                 specialty=doctor_in.specialty,
-                work_location=doctor_in.work_location,
                 status=initial_status,
                 created_by=source,
             )
@@ -97,10 +96,10 @@ class DoctorRepository(BaseRepository[TbMDoctor]):
                 setattr(db_user, "is_patient", False)
                 setattr(db_user, "is_operator", False)
                 setattr(db_user, "is_doctor", True)
+                setattr(db_user, "role", "doctor")
                 setattr(db_user, "changed_by", source)
 
             self.db.commit()
-            self.db.refresh(doctor)
             logger.info(
                 f"[Doctor] Created doctor profile {doctor_id} for User {user_id}"
             )

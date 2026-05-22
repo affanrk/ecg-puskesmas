@@ -1,5 +1,14 @@
 from typing import TYPE_CHECKING
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    UniqueConstraint,
+    Index,
+    text,
+)
 from sqlalchemy.orm import relationship, Mapped
 from sqlalchemy.sql import func
 from ..base import Base, AuditMixin
@@ -66,4 +75,11 @@ class TbRUserLocation(Base, AuditMixin):
 
     __table_args__ = (
         UniqueConstraint("user_id", "location_id", name="uq_user_location"),
+        Index(
+            "uq_user_primary_location",
+            "user_id",
+            "is_primary",
+            unique=True,
+            postgresql_where=text("is_primary = TRUE"),
+        ),
     )

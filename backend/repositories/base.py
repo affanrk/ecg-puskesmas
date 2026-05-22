@@ -126,7 +126,6 @@ class BaseRepository(Generic[ModelType]):
         try:
             self.db.add(obj)
             self.db.commit()
-            self.db.refresh(obj)
             logger.debug(
                 f"[BaseRepository] Successfully completed create {self.model.__name__}."
             )

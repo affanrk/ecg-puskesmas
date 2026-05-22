@@ -12,6 +12,8 @@ if TYPE_CHECKING:
     from ..session.model import TbREcgSession
     from ..user_location.model import TbRUserLocation
     from ..patient_doctor.model import TbRPatientDoctor
+    from ..audit.model import TbRAuditLog
+    from ..additional_location_request.model import TbRAdditionalLocationRequest
 
 
 class TbMLocation(Base, AuditMixin):
@@ -77,4 +79,10 @@ class TbMLocation(Base, AuditMixin):
     )
     sessions: Mapped[List["TbREcgSession"]] = relationship(
         "TbREcgSession", back_populates="location"
+    )
+    audit_logs: Mapped[List["TbRAuditLog"]] = relationship(
+        "TbRAuditLog", back_populates="location", foreign_keys="TbRAuditLog.location_id"
+    )
+    additional_location_requests: Mapped[List["TbRAdditionalLocationRequest"]] = (
+        relationship("TbRAdditionalLocationRequest", back_populates="location")
     )

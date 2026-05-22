@@ -20,13 +20,13 @@ class OperatorBase(BaseModel):
     dob: date = Field(..., description="Date of birth")
     gender: str = Field(..., description="Gender of the operator")
     str_number: str = Field(..., description="Registration Certificate Number")
+    str_expiry_date: Optional[date] = Field(
+        default=None, description="STR expiration date"
+    )
     operator_role: str = Field(..., description="Role of the operator")
     address: Optional[str] = Field(default=None, description="Residential address")
     contact_number: Optional[str] = Field(
         default=None, description="Contact phone number"
-    )
-    work_location: Optional[str] = Field(
-        default=None, description="Primary work location"
     )
 
     model_config = ConfigDict(
@@ -40,10 +40,10 @@ class OperatorBase(BaseModel):
                 "dob": "1990-01-01 (Required)",
                 "gender": "Female (Required)",
                 "str_number": "9876543210987654 (Required)",
+                "str_expiry_date": "2027-12-31 (Optional)",
                 "operator_role": "Nurse (Required)",
                 "address": "Jl. Mawar No. 10 (Optional)",
                 "contact_number": "08111222333 (Optional)",
-                "work_location": "Puskesmas Melati (Optional)",
             }
         },
     )
@@ -63,6 +63,7 @@ class OperatorBase(BaseModel):
 class OperatorCreate(OperatorBase):
     nik: str = Field(..., description="National Identity Number (NIK)")
     source: Optional[str] = Field(default="WEB", description="Registration source")
+    location_id: str = Field(..., description="Location ID of the Puskesmas/Hospital")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -76,11 +77,13 @@ class OperatorCreate(OperatorBase):
                 "operator_role": "General Practitioner (Required)",
                 "address": "Jl. Mawar No. 10 (Optional)",
                 "contact_number": "08111222333 (Optional)",
-                "work_location": "Puskesmas Melati (Optional)",
+                "location_id": "LOC20260420000001 (Required)",
                 "source": "WEB (Optional)",
             }
         }
     )
+
+    _validate_location_id = field_validator("location_id")(validate_required_string)
 
 
 class OperatorUpdate(BaseModel):
@@ -94,10 +97,10 @@ class OperatorUpdate(BaseModel):
         default=None, description="Contact phone number"
     )
     str_number: str = Field(..., description="Registration Certificate Number")
-    operator_role: str = Field(..., description="Role of the operator")
-    work_location: Optional[str] = Field(
-        default=None, description="Primary work location"
+    str_expiry_date: Optional[date] = Field(
+        default=None, description="STR expiration date"
     )
+    operator_role: str = Field(..., description="Role of the operator")
     source: Optional[str] = Field(default="WEB", description="Update source")
 
     model_config = ConfigDict(
@@ -115,7 +118,6 @@ class OperatorUpdate(BaseModel):
                 "operator_role": "General Practitioner (Required)",
                 "address": "Jl. Melati No. 20 (Optional)",
                 "contact_number": "08111222333 (Optional)",
-                "work_location": "Puskesmas Melati (Optional)",
                 "source": "WEB (Optional)",
             },
         },
@@ -136,8 +138,11 @@ class OperatorUpdate(BaseModel):
 class OperatorResponse(OperatorBase):
     id: str = Field(..., description="Unique identifier for the operator profile")
     user_id: str = Field(..., description="Associated user account identifier")
+    location_id: Optional[str] = Field(default=None, description="Assigned location ID")
+    status: Optional[str] = Field(default=None, description="Approval status")
 
     model_config = ConfigDict(
+        from_attributes=True,
         json_schema_extra={
             "example": {
                 "id": "opr_12345",
@@ -151,7 +156,8 @@ class OperatorResponse(OperatorBase):
                 "operator_role": "Nurse",
                 "address": "Jl. Mawar No. 10",
                 "contact_number": "08111222333",
-                "work_location": "Puskesmas Melati",
+                "location_id": "LOC20260420000001",
+                "status": "APPROVED",
             }
         }
     )

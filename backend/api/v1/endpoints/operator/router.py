@@ -11,6 +11,8 @@ from core.dependencies import (
     get_unassigned_user,
     get_operator_repository,
     get_user_repository,
+    get_staff_primary_location,
+    get_user_location_repository,
 )
 from models import TbMUser
 from schemas.patient import (
@@ -23,6 +25,7 @@ from repositories.patient import PatientRepository
 from repositories.session import SessionRepository
 from repositories.operator import OperatorRepository
 from repositories.user import UserRepository
+from repositories.user_location import UserLocationRepository
 from utils import logger
 from core.exceptions import AppException
 from pydantic import BaseModel
@@ -220,6 +223,7 @@ def create_operator_profile(
     current_user: TbMUser = Depends(get_unassigned_user),
     user_repo: UserRepository = Depends(get_user_repository),
     operator_repo: OperatorRepository = Depends(get_operator_repository),
+    user_location_repo: UserLocationRepository = Depends(get_user_location_repository),
 ):
     try:
         if operator_repo.find_by_user_id(str(current_user.id)):
@@ -230,6 +234,22 @@ def create_operator_profile(
         operator_repo.create_operator(
             profile_in, str(current_user.id), source=str(profile_in.source)
         )
+
+        if profile_in.location_id:
+            if not current_user.location_id:
+                user_repo.update(
+                    str(current_user.id), {"location_id": profile_in.location_id}
+                )
+            try:
+                user_location_repo.create_user_location(
+                    user_id=str(current_user.id),
+                    location_id=profile_in.location_id,
+                    assigned_by_id=str(current_user.id),
+                    is_primary=True,
+                )
+            except Exception:
+                pass
+
         updated_user = user_repo.find_by_id(str(current_user.id))
         return GenericResponse(
             status=ApiStatus.SUCCESS,
@@ -260,6 +280,7 @@ async def get_patients(
         None, alias="status", description="Filter by patient status"
     ),
     current_user: TbMUser = Depends(get_activated_operator_user),
+    location_id: Optional[str] = Depends(get_staff_primary_location),
     patient_repo: PatientRepository = Depends(get_patient_repository),
 ):
     try:
@@ -269,6 +290,7 @@ async def get_patients(
             search=search,
             status=patient_status,
             only_walkins=False,
+            location_id=location_id,
         )
 
         return GenericResponse(
@@ -280,6 +302,76 @@ async def get_patients(
         raise
     except Exception as e:
         logger.error(f"[OperatorEndpoint] Failed to retrieve patients: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/patients/{patient_id}/lock",
+    response_model=GenericResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Lock a walk-in patient for exclusive monitoring",
+)
+async def lock_walkin_patient_for_monitoring(
+    patient_id: str,
+    current_user: TbMUser = Depends(get_activated_operator_user),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        operator_id = str(current_user.id)
+        result = patient_repo.lock_walkin_patient(patient_id, operator_id)
+
+        if not result["success"]:
+            return GenericResponse(
+                status=ApiStatus.ERROR,
+                data=result,
+                message=result["message"],
+            )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=result,
+            message="Patient locked successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[OperatorEndpoint] Failed to lock patient: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.delete(
+    "/patients/{patient_id}/lock",
+    response_model=GenericResponse[dict],
+    status_code=status.HTTP_200_OK,
+    summary="Unlock a walk-in patient",
+)
+async def unlock_walkin_patient_from_monitoring(
+    patient_id: str,
+    current_user: TbMUser = Depends(get_activated_operator_user),
+    patient_repo: PatientRepository = Depends(get_patient_repository),
+):
+    try:
+        operator_id = str(current_user.id)
+        result = patient_repo.unlock_walkin_patient(patient_id, operator_id)
+
+        if not result["success"]:
+            return GenericResponse(
+                status=ApiStatus.ERROR,
+                data=result,
+                message=result["message"],
+            )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=result,
+            message="Patient unlocked successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[OperatorEndpoint] Failed to unlock patient: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
 

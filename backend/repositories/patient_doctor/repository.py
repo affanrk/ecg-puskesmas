@@ -48,7 +48,6 @@ class PatientDoctorRepository:
             )
             self.db.add(link)
             self.db.commit()
-            self.db.refresh(link)
             logger.debug(
                 "[PatientDoctorRepository] Successfully completed create_patient_doctor."
             )

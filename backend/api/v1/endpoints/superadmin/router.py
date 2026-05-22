@@ -1,23 +1,36 @@
 import traceback
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import List, Optional, cast
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from core.dependencies import (
     get_superadmin_user,
     get_user_repository,
     get_location_repository,
+    get_transfer_request_repository,
+    get_location_assignment_service,
 )
 from repositories.location import LocationRepository
 from repositories.user import UserRepository
+from repositories.transfer_request import TransferRequestRepository
+from services.location_assignment import LocationAssignmentService
 from schemas.location import (
     LocationCreate,
     LocationUpdate,
     LocationResponse,
 )
 from schemas.user import UserResponse, UserSuperAdminCreate
+from schemas.staff import StaffAnonymizeRequest, StaffAnonymizeResponse
+from schemas.transfer_request import (
+    TransferRequestResponse,
+    TransferRequestApprove,
+    TransferRequestReject,
+)
+from schemas.user_location import StaffTransferResponse
 from schemas.common import GenericResponse, MessageResponse, ApiStatus
 from core.exceptions import AppException
 from models import TbMUser, TbMAdmin
+from services.anonymization import AnonymizationService
 from utils import logger, generate_custom_id, check_global_nik
 
 router = APIRouter()
@@ -504,6 +517,62 @@ def deactivate_admin(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+@router.post(
+    "/staff/{user_id}/anonymize",
+    response_model=GenericResponse[StaffAnonymizeResponse],
+)
+def anonymize_staff(
+    user_id: str,
+    anonymize_data: StaffAnonymizeRequest,
+    request: Request,
+    current_user: TbMUser = Depends(get_superadmin_user),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        user = user_repo.find_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if not (user.is_operator or user.is_doctor):
+            raise HTTPException(
+                status_code=400,
+                detail="User is not a staff member (operator/doctor). Only staff members can be anonymized.",
+            )
+
+        anonymization_service = AnonymizationService(user_repo.db)
+
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+
+        result = anonymization_service.anonymize_staff(
+            user_id=user_id,
+            legal_basis=anonymize_data.legal_basis,
+            reason=anonymize_data.reason,
+            actor_id=str(current_user.id),
+            actor_role="superadmin",
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        logger.info(
+            f"[SuperAdmin] SuperAdmin {current_user.username} anonymized staff {user_id}"
+        )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=StaffAnonymizeResponse(**result),
+            message="Staff member anonymized successfully",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[SuperAdmin] Unexpected error in anonymize_staff: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.delete("/locations/{location_id}", response_model=MessageResponse)
 def delete_location(
     location_id: str,
@@ -568,5 +637,286 @@ def delete_admin(
         raise
     except Exception as e:
         logger.error(f"[SuperAdmin] Unexpected error in delete_admin: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get(
+    "/approvals/transfers",
+    response_model=GenericResponse[List[TransferRequestResponse]],
+)
+def list_transfer_requests(
+    skip: int = 0,
+    limit: int = 100,
+    location_id: Optional[str] = Query(None),
+    _: TbMUser = Depends(get_superadmin_user),
+    transfer_request_repo: TransferRequestRepository = Depends(
+        get_transfer_request_repository
+    ),
+    user_repo: UserRepository = Depends(get_user_repository),
+):
+    try:
+        requests = transfer_request_repo.list_pending_requests(
+            location_id=location_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        response_data = []
+        for req in requests:
+            staff_name = None
+            staff_role = None
+            if req.user:
+                if req.user.is_operator and hasattr(req.user, "operator_profile"):
+                    staff_name = (
+                        req.user.operator_profile.full_name
+                        if req.user.operator_profile
+                        else None
+                    )
+                    staff_role = "operator"
+                elif req.user.is_doctor and hasattr(req.user, "doctor_profile"):
+                    staff_name = (
+                        req.user.doctor_profile.full_name
+                        if req.user.doctor_profile
+                        else None
+                    )
+                    staff_role = "doctor"
+
+            requester_name = None
+            if req.requester:
+                requester_name = (
+                    req.requester.full_name
+                    if hasattr(req.requester, "full_name")
+                    else req.requester.username
+                )
+
+            response_data.append(
+                TransferRequestResponse(
+                    id=str(req.id),
+                    user_id=str(req.user_id),
+                    staff_name=str(staff_name) if staff_name else None,
+                    staff_role=staff_role,
+                    source_location_id=str(req.source_location_id),
+                    source_location_name=(
+                        str(req.source_location.name) if req.source_location else None
+                    ),
+                    destination_location_id=str(req.destination_location_id),
+                    destination_location_name=(
+                        str(req.destination_location.name)
+                        if req.destination_location
+                        else None
+                    ),
+                    requested_by=str(req.requested_by) if req.requested_by else None,
+                    requester_name=str(requester_name) if requester_name else None,
+                    status=str(req.status),
+                    reason=str(req.reason) if req.reason else None,
+                    rejection_reason=(
+                        str(req.rejection_reason) if req.rejection_reason else None
+                    ),
+                    created_dt=cast(datetime, req.created_dt),
+                    processed_dt=cast(Optional[datetime], req.processed_dt),
+                )
+            )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=response_data,
+            message=f"Found {len(response_data)} pending transfer requests",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[SuperAdmin] Unexpected error in list_transfer_requests: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/approvals/transfers/{request_id}/approve",
+    response_model=GenericResponse[StaffTransferResponse],
+)
+def approve_transfer_request(
+    request_id: str,
+    approve_data: TransferRequestApprove,
+    request: Request,
+    current_user: TbMUser = Depends(get_superadmin_user),
+    transfer_request_repo: TransferRequestRepository = Depends(
+        get_transfer_request_repository
+    ),
+    location_assignment_service: LocationAssignmentService = Depends(
+        get_location_assignment_service
+    ),
+):
+    try:
+        transfer_request = transfer_request_repo.find_by_id(request_id)
+        if not transfer_request:
+            raise HTTPException(status_code=404, detail="Transfer request not found")
+
+        if transfer_request.status != "PENDING":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Transfer request is not pending (status: {transfer_request.status})",
+            )
+
+        approved_request = transfer_request_repo.approve_request(
+            request_id=request_id,
+            approved_by=str(current_user.id),
+        )
+
+        if not approved_request:
+            raise HTTPException(
+                status_code=400, detail="Failed to approve transfer request"
+            )
+
+        ip_address = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent")
+
+        result = location_assignment_service.transfer_staff_primary_location(
+            user_id=str(approved_request.user_id),
+            source_location_id=str(approved_request.source_location_id),
+            destination_location_id=str(approved_request.destination_location_id),
+            actor_id=str(current_user.id),
+            actor_role="superadmin",
+            reason=str(approved_request.reason) if approved_request.reason else None,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        logger.info(
+            f"[SuperAdmin] SuperAdmin {current_user.username} approved transfer request {request_id} "
+            f"and transferred staff {approved_request.user_id}"
+        )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=StaffTransferResponse(
+                user_id=result["user_id"],
+                old_primary_location_id=result["old_primary_location_id"],
+                new_primary_location_id=result["new_primary_location_id"],
+                sessions_invalidated=result["sessions_invalidated"],
+                requires_approval=False,
+                transfer_request_id=request_id,
+            ),
+            message="Transfer request approved and staff transferred successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[SuperAdmin] Unexpected error in approve_transfer_request: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.post(
+    "/approvals/transfers/{request_id}/reject",
+    response_model=GenericResponse[TransferRequestResponse],
+)
+def reject_transfer_request(
+    request_id: str,
+    reject_data: TransferRequestReject,
+    current_user: TbMUser = Depends(get_superadmin_user),
+    transfer_request_repo: TransferRequestRepository = Depends(
+        get_transfer_request_repository
+    ),
+):
+    try:
+        transfer_request = transfer_request_repo.find_by_id(request_id)
+        if not transfer_request:
+            raise HTTPException(status_code=404, detail="Transfer request not found")
+
+        if transfer_request.status != "PENDING":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Transfer request is not pending (status: {transfer_request.status})",
+            )
+
+        rejected_request = transfer_request_repo.reject_request(
+            request_id=request_id,
+            approved_by=str(current_user.id),
+            rejection_reason=reject_data.rejection_reason,
+        )
+
+        if not rejected_request:
+            raise HTTPException(
+                status_code=400, detail="Failed to reject transfer request"
+            )
+
+        staff_name = None
+        staff_role = None
+        if rejected_request.user:
+            if rejected_request.user.is_operator and hasattr(
+                rejected_request.user, "operator_profile"
+            ):
+                staff_name = (
+                    rejected_request.user.operator_profile.full_name
+                    if rejected_request.user.operator_profile
+                    else None
+                )
+                staff_role = "operator"
+            elif rejected_request.user.is_doctor and hasattr(
+                rejected_request.user, "doctor_profile"
+            ):
+                staff_name = (
+                    rejected_request.user.doctor_profile.full_name
+                    if rejected_request.user.doctor_profile
+                    else None
+                )
+                staff_role = "doctor"
+
+        requester_name = None
+        if rejected_request.requester:
+            requester_name = (
+                rejected_request.requester.full_name
+                if hasattr(rejected_request.requester, "full_name")
+                else rejected_request.requester.username
+            )
+
+        logger.info(
+            f"[SuperAdmin] SuperAdmin {current_user.username} rejected transfer request {request_id}"
+        )
+
+        return GenericResponse(
+            status=ApiStatus.SUCCESS,
+            data=TransferRequestResponse(
+                id=str(rejected_request.id),
+                user_id=str(rejected_request.user_id),
+                staff_name=str(staff_name) if staff_name else None,
+                staff_role=staff_role,
+                source_location_id=str(rejected_request.source_location_id),
+                source_location_name=(
+                    str(rejected_request.source_location.name)
+                    if rejected_request.source_location
+                    else None
+                ),
+                destination_location_id=str(rejected_request.destination_location_id),
+                destination_location_name=(
+                    str(rejected_request.destination_location.name)
+                    if rejected_request.destination_location
+                    else None
+                ),
+                requested_by=(
+                    str(rejected_request.requested_by)
+                    if rejected_request.requested_by
+                    else None
+                ),
+                requester_name=str(requester_name) if requester_name else None,
+                status=str(rejected_request.status),
+                reason=(
+                    str(rejected_request.reason) if rejected_request.reason else None
+                ),
+                rejection_reason=(
+                    str(rejected_request.rejection_reason)
+                    if rejected_request.rejection_reason
+                    else None
+                ),
+                created_dt=cast(datetime, rejected_request.created_dt),
+                processed_dt=cast(Optional[datetime], rejected_request.processed_dt),
+            ),
+            message="Transfer request rejected successfully",
+        )
+    except (HTTPException, AppException):
+        raise
+    except Exception as e:
+        logger.error(f"[SuperAdmin] Unexpected error in reject_transfer_request: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal Server Error")
